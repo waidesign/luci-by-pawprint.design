@@ -1,7 +1,8 @@
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { MEMORY_FILES, PRODUCT, userSkillsDir } from '@luci/format';
-import { detectProject, memoryDir, writeActiveTask } from '@luci/brain';
+import { convertPrototypeSkillFolder, detectProject, memoryDir, writeActiveTask } from '@luci/brain';
 import {
   GitHubClient,
   SkillDiscovery,
@@ -226,7 +227,33 @@ async function add(args: string[], ctx: CliContext): Promise<number> {
 
   const isGitHub = /^https?:\/\/github\.com\//.test(target);
   if (isGitHub) ctx.out(`Fetching from GitHub (network): ${target}`);
-  const prepared = await prepareSkill(isGitHub ? target : path.resolve(ctx.cwd, target), isGitHub ? { github: new GitHubClient() } : {});
+  // A skill folder from the earlier prototype is converted first, so its contract (author, keywords) is kept
+  const local = isGitHub ? null : path.resolve(ctx.cwd, target);
+  const converted = local && fs.existsSync(local) && fs.statSync(local).isDirectory() ? convertPrototypeSkillFolder(local) : null;
+  let staged: string | null = null;
+  if (converted) {
+    staged = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'luci-skill-')), path.basename(local!));
+    for (const [rel, text] of Object.entries(converted)) {
+      fs.mkdirSync(path.dirname(path.join(staged, rel)), { recursive: true });
+      fs.writeFileSync(path.join(staged, rel), text, 'utf8');
+    }
+    ctx.out('Converted from the earlier prototype\'s skill format.');
+  }
+  try {
+    return await addPrepared(staged ?? local ?? target, isGitHub, { toProject, yes, category, name }, ctx);
+  } finally {
+    if (staged) fs.rmSync(path.dirname(staged), { recursive: true, force: true });
+  }
+}
+
+async function addPrepared(
+  source: string,
+  isGitHub: boolean,
+  opts: { toProject: boolean; yes: boolean; category: string | undefined; name: string | undefined },
+  ctx: CliContext
+): Promise<number> {
+  const { toProject, yes, category, name } = opts;
+  const prepared = await prepareSkill(source, isGitHub ? { github: new GitHubClient() } : {});
   const root = toProject ? path.join(memoryDir(ctx.cwd), MEMORY_FILES.skills) : userSkillsDir();
   const preview = previewSkill(prepared, { root, flat: toProject, ...(category ? { category } : {}), ...(name ? { name } : {}) });
 

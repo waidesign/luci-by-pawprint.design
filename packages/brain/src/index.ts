@@ -81,6 +81,7 @@ export {
   type ImportReport,
   PROTOTYPE,
   convertSkillFiles,
+  convertPrototypeSkillFolder,
   importPrototype,
   matchesTemplate,
   mergeIntoTemplate,

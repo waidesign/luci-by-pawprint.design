@@ -211,6 +211,15 @@ export function convertSkillFiles(files: Readonly<Record<string, string>>): Reco
   return out;
 }
 
+/**
+ * A skill folder in the prototype's format (it has the prototype's contract file), converted to the
+ * Luci Skill Standard as relative path -> content. Null for any other folder. Used by `luci skills add`.
+ */
+export function convertPrototypeSkillFolder(dir: string): Record<string, string> | null {
+  if (!fs.existsSync(path.join(dir, PROTOTYPE.contractFile)) || !fs.existsSync(path.join(dir, SKILL_FILE))) return null;
+  return convertSkillFiles(readTree(dir));
+}
+
 const sameJson = (a: string, b: string) => {
   try { return JSON.stringify(JSON.parse(a)) === JSON.stringify(JSON.parse(b)); } catch { return a.trim() === b.trim(); }
 };
