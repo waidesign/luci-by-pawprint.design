@@ -11,7 +11,8 @@ export default defineConfig({
       { find: /^@luci\/format\/capture$/, replacement: fileURLToPath(new URL('./packages/format/src/capture/index.ts', import.meta.url)) },
       { find: /^@luci\/format$/, replacement: pkg('format') },
       { find: /^@luci\/brain$/, replacement: pkg('brain') },
-      { find: /^@luci\/skills$/, replacement: pkg('skills') }
+      { find: /^@luci\/skills$/, replacement: pkg('skills') },
+      { find: /^@luci\/capture$/, replacement: pkg('capture') }
     ]
   },
   test: {

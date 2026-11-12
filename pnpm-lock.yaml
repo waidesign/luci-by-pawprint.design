@@ -185,6 +185,19 @@ importers:
         specifier: workspace:*
         version: link:../skills
 
+  packages/capture:
+    dependencies:
+      '@luci/format':
+        specifier: workspace:*
+        version: link:../format
+      culori:
+        specifier: 4.0.2
+        version: 4.0.2
+    devDependencies:
+      '@types/culori':
+        specifier: 4.0.1
+        version: 4.0.1
+
   packages/cli:
     dependencies:
       '@luci/brain':

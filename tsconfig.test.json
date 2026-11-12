@@ -9,7 +9,8 @@
       "@luci/format": ["./packages/format/src/index.ts"],
       "@luci/format/capture": ["./packages/format/src/capture/index.ts"],
       "@luci/brain": ["./packages/brain/src/index.ts"],
-      "@luci/skills": ["./packages/skills/src/index.ts"]
+      "@luci/skills": ["./packages/skills/src/index.ts"],
+      "@luci/capture": ["./packages/capture/src/index.ts"]
     }
   },
   "include": ["packages/*/test/**/*.ts", "vitest.config.ts", "test-setup.ts", "test-global-setup.ts"]
