@@ -162,6 +162,8 @@ describe('Spacing tool (FR15, FR16)', () => {
     roundTrips(system);
     expect(findBaseUnit([{ px: 8, count: 5 }, { px: 16, count: 5 }, { px: 24, count: 3 }, { px: 32, count: 1 }])).toEqual({ px: 8, share: 1 });
     expect(findBaseUnit([{ px: 7, count: 2 }, { px: 13, count: 2 }, { px: 19, count: 2 }])).toBeNull();
+    // A 4px scale whose 12px values break the 8s is still a 4px scale
+    expect(findBaseUnit([{ px: 8, count: 6 }, { px: 12, count: 6 }, { px: 16, count: 14 }, { px: 24, count: 16 }, { px: 32, count: 8 }])?.px).toBe(4);
   });
 
   it('measures the distance between two picked elements', () => {

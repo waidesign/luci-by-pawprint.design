@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CSS-in-JS</title>
+<!-- Styling approach 2: CSS-in-JS. Rules are inserted at run time with insertRule into an empty
+     <style> (as emotion and styled-components do in production), under hashed class names. -->
+<style id="css-in-js"></style>
+<script>
+  const sheet = document.getElementById('css-in-js').sheet;
+  [
+    'html { font-size: 16px; }',
+    'body { margin: 0; font-family: "Helvetica Neue", Arial, sans-serif; color: #1f2933; background-color: #fafafa; }',
+    '.css-1x9k2w { display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; border-bottom: 1px solid #d9dee3; }',
+    '.css-8h3n1p { font-size: 15px; line-height: 20px; color: #1f2933; text-decoration: none; }',
+    '.css-q2w8zr { display: flex; column-gap: 30px; }',
+    '.css-5t6y7u { padding: 50px 40px; }',
+    '.css-hero9a { height: 120px; background: url("data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACwAAAAAAQABAAACAkQBADs=") center / cover; }',
+    '.css-k1l2m3 { margin: 40px 0 0; font-size: 50px; line-height: 60px; font-weight: 800; letter-spacing: -1px; }',
+    '.css-p0o9i8 { margin: 20px 0 0; font-size: 17px; line-height: 26px; color: #52606d; }',
+    '.css-z1x2c3 { margin: 40px 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }',
+    '.css-v4b5n6 { padding: 30px; background-color: #ffffff; border: 1px solid #d9dee3; border-radius: 10px; }',
+    '.css-m7n8b9 { margin: 0; font-size: 25px; line-height: 30px; font-weight: 700; }',
+    '.css-a1s2d3 { margin: 10px 0 0; font-size: 15px; line-height: 20px; color: #52606d; }',
+    '.css-f4g5h6 { display: inline-block; margin-top: 20px; padding: 10px 20px; background-color: #e12d39; color: #ffffff; font-size: 15px; line-height: 20px; font-weight: 600; border-radius: 5px; }',
+    '.css-j7k8l9 { margin: 20px 0 0; font-size: 13px; line-height: 20px; color: #52606d; }',
+    '.css-code01 { font-family: Menlo, monospace; font-size: 13px; }',
+    '.css-foot02 { padding: 30px 40px; background-color: #f0f2f4; }',
+    '.css-small3 { font-size: 13px; line-height: 20px; color: #52606d; }'
+  ].forEach(rule => sheet.insertRule(rule, sheet.cssRules.length));
+</script>
+</head>
+<body>
+  <header class="css-1x9k2w"><a href="/" class="css-8h3n1p">Recipe Box</a><nav class="css-q2w8zr"><a href="/plans" class="css-8h3n1p">Plans</a><a href="/docs" class="css-8h3n1p">Docs</a></nav></header>
+  <main class="css-5t6y7u">
+    <div id="hero" class="css-hero9a"></div>
+    <h1 class="css-k1l2m3">Plans for every kitchen</h1>
+    <p class="css-p0o9i8">Pick the plan that fits how often you cook.</p>
+    <ul class="css-z1x2c3">
+      <li class="css-v4b5n6"><h2 class="css-m7n8b9">Free</h2><p class="css-a1s2d3">For trying it out</p><a href="/start" class="css-f4g5h6">Start</a></li>
+      <li class="css-v4b5n6"><h2 class="css-m7n8b9">Home</h2><p class="css-a1s2d3">For weekly meal plans</p><a href="/start" class="css-f4g5h6">Start</a></li>
+      <li class="css-v4b5n6"><h2 class="css-m7n8b9">Family</h2><p class="css-a1s2d3">For four or more</p><a href="/start" class="css-f4g5h6">Start</a></li>
+    </ul>
+    <p class="css-j7k8l9"><img id="logo" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACwAAAAAAQABAAACAkQBADs=" width="16" height="16" alt=""> Prices in <code class="css-code01">EUR</code>.</p>
+    <svg id="icon" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="#e12d39"/></svg>
+  </main>
+  <footer class="css-foot02"><small class="css-small3">Example kitchen</small></footer>
+</body>
+</html>

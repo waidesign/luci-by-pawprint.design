@@ -101,7 +101,8 @@ describe('code map (B6)', () => {
   });
 });
 
-describe('code map freshness against git (B6)', () => {
+// These spawn git many times; under a full parallel run (with Chromium) that can take several seconds
+describe('code map freshness against git (B6)', { timeout: 30_000 }, () => {
   it('is current right after a build, stale once code changes, and ignores non-code files', () => {
     const dir = makeProject();
     git(dir, 'init', '-q');

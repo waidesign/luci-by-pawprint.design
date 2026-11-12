@@ -29,6 +29,7 @@ export interface ColorUse {
 }
 
 const SIDES = ['top', 'right', 'bottom', 'left'] as const;
+export const SVG_SHAPES: ReadonlySet<string> = new Set(['path', 'circle', 'rect', 'ellipse', 'line', 'polyline', 'polygon', 'text', 'tspan']);
 
 /** Every colour an element applies, with the role it plays. */
 export function colorUses(el: ElementSnapshot): ColorUse[] {
@@ -49,9 +50,10 @@ export function colorUses(el: ElementSnapshot): ColorUse[] {
     const style = el.styles[`border-${side}-style`] ?? 'none';
     if (width > 0 && style !== 'none' && style !== 'hidden') add(`border-${side}-color`, 'border');
   }
-  if (el.tag === 'svg' || el.tag === 'path' || el.tag === 'circle' || el.tag === 'rect' || el.tag === 'g') {
+  // Fill and stroke paint only on shapes (the <svg> and <g> elements carry a default black fill they never paint)
+  if (SVG_SHAPES.has(el.tag)) {
     add('fill', 'text');
-    add('stroke', 'text');
+    if (parseFloat(el.styles['stroke-width'] ?? '1') !== 0) add('stroke', 'text');
   }
   return uses;
 }
@@ -96,6 +98,13 @@ export function colorSystem(snapshot: PageSnapshot, options: { captured?: string
 const nameFor = (computed: string, token: string | undefined) =>
   toCaptureName(token ? `color-${token.replace(/^--(colou?r-)?/i, '')}` : `color-${(colorKey(computed) ?? 'value').replace('#', '')}`);
 
+/** The first value for each key, in order. */
+function firstOfEach<T>(items: readonly { key: string; value: T }[]): T[] {
+  const seen = new Map<string, T>();
+  for (const { key, value } of items) if (!seen.has(key)) seen.set(key, value);
+  return [...seen.values()];
+}
+
 /** "Where used" lists each kind of element and property once, at most this many. */
 export const MAX_USED_FOR = 12;
 
@@ -130,9 +139,9 @@ export function colorToken(snapshot: PageSnapshot, pick: { element: ElementSnaps
     meta: { name: nameFor(computed, tokened?.token), scope: 'token', type: 'color', source: snapshot.url, ...(selector ? { selector } : {}), captured, method: same.length ? 'measured' : 'estimated' },
     value: { computed, ...(tokened?.authored ? { authored: tokened.authored } : {}), ...(tokened?.token ? { token: tokened.token } : {}) },
     ...(role ? { role } : {}),
-    usedFor: [...new Map(same.map(u => {
+    usedFor: firstOfEach(same.map(u => {
       const element = elementName(u.el.tag, u.el.role);
-      return [`${element}|${u.property}`, { element, property: u.property, selector: u.el.selector }] as const;
-    })).values()].slice(0, MAX_USED_FOR)
+      return { key: `${element}|${u.property}`, value: { element, property: u.property, selector: u.el.selector } };
+    })).slice(0, MAX_USED_FOR)
   };
 }

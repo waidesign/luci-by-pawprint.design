@@ -16,7 +16,7 @@ export const SNAPSHOT_PROPERTIES = [
   'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
   'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
   'gap', 'row-gap', 'column-gap',
-  'fill', 'stroke'
+  'fill', 'stroke', 'stroke-width'
 ] as const;
 export type SnapshotProperty = (typeof SNAPSHOT_PROPERTIES)[number];
 

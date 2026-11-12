@@ -1,0 +1,165 @@
+/// <reference lib="dom" />
+/**
+ * The capture tools on five local test sites, one per styling approach (PRD success measures):
+ * utility classes, CSS-in-JS, CSS Modules, web components, plain CSS variables. Runs in headless
+ * Chromium. Values are checked against getComputedStyle (what DevTools' Computed panel shows) on the
+ * element the file's selector finds, and every file is checked against its golden file.
+ */
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import type { Browser } from 'playwright';
+import { SITES, captureBundle, launch, openSite, serveSites, type SiteName } from './browser.js';
+
+const EXPECTED = fileURLToPath(new URL('../fixtures/expected/', import.meta.url));
+/** The base unit each site really uses. */
+const BASE_UNIT: Readonly<Record<SiteName, number>> = { utility: 4, 'css-in-js': 10, 'css-modules': 4, 'web-components': 8, 'css-variables': 4 };
+
+let browser: Browser;
+let server: Awaited<ReturnType<typeof serveSites>>;
+let bundle: string;
+beforeAll(async () => {
+  [browser, server, bundle] = await Promise.all([launch(), serveSites(), captureBundle()]);
+}, 60_000);
+afterAll(async () => {
+  await browser?.close();
+  await server?.close();
+});
+
+interface SiteResult {
+  eligibility: Record<string, string>;
+  duplicateStyles: number;
+  textWithoutRole: number;
+  roles: string[];
+  h1: { checks: { prop: string; file: string; browser: string }[]; selectorFinds: boolean };
+  colorUsesMissing: string[];
+  accent: { key: string; token: string | null } | null;
+  baseUnit: number | null;
+  shadowButton: { selector: string; accentToken: string | null } | null;
+  selectorsResolve: Record<string, boolean>;
+  files: { name: string; text: string; parses: boolean }[];
+}
+
+/** Everything the test checks, computed inside the page. */
+function runInPage(): SiteResult {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const L = (window as any).LuciCapture;
+  const CAPTURED = { captured: '2026-11-12' };
+  const resolve = (selector: string): Element | null => {
+    const parts = selector.split(' >> ');
+    let root: Document | ShadowRoot = document;
+    let el: Element | null = null;
+    for (const part of parts) {
+      el = root.querySelector(part);
+      if (!el) return null;
+      if (el.shadowRoot) root = el.shadowRoot;
+    }
+    return el;
+  };
+  const snap = L.snapshotPage();
+  const els = snap.elements as { id: number; tag: string; selector: string; visible: boolean; hasText: boolean; inShadow: boolean; styles: Record<string, string> }[];
+  const byId = (id: string) => els.find(e => e.selector === `#${id}`)!;
+  const elig = (e: { tag: string; styles: Record<string, string> }) => L.eligibility({ tag: e.tag, backgroundImage: e.styles['background-image'] }).status;
+
+  const groups = L.textGroups(snap) as { key: string; role: string }[];
+  const keys = new Set(groups.map(g => g.key));
+  const textEls = L.textElements(snap) as typeof els;
+
+  const h1 = els.find(e => e.tag === 'h1' && !e.inShadow)!;
+  const textToken = L.textToken(snap, h1, CAPTURED);
+  const live = getComputedStyle(resolve(textToken.meta.selector)!);
+  const checks = ([['family', 'font-family'], ['size', 'font-size'], ['weight', 'font-weight'], ['lineHeight', 'line-height'], ['letterSpacing', 'letter-spacing'], ['color', 'color']] as const)
+    .map(([key, prop]) => ({ prop, file: textToken.style[key].computed, browser: live.getPropertyValue(prop).trim() }));
+
+  const system = L.colorSystem(snap, CAPTURED);
+  const roleKeys = new Set((system.roles as { role: string; value: { computed: string } }[]).map(r => `${r.role}|${L.colorKey(r.value.computed)}`));
+  const uses = L.allColorUses(snap) as { role: string; key: string; property: string; el: { selector: string }; token?: string }[];
+  const missing = uses.filter(u => !roleKeys.has(`${u.role}|${u.key}`)).map(u => `${u.el.selector} ${u.property}`);
+  const accentUse = uses.find(u => u.role === 'accent' && u.property === 'background-color');
+  const button = els.find(e => e.selector === accentUse?.el.selector)!;
+  const colorToken = L.colorToken(snap, { element: button }, CAPTURED);
+
+  const gapEl = els.find(e => e.visible && /flex|grid/.test(e.styles.display ?? '') && parseFloat(e.styles['column-gap'] ?? '0') > 0 && !e.inShadow)!;
+  const gapUse = (L.spacingUses(gapEl) as { property: string }[]).find(u => u.property === 'column-gap');
+  const spacingToken = L.spacingToken(snap, gapUse, CAPTURED);
+  const lead = els.find(e => e.id > h1.id && e.tag === 'p')!;
+  const distance = L.distanceToken(snap, h1, lead, CAPTURED);
+
+  const shadowButton = els.find(e => e.inShadow && e.tag === 'button');
+  const shadowUse = shadowButton ? uses.find(u => u.el.selector === shadowButton.selector && u.property === 'background-color') : undefined;
+
+  const captures = [textToken, colorToken, spacingToken, distance, L.typographySystem(snap, CAPTURED), system, L.spacingSystem(snap, CAPTURED)];
+  return {
+    eligibility: { image: elig(byId('logo')), hero: elig(byId('hero')), svg: elig(byId('icon')), body: elig(els.find(e => e.tag === 'body')!) },
+    duplicateStyles: groups.length - keys.size,
+    textWithoutRole: textEls.filter(e => !keys.has(L.styleKey(e))).length,
+    roles: groups.map(g => g.role),
+    h1: { checks, selectorFinds: resolve(h1.selector) !== null },
+    colorUsesMissing: missing,
+    accent: accentUse ? { key: accentUse.key, token: accentUse.token ?? null } : null,
+    baseUnit: L.spacingSystem(snap, CAPTURED)?.baseUnit?.px ?? null,
+    shadowButton: shadowButton ? { selector: shadowButton.selector, accentToken: shadowUse?.token ?? null } : null,
+    selectorsResolve: Object.fromEntries(captures.filter(c => c.meta.selector).map(c => [c.meta.name, resolve(c.meta.selector) !== null])),
+    files: captures.map(c => {
+      const text = L.formatCapture(c, { units: 'px', colors: 'hex' });
+      return { name: L.captureFileName(c.meta), text, parses: L.parseCapture(text).ok };
+    })
+  };
+}
+
+describe.each(SITES)('capture tools on the %s site (M4)', (site) => {
+  let result: SiteResult;
+  beforeAll(async () => {
+    const page = await openSite(browser, server.origin, site, bundle);
+    result = await page.evaluate(runInPage);
+    await page.close();
+  }, 60_000);
+
+  it('blocks the image and the photo background; allows SVG; the body redirects (FR4)', () => {
+    expect(result.eligibility).toEqual({ image: 'blocked', hero: 'blocked', svg: 'allowed', body: 'redirected' });
+  });
+
+  it('Text: each style appears once, every text element has a role, and the h1 matches the browser (FR11, FR12)', () => {
+    expect(result.duplicateStyles).toBe(0);
+    expect(result.textWithoutRole).toBe(0);
+    expect(result.roles).toContain('heading-1');
+    expect(result.h1.selectorFinds).toBe(true);
+    for (const c of result.h1.checks) expect(c.file, `${site} h1 ${c.prop}`).toBe(c.browser);
+  });
+
+  it('Colour: every colour a visible element uses appears with its role, and the accent is found (FR13, FR14)', () => {
+    expect(result.colorUsesMissing).toEqual([]);
+    expect(result.accent).not.toBeNull();
+  });
+
+  it('Spacing: the base unit matches the site\'s own scale (FR15, FR16)', () => {
+    expect(result.baseUnit).toBe(BASE_UNIT[site]);
+  });
+
+  it('every file parses, its selector finds the element, and it matches the golden file', async () => {
+    for (const [name, found] of Object.entries(result.selectorsResolve)) expect(found, `${site} ${name}`).toBe(true);
+    for (const f of result.files) {
+      expect(f.parses, f.name).toBe(true);
+      // The test server's port changes every run
+      await expect(f.text.replace(/http:\/\/127\.0\.0\.1:\d+/g, 'http://127.0.0.1:PORT')).toMatchFileSnapshot(path.join(EXPECTED, site, f.name));
+    }
+  });
+
+  if (site === 'web-components') {
+    it('reads inside shadow roots: the card button and its token (FR6)', () => {
+      expect(result.shadowButton?.selector).toMatch(/ >> button$/);
+      expect(result.shadowButton?.accentToken).toBe('--wc-primary');
+    });
+  }
+  if (site === 'css-variables') {
+    it('records tokens and authored values: var() and clamp() (FR9, decision 6)', () => {
+      expect(result.accent?.token).toBe('--color-primary');
+      const text = result.files.find(f => f.name.includes('.token.text-'))!.text;
+      expect(text).toContain('`clamp(2rem, 2rem + 2vw, 3rem)`');
+      expect(text).toContain('`--font-sans`');
+      expect(text).toContain('`--color-text`');
+      const colors = result.files.find(f => f.name.endsWith('.system.color.design.md'))!.text;
+      expect(colors).toMatch(/\| `--color-unused` \| #da1e28 \| 0 \|/);
+    });
+  }
+});
