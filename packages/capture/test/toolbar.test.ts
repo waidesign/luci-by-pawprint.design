@@ -46,7 +46,7 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
       return { shadow: Boolean(host.shadowRoot), inSnapshot: snap.elements.some((e: { tag: string }) => e.tag === 'luci-toolbar') };
     });
     expect(info).toEqual({ shadow: true, inSnapshot: false });
-    expect(await page.locator('button[data-tool]').allInnerTexts()).toEqual(['Text', 'Colour', 'Spacing']);
+    expect(await page.locator('button[data-tool]').allInnerTexts()).toEqual(['Component', 'Text', 'Colour', 'Spacing']);
   });
 
   it('hover shows tag and size; an image is greyed with the reason and cannot be picked (FR2, FR4)', async () => {

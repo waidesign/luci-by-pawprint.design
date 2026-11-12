@@ -16,7 +16,12 @@ export const SNAPSHOT_PROPERTIES = [
   'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
   'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
   'gap', 'row-gap', 'column-gap',
-  'fill', 'stroke', 'stroke-width'
+  'fill', 'stroke', 'stroke-width',
+  // The Component tool (M5) also reads these
+  'width', 'height', 'flex-direction', 'align-items', 'justify-content',
+  'border-radius', 'box-shadow', 'cursor', 'outline-offset', 'text-align',
+  'transition-property', 'transition-duration', 'transition-timing-function', 'transition-delay',
+  'animation-name', 'animation-duration', 'animation-timing-function', 'animation-iteration-count'
 ] as const;
 export type SnapshotProperty = (typeof SNAPSHOT_PROPERTIES)[number];
 
@@ -48,6 +53,8 @@ export interface ElementSnapshot {
   authored: Partial<Record<SnapshotProperty, string>>;
   /** Properties whose value is only the browser's default for this tag (e.g. a paragraph's 1em margin). */
   browserDefault?: Partial<Record<SnapshotProperty, true>>;
+  /** Properties a stylesheet rule or inline style sets on this element itself (not inherited). */
+  declared?: Partial<Record<SnapshotProperty, true>>;
 }
 
 export interface PageSnapshot {
@@ -58,6 +65,8 @@ export interface PageSnapshot {
   /** Custom properties defined on :root, resolved: { "--color-primary": "#0f62fe" }. */
   customProperties: Record<string, string>;
   elements: ElementSnapshot[];
+  /** False when a stylesheet could not be read (cross-origin), so "declared" may miss rules. */
+  stylesReadable?: boolean;
 }
 
 /** The custom property an authored value goes through: "var(--space-4, 16px)" -> "--space-4". */

@@ -46,6 +46,7 @@ const DRAG_PX = 6;
 
 /** What to do with each tool, shown under the bar while it is picking. */
 export const TOOL_HINTS: Readonly<Record<ToolId, string>> = {
+  component: 'Click a component: a button, card, link, field or badge. ↑ widens the pick to the whole component.',
   text: 'Click any text on the page: a heading, paragraph, link or label.',
   color: 'Click an element to take its colour, or choose Pixel to pick any spot with the eyedropper.',
   spacing: 'Click an element for its padding, margin or gap, or drag from one element to another to measure the distance.'
@@ -314,7 +315,6 @@ export function Toolbar(props: ToolbarProps) {
     <div class="luci">
       <div class="bar" role="toolbar" aria-label="Luci capture">
         <span class="brand">Luci</span>
-        <button type="button" disabled title="The Component tool arrives in the next release">Component</button>
         {TOOLS.map(t => (
           <button type="button" aria-pressed={tool === t && (picking || dropperOpen || Boolean(picked) || Boolean(result))} data-tool={t} onClick={() => startPicking(t)}>{TOOL_LABELS[t]}</button>
         ))}
@@ -371,7 +371,7 @@ export function Toolbar(props: ToolbarProps) {
             {picked.eligibility.status === 'allowed' && (
               <button type="button" class="primary" data-output="one" onClick={() => show(captureOne(tool, picked.live, picked.entry, settings, choice))}>This one</button>
             )}
-            <button type="button" class={picked.eligibility.status === 'allowed' ? '' : 'primary'} data-output="system" onClick={() => show(captureSystem(tool, picked.live, settings))}>The whole system</button>
+            <button type="button" class={picked.eligibility.status === 'allowed' ? '' : 'primary'} data-output="system" onClick={() => show(captureSystem(tool, picked.live, settings, picked.entry))}>The whole system</button>
             <button type="button" onClick={() => startPicking(tool)}>Pick again</button>
           </div>
         </div>

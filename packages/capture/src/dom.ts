@@ -224,8 +224,10 @@ export function snapshotPage(doc: Document = document, options: SnapshotOptions 
       const own = matches.get(el) ?? [];
       const authored: ElementSnapshot['authored'] = {};
       const browserDefault: NonNullable<ElementSnapshot['browserDefault']> = {};
+      const declared: NonNullable<ElementSnapshot['declared']> = {};
       for (const p of SNAPSHOT_PROPERTIES) {
         let value = authoredValue(el, p, own);
+        if (value) declared[p] = true;
         if (value && /^(inherit|initial|unset|revert|revert-layer)$/.test(value)) value = null;
         // An inherited value comes from the nearest ancestor that set it
         if (!value && INHERITED.has(p) && parent && parent.styles[p] === styles[p]) value = parent.authored[p] ?? null;
@@ -249,7 +251,8 @@ export function snapshotPage(doc: Document = document, options: SnapshotOptions 
         inShadow: hostSelector !== null,
         styles,
         authored,
-        ...(Object.keys(browserDefault).length ? { browserDefault } : {})
+        ...(Object.keys(browserDefault).length ? { browserDefault } : {}),
+        ...(Object.keys(declared).length ? { declared } : {})
       };
       elements.push(snapshot);
       options.nodes?.push(el);
@@ -280,5 +283,5 @@ export function snapshotPage(doc: Document = document, options: SnapshotOptions 
   }
 
   blank.frame?.remove();
-  return { url: doc.location?.href ?? '', rootFontSize, customProperties, elements };
+  return { url: doc.location?.href ?? '', rootFontSize, customProperties, elements, stylesReadable: state.allReadable };
 }

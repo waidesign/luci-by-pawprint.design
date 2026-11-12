@@ -36,6 +36,7 @@ interface SiteResult {
   accent: { key: string; token: string | null } | null;
   baseUnit: number | null;
   shadowButton: { selector: string; accentToken: string | null } | null;
+  component: { type: string; background: string | null; browserBackground: string; backgroundToken: string | null; hasMargin: boolean; labelSize: string | null; browserLabelSize: string; firstVariantCount: number; tokens: string[] };
   selectorsResolve: Record<string, boolean>;
   files: { name: string; text: string; parses: boolean }[];
 }
@@ -88,7 +89,22 @@ function runInPage(): SiteResult {
   const shadowButton = els.find(e => e.inShadow && e.tag === 'button');
   const shadowUse = shadowButton ? uses.find(u => u.el.selector === shadowButton.selector && u.property === 'background-color') : undefined;
 
-  const captures = [textToken, colorToken, spacingToken, distance, L.typographySystem(snap, CAPTURED), system, L.spacingSystem(snap, CAPTURED)];
+  // The Component tool on the accent button, with its variants on the page
+  const liveSnap = L.liveSnapshot();
+  const compEntry = liveSnap.snapshot.elements.find((e: { selector: string }) => e.selector === accentUse?.el.selector);
+  const component = L.componentCapture(liveSnap.snapshot, compEntry, L.insideOf(liveSnap, compEntry), { ...CAPTURED, system: true });
+  const compLive = getComputedStyle(resolve(component.meta.selector)!);
+  const containerStyles = component.anatomy[0].styles as { property: string; value: { computed: string; token?: string } }[];
+  const label = (component.anatomy as { part: string; styles: { property: string; value: { computed: string } }[] }[]).find(p => p.part === 'label');
+  const labelEl = (() => {
+    // The label's text is the container's own text or its first text-bearing child
+    const root = resolve(component.meta.selector)!;
+    const walker = document.createTreeWalker(root.shadowRoot ?? root, NodeFilter.SHOW_TEXT);
+    const text = walker.nextNode();
+    return text?.parentElement ?? root;
+  })();
+
+  const captures = [textToken, colorToken, spacingToken, distance, L.typographySystem(snap, CAPTURED), system, L.spacingSystem(snap, CAPTURED), component];
   return {
     eligibility: { image: elig(byId('logo')), hero: elig(byId('hero')), svg: elig(byId('icon')), body: elig(els.find(e => e.tag === 'body')!) },
     duplicateStyles: groups.length - keys.size,
@@ -99,6 +115,17 @@ function runInPage(): SiteResult {
     accent: accentUse ? { key: accentUse.key, token: accentUse.token ?? null } : null,
     baseUnit: L.spacingSystem(snap, CAPTURED)?.baseUnit?.px ?? null,
     shadowButton: shadowButton ? { selector: shadowButton.selector, accentToken: shadowUse?.token ?? null } : null,
+    component: {
+      type: component.meta.type,
+      background: containerStyles.find(s => s.property === 'background-color')?.value.computed ?? null,
+      browserBackground: compLive.backgroundColor,
+      backgroundToken: containerStyles.find(s => s.property === 'background-color')?.value.token ?? null,
+      hasMargin: containerStyles.some(s => s.property.startsWith('margin')),
+      labelSize: label?.styles.find(s => s.property === 'font-size')?.value.computed ?? null,
+      browserLabelSize: getComputedStyle(labelEl).fontSize,
+      firstVariantCount: component.variants?.[0]?.count ?? 0,
+      tokens: (component.tokens as { token: string }[]).map(t => t.token)
+    },
     selectorsResolve: Object.fromEntries(captures.filter(c => c.meta.selector).map(c => [c.meta.name, resolve(c.meta.selector) !== null])),
     files: captures.map(c => {
       const text = L.formatCapture(c, { units: 'px', colors: 'hex' });
@@ -134,6 +161,21 @@ describe.each(SITES)('capture tools on the %s site (M4)', (site) => {
 
   it('Spacing: the base unit matches the site\'s own scale (FR15, FR16)', () => {
     expect(result.baseUnit).toBe(BASE_UNIT[site]);
+  });
+
+  it('Component: the accent button, its label and its variants match the browser (FR7, FR10)', () => {
+    const c = result.component;
+    expect(c.type).toBe('button');
+    expect(c.background).toBe(c.browserBackground);
+    expect(c.labelSize).toBe(c.browserLabelSize);
+    expect(c.hasMargin).toBe(false);
+    // The three identical "Start" buttons are one variant group
+    expect(c.firstVariantCount).toBe(3);
+    if (site === 'css-variables') {
+      expect(c.backgroundToken).toBe('--color-primary');
+      expect(c.tokens).toEqual(expect.arrayContaining(['--color-primary', '--space-3', '--space-6', '--text-sm']));
+    }
+    if (site === 'web-components') expect(c.tokens).toContain('--wc-primary');
   });
 
   it('every file parses, its selector finds the element, and it matches the golden file', async () => {

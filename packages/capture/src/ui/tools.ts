@@ -2,16 +2,17 @@
  * What each toolbar tool produces from a pick. The view (toolbar.tsx) calls these; they hold no UI state.
  * Every tool offers two outputs (FR5): this one item, or the whole system on the page.
  */
-import { captureFileName, formatCapture, type Capture, type CaptureSettings } from '@luci/format/capture';
+import { captureFileName, formatCapture, type Capture, type CaptureSettings, type ComponentCapture } from '@luci/format/capture';
 import { colorToken, colorUses, colorSystem } from '../color.js';
+import { componentCapture } from '../component.js';
 import { snapshotPage } from '../dom.js';
 import type { ElementSnapshot, PageSnapshot } from '../model.js';
 import { distanceToken, spacingSystem, spacingToken, spacingUses, type SpacingUse } from '../spacing.js';
 import { textToken, typographySystem } from '../text.js';
 
-export const TOOLS = ['text', 'color', 'spacing'] as const;
+export const TOOLS = ['component', 'text', 'color', 'spacing'] as const;
 export type ToolId = (typeof TOOLS)[number];
-export const TOOL_LABELS: Readonly<Record<ToolId, string>> = { text: 'Text', color: 'Colour', spacing: 'Spacing' };
+export const TOOL_LABELS: Readonly<Record<ToolId, string>> = { component: 'Component', text: 'Text', color: 'Colour', spacing: 'Spacing' };
 
 export interface Output {
   capture: Capture;
@@ -54,9 +55,28 @@ export const spacingChoices = (entry: ElementSnapshot): SpacingUse[] => spacingU
 
 const CAPTURED = () => new Date().toISOString().slice(0, 10);
 
+/** How deep an element is inside a container (0 for the container itself, null outside it). */
+export function insideOf(live: LiveSnapshot, container: ElementSnapshot): (el: ElementSnapshot) => number | null {
+  const root = live.nodes[container.id]!;
+  return (el) => {
+    let depth = 0;
+    for (let n: Element | null = live.nodes[el.id] ?? null; n; n = n.parentElement ?? ((n.getRootNode() as ShadowRoot).host ?? null)) {
+      if (n === root) return depth;
+      depth++;
+    }
+    return null;
+  };
+}
+
+/** A component capture from a pick; `system` adds the page's variants. States are read separately (states.ts). */
+export function captureComponent(live: LiveSnapshot, entry: ElementSnapshot, settings: CaptureSettings, options: { system?: boolean; states?: ComponentCapture['states'] } = {}): Result {
+  return { ok: true, output: toOutput(componentCapture(live.snapshot, entry, insideOf(live, entry), { captured: CAPTURED(), ...options }), settings) };
+}
+
 /** "This one": one item from the picked element. */
 export function captureOne(tool: ToolId, live: LiveSnapshot, entry: ElementSnapshot, settings: CaptureSettings, choice = 0): Result {
   const options = { captured: CAPTURED() };
+  if (tool === 'component') return captureComponent(live, entry, settings);
   if (tool === 'text') {
     const target = textTarget(live, entry);
     if (!target) return { ok: false, message: 'This element has no text. Pick a heading, paragraph, link or label.' };
@@ -84,9 +104,13 @@ export function captureDistance(live: LiveSnapshot, a: ElementSnapshot, b: Eleme
   return { ok: true, output: toOutput(distanceToken(live.snapshot, a, b, { captured: CAPTURED() }), settings) };
 }
 
-/** "The whole system": the page's typography, colours or spacing. */
-export function captureSystem(tool: ToolId, live: LiveSnapshot, settings: CaptureSettings): Result {
+/** "The whole system": the page's typography, colours or spacing; for a component, its variants on the page. */
+export function captureSystem(tool: ToolId, live: LiveSnapshot, settings: CaptureSettings, entry?: ElementSnapshot): Result {
   const options = { captured: CAPTURED() };
+  if (tool === 'component') {
+    if (!entry || entry.tag === 'body' || entry.tag === 'html') return { ok: false, message: 'Pick a component first (a button, card, link...), then "The whole system" lists its variants on this page.' };
+    return captureComponent(live, entry, settings, { system: true });
+  }
   const system = tool === 'text' ? typographySystem(live.snapshot, options) : tool === 'color' ? colorSystem(live.snapshot, options) : spacingSystem(live.snapshot, options);
   if (!system) return { ok: false, message: `This page has no ${tool === 'text' ? 'visible text' : tool === 'color' ? 'visible colours' : 'spacing'} to capture.` };
   return { ok: true, output: toOutput(system, settings) };

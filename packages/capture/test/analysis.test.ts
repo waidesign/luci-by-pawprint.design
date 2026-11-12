@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { formatCapture, parseCapture } from '@luci/format/capture';
 import {
+  boxShorthand,
+  componentCapture,
+  componentType,
+  motionOf,
   colorSystem,
   colorToken,
   distanceBetween,
@@ -135,6 +139,37 @@ describe('Colour tool (FR13, FR14)', () => {
     expect(photo).toMatchObject({ meta: { name: 'color-c9a227', method: 'estimated' }, usedFor: [] });
     expect(photo.meta.selector).toBeUndefined();
     roundTrips(photo);
+  });
+});
+
+describe('Component tool (FR7, FR10, FR17)', () => {
+  it('shorthands, types and motion', () => {
+    expect(boxShorthand('12px', '20px', '12px', '20px')).toBe('12px 20px');
+    expect(boxShorthand('8px', '8px', '8px', '8px')).toBe('8px');
+    expect(boxShorthand('1px', '2px', '3px', '2px')).toBe('1px 2px 3px');
+    expect(componentType(el('a', { 'background-color': 'rgb(15, 98, 254)' }))).toBe('button');
+    expect(componentType(el('a'))).toBe('link');
+    expect(componentType(el('li', { 'box-shadow': '0 1px 2px black' }, { rect: { x: 0, y: 0, width: 300, height: 200 } }))).toBe('card');
+    expect(motionOf(el('a', { 'transition-property': 'background-color, color', 'transition-duration': '150ms, 0s', 'transition-timing-function': 'ease-out', 'transition-delay': '0s' })))
+      .toEqual([{ kind: 'transition', target: 'background-color', duration: '150ms', easing: 'ease-out' }]);
+    expect(motionOf(el('a', { 'transition-property': 'all', 'transition-duration': '0s', 'animation-name': 'none' }))).toEqual([]);
+  });
+
+  it('keeps only declared styles, names parts from structure, and groups variants', () => {
+    const button = (bg: string, extra: Partial<ElementSnapshot> = {}) => el('a', { ...TEXT, 'background-color': bg, 'padding-top': '12px', 'padding-right': '20px', 'padding-bottom': '12px', 'padding-left': '20px', 'margin-top': '24px', 'border-radius': '8px' },
+      { hasText: true, declared: { 'background-color': true, 'padding-top': true, 'padding-right': true, 'padding-bottom': true, 'padding-left': true, 'border-radius': true }, authored: { 'background-color': 'var(--color-primary)' }, ...extra });
+    const a = button('rgb(15, 98, 254)');
+    const b = button('rgb(15, 98, 254)');
+    const ghost = button('rgb(244, 244, 244)');
+    const s = { ...page([a, b, ghost], { '--color-primary': '#0f62fe' }), stylesReadable: true };
+    const c = componentCapture(s, a, e => (e.id === a.id ? 0 : null), { captured: '2026-11-12', system: true });
+    expect(c.meta).toMatchObject({ name: 'primary-button', type: 'button' });
+    expect(c.anatomy[0]!.styles.map(x => x.property)).toEqual(['padding', 'border-radius', 'background-color']);
+    expect(c.anatomy[1]).toMatchObject({ part: 'label', element: 'text' });
+    expect(c.tokens).toEqual([{ token: '--color-primary', value: '#0f62fe', usedFor: ['background-color'] }]);
+    expect(c.variants?.map(v => [v.name, v.count])).toEqual([['primary-button', 2], ['primary-button-2', 1]]);
+    expect(c.variants?.[1]?.differences.map(d => d.property)).toEqual(['background-color']);
+    roundTrips(c);
   });
 });
 
