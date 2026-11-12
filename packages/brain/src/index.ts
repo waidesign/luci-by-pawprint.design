@@ -51,6 +51,18 @@ export {
   readProjectGoal,
   readProjectRules
 } from './context/projectContext.js';
+export {
+  type DocAnalysis,
+  type DocSection,
+  type IntakeReport,
+  type SectionKind,
+  INTAKE_EXTENSIONS,
+  MAX_INTAKE_BYTES,
+  analyzeDoc,
+  intakeDocs,
+  kindOf,
+  splitSections
+} from './intake/intake.js';
 export { type StartReport, type UpdateReport, startProject, updateProject, generatedFiles } from './init/startUpdate.js';
 export {
   type Check,

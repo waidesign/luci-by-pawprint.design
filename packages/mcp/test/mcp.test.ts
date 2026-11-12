@@ -38,7 +38,7 @@ describe('luci-mcp tools (B11)', () => {
     const names = TOOLS.map(t => t.name).sort();
     expect(names).toEqual([
       'add_skill_packs', 'analyze_project', 'get_active_task', 'get_global_brain', 'get_project_context',
-      'get_project_skills', 'get_project_status', 'get_skill', 'initialize_project', 'list_skill_packs',
+      'get_project_skills', 'get_project_status', 'get_skill', 'initialize_project', 'intake_docs', 'list_skill_packs',
       'list_skills', 'load_project_skills', 'load_skills', 'propose_memory', 'recommend_skills',
       'remove_skill_packs', 'search_skills', 'select_project_skills', 'update_project_memory'
     ]);
@@ -109,7 +109,8 @@ describe('luci-mcp tools (B11)', () => {
       ['select_project_skills', { ids: ['accessibility-baseline'] }],
       ['add_skill_packs', { names: ['ui'] }],
       ['propose_memory', { topic: 't', whatHappened: 'w', proposed: 'p', belongsIn: 'rules.md' }],
-      ['load_project_skills', { taskPrompt: 'build a form' }]
+      ['load_project_skills', { taskPrompt: 'build a form' }],
+      ['intake_docs', { files: ['package.json'] }]
     ] as const) {
       expect((await call(bare, name, args)).isError, name).toBe(true);
     }

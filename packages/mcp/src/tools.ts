@@ -12,6 +12,7 @@ import {
   MemoryEngine,
   detectProject,
   initProject,
+  intakeDocs,
   loadProjectContext,
   memoryDir,
   memoryPath,
@@ -320,6 +321,20 @@ export const TOOLS: readonly LuciTool[] = [
       fs.writeFileSync(file, formatProposal(proposal), 'utf8');
       const rel = memoryPath(`${MEMORY_FILES.proposedMemory}/${path.basename(file)}`);
       return text(`Proposed in ${rel}. Tell the user it is waiting for their review.`);
+    }),
+
+  tool('intake_docs',
+    `Fit a PRD and supporting docs (Markdown or text) into project memory, like \`${PRODUCT.command} intake\`: empty goal, architecture and conventions sections of context.md are filled; candidate rules, non-goals, acceptance criteria, decisions and a pointer to each doc become proposals in ${PRODUCT.projectDir}/${MEMORY_FILES.proposedMemory}/ for the user to review. Nothing a person wrote is replaced. Only call this after the user agrees; use dryRun to show the plan first.`,
+    {
+      files: z.array(z.string()).min(1).describe('Doc paths, relative to the project or absolute'),
+      dryRun: z.boolean().optional().describe('Report what would be written; write nothing'),
+      projectPath
+    }, WRITE,
+    (args, deps) => {
+      const dir = target(args, deps);
+      if (!hasMemory(dir)) return notInitialized(dir);
+      const report = intakeDocs(dir, args.files, { dryRun: Boolean(args.dryRun) });
+      return report.docs.length ? json(report) : error(`No doc could be read:\n${report.errors.join('\n')}`);
     }),
 
   tool('initialize_project',
