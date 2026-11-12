@@ -221,6 +221,7 @@ export class SkillDiscovery {
 
   /** Search skills by relevance; with `withScores`, returns scored entries. */
   async search(query: string, options: SearchOptions & { withScores: true }): Promise<ScoredSkill[]>;
+  async search(query: string, options?: SearchOptions & { withScores?: false }): Promise<Skill[]>;
   async search(query: string, options?: SearchOptions): Promise<Skill[] | ScoredSkill[]>;
   async search(query: string, options: SearchOptions = {}): Promise<Skill[] | ScoredSkill[]> {
     const skills = await this.registry.getAllSkills();

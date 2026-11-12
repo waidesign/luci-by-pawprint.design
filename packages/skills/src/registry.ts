@@ -322,4 +322,15 @@ export class SkillRegistry {
     await this.ensureLoaded();
     return [...this.skills.values()].filter(s => s.category.toLowerCase() === category.toLowerCase());
   }
+
+  async validateSkill(id: string): Promise<{ valid: boolean; errors: string[] }> {
+    const skill = await this.getSkill(id);
+    if (!skill) return { valid: false, errors: ['Skill not found'] };
+    const errors: string[] = [];
+    if (!skill.name) errors.push('Missing name');
+    if (!skill.description) errors.push('Missing description');
+    if (!skill.category) errors.push('Missing category');
+    if (!skill.content) errors.push('Missing skill content');
+    return { valid: errors.length === 0, errors };
+  }
 }
