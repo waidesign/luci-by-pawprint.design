@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { MEMORY_FILES, PRODUCT, userSkillsDir } from '@luci/format';
-import { detectProject, memoryDir } from '@luci/brain';
+import { detectProject, memoryDir, writeActiveTask } from '@luci/brain';
 import {
   GitHubClient,
   SkillDiscovery,
@@ -36,9 +36,10 @@ const cmd = (args: string) => `${PRODUCT.command} ${args}`;
 export const SKILLS_HELP = `skills [category]     List the skill library (Luci's and your personal one)
   skills search <query>         Find skills by keyword
   skills recommend <task>       Skills for a task, each with the reason
-  skills use <task> [--project] [--budget <tokens>] [--full]
+  skills use <task> [--project] [--budget <tokens>] [--full] [--inject]
                         Load the skills that closely match a task (nothing when nothing fits);
-                        --project: only this project's skills; --full: print their instructions
+                        --project: only this project's skills; --full: print their instructions;
+                        --inject: write the task and the skill files to open into .luci/local/active-task.md
   skills select <name...> [--reason <text>]   Use library skills in this project
   skills deselect <name...>     Stop using skills in this project
   skills selected               The skills this project uses
@@ -133,6 +134,7 @@ async function recommend(args: string[], ctx: CliContext): Promise<number> {
 async function use(args: string[], ctx: CliContext): Promise<number> {
   const projectOnly = takeFlag(args, '--project');
   const full = takeFlag(args, '--full');
+  const inject = takeFlag(args, '--inject');
   const budgetText = takeOption(args, '--budget');
   const task = args.join(' ').trim();
   if (!task) { ctx.err(`Usage: ${cmd('skills use <task> [--project] [--budget <tokens>] [--full]')}`); return 1; }
@@ -145,6 +147,22 @@ async function use(args: string[], ctx: CliContext): Promise<number> {
     ? (needProject(ctx) ? await loadProjectSkillsForTask(ctx.cwd, registry, task, options) : null)
     : await new SkillOrchestrator(registry).loadSkillsForTask(task, info ? { dependencies: info.dependencies, framework: info.framework } : {}, options);
   if (!loaded) return 1;
+  if (inject) {
+    if (!needProject(ctx)) return 1;
+    if (!loaded.skills.length) {
+      ctx.out(`No skill closely matches this task, so ${PRODUCT.projectDir}/${MEMORY_FILES.activeTask} was left unchanged. Name skills directly: ${cmd('skills use "<skill-id> <skill-id>" --inject')}`);
+      return 0;
+    }
+    // A small pointer (which skill files to open and why), not the skill text; --full also embeds it
+    let content = new SkillOrchestrator(registry).formatTaskPointer(loaded, { projectDir: ctx.cwd, ...(info ? { projectInfo: info } : {}) });
+    if (full) content += `\n## Full skill instructions (--full)\n\n${loaded.formattedInstructions.replace(/^# .*\n+/, '')}`;
+    const { file, archived } = writeActiveTask(ctx.cwd, content);
+    ctx.out(`Wrote the active task (~${Math.round(content.length / 4)} tokens) to ${file}`);
+    if (archived) ctx.out(`The previous task was archived to ${archived}.`);
+    for (const s of loaded.skills) ctx.out(`  ${s.id}: ${s.reason}`);
+    ctx.out(`Agents read it while its Status is active. When the task is finished: ${cmd('task done')}`);
+    return 0;
+  }
   if (full) { ctx.out(loaded.formattedInstructions); return 0; }
   if (!loaded.skills.length) {
     ctx.out(`No skill${projectOnly ? ' in this project' : ' in the library'} closely matches this task, so none is loaded.`);

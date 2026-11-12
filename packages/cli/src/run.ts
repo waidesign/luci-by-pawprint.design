@@ -3,6 +3,7 @@ import { DOCTOR_HELP, doctorCommand } from './commands/doctor.js';
 import { INIT_HELP, initCommand } from './commands/init.js';
 import { PACKS_HELP, packsCommand } from './commands/packs.js';
 import { SKILLS_HELP, skillsCommand } from './commands/skills.js';
+import { TASK_HELP, taskCommand } from './commands/task.js';
 import type { CliContext, Command } from './context.js';
 import { cliVersion } from './version.js';
 
@@ -19,6 +20,7 @@ const helpCommand: Command = async (_args, ctx) => {
   ctx.out(`  ${DOCTOR_HELP}`);
   ctx.out(`  ${SKILLS_HELP}`);
   ctx.out(`  ${PACKS_HELP}`);
+  ctx.out(`  ${TASK_HELP}`);
   ctx.out('  version               Show the version');
   ctx.out('  help                  Show this help');
   return 0;
@@ -30,6 +32,7 @@ export const COMMANDS: Readonly<Record<string, Command>> = {
   skills: skillsCommand,
   packs: packsCommand,
   pack: packsCommand,
+  task: taskCommand,
   version: versionCommand,
   '--version': versionCommand,
   '-v': versionCommand,

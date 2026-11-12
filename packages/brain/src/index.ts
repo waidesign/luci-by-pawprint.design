@@ -33,6 +33,7 @@ export {
   MemoryEngine
 } from './memory/memoryEngine.js';
 export { GLOBAL_PREFERENCE_FILES, SNAPSHOT_TITLE, writeGlobalBrainSnapshot } from './memory/globalLink.js';
+export { type ActiveTask, readActiveTask, archiveActiveTask, writeActiveTask } from './memory/activeTask.js';
 export {
   type AgentFileAction,
   type AgentFileResult,
