@@ -77,6 +77,16 @@ export {
   uvInstallCommand
 } from './codemap/installer.js';
 export {
+  type ImportOptions,
+  type ImportReport,
+  PROTOTYPE,
+  convertSkillFiles,
+  importPrototype,
+  matchesTemplate,
+  mergeIntoTemplate,
+  renameText
+} from './import/importPrototype.js';
+export {
   type DocAnalysis,
   type DocSection,
   type IntakeReport,
