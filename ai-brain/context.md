@@ -6,22 +6,21 @@ _Sections marked (auto-detected) come from the project's files and are refreshed
 Luci: a local-first toolkit for AI coding agents with memory, skill selection, design capture and feedback. Full requirements in docs/PRD.md.
 
 ## Stack (auto-detected)
-- Framework: not detected
-- Languages: none detected
-- Package manager: npm
-- Testing: none detected
+- Framework: node
+- Languages: TypeScript
+- Package manager: pnpm
+- Testing: vitest
 
 ## Commands (auto-detected)
 - Dev: not found
-- Build: not found
-- Test: not found
+- Build: `pnpm build`
+- Test: `pnpm test`
 - Lint: not found
-- Type check: not found
-
-_No test command found. Add one, or describe here how a change is checked._
+- Type check: `pnpm typecheck`
 
 ## Folder Map (auto-detected)
 - `docs/`: documentation
+- `packages/`: workspace packages
 
 ## Architecture Notes
 _Not written yet: the main parts, how data flows between them, external services._
