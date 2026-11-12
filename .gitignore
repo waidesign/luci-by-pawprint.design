@@ -1,5 +1,5 @@
-# Generated graphify cache
-graphify-out/cache/
+# Graphify code map: generated locally, rebuilt by its git hooks
+graphify-out/
 
 # Dependencies and build output
 node_modules/
