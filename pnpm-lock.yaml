@@ -181,6 +181,9 @@ importers:
       '@luci/format':
         specifier: workspace:*
         version: link:../format
+      '@luci/skills':
+        specifier: workspace:*
+        version: link:../skills
 
   packages/cli:
     dependencies:
@@ -190,6 +193,9 @@ importers:
       '@luci/format':
         specifier: workspace:*
         version: link:../format
+      '@luci/skills':
+        specifier: workspace:*
+        version: link:../skills
 
   packages/format:
     dependencies:
