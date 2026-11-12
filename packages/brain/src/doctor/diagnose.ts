@@ -8,18 +8,17 @@ import {
   MEMORY_FILES,
   PRODUCT,
   PROJECT_GOAL_HEADING,
-  PROJECT_RULES_HEADING,
   TEMPLATE_DIRS,
   TEMPLATE_FILES,
   parseActiveTaskHeader,
   parseDecision,
   parseProposal,
-  sectionBody,
   type ActiveTaskHeader,
   type AgentId
 } from '@luci/format';
 import { SkillRegistry, missingSkillWarnings, projectSkillSet, readLock, type SkillSource } from '@luci/skills';
 import { AGENT_IDS, configureAgent } from '../agents/agentFiles.js';
+import { readProjectGoal, readProjectRules } from '../context/projectContext.js';
 import { detectProject } from '../detect/detector.js';
 import { TEMPLATES_DIR, memoryDir, memoryPath, readBrainJson } from '../layout/brainLayout.js';
 import { DEFAULT_BRAIN_DIR, userBrainDir } from '../memory/paths.js';
@@ -66,7 +65,6 @@ export interface DiagnoseOptions {
 }
 
 const MIN_NODE_MAJOR = 18;
-const GOAL_PLACEHOLDER = '_Not written yet';
 const run = (args: string) => `\`${PRODUCT.command} ${args}\``;
 const markdownFiles = (dir: string) =>
   fs.existsSync(dir) ? fs.readdirSync(dir).filter(f => f.endsWith('.md') && f !== 'README.md').sort() : [];
@@ -180,15 +178,9 @@ async function projectChecks(dir: string, registry: SkillSource): Promise<{ chec
     add('info', 'Proposed memory', `${proposals.length} waiting for review in ${memoryPath(`${MEMORY_FILES.proposedMemory}/`)}`, 'Move each into the file it names, or delete it.');
   }
 
-  const contextFile = path.join(root, MEMORY_FILES.context);
-  const goalText = fs.existsSync(contextFile) ? sectionBody(fs.readFileSync(contextFile, 'utf8'), PROJECT_GOAL_HEADING) : '';
-  const goal = goalText && !goalText.startsWith(GOAL_PLACEHOLDER) ? goalText : null;
+  const goal = readProjectGoal(dir);
   if (!goal) add('warn', 'Project goal', 'not written yet', `Write one or two sentences under "${PROJECT_GOAL_HEADING.slice(3)}" in ${memoryPath(MEMORY_FILES.context)}.`);
-
-  const rulesFile = path.join(root, MEMORY_FILES.rules);
-  const projectRules = fs.existsSync(rulesFile)
-    ? sectionBody(fs.readFileSync(rulesFile, 'utf8'), PROJECT_RULES_HEADING).split('\n').filter(l => /^\s*-\s+/.test(l)).length
-    : 0;
+  const projectRules = readProjectRules(dir).length;
 
   const taskFile = path.join(root, MEMORY_FILES.activeTask);
   let activeTask: ActiveTaskHeader | null = null;

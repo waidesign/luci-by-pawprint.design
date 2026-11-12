@@ -19,6 +19,7 @@ export function agentBlock(options: { agentLabel: string; heading: string; extra
     `- Global Brain (the user's preferences across all projects): ${dir}/local/global-brain.md, a read-only summary of ~/${PRODUCT.homeDir}/brain.`,
     `- Memory: record decisions in ${dir}/decisions/. Propose new rules or lessons as files in ${dir}/memory/proposed/; don't edit rules.md yourself.`,
     '- Code graph: ./graphify-out/graph.json and GRAPH_REPORT.md, if present.',
+    `- ${PRODUCT.name} over MCP (${PRODUCT.mcpServer}, if connected): get_project_context first (get_active_task when resuming), load_project_skills for the skills the current task needs.`,
     `- Precedence: Safety rules > user request > ${dir}/rules.md > Global Brain (~/${PRODUCT.homeDir}/brain) > skills > tool defaults.`,
     ...(options.extra ?? []),
     AGENT_END_MARKER,
