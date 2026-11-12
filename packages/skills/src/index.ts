@@ -48,6 +48,73 @@ export {
   SkillOrchestrator
 } from './orchestrator.js';
 export {
+  type SkillFolder,
+  type LicenseResult,
+  type SplitPlan,
+  MAX_BODY_TOKENS,
+  SPLIT_TARGET_TOKENS,
+  readSkillFolder,
+  writeSkillFolder,
+  applyLicense,
+  canModify,
+  toSkillName,
+  deriveDescription,
+  convertToLss,
+  planSplit,
+  applySplit
+} from './lss.js';
+export { licenseCategory, normalizeLicense, detectLicenseFromText, resolveSkillLicense, LICENSE_FILE } from './licenses.js';
+export { type RepoTree, GitHubClient, parseGitHubUrl } from './github.js';
+export { type DraftableField, DRAFTABLE_FIELDS, addDrafts, listDrafts, approveDrafts, rejectDrafts } from './drafts.js';
+export {
+  type LintResult,
+  type LibraryLint,
+  MAX_PROJECT_BODY_TOKENS,
+  NEW_SKILL_TODO,
+  isProjectSkillDir,
+  lintSkillFolder,
+  findSkillFolders,
+  lintLibrary
+} from './linter.js';
+export {
+  type SupportFile,
+  type PreparedSkill,
+  type PreviewOptions,
+  type SkillPreview,
+  SUPPORT_LIMITS,
+  guessCategory,
+  detectPermissions,
+  prepareSkill,
+  previewSkill,
+  installSkill
+} from './import.js';
+export {
+  type ReadLock,
+  type ProjectSkillSet,
+  readLock,
+  writeLock,
+  selectSkills,
+  deselectSkills,
+  projectSkillRegistry,
+  shareSkillWithProject,
+  missingSkillWarnings,
+  projectSkillSet,
+  writeCatalog,
+  loadProjectSkillsForTask
+} from './project.js';
+export {
+  type PackProject,
+  PACKS_DIR,
+  validatePack,
+  loadPacks,
+  packReasons,
+  detectPacks,
+  packSkills,
+  addedPacks,
+  addPack,
+  removePack
+} from './packs.js';
+export {
   type BenchmarkCase,
   type SystemResult,
   type SetResult,

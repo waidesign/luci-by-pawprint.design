@@ -1,0 +1,35 @@
+{
+  "lss": 1,
+  "lastVerified": "2026-11-08",
+  "source": {
+    "repo": "anthropics/skills",
+    "path": "skills/theme-factory/SKILL.md",
+    "licenseVerified": true,
+    "licenseStatus": "open",
+    "licenseEvidence": "skill license file",
+    "licenseUrl": "https://github.com/anthropics/skills/blob/main/skills/theme-factory/LICENSE.txt",
+    "licenseCheckedAt": "2026-11-08",
+    "filesLeftAtSource": 1
+  },
+  "summary": "Toolkit for styling artifacts with a theme. These artifacts can be slides, docs, reportings, HTML landing pages, etc.",
+  "domains": [
+    "design",
+    "web",
+    "writing"
+  ],
+  "derived": [
+    "domains",
+    "summary"
+  ],
+  "whenToUse": [
+    "Use when applying a consistent color and font theme to slides, documents, reports or HTML pages, from 10 preset themes or a new one."
+  ],
+  "keywords": [
+    "slide styling",
+    "presentation theme",
+    "document styling"
+  ],
+  "drafts": [
+    "keywords"
+  ]
+}

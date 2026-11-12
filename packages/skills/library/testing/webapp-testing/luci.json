@@ -1,0 +1,33 @@
+{
+  "lss": 1,
+  "keywords": [
+    "end-to-end",
+    "e2e",
+    "browser testing"
+  ],
+  "lastVerified": "2026-11-08",
+  "source": {
+    "repo": "anthropics/skills",
+    "path": "skills/webapp-testing/SKILL.md",
+    "licenseVerified": true,
+    "licenseStatus": "open",
+    "licenseEvidence": "skill license file",
+    "licenseUrl": "https://github.com/anthropics/skills/blob/main/skills/webapp-testing/LICENSE.txt",
+    "licenseCheckedAt": "2026-11-08"
+  },
+  "summary": "Toolkit for interacting with and testing local web applications using Playwright. Supports verifying frontend functionality, debugging UI behavior, capturing browser screenshots, and viewing browser logs.",
+  "domains": [
+    "software"
+  ],
+  "permissions": [
+    "shell"
+  ],
+  "derived": [
+    "domains",
+    "permissions",
+    "summary"
+  ],
+  "whenToUse": [
+    "Use when testing a local web app in a real browser with Playwright: checking that features work, debugging UI behavior, taking screenshots or reading console logs."
+  ]
+}

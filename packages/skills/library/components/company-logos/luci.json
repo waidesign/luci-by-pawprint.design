@@ -1,0 +1,41 @@
+{
+  "lss": 1,
+  "frameworks": [
+    "react",
+    "tailwind"
+  ],
+  "lastVerified": "2026-11-06",
+  "summary": "\"Use Iconify Simple Icons logos (64x64) instead of text logos.\"",
+  "whenToUse": [
+    "A design needs recognizable brand marks without embedding custom SVG files or rendering company names as plain text.",
+    "Logo rows, integrations grids, customer proof, partner lists, and tool badges need consistent icon treatment."
+  ],
+  "domains": [
+    "web",
+    "design"
+  ],
+  "derived": [
+    "domains",
+    "summary",
+    "whenToUse"
+  ],
+  "keywords": [
+    "brand logos",
+    "logo wall",
+    "customer logos",
+    "integration icons"
+  ],
+  "drafts": [
+    "keywords"
+  ],
+  "source": {
+    "repo": "MengTo/Skills",
+    "path": "agent-skills/web-design/company-logos/SKILL.md",
+    "licenseVerified": true,
+    "licenseStatus": "open",
+    "licenseEvidence": "repository license",
+    "licenseUrl": "https://github.com/MengTo/Skills/blob/main/LICENSE",
+    "licenseCheckedAt": "2026-11-12",
+    "copyright": "Copyright (c) 2026 Meng To"
+  }
+}

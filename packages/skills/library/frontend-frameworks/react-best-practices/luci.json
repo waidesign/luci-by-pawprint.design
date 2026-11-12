@@ -1,0 +1,42 @@
+{
+  "lss": 1,
+  "frameworks": [
+    "react",
+    "nextjs"
+  ],
+  "lastVerified": "2026-11-06",
+  "summary": "React and Next.js performance optimization guidelines from Vercel Engineering. This skill should be used when writing, reviewing, or refactoring React/Next.js code to ensure optimal performance patterns.",
+  "whenToUse": [
+    "This skill should be used when writing, reviewing, or refactoring React/Next.js code to ensure optimal performance patterns."
+  ],
+  "domains": [
+    "web",
+    "software",
+    "writing",
+    "data"
+  ],
+  "derived": [
+    "domains",
+    "summary",
+    "whenToUse"
+  ],
+  "keywords": [
+    "request waterfalls",
+    "bundle size",
+    "re-renders",
+    "server components",
+    "web performance"
+  ],
+  "drafts": [
+    "keywords"
+  ],
+  "source": {
+    "repo": "vercel-labs/agent-skills",
+    "path": "skills/react-best-practices/SKILL.md",
+    "licenseVerified": true,
+    "licenseStatus": "open",
+    "licenseEvidence": "declared in original SKILL.md",
+    "licenseUrl": "https://github.com/vercel-labs/agent-skills/blob/main/skills/react-best-practices/SKILL.md",
+    "licenseCheckedAt": "2026-11-12"
+  }
+}

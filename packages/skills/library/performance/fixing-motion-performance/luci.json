@@ -1,0 +1,30 @@
+{
+  "lss": 1,
+  "frameworks": [
+    "react",
+    "nextjs",
+    "framer-motion"
+  ],
+  "lastVerified": "2026-11-06",
+  "source": {
+    "repo": "ibelick/ui-skills",
+    "path": "skills/fixing-motion-performance/SKILL.md",
+    "licenseVerified": true,
+    "licenseStatus": "open",
+    "licenseEvidence": "repository license",
+    "licenseUrl": "https://github.com/ibelick/ui-skills/blob/main/LICENSE",
+    "licenseCheckedAt": "2026-11-08"
+  },
+  "summary": "Audit and fix animation performance issues including layout thrashing, compositor properties, scroll-linked motion, and blur effects. Use when animations stutter, transitions jank, or reviewing CSS/JS animation performance.",
+  "whenToUse": [
+    "Use when animations stutter, transitions jank, or reviewing CSS/JS animation performance."
+  ],
+  "domains": [
+    "software"
+  ],
+  "derived": [
+    "domains",
+    "summary",
+    "whenToUse"
+  ]
+}

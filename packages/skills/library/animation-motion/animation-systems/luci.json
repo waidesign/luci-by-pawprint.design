@@ -1,0 +1,32 @@
+{
+  "lss": 1,
+  "frameworks": [
+    "framer-motion",
+    "tailwind",
+    "react"
+  ],
+  "lastVerified": "2026-11-06",
+  "summary": "Use when designing or implementing product-grade web motion like Stripe, Linear, Apple, and Vercel. Covers motion principles, easing/duration defaults, choreography patterns, scroll/hover interactions, performance, accessibility (reduced motion), and implementation guidance.",
+  "whenToUse": [
+    "Use when designing or implementing product-grade web motion like Stripe, Linear, Apple, and Vercel."
+  ],
+  "domains": [
+    "web",
+    "design"
+  ],
+  "derived": [
+    "domains",
+    "summary",
+    "whenToUse"
+  ],
+  "source": {
+    "repo": "MengTo/Skills",
+    "path": "agent-skills/web-design/animation-systems/SKILL.md",
+    "licenseVerified": true,
+    "licenseStatus": "open",
+    "licenseEvidence": "repository license",
+    "licenseUrl": "https://github.com/MengTo/Skills/blob/main/LICENSE",
+    "licenseCheckedAt": "2026-11-12",
+    "copyright": "Copyright (c) 2026 Meng To"
+  }
+}

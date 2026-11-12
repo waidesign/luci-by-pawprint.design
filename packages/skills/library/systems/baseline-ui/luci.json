@@ -1,0 +1,35 @@
+{
+  "lss": 1,
+  "related": [
+    "improve-ui",
+    "frontend-design"
+  ],
+  "frameworks": [
+    "react",
+    "nextjs",
+    "tailwind"
+  ],
+  "lastVerified": "2026-11-06",
+  "source": {
+    "repo": "ibelick/ui-skills",
+    "path": "skills/baseline-ui/SKILL.md",
+    "licenseVerified": true,
+    "licenseStatus": "open",
+    "licenseEvidence": "repository license",
+    "licenseUrl": "https://github.com/ibelick/ui-skills/blob/main/LICENSE",
+    "licenseCheckedAt": "2026-11-08"
+  },
+  "summary": "Quickly deslop UI code by fixing spacing, hierarchy, typography, and small layout issues. Use when the interface needs a fast cleanup or polish pass.",
+  "whenToUse": [
+    "Use when the interface needs a fast cleanup or polish pass."
+  ],
+  "domains": [
+    "design",
+    "web"
+  ],
+  "derived": [
+    "domains",
+    "summary",
+    "whenToUse"
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "lss": 1,
+  "related": [
+    "improve-ui",
+    "design-lab",
+    "baseline-ui"
+  ],
+  "frameworks": [
+    "react",
+    "nextjs",
+    "vue",
+    "svelte",
+    "tailwind"
+  ],
+  "lastVerified": "2026-11-06",
+  "summary": "Build distinctive, production-grade frontend interfaces with high aesthetic fidelity, unique visual voice, and anti-slop principles.",
+  "domains": [
+    "web",
+    "software"
+  ],
+  "derived": [
+    "domains",
+    "summary"
+  ],
+  "whenToUse": [
+    "Use when designing and building a web page or interface that needs a distinctive visual identity grounded in its subject, rather than a templated look."
+  ],
+  "keywords": [
+    "landing page design",
+    "visual identity",
+    "web design",
+    "layout",
+    "art direction"
+  ],
+  "drafts": [
+    "keywords"
+  ],
+  "source": {
+    "repo": "anthropics/skills",
+    "path": "skills/frontend-design/SKILL.md",
+    "licenseVerified": true,
+    "licenseStatus": "open",
+    "licenseEvidence": "skill license file",
+    "licenseUrl": "https://github.com/anthropics/skills/blob/main/skills/frontend-design/LICENSE.txt",
+    "licenseCheckedAt": "2026-11-12"
+  }
+}

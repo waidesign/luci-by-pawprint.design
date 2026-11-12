@@ -1,0 +1,39 @@
+{
+  "lss": 1,
+  "related": [
+    "baseline-ui"
+  ],
+  "frameworks": [
+    "tailwind",
+    "react",
+    "nextjs",
+    "vue"
+  ],
+  "lastVerified": "2026-11-06",
+  "summary": "Use when designing/implementing UI with Tailwind CSS (layout, typography, responsive, theming, component patterns). Includes quick recipes and conventions for clean, consistent web design.",
+  "whenToUse": [
+    "Use when designing/implementing UI with Tailwind CSS (layout, typography, responsive, theming, component patterns).",
+    "Rapid UI building with consistent spacing/typography scales",
+    "Design systems where composition beats bespoke CSS",
+    "Component-driven apps (React/Vue/Svelte), marketing pages, prototypes → production"
+  ],
+  "domains": [
+    "web",
+    "software"
+  ],
+  "derived": [
+    "domains",
+    "summary",
+    "whenToUse"
+  ],
+  "source": {
+    "repo": "MengTo/Skills",
+    "path": "agent-skills/web-design/tailwindcss/SKILL.md",
+    "licenseVerified": true,
+    "licenseStatus": "open",
+    "licenseEvidence": "repository license",
+    "licenseUrl": "https://github.com/MengTo/Skills/blob/main/LICENSE",
+    "licenseCheckedAt": "2026-11-12",
+    "copyright": "Copyright (c) 2026 Meng To"
+  }
+}

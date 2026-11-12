@@ -1,0 +1,2421 @@
+{
+  "version": 1,
+  "fingerprint": "3d/threejs/SKILL.md:3576:1275|accessibility/accessibility-baseline/SKILL.md:2456:994|accessibility/fixing-accessibility/SKILL.md:4832:1039|animation-motion/animation-systems/SKILL.md:5351:1022|animation-motion/react-view-transitions/SKILL.md:14595:1886|code-quality/code-review/SKILL.md:6836:1104|components/company-logos/SKILL.md:1176:1058|components/container-lines/SKILL.md:3719:1824|design-systems/build-design-system/SKILL.md:9226:1106|design-systems/component-docs/SKILL.md:3784:1114|design-systems/create-design-md/SKILL.md:16322:1530|design-systems/design-system-boss/SKILL.md:4072:1253|design-systems/migrate-design-system/SKILL.md:8212:1203|design-systems/token-mapping/SKILL.md:3601:921|design-systems/ui-review/SKILL.md:5546:1018|frontend-frameworks/react-best-practices/SKILL.md:7345:1147|frontend/composition-patterns/SKILL.md:2704:952|frontend/design-mobile-apps/SKILL.md:8557:903|frontend/frontend-design/SKILL.md:9624:1134|frontend/react-native-skills/SKILL.md:4272:933|frontend/tailwindcss/SKILL.md:2922:1206|general/algorithmic-art/SKILL.md:19846:958|general/canvas-design/SKILL.md:12016:980|interaction/animation-on-scroll/SKILL.md:3658:1246|micro-interactions/masked-reveal/SKILL.md:5255:1931|micro-interactions/micro-interaction/SKILL.md:8751:2530|performance/fixing-motion-performance/SKILL.md:5676:901|seo/fixing-metadata/SKILL.md:4504:1137|shadcn-ui/migrate-radix-to-base/SKILL.md:9422:1169|shadcn-ui/shadcn/SKILL.md:12287:1016|systems/baseline-ui/SKILL.md:3526:847|testing/tdd/SKILL.md:3739:856|testing/webapp-testing/SKILL.md:3990:1011|ui-ux/improve-ui/SKILL.md:8058:1149|ui-ux/landing-page/SKILL.md:5378:1334|ui-ux/pricing-page/SKILL.md:5961:1477|ui-ux/prototype/SKILL.md:3037:985|ui-ux/theme-factory/SKILL.md:3197:941",
+  "skills": [
+    {
+      "id": "threejs",
+      "name": "threejs",
+      "category": "3d",
+      "description": "Use when building or debugging interactive 3D scenes on the web with Three.js (scene/camera/renderer, lights/materials, GLTF loading, controls, performance). Helpful for designers shipping 3D UI moments.",
+      "author": "Meng To",
+      "license": "MIT",
+      "version": "1.0.0",
+      "tags": [],
+      "keywords": [
+        "three.js",
+        "webgl",
+        "3d scene"
+      ],
+      "frameworks": [
+        "threejs",
+        "react-three-fiber"
+      ],
+      "dependencies": [],
+      "relatedSkills": [],
+      "lastVerified": "2026-11-06",
+      "summary": "Use when building or debugging interactive 3D scenes on the web with Three.js (scene/camera/renderer, lights/materials, GLTF loading, controls, performance). Helpful for designers shipping 3D UI moments.",
+      "contract": {
+        "lss": 1,
+        "keywords": [
+          "three.js",
+          "webgl",
+          "3d scene"
+        ],
+        "frameworks": [
+          "threejs",
+          "react-three-fiber"
+        ],
+        "lastVerified": "2026-11-06",
+        "summary": "Use when building or debugging interactive 3D scenes on the web with Three.js (scene/camera/renderer, lights/materials, GLTF loading, controls, performance). Helpful for designers shipping 3D UI moments.",
+        "whenToUse": [
+          "Use when building or debugging interactive 3D scenes on the web with Three.js (scene/camera/renderer, lights/materials, GLTF loading, controls, performance).",
+          "Real 3D: product spins, interactive hero scenes, shaders/material effects, 3D data viz",
+          "You need full control beyond “background effects”",
+          "You can budget time for asset pipeline + performance tuning"
+        ],
+        "domains": [
+          "web",
+          "design"
+        ],
+        "derived": [
+          "domains",
+          "summary",
+          "whenToUse"
+        ],
+        "source": {
+          "repo": "MengTo/Skills",
+          "path": "agent-skills/web-design/threejs/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "repository license",
+          "licenseUrl": "https://github.com/MengTo/Skills/blob/main/LICENSE",
+          "licenseCheckedAt": "2026-11-12",
+          "copyright": "Copyright (c) 2026 Meng To"
+        }
+      },
+      "format": "lss",
+      "path": "3d/threejs/SKILL.md",
+      "tokenEstimate": 805
+    },
+    {
+      "id": "accessibility-baseline",
+      "name": "Accessibility Baseline (WCAG 2.2 AA)",
+      "category": "accessibility",
+      "description": "The shared baseline every new or changed UI meets while it is built: keyboard, focus, names, contrast, motion and forms. Loaded alongside UI and animation skills so they don't each repeat it; for audits and fixes use fixing-accessibility.",
+      "author": "Luci",
+      "license": "MIT",
+      "version": "1.0.0",
+      "tags": [
+        "accessibility",
+        "baseline",
+        "keyboard",
+        "focus",
+        "reduced-motion"
+      ],
+      "keywords": [
+        "building accessible components",
+        "reduced motion"
+      ],
+      "frameworks": [
+        "any"
+      ],
+      "dependencies": [],
+      "relatedSkills": [
+        "fixing-accessibility",
+        "baseline-ui",
+        "micro-interaction"
+      ],
+      "lastVerified": "2026-11-09",
+      "summary": "The minimum accessibility rules every new or changed UI meets while it is being built: keyboard, focus, accessible names, contrast, reduced motion, forms, targets and zoom.",
+      "contract": {
+        "lss": 1,
+        "summary": "The minimum accessibility rules every new or changed UI meets while it is being built: keyboard, focus, accessible names, contrast, reduced motion, forms, targets and zoom.",
+        "keywords": [
+          "building accessible components",
+          "reduced motion"
+        ],
+        "whenToUse": [
+          "Building or changing a user interface, including animation and micro-interaction work. Luci points to it automatically for UI tasks."
+        ],
+        "whenNotToUse": [
+          "Accessibility audit (use fixing-accessibility)",
+          "Audit contrast problems",
+          "Fix accessibility issues",
+          "Fix ARIA or keyboard problems"
+        ],
+        "related": [
+          "fixing-accessibility",
+          "baseline-ui",
+          "micro-interaction"
+        ],
+        "verification": [
+          "Keyboard-only walkthrough of the change works.",
+          "Contrast checked for new colors.",
+          "Reduced-motion setting tested.",
+          "A screen reader names every new control."
+        ],
+        "domains": [
+          "web",
+          "design"
+        ],
+        "lastVerified": "2026-11-09"
+      },
+      "format": "lss",
+      "path": "accessibility/accessibility-baseline/SKILL.md",
+      "tokenEstimate": 483
+    },
+    {
+      "id": "fixing-accessibility",
+      "name": "fixing-accessibility",
+      "category": "accessibility",
+      "description": "Audit and fix HTML accessibility issues including ARIA labels, keyboard navigation, focus management, color contrast, and form errors. Use when adding interactive controls, forms, dialogs, or reviewing WCAG compliance.",
+      "author": "ui-skills",
+      "license": "MIT",
+      "version": "1.0.0",
+      "tags": [],
+      "keywords": [
+        "a11y",
+        "screen reader support",
+        "focus trap",
+        "tab order",
+        "icon button label",
+        "accessible name"
+      ],
+      "frameworks": [
+        "any"
+      ],
+      "dependencies": [],
+      "relatedSkills": [
+        "improve-ui"
+      ],
+      "lastVerified": "2026-11-06",
+      "summary": "Audit and fix HTML accessibility issues including ARIA labels, keyboard navigation, focus management, color contrast, and form errors. Use when adding interactive controls, forms, dialogs, or reviewing WCAG compliance.",
+      "contract": {
+        "lss": 1,
+        "related": [
+          "improve-ui"
+        ],
+        "lastVerified": "2026-11-06",
+        "source": {
+          "repo": "ibelick/ui-skills",
+          "path": "skills/fixing-accessibility/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "repository license",
+          "licenseUrl": "https://github.com/ibelick/ui-skills/blob/main/LICENSE",
+          "licenseCheckedAt": "2026-11-08"
+        },
+        "summary": "Audit and fix HTML accessibility issues including ARIA labels, keyboard navigation, focus management, color contrast, and form errors. Use when adding interactive controls, forms, dialogs, or reviewing WCAG compliance.",
+        "whenToUse": [
+          "Use when adding interactive controls, forms, dialogs, or reviewing WCAG compliance."
+        ],
+        "domains": [
+          "web",
+          "design"
+        ],
+        "derived": [
+          "domains",
+          "summary",
+          "whenToUse"
+        ],
+        "keywords": [
+          "a11y",
+          "screen reader support",
+          "focus trap",
+          "tab order",
+          "icon button label",
+          "accessible name"
+        ],
+        "drafts": [
+          "keywords"
+        ]
+      },
+      "format": "lss",
+      "path": "accessibility/fixing-accessibility/SKILL.md",
+      "tokenEstimate": 1112
+    },
+    {
+      "id": "animation-systems",
+      "name": "animation-systems",
+      "category": "animation-motion",
+      "description": "Use when designing or implementing product-grade web motion like Stripe, Linear, Apple, and Vercel. Covers motion principles, easing/duration defaults, choreography patterns, scroll/hover interactions, performance, accessibility (reduced motion), and implementation guidance.",
+      "author": "Meng To",
+      "license": "MIT",
+      "version": "1.0.0",
+      "tags": [],
+      "keywords": [],
+      "frameworks": [
+        "framer-motion",
+        "tailwind",
+        "react"
+      ],
+      "dependencies": [],
+      "relatedSkills": [],
+      "lastVerified": "2026-11-06",
+      "summary": "Use when designing or implementing product-grade web motion like Stripe, Linear, Apple, and Vercel. Covers motion principles, easing/duration defaults, choreography patterns, scroll/hover interactions, performance, accessibility (reduced motion), and implementation guidance.",
+      "contract": {
+        "lss": 1,
+        "frameworks": [
+          "framer-motion",
+          "tailwind",
+          "react"
+        ],
+        "lastVerified": "2026-11-06",
+        "summary": "Use when designing or implementing product-grade web motion like Stripe, Linear, Apple, and Vercel. Covers motion principles, easing/duration defaults, choreography patterns, scroll/hover interactions, performance, accessibility (reduced motion), and implementation guidance.",
+        "whenToUse": [
+          "Use when designing or implementing product-grade web motion like Stripe, Linear, Apple, and Vercel."
+        ],
+        "domains": [
+          "web",
+          "design"
+        ],
+        "derived": [
+          "domains",
+          "summary",
+          "whenToUse"
+        ],
+        "source": {
+          "repo": "MengTo/Skills",
+          "path": "agent-skills/web-design/animation-systems/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "repository license",
+          "licenseUrl": "https://github.com/MengTo/Skills/blob/main/LICENSE",
+          "licenseCheckedAt": "2026-11-12",
+          "copyright": "Copyright (c) 2026 Meng To"
+        }
+      },
+      "format": "lss",
+      "path": "animation-motion/animation-systems/SKILL.md",
+      "tokenEstimate": 1207
+    },
+    {
+      "id": "react-view-transitions",
+      "name": "vercel-react-view-transitions",
+      "category": "animation-motion",
+      "description": "Guide for implementing smooth, native-feeling animations using React's View Transition API (`<ViewTransition>` component, `addTransitionType`, and CSS view transition pseudo-elements). Use this skill whenever the user wants to add page transitions, animate route changes, create shared element animations, animate enter/exit of components, animate list reorder, implement directional (forward/back) navigation animations, or integrate view transitions in Next.js. Also use when the user mentions view transitions, `startViewTransition`, `ViewTransition`, transition types, or asks about animating between UI states in React without third-party animation libraries.",
+      "author": "vercel",
+      "license": "MIT",
+      "version": "1.0.0",
+      "tags": [],
+      "keywords": [
+        "suspense reveal",
+        "nav-forward",
+        "cross-fade"
+      ],
+      "frameworks": [
+        "any"
+      ],
+      "dependencies": [],
+      "relatedSkills": [],
+      "lastVerified": "2026-11-08",
+      "summary": "Guide for implementing smooth, native-feeling animations using React's View Transition API (`<ViewTransition>` component, `addTransitionType`, and CSS view transition pseudo-elements). Use this skill whenever the user wants to add page transitions, animate route changes, create shared element…",
+      "contract": {
+        "lss": 1,
+        "lastVerified": "2026-11-08",
+        "source": {
+          "repo": "vercel-labs/agent-skills",
+          "path": "skills/react-view-transitions/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "declared in original SKILL.md",
+          "licenseUrl": "https://github.com/vercel-labs/agent-skills/blob/main/skills/react-view-transitions/SKILL.md",
+          "licenseCheckedAt": "2026-11-08"
+        },
+        "summary": "Guide for implementing smooth, native-feeling animations using React's View Transition API (`<ViewTransition>` component, `addTransitionType`, and CSS view transition pseudo-elements). Use this skill whenever the user wants to add page transitions, animate route changes, create shared element…",
+        "whenToUse": [
+          "Use this skill whenever the user wants to add page transitions, animate route changes, create shared element animations, animate enter/exit of components, animate list reorder, implement directional (forward/back) navigation animations, or ",
+          "Also use when the user mentions view transitions, `startViewTransition`, `ViewTransition`, transition types, or asks about animating between UI states in React without third-party animation libraries."
+        ],
+        "verification": [
+          "Does the VT mount/unmount on this navigation, or does it stay mounted (same-route)?",
+          "For named VTs: does a shared pair form? If not, does enter/exit provide a fallback?",
+          "Does default=\"none\" block an animation you actually want?",
+          "Do persistent elements stay static (not sliding with page content)?",
+          "Do Suspense reveals animate independently from directional navigations?"
+        ],
+        "domains": [
+          "web",
+          "design"
+        ],
+        "derived": [
+          "domains",
+          "summary",
+          "verification",
+          "whenToUse"
+        ],
+        "keywords": [
+          "suspense reveal",
+          "nav-forward",
+          "cross-fade"
+        ],
+        "drafts": [
+          "keywords"
+        ]
+      },
+      "format": "lss",
+      "path": "animation-motion/react-view-transitions/SKILL.md",
+      "tokenEstimate": 3413
+    },
+    {
+      "id": "code-review",
+      "name": "code-review",
+      "category": "code-quality",
+      "description": "Review the changes since a fixed point (commit, branch, tag, or merge-base) along two axes: Standards (does the code follow this repo's documented coding standards?) and Spec (does the code match what the originating issue/spec asked for?). Runs both reviews in parallel sub-agents and reports them side by side. Use when the user wants to review a branch, a PR, work-in-progress changes, or asks to \\\"review since X\\\".",
+      "author": "mattpocock",
+      "license": "MIT",
+      "version": "1.0.0",
+      "tags": [],
+      "keywords": [
+        "diff review",
+        "coding standards check",
+        "spec compliance",
+        "pre-merge review",
+        "branch review"
+      ],
+      "frameworks": [
+        "any"
+      ],
+      "dependencies": [],
+      "relatedSkills": [],
+      "lastVerified": "2026-11-08",
+      "summary": "Review the changes since a fixed point (commit, branch, tag, or merge-base) along two axes: Standards (does the code follow this repo's documented coding standards?) and Spec (does the code match what the originating issue/spec asked for?). Runs both reviews in parallel sub-agents and reports…",
+      "contract": {
+        "lss": 1,
+        "lastVerified": "2026-11-08",
+        "source": {
+          "repo": "mattpocock/skills",
+          "path": "skills/engineering/code-review/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "repository license",
+          "licenseUrl": "https://github.com/mattpocock/skills/blob/main/LICENSE",
+          "licenseCheckedAt": "2026-11-08"
+        },
+        "summary": "Review the changes since a fixed point (commit, branch, tag, or merge-base) along two axes: Standards (does the code follow this repo's documented coding standards?) and Spec (does the code match what the originating issue/spec asked for?). Runs both reviews in parallel sub-agents and reports…",
+        "whenToUse": [
+          "Use when the user wants to review a branch, a PR, work-in-progress changes, or asks to \\\"review since X\\\"."
+        ],
+        "domains": [
+          "software",
+          "ai"
+        ],
+        "derived": [
+          "domains",
+          "summary",
+          "whenToUse"
+        ],
+        "keywords": [
+          "diff review",
+          "coding standards check",
+          "spec compliance",
+          "pre-merge review",
+          "branch review"
+        ],
+        "drafts": [
+          "keywords"
+        ]
+      },
+      "format": "lss",
+      "path": "code-quality/code-review/SKILL.md",
+      "tokenEstimate": 1557
+    },
+    {
+      "id": "company-logos",
+      "name": "company-logos",
+      "category": "components",
+      "description": "\"Use Iconify Simple Icons logos (64x64) instead of text logos.\"",
+      "author": "Meng To",
+      "license": "MIT",
+      "version": "1.0.0",
+      "tags": [],
+      "keywords": [
+        "brand logos",
+        "logo wall",
+        "customer logos",
+        "integration icons"
+      ],
+      "frameworks": [
+        "react",
+        "tailwind"
+      ],
+      "dependencies": [],
+      "relatedSkills": [],
+      "lastVerified": "2026-11-06",
+      "summary": "\"Use Iconify Simple Icons logos (64x64) instead of text logos.\"",
+      "contract": {
+        "lss": 1,
+        "frameworks": [
+          "react",
+          "tailwind"
+        ],
+        "lastVerified": "2026-11-06",
+        "summary": "\"Use Iconify Simple Icons logos (64x64) instead of text logos.\"",
+        "whenToUse": [
+          "A design needs recognizable brand marks without embedding custom SVG files or rendering company names as plain text.",
+          "Logo rows, integrations grids, customer proof, partner lists, and tool badges need consistent icon treatment."
+        ],
+        "domains": [
+          "web",
+          "design"
+        ],
+        "derived": [
+          "domains",
+          "summary",
+          "whenToUse"
+        ],
+        "keywords": [
+          "brand logos",
+          "logo wall",
+          "customer logos",
+          "integration icons"
+        ],
+        "drafts": [
+          "keywords"
+        ],
+        "source": {
+          "repo": "MengTo/Skills",
+          "path": "agent-skills/web-design/company-logos/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "repository license",
+          "licenseUrl": "https://github.com/MengTo/Skills/blob/main/LICENSE",
+          "licenseCheckedAt": "2026-11-12",
+          "copyright": "Copyright (c) 2026 Meng To"
+        }
+      },
+      "format": "lss",
+      "path": "components/company-logos/SKILL.md",
+      "tokenEstimate": 240
+    },
+    {
+      "id": "container-lines",
+      "name": "container-lines",
+      "category": "components",
+      "description": "Add vertical container-size guide lines with mini corner squares for precise, structured web layouts. Use when asked for container lines, measured layout guides, vertical boundary lines, editorial grid markers, or small corner-square frame details.",
+      "author": "Meng To",
+      "license": "MIT",
+      "version": "1.0.0",
+      "tags": [],
+      "keywords": [
+        "grid lines",
+        "technical aesthetic",
+        "border frame",
+        "blueprint style"
+      ],
+      "frameworks": [
+        "react",
+        "tailwind"
+      ],
+      "dependencies": [],
+      "relatedSkills": [],
+      "lastVerified": "2026-11-06",
+      "summary": "Add vertical container-size guide lines with mini corner squares for precise, structured web layouts. Use when asked for container lines, measured layout guides, vertical boundary lines, editorial grid markers, or small corner-square frame details.",
+      "contract": {
+        "lss": 1,
+        "frameworks": [
+          "react",
+          "tailwind"
+        ],
+        "lastVerified": "2026-11-06",
+        "summary": "Add vertical container-size guide lines with mini corner squares for precise, structured web layouts. Use when asked for container lines, measured layout guides, vertical boundary lines, editorial grid markers, or small corner-square frame details.",
+        "whenToUse": [
+          "Use when asked for container lines, measured layout guides, vertical boundary lines, editorial grid markers, or small corner-square frame details.",
+          "A page needs subtle vertical guides that reveal the content container width.",
+          "A hero, section, or product page feels too loose and needs structural tension.",
+          "The design calls for mini corner squares, measured edges, or quiet technical framing."
+        ],
+        "verification": [
+          "The vertical lines align exactly with the content container edges.",
+          "Corner squares sit on real container or section corners, not arbitrary positions.",
+          "Lines remain subtle on light and dark backgrounds.",
+          "Mobile still has enough padding between the line and content.",
+          "Guides do not intercept clicks, hovers, or text selection."
+        ],
+        "domains": [
+          "web",
+          "design"
+        ],
+        "derived": [
+          "domains",
+          "summary",
+          "verification",
+          "whenToUse"
+        ],
+        "keywords": [
+          "grid lines",
+          "technical aesthetic",
+          "border frame",
+          "blueprint style"
+        ],
+        "drafts": [
+          "keywords"
+        ],
+        "source": {
+          "repo": "MengTo/Skills",
+          "path": "agent-skills/web-design/container-lines/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "repository license",
+          "licenseUrl": "https://github.com/MengTo/Skills/blob/main/LICENSE",
+          "licenseCheckedAt": "2026-11-12",
+          "copyright": "Copyright (c) 2026 Meng To"
+        }
+      },
+      "format": "lss",
+      "path": "components/container-lines/SKILL.md",
+      "tokenEstimate": 829
+    },
+    {
+      "id": "build-design-system",
+      "name": "build-design-system",
+      "category": "design-systems",
+      "description": "Use when someone wants a design system built from the UI an app already ships, or one phase of it, such as \"extract tokens from the app\", \"add states to our Button\", \"replace the hardcoded colors with tokens\" or \"start a design system\". Moving screens onto an existing system's components is migrate-design-system. A vague whole-app ask goes to design-system-boss.",
+      "author": "unknown",
+      "license": "MIT",
+      "version": "1.0.0",
+      "tags": [],
+      "keywords": [],
+      "frameworks": [
+        "any"
+      ],
+      "dependencies": [],
+      "relatedSkills": [],
+      "lastVerified": "2026-11-09",
+      "summary": "Use when someone wants a design system built from the UI an app already ships, or one phase of it, such as \"extract tokens from the app\", \"add states to our Button\", \"replace the hardcoded colors with tokens\" or \"start a design system\". Moving screens onto an existing system's components is…",
+      "contract": {
+        "lss": 1,
+        "lastVerified": "2026-11-09",
+        "source": {
+          "repo": "arla6ka/design.how",
+          "path": "skills/build-design-system/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "repository license",
+          "licenseUrl": "https://github.com/arla6ka/design.how/blob/main/LICENSE",
+          "licenseCheckedAt": "2026-11-09"
+        },
+        "permissions": [
+          "shell"
+        ],
+        "summary": "Use when someone wants a design system built from the UI an app already ships, or one phase of it, such as \"extract tokens from the app\", \"add states to our Button\", \"replace the hardcoded colors with tokens\" or \"start a design system\". Moving screens onto an existing system's components is…",
+        "whenToUse": [
+          "Use when someone wants a design system built from the UI an app already ships, or one phase of it, such as \"extract tokens from the app\", \"add states to our Button\", \"replace the hardcoded colors with tokens\" or \"start a design system\"."
+        ],
+        "domains": [
+          "design",
+          "web"
+        ],
+        "derived": [
+          "domains",
+          "summary",
+          "whenToUse"
+        ]
+      },
+      "format": "lss",
+      "path": "design-systems/build-design-system/SKILL.md",
+      "tokenEstimate": 2173
+    },
+    {
+      "id": "component-docs",
+      "name": "component-docs",
+      "category": "design-systems",
+      "description": "Use to write one component's documentation entry from its code, stories and real call sites, such as \"document the button\", \"write docs for Select\", \"what states does Toast have\", or usage rules for a new or changed component. Not for foundations or pages that span components, which no skill here writes, nor for changing the component, which is build-design-system.",
+      "author": "unknown",
+      "license": "MIT",
+      "version": "1.0.0",
+      "tags": [],
+      "keywords": [],
+      "frameworks": [
+        "any"
+      ],
+      "dependencies": [],
+      "relatedSkills": [],
+      "lastVerified": "2026-11-09",
+      "summary": "Use to write one component's documentation entry from its code, stories and real call sites, such as \"document the button\", \"write docs for Select\", \"what states does Toast have\", or usage rules for a new or changed component. Not for foundations or pages that span components, which no skill…",
+      "contract": {
+        "lss": 1,
+        "lastVerified": "2026-11-09",
+        "source": {
+          "repo": "arla6ka/design.how",
+          "path": "skills/component-docs/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "repository license",
+          "licenseUrl": "https://github.com/arla6ka/design.how/blob/main/LICENSE",
+          "licenseCheckedAt": "2026-11-09"
+        },
+        "whenToUse": [
+          "Writing one component's documentation entry from its code, stories and real call sites, such as document"
+        ],
+        "summary": "Use to write one component's documentation entry from its code, stories and real call sites, such as \"document the button\", \"write docs for Select\", \"what states does Toast have\", or usage rules for a new or changed component. Not for foundations or pages that span components, which no skill…",
+        "whenNotToUse": [
+          "Not for foundations or pages that span components, which no skill here writes, nor for changing the component, which is build-design-system."
+        ],
+        "domains": [
+          "design",
+          "web",
+          "writing"
+        ],
+        "derived": [
+          "domains",
+          "summary",
+          "whenNotToUse"
+        ]
+      },
+      "format": "lss",
+      "path": "design-systems/component-docs/SKILL.md",
+      "tokenEstimate": 814
+    },
+    {
+      "id": "create-design-md",
+      "name": "create-design-md",
+      "category": "design-systems",
+      "description": "Create or update a DESIGN.md from an existing product repository or public website. Use when asked to document an interface's design language, reconstruct its visual system, extract design tokens and guidance from current evidence, or give coding agents persistent UI context. Do not modify product source or promote accidental implementation patterns into design decisions.",
+      "author": "ui-skills",
+      "license": "MIT",
+      "version": "1.0.0",
+      "tags": [],
+      "keywords": [
+        "design documentation",
+        "style guide",
+        "brand guidelines",
+        "agent ui context",
+        "design spec"
+      ],
+      "frameworks": [
+        "any"
+      ],
+      "dependencies": [],
+      "relatedSkills": [],
+      "lastVerified": "2026-11-06",
+      "summary": "Create or update a DESIGN.md from an existing product repository or public website. Use when asked to document an interface's design language, reconstruct its visual system, extract design tokens and guidance from current evidence, or give coding agents persistent UI context.",
+      "contract": {
+        "lss": 1,
+        "lastVerified": "2026-11-06",
+        "source": {
+          "repo": "ibelick/ui-skills",
+          "path": "skills/create-design-md/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "repository license",
+          "licenseUrl": "https://github.com/ibelick/ui-skills/blob/main/LICENSE",
+          "licenseCheckedAt": "2026-11-08"
+        },
+        "summary": "Create or update a DESIGN.md from an existing product repository or public website. Use when asked to document an interface's design language, reconstruct its visual system, extract design tokens and guidance from current evidence, or give coding agents persistent UI context.",
+        "whenToUse": [
+          "Use when asked to document an interface's design language, reconstruct its visual system, extract design tokens and guidance from current evidence, or give coding agents persistent UI context."
+        ],
+        "verification": [
+          "Run structural linting: Then run one compatibility export using the target selected above: Inspect the output.",
+          "Every populated frontmatter category supported by the target must emit its corresponding token category; an empty or missing category is a schema failure even when the command exits successfully."
+        ],
+        "domains": [
+          "design",
+          "web",
+          "ai"
+        ],
+        "derived": [
+          "domains",
+          "summary",
+          "verification",
+          "whenToUse"
+        ],
+        "keywords": [
+          "design documentation",
+          "style guide",
+          "brand guidelines",
+          "agent ui context",
+          "design spec"
+        ],
+        "drafts": [
+          "keywords"
+        ]
+      },
+      "format": "lss",
+      "path": "design-systems/create-design-md/SKILL.md",
+      "tokenEstimate": 3939
+    },
+    {
+      "id": "design-system-boss",
+      "name": "design-system-boss",
+      "category": "design-systems",
+      "description": "Use for vague whole-app design system asks on an app that already ships UI, such as \"our UI is a mess, fix it\", \"we need a design system\", \"we hardcode colors everywhere\", \"make the buttons consistent\" or \"check the app before I ship\". One named screen goes to ui-review, one component to component-docs, a token report to token-mapping. A repo with no UI yet is out of scope.",
+      "author": "unknown",
+      "license": "MIT",
+      "version": "1.0.0",
+      "tags": [],
+      "keywords": [],
+      "frameworks": [
+        "any"
+      ],
+      "dependencies": [],
+      "relatedSkills": [],
+      "lastVerified": "2026-11-09",
+      "summary": "Use for vague whole-app design system asks on an app that already ships UI, such as \"our UI is a mess, fix it\", \"we need a design system\", \"we hardcode colors everywhere\", \"make the buttons consistent\" or \"check the app before I ship\". One named screen goes to ui-review, one component to…",
+      "contract": {
+        "lss": 1,
+        "lastVerified": "2026-11-09",
+        "source": {
+          "repo": "arla6ka/design.how",
+          "path": "skills/design-system-boss/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "repository license",
+          "licenseUrl": "https://github.com/arla6ka/design.how/blob/main/LICENSE",
+          "licenseCheckedAt": "2026-11-09"
+        },
+        "summary": "Use for vague whole-app design system asks on an app that already ships UI, such as \"our UI is a mess, fix it\", \"we need a design system\", \"we hardcode colors everywhere\", \"make the buttons consistent\" or \"check the app before I ship\". One named screen goes to ui-review, one component to…",
+        "whenToUse": [
+          "Use for vague whole-app design system asks on an app that already ships UI, such as \"our UI is a mess, fix it\", \"we need a design system\", \"we hardcode colors everywhere\", \"make the buttons consistent\" or \"check the app before I ship\".",
+          "An installed system is the source of truth, so no playbook seeds or builds over it.",
+          "The state wins when it disagrees with the ask, and the report says so."
+        ],
+        "domains": [
+          "design",
+          "web",
+          "writing"
+        ],
+        "derived": [
+          "domains",
+          "summary",
+          "whenToUse"
+        ]
+      },
+      "format": "lss",
+      "path": "design-systems/design-system-boss/SKILL.md",
+      "tokenEstimate": 881
+    },
+    {
+      "id": "migrate-design-system",
+      "name": "migrate-design-system",
+      "category": "design-systems",
+      "description": "Use when an app has to move onto a design system that already exists, such as \"migrate the app to our design system\", \"move every screen onto the new components\", a rollout, or an adoption audit. Not for making the system or for swapping raw values for tokens, which are build-design-system.",
+      "author": "unknown",
+      "license": "MIT",
+      "version": "1.0.0",
+      "tags": [],
+      "keywords": [],
+      "frameworks": [
+        "any"
+      ],
+      "dependencies": [],
+      "relatedSkills": [],
+      "lastVerified": "2026-11-09",
+      "summary": "Use when an app has to move onto a design system that already exists, such as \"migrate the app to our design system\", \"move every screen onto the new components\", a rollout, or an adoption audit. Not for making the system or for swapping raw values for tokens, which are build-design-system.",
+      "contract": {
+        "lss": 1,
+        "lastVerified": "2026-11-09",
+        "source": {
+          "repo": "arla6ka/design.how",
+          "path": "skills/migrate-design-system/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "repository license",
+          "licenseUrl": "https://github.com/arla6ka/design.how/blob/main/LICENSE",
+          "licenseCheckedAt": "2026-11-09"
+        },
+        "permissions": [
+          "shell"
+        ],
+        "summary": "Use when an app has to move onto a design system that already exists, such as \"migrate the app to our design system\", \"move every screen onto the new components\", a rollout, or an adoption audit. Not for making the system or for swapping raw values for tokens, which are build-design-system.",
+        "whenToUse": [
+          "Use when an app has to move onto a design system that already exists, such as \"migrate the app to our design system\", \"move every screen onto the new components\", a rollout, or an adoption audit."
+        ],
+        "whenNotToUse": [
+          "Not for making the system or for swapping raw values for tokens, which are build-design-system."
+        ],
+        "domains": [
+          "design",
+          "web"
+        ],
+        "derived": [
+          "domains",
+          "summary",
+          "whenNotToUse",
+          "whenToUse"
+        ]
+      },
+      "format": "lss",
+      "path": "design-systems/migrate-design-system/SKILL.md",
+      "tokenEstimate": 1938
+    },
+    {
+      "id": "token-mapping",
+      "name": "token-mapping",
+      "category": "design-systems",
+      "description": "Use to report how hardcoded style values on a page, file or diff map onto a project's existing design tokens, such as \"are we using our tokens here\", \"which hardcoded colors map to which tokens\", a token audit or planning a token migration. It never edits. Replacing the values is build-design-system.",
+      "author": "unknown",
+      "license": "MIT",
+      "version": "1.0.0",
+      "tags": [],
+      "keywords": [],
+      "frameworks": [
+        "any"
+      ],
+      "dependencies": [],
+      "relatedSkills": [],
+      "lastVerified": "2026-11-09",
+      "summary": "Use to report how hardcoded style values on a page, file or diff map onto a project's existing design tokens, such as \"are we using our tokens here\", \"which hardcoded colors map to which tokens\", a token audit or planning a token migration. It never edits.",
+      "contract": {
+        "lss": 1,
+        "lastVerified": "2026-11-09",
+        "source": {
+          "repo": "arla6ka/design.how",
+          "path": "skills/token-mapping/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "repository license",
+          "licenseUrl": "https://github.com/arla6ka/design.how/blob/main/LICENSE",
+          "licenseCheckedAt": "2026-11-09"
+        },
+        "whenToUse": [
+          "Reporting how hardcoded style values on a page, file or diff map onto the project's existing design tokens, such as a token audit or planning a token migration."
+        ],
+        "summary": "Use to report how hardcoded style values on a page, file or diff map onto a project's existing design tokens, such as \"are we using our tokens here\", \"which hardcoded colors map to which tokens\", a token audit or planning a token migration. It never edits.",
+        "domains": [
+          "design",
+          "web"
+        ],
+        "derived": [
+          "domains",
+          "summary"
+        ]
+      },
+      "format": "lss",
+      "path": "design-systems/token-mapping/SKILL.md",
+      "tokenEstimate": 785
+    },
+    {
+      "id": "ui-review",
+      "name": "ui-review",
+      "category": "design-systems",
+      "description": "Use to critique a screen, flow, prototype or running build, accessibility included, and rank what is broken, such as \"check this page before I ship\", \"is this flow ready\", \"is it accessible\", keyboard or screen-reader checks, \"it feels off on my phone\" or \"it feels janky\". Not for token compliance, which is token-mapping.",
+      "author": "unknown",
+      "license": "MIT",
+      "version": "1.0.0",
+      "tags": [],
+      "keywords": [],
+      "frameworks": [
+        "any"
+      ],
+      "dependencies": [],
+      "relatedSkills": [],
+      "lastVerified": "2026-11-09",
+      "summary": "Use to critique a screen, flow, prototype or running build, accessibility included, and rank what is broken, such as \"check this page before I ship\", \"is this flow ready\", \"is it accessible\", keyboard or screen-reader checks, \"it feels off on my phone\" or \"it feels janky\". Not for token…",
+      "contract": {
+        "lss": 1,
+        "lastVerified": "2026-11-09",
+        "source": {
+          "repo": "arla6ka/design.how",
+          "path": "skills/ui-review/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "repository license",
+          "licenseUrl": "https://github.com/arla6ka/design.how/blob/main/LICENSE",
+          "licenseCheckedAt": "2026-11-09"
+        },
+        "whenToUse": [
+          "Critiquing a screen, flow, prototype or running build, accessibility included, and ranking what is broken, such as check"
+        ],
+        "summary": "Use to critique a screen, flow, prototype or running build, accessibility included, and rank what is broken, such as \"check this page before I ship\", \"is this flow ready\", \"is it accessible\", keyboard or screen-reader checks, \"it feels off on my phone\" or \"it feels janky\". Not for token…",
+        "whenNotToUse": [
+          "Not for token compliance, which is token-mapping."
+        ],
+        "domains": [
+          "design",
+          "web"
+        ],
+        "derived": [
+          "domains",
+          "summary",
+          "whenNotToUse"
+        ]
+      },
+      "format": "lss",
+      "path": "design-systems/ui-review/SKILL.md",
+      "tokenEstimate": 1265
+    },
+    {
+      "id": "react-best-practices",
+      "name": "vercel-react-best-practices",
+      "category": "frontend-frameworks",
+      "description": "React and Next.js performance optimization guidelines from Vercel Engineering. This skill should be used when writing, reviewing, or refactoring React/Next.js code to ensure optimal performance patterns. Triggers on tasks involving React components, Next.js pages, data fetching, bundle optimization, or performance improvements.",
+      "author": "vercel",
+      "license": "MIT",
+      "version": "1.0.0",
+      "tags": [],
+      "keywords": [
+        "request waterfalls",
+        "bundle size",
+        "re-renders",
+        "server components",
+        "web performance"
+      ],
+      "frameworks": [
+        "react",
+        "nextjs"
+      ],
+      "dependencies": [],
+      "relatedSkills": [],
+      "lastVerified": "2026-11-06",
+      "summary": "React and Next.js performance optimization guidelines from Vercel Engineering. This skill should be used when writing, reviewing, or refactoring React/Next.js code to ensure optimal performance patterns.",
+      "contract": {
+        "lss": 1,
+        "frameworks": [
+          "react",
+          "nextjs"
+        ],
+        "lastVerified": "2026-11-06",
+        "summary": "React and Next.js performance optimization guidelines from Vercel Engineering. This skill should be used when writing, reviewing, or refactoring React/Next.js code to ensure optimal performance patterns.",
+        "whenToUse": [
+          "This skill should be used when writing, reviewing, or refactoring React/Next.js code to ensure optimal performance patterns."
+        ],
+        "domains": [
+          "web",
+          "software",
+          "writing",
+          "data"
+        ],
+        "derived": [
+          "domains",
+          "summary",
+          "whenToUse"
+        ],
+        "keywords": [
+          "request waterfalls",
+          "bundle size",
+          "re-renders",
+          "server components",
+          "web performance"
+        ],
+        "drafts": [
+          "keywords"
+        ],
+        "source": {
+          "repo": "vercel-labs/agent-skills",
+          "path": "skills/react-best-practices/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "declared in original SKILL.md",
+          "licenseUrl": "https://github.com/vercel-labs/agent-skills/blob/main/skills/react-best-practices/SKILL.md",
+          "licenseCheckedAt": "2026-11-12"
+        }
+      },
+      "format": "lss",
+      "path": "frontend-frameworks/react-best-practices/SKILL.md",
+      "tokenEstimate": 1701
+    },
+    {
+      "id": "composition-patterns",
+      "name": "vercel-composition-patterns",
+      "category": "frontend",
+      "description": "vercel-composition-patterns skill for AI coding agents.",
+      "author": "vercel",
+      "license": "MIT",
+      "version": "1.0.0",
+      "tags": [],
+      "keywords": [
+        "compound components",
+        "boolean props",
+        "component api design",
+        "context provider",
+        "react 19"
+      ],
+      "frameworks": [
+        "any"
+      ],
+      "dependencies": [],
+      "relatedSkills": [],
+      "lastVerified": "2026-11-08",
+      "summary": "vercel-composition-patterns skill for AI coding agents.",
+      "contract": {
+        "lss": 1,
+        "lastVerified": "2026-11-08",
+        "source": {
+          "repo": "vercel-labs/agent-skills",
+          "path": "skills/composition-patterns/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "declared in original SKILL.md",
+          "licenseUrl": "https://github.com/vercel-labs/agent-skills/blob/main/skills/composition-patterns/SKILL.md",
+          "licenseCheckedAt": "2026-11-08"
+        },
+        "summary": "vercel-composition-patterns skill for AI coding agents.",
+        "domains": [
+          "web",
+          "software",
+          "ai"
+        ],
+        "derived": [
+          "domains",
+          "summary"
+        ],
+        "whenToUse": [
+          "Use when refactoring React components with many boolean props, designing reusable component APIs, or structuring compound components and context providers."
+        ],
+        "keywords": [
+          "compound components",
+          "boolean props",
+          "component api design",
+          "context provider",
+          "react 19"
+        ],
+        "drafts": [
+          "keywords"
+        ]
+      },
+      "format": "lss",
+      "path": "frontend/composition-patterns/SKILL.md",
+      "tokenEstimate": 611
+    },
+    {
+      "id": "design-mobile-apps",
+      "name": "design-mobile-apps",
+      "category": "frontend",
+      "description": "Design mobile app screens with Sleek, edit Sleek projects, and implement their designs in React Native or HTML.",
+      "author": "designed-by-ai",
+      "license": "MIT",
+      "version": "1.0.0",
+      "tags": [],
+      "keywords": [
+        "mobile ui design",
+        "expo",
+        "sleek api",
+        "mobile mockup"
+      ],
+      "frameworks": [
+        "any"
+      ],
+      "dependencies": [],
+      "relatedSkills": [],
+      "lastVerified": "2026-11-08",
+      "summary": "Design mobile app screens with Sleek, edit Sleek projects, and implement their designs in React Native or HTML.",
+      "contract": {
+        "lss": 1,
+        "lastVerified": "2026-11-08",
+        "source": {
+          "repo": "designed-by-ai/skills",
+          "path": "skills/design-mobile-apps/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "repository license",
+          "licenseUrl": "https://github.com/designed-by-ai/skills/blob/main/LICENSE",
+          "licenseCheckedAt": "2026-11-08"
+        },
+        "summary": "Design mobile app screens with Sleek, edit Sleek projects, and implement their designs in React Native or HTML.",
+        "domains": [
+          "web",
+          "software"
+        ],
+        "derived": [
+          "domains",
+          "summary"
+        ],
+        "whenToUse": [
+          "Use when designing mobile app screens from a brief with the Sleek API, editing a Sleek project, or turning its screens into React Native or HTML code."
+        ],
+        "keywords": [
+          "mobile ui design",
+          "expo",
+          "sleek api",
+          "mobile mockup"
+        ],
+        "drafts": [
+          "keywords"
+        ]
+      },
+      "format": "lss",
+      "path": "frontend/design-mobile-apps/SKILL.md",
+      "tokenEstimate": 2068
+    },
+    {
+      "id": "frontend-design",
+      "name": "Frontend Design",
+      "category": "frontend",
+      "description": "Build distinctive, production-grade frontend interfaces with high aesthetic fidelity, unique visual voice, and anti-slop principles.",
+      "author": "anthropic",
+      "license": "Apache-2.0",
+      "version": "1.0.0",
+      "tags": [
+        "visual-design",
+        "typography",
+        "creative",
+        "craft"
+      ],
+      "keywords": [
+        "landing page design",
+        "visual identity",
+        "web design",
+        "layout",
+        "art direction"
+      ],
+      "frameworks": [
+        "react",
+        "nextjs",
+        "vue",
+        "svelte",
+        "tailwind"
+      ],
+      "dependencies": [],
+      "relatedSkills": [
+        "improve-ui",
+        "design-lab",
+        "baseline-ui"
+      ],
+      "lastVerified": "2026-11-06",
+      "summary": "Build distinctive, production-grade frontend interfaces with high aesthetic fidelity, unique visual voice, and anti-slop principles.",
+      "contract": {
+        "lss": 1,
+        "related": [
+          "improve-ui",
+          "design-lab",
+          "baseline-ui"
+        ],
+        "frameworks": [
+          "react",
+          "nextjs",
+          "vue",
+          "svelte",
+          "tailwind"
+        ],
+        "lastVerified": "2026-11-06",
+        "summary": "Build distinctive, production-grade frontend interfaces with high aesthetic fidelity, unique visual voice, and anti-slop principles.",
+        "domains": [
+          "web",
+          "software"
+        ],
+        "derived": [
+          "domains",
+          "summary"
+        ],
+        "whenToUse": [
+          "Use when designing and building a web page or interface that needs a distinctive visual identity grounded in its subject, rather than a templated look."
+        ],
+        "keywords": [
+          "landing page design",
+          "visual identity",
+          "web design",
+          "layout",
+          "art direction"
+        ],
+        "drafts": [
+          "keywords"
+        ],
+        "source": {
+          "repo": "anthropics/skills",
+          "path": "skills/frontend-design/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "skill license file",
+          "licenseUrl": "https://github.com/anthropics/skills/blob/main/skills/frontend-design/LICENSE.txt",
+          "licenseCheckedAt": "2026-11-12"
+        }
+      },
+      "format": "lss",
+      "path": "frontend/frontend-design/SKILL.md",
+      "tokenEstimate": 2304
+    },
+    {
+      "id": "react-native-skills",
+      "name": "vercel-react-native-skills",
+      "category": "frontend",
+      "description": "vercel-react-native-skills skill for AI coding agents.",
+      "author": "vercel",
+      "license": "MIT",
+      "version": "1.0.0",
+      "tags": [],
+      "keywords": [
+        "expo",
+        "flashlist",
+        "reanimated",
+        "mobile app performance",
+        "ios and android"
+      ],
+      "frameworks": [
+        "any"
+      ],
+      "dependencies": [],
+      "relatedSkills": [],
+      "lastVerified": "2026-11-08",
+      "summary": "vercel-react-native-skills skill for AI coding agents.",
+      "contract": {
+        "lss": 1,
+        "lastVerified": "2026-11-08",
+        "source": {
+          "repo": "vercel-labs/agent-skills",
+          "path": "skills/react-native-skills/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "declared in original SKILL.md",
+          "licenseUrl": "https://github.com/vercel-labs/agent-skills/blob/main/skills/react-native-skills/SKILL.md",
+          "licenseCheckedAt": "2026-11-08"
+        },
+        "summary": "vercel-react-native-skills skill for AI coding agents.",
+        "domains": [
+          "web",
+          "software",
+          "ai"
+        ],
+        "derived": [
+          "domains",
+          "summary"
+        ],
+        "whenToUse": [
+          "Use when building or optimizing React Native or Expo apps: list and scroll performance, Reanimated animations, navigation, images, fonts or monorepo setup."
+        ],
+        "keywords": [
+          "expo",
+          "flashlist",
+          "reanimated",
+          "mobile app performance",
+          "ios and android"
+        ],
+        "drafts": [
+          "keywords"
+        ]
+      },
+      "format": "lss",
+      "path": "frontend/react-native-skills/SKILL.md",
+      "tokenEstimate": 1005
+    },
+    {
+      "id": "tailwindcss",
+      "name": "tailwindcss",
+      "category": "frontend",
+      "description": "Use when designing/implementing UI with Tailwind CSS (layout, typography, responsive, theming, component patterns). Includes quick recipes and conventions for clean, consistent web design.",
+      "author": "Meng To",
+      "license": "MIT",
+      "version": "1.0.0",
+      "tags": [],
+      "keywords": [],
+      "frameworks": [
+        "tailwind",
+        "react",
+        "nextjs",
+        "vue"
+      ],
+      "dependencies": [],
+      "relatedSkills": [
+        "baseline-ui"
+      ],
+      "lastVerified": "2026-11-06",
+      "summary": "Use when designing/implementing UI with Tailwind CSS (layout, typography, responsive, theming, component patterns). Includes quick recipes and conventions for clean, consistent web design.",
+      "contract": {
+        "lss": 1,
+        "related": [
+          "baseline-ui"
+        ],
+        "frameworks": [
+          "tailwind",
+          "react",
+          "nextjs",
+          "vue"
+        ],
+        "lastVerified": "2026-11-06",
+        "summary": "Use when designing/implementing UI with Tailwind CSS (layout, typography, responsive, theming, component patterns). Includes quick recipes and conventions for clean, consistent web design.",
+        "whenToUse": [
+          "Use when designing/implementing UI with Tailwind CSS (layout, typography, responsive, theming, component patterns).",
+          "Rapid UI building with consistent spacing/typography scales",
+          "Design systems where composition beats bespoke CSS",
+          "Component-driven apps (React/Vue/Svelte), marketing pages, prototypes → production"
+        ],
+        "domains": [
+          "web",
+          "software"
+        ],
+        "derived": [
+          "domains",
+          "summary",
+          "whenToUse"
+        ],
+        "source": {
+          "repo": "MengTo/Skills",
+          "path": "agent-skills/web-design/tailwindcss/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "repository license",
+          "licenseUrl": "https://github.com/MengTo/Skills/blob/main/LICENSE",
+          "licenseCheckedAt": "2026-11-12",
+          "copyright": "Copyright (c) 2026 Meng To"
+        }
+      },
+      "format": "lss",
+      "path": "frontend/tailwindcss/SKILL.md",
+      "tokenEstimate": 645
+    },
+    {
+      "id": "algorithmic-art",
+      "name": "algorithmic-art",
+      "category": "general",
+      "description": "Creating algorithmic art using p5.js with seeded randomness and interactive parameter exploration. Use this when users request creating art using code, generative art, algorithmic art, flow fields, or particle systems. Create original algorithmic art rather than copying existing artists' work to avoid copyright violations.",
+      "author": "anthropics",
+      "license": "Apache-2.0",
+      "version": "1.0.0",
+      "tags": [],
+      "keywords": [
+        "creative coding",
+        "procedural art",
+        "noise field",
+        "p5 sketch"
+      ],
+      "frameworks": [
+        "any"
+      ],
+      "dependencies": [],
+      "relatedSkills": [],
+      "lastVerified": "2026-11-08",
+      "summary": "Creating algorithmic art using p5.js with seeded randomness and interactive parameter exploration. Use this when users request creating art using code, generative art, algorithmic art, flow fields, or particle systems.",
+      "contract": {
+        "lss": 1,
+        "lastVerified": "2026-11-08",
+        "source": {
+          "repo": "anthropics/skills",
+          "path": "skills/algorithmic-art/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "skill license file",
+          "licenseUrl": "https://github.com/anthropics/skills/blob/main/skills/algorithmic-art/LICENSE.txt",
+          "licenseCheckedAt": "2026-11-08"
+        },
+        "summary": "Creating algorithmic art using p5.js with seeded randomness and interactive parameter exploration. Use this when users request creating art using code, generative art, algorithmic art, flow fields, or particle systems.",
+        "whenToUse": [
+          "Use this when users request creating art using code, generative art, algorithmic art, flow fields, or particle systems."
+        ],
+        "derived": [
+          "summary",
+          "whenToUse"
+        ],
+        "keywords": [
+          "creative coding",
+          "procedural art",
+          "noise field",
+          "p5 sketch"
+        ],
+        "drafts": [
+          "keywords"
+        ]
+      },
+      "format": "lss",
+      "path": "general/algorithmic-art/SKILL.md",
+      "tokenEstimate": 4832
+    },
+    {
+      "id": "canvas-design",
+      "name": "canvas-design",
+      "category": "general",
+      "description": "Create beautiful visual art in .png and .pdf documents using design philosophy. You should use this skill when the user asks to create a poster, piece of art, design, or other static piece. Create original visual designs, never copying existing artists' work to avoid copyright violations.",
+      "author": "anthropics",
+      "license": "Apache-2.0",
+      "version": "1.0.0",
+      "tags": [],
+      "keywords": [
+        "poster design",
+        "print artwork",
+        "graphic design",
+        "visual composition",
+        "static illustration"
+      ],
+      "frameworks": [
+        "any"
+      ],
+      "dependencies": [],
+      "relatedSkills": [],
+      "lastVerified": "2026-11-08",
+      "summary": "Create beautiful visual art in .png and .pdf documents using design philosophy. You should use this skill when the user asks to create a poster, piece of art, design, or other static piece.",
+      "contract": {
+        "lss": 1,
+        "lastVerified": "2026-11-08",
+        "source": {
+          "repo": "anthropics/skills",
+          "path": "skills/canvas-design/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "skill license file",
+          "licenseUrl": "https://github.com/anthropics/skills/blob/main/skills/canvas-design/LICENSE.txt",
+          "licenseCheckedAt": "2026-11-08",
+          "filesLeftAtSource": 54
+        },
+        "summary": "Create beautiful visual art in .png and .pdf documents using design philosophy. You should use this skill when the user asks to create a poster, piece of art, design, or other static piece.",
+        "whenToUse": [
+          "You should use this skill when the user asks to create a poster, piece of art, design, or other static piece."
+        ],
+        "derived": [
+          "summary",
+          "whenToUse"
+        ],
+        "keywords": [
+          "poster design",
+          "print artwork",
+          "graphic design",
+          "visual composition",
+          "static illustration"
+        ],
+        "drafts": [
+          "keywords"
+        ]
+      },
+      "format": "lss",
+      "path": "general/canvas-design/SKILL.md",
+      "tokenEstimate": 2892
+    },
+    {
+      "id": "animation-on-scroll",
+      "name": "animation-on-scroll",
+      "category": "interaction",
+      "description": "Create an on-scroll animation trigger using IntersectionObserver with Tailwind-friendly animation classes and keyframes. Use when asked for scroll-reveal, animate-on-scroll, or sequencing element animations when they enter the viewport.",
+      "author": "Meng To",
+      "license": "MIT",
+      "version": "1.0.0",
+      "tags": [],
+      "keywords": [],
+      "frameworks": [
+        "framer-motion",
+        "react",
+        "css"
+      ],
+      "dependencies": [],
+      "relatedSkills": [],
+      "lastVerified": "2026-11-06",
+      "summary": "Create an on-scroll animation trigger using IntersectionObserver with Tailwind-friendly animation classes and keyframes. Use when asked for scroll-reveal, animate-on-scroll, or sequencing element animations when they enter the viewport.",
+      "contract": {
+        "lss": 1,
+        "frameworks": [
+          "framer-motion",
+          "react",
+          "css"
+        ],
+        "lastVerified": "2026-11-06",
+        "summary": "Create an on-scroll animation trigger using IntersectionObserver with Tailwind-friendly animation classes and keyframes. Use when asked for scroll-reveal, animate-on-scroll, or sequencing element animations when they enter the viewport.",
+        "whenToUse": [
+          "Use when asked for scroll-reveal, animate-on-scroll, or sequencing element animations when they enter the viewport."
+        ],
+        "verification": [
+          "Insert the JS snippet in the <head> after the keyframes.",
+          "Add the animation class and animate-on-scroll to elements.",
+          "Ensure your keyframes name matches the Tailwind animation reference."
+        ],
+        "domains": [
+          "web",
+          "design"
+        ],
+        "derived": [
+          "domains",
+          "summary",
+          "verification",
+          "whenToUse"
+        ],
+        "source": {
+          "repo": "MengTo/Skills",
+          "path": "agent-skills/web-design/animation-on-scroll/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "repository license",
+          "licenseUrl": "https://github.com/MengTo/Skills/blob/main/LICENSE",
+          "licenseCheckedAt": "2026-11-12",
+          "copyright": "Copyright (c) 2026 Meng To"
+        }
+      },
+      "format": "lss",
+      "path": "interaction/animation-on-scroll/SKILL.md",
+      "tokenEstimate": 816
+    },
+    {
+      "id": "masked-reveal",
+      "name": "masked-reveal",
+      "category": "micro-interactions",
+      "description": "Create masked staggered word reveals on scroll with GSAP ScrollTrigger. Use when headings, hero copy, section titles, or editorial text should reveal word-by-word through an overflow mask as they enter the viewport.",
+      "author": "Meng To",
+      "license": "MIT",
+      "version": "1.1.0",
+      "tags": [],
+      "keywords": [
+        "text animation",
+        "scroll animation",
+        "headline animation",
+        "split text",
+        "stagger reveal"
+      ],
+      "frameworks": [
+        "any",
+        "html",
+        "react",
+        "vue",
+        "svelte"
+      ],
+      "dependencies": [],
+      "relatedSkills": [
+        "micro-interaction",
+        "animation-on-scroll"
+      ],
+      "lastVerified": "2026-11-09",
+      "summary": "Create masked staggered word reveals on scroll with GSAP ScrollTrigger. Use when headings, hero copy, section titles, or editorial text should reveal word-by-word through an overflow mask as they enter the viewport.",
+      "contract": {
+        "lss": 1,
+        "frameworks": [
+          "any",
+          "html",
+          "react",
+          "vue",
+          "svelte"
+        ],
+        "lastVerified": "2026-11-09",
+        "summary": "Create masked staggered word reveals on scroll with GSAP ScrollTrigger. Use when headings, hero copy, section titles, or editorial text should reveal word-by-word through an overflow mask as they enter the viewport.",
+        "whenToUse": [
+          "Use when headings, hero copy, section titles, or editorial text should reveal word-by-word through an overflow mask as they enter the viewport.",
+          "A headline or short text block needs a premium reveal on scroll.",
+          "Words should rise through an invisible mask with a staggered sequence.",
+          "The project already uses GSAP or needs ScrollTrigger-based motion."
+        ],
+        "verification": [
+          "Text is hidden before GSAP initializes, then becomes visible with autoAlpha: 1.",
+          "Screen readers get the original full text through aria-label.",
+          "Spaces between words are preserved.",
+          "Reduced-motion users see static text.",
+          "ScrollTrigger is cleaned up in SPA routes."
+        ],
+        "domains": [
+          "web",
+          "design"
+        ],
+        "derived": [
+          "domains",
+          "summary",
+          "verification",
+          "whenToUse"
+        ],
+        "keywords": [
+          "text animation",
+          "scroll animation",
+          "headline animation",
+          "split text",
+          "stagger reveal"
+        ],
+        "drafts": [
+          "keywords"
+        ],
+        "packages": [
+          "gsap"
+        ],
+        "exclusiveGroup": "animation-library",
+        "verifiedAgainst": [
+          "gsap@3.15.1"
+        ],
+        "related": [
+          "micro-interaction",
+          "animation-on-scroll"
+        ],
+        "source": {
+          "repo": "MengTo/Skills",
+          "path": "agent-skills/web-design/masked-reveal/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "repository license",
+          "licenseUrl": "https://github.com/MengTo/Skills/blob/main/LICENSE",
+          "licenseCheckedAt": "2026-11-12",
+          "copyright": "Copyright (c) 2026 Meng To"
+        }
+      },
+      "format": "lss",
+      "path": "micro-interactions/masked-reveal/SKILL.md",
+      "tokenEstimate": 1220
+    },
+    {
+      "id": "micro-interaction",
+      "name": "micro-interaction",
+      "category": "micro-interactions",
+      "description": "This skill should be used when the user asks to \"add a hover/press effect\", \"animate a toggle or switch\", \"build an animated like button\", \"make a toast/snackbar slide in\", \"animate a drawer or modal\", \"animate list reordering or add/remove\", \"do a shared-element layout transition\", or \"polish UI feedback\". Covers UI motion with Framer Motion (motion/react) and modern CSS.",
+      "author": "unknown",
+      "license": "MIT",
+      "version": "0.1.0",
+      "tags": [],
+      "keywords": [],
+      "frameworks": [
+        "any"
+      ],
+      "dependencies": [],
+      "relatedSkills": [],
+      "lastVerified": "2026-11-09",
+      "summary": "This skill should be used when the user asks to \"add a hover/press effect\", \"animate a toggle or switch\", \"build an animated like button\", \"make a toast/snackbar slide in\", \"animate a drawer or modal\", \"animate list reordering or add/remove\", \"do a shared-element layout transition\", or \"polish…",
+      "contract": {
+        "lss": 1,
+        "lastVerified": "2026-11-09",
+        "source": {
+          "repo": "iart-ai/web-animation-skills",
+          "path": "skills/micro-interaction/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "repository license",
+          "licenseUrl": "https://github.com/iart-ai/web-animation-skills/blob/main/LICENSE",
+          "licenseCheckedAt": "2026-11-09",
+          "supportFilesFrom": {
+            "path": "scripts/",
+            "files": [
+              "scripts/README.md",
+              "scripts/seek-shot.sh",
+              "scripts/contact-sheet.sh"
+            ],
+            "note": "Shared by the repo's skills at its root; copied into this skill so the scripts it mentions are included."
+          }
+        },
+        "summary": "This skill should be used when the user asks to \"add a hover/press effect\", \"animate a toggle or switch\", \"build an animated like button\", \"make a toast/snackbar slide in\", \"animate a drawer or modal\", \"animate list reordering or add/remove\", \"do a shared-element layout transition\", or \"polish…",
+        "whenToUse": [
+          "This skill should be used when the user asks to \"add a hover/press effect\", \"animate a toggle or switch\", \"build an animated like button\", \"make a toast/snackbar slide in\", \"animate a drawer or modal\", \"animate list reordering or add/remove",
+          "Hover/press/focus feedback; toggles, checkboxes, like/heart buttons",
+          "Toasts/snackbars, drawers, modals, tooltips, accordions (enter/exit)",
+          "List add/remove/reorder; shared-element (\"magic move\") layout transitions",
+          "Loading → success → error state transitions"
+        ],
+        "verification": [
+          "One .html file: your markup plus either CSS transitions/@starting-style or an inline <script type=\"module\"> importing motion from CDN.",
+          "A way to land on the resolved end state for a screenshot — interactions are state-driven, not time-driven, so freeze the state rather than a clock.",
+          "Opens standalone — no console errors, CDN React/motion (if used) resolves.",
+          "The ?state= (or controlled-prop) freeze lands a deterministic, settled state.",
+          "Screenshotted across states — idle / active / open — matches the brief, no artifacts.",
+          "prefers-reduced-motion honored — large movement dropped, opacity/feedback kept.",
+          "Easing is intentional — enter ease-out, exit ease-in, durations in the 100–250ms band."
+        ],
+        "domains": [
+          "web",
+          "design"
+        ],
+        "derived": [
+          "domains",
+          "summary",
+          "verification",
+          "whenToUse"
+        ],
+        "permissions": [
+          "shell"
+        ]
+      },
+      "format": "lss",
+      "path": "micro-interactions/micro-interaction/SKILL.md",
+      "tokenEstimate": 2038
+    },
+    {
+      "id": "fixing-motion-performance",
+      "name": "fixing-motion-performance",
+      "category": "performance",
+      "description": "Audit and fix animation performance issues including layout thrashing, compositor properties, scroll-linked motion, and blur effects. Use when animations stutter, transitions jank, or reviewing CSS/JS animation performance.",
+      "author": "ui-skills",
+      "license": "MIT",
+      "version": "1.0.0",
+      "tags": [],
+      "keywords": [],
+      "frameworks": [
+        "react",
+        "nextjs",
+        "framer-motion"
+      ],
+      "dependencies": [],
+      "relatedSkills": [],
+      "lastVerified": "2026-11-06",
+      "summary": "Audit and fix animation performance issues including layout thrashing, compositor properties, scroll-linked motion, and blur effects. Use when animations stutter, transitions jank, or reviewing CSS/JS animation performance.",
+      "contract": {
+        "lss": 1,
+        "frameworks": [
+          "react",
+          "nextjs",
+          "framer-motion"
+        ],
+        "lastVerified": "2026-11-06",
+        "source": {
+          "repo": "ibelick/ui-skills",
+          "path": "skills/fixing-motion-performance/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "repository license",
+          "licenseUrl": "https://github.com/ibelick/ui-skills/blob/main/LICENSE",
+          "licenseCheckedAt": "2026-11-08"
+        },
+        "summary": "Audit and fix animation performance issues including layout thrashing, compositor properties, scroll-linked motion, and blur effects. Use when animations stutter, transitions jank, or reviewing CSS/JS animation performance.",
+        "whenToUse": [
+          "Use when animations stutter, transitions jank, or reviewing CSS/JS animation performance."
+        ],
+        "domains": [
+          "software"
+        ],
+        "derived": [
+          "domains",
+          "summary",
+          "whenToUse"
+        ]
+      },
+      "format": "lss",
+      "path": "performance/fixing-motion-performance/SKILL.md",
+      "tokenEstimate": 1321
+    },
+    {
+      "id": "fixing-metadata",
+      "name": "fixing-metadata",
+      "category": "seo",
+      "description": "Audit and fix HTML metadata including page titles, meta descriptions, canonical URLs, Open Graph tags, Twitter cards, favicons, JSON-LD structured data, and robots directives. Use when adding SEO metadata, fixing social share previews, reviewing Open Graph tags, setting up canonical URLs, or shipping new pages that need correct meta tags.",
+      "author": "ui-skills",
+      "license": "MIT",
+      "version": "1.0.0",
+      "tags": [],
+      "keywords": [
+        "seo",
+        "open graph",
+        "meta tags"
+      ],
+      "frameworks": [
+        "nextjs",
+        "html",
+        "react"
+      ],
+      "dependencies": [],
+      "relatedSkills": [],
+      "lastVerified": "2026-11-06",
+      "summary": "Audit and fix HTML metadata including page titles, meta descriptions, canonical URLs, Open Graph tags, Twitter cards, favicons, JSON-LD structured data, and robots directives. Use when adding SEO metadata, fixing social share previews, reviewing Open Graph tags, setting up canonical URLs, or…",
+      "contract": {
+        "lss": 1,
+        "keywords": [
+          "seo",
+          "open graph",
+          "meta tags"
+        ],
+        "frameworks": [
+          "nextjs",
+          "html",
+          "react"
+        ],
+        "lastVerified": "2026-11-06",
+        "source": {
+          "repo": "ibelick/ui-skills",
+          "path": "skills/fixing-metadata/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "declared in original SKILL.md",
+          "licenseUrl": "https://github.com/ibelick/ui-skills/blob/main/skills/fixing-metadata/SKILL.md",
+          "licenseCheckedAt": "2026-11-08"
+        },
+        "summary": "Audit and fix HTML metadata including page titles, meta descriptions, canonical URLs, Open Graph tags, Twitter cards, favicons, JSON-LD structured data, and robots directives. Use when adding SEO metadata, fixing social share previews, reviewing Open Graph tags, setting up canonical URLs, or…",
+        "whenToUse": [
+          "Use when adding SEO metadata, fixing social share previews, reviewing Open Graph tags, setting up canonical URLs, or shipping new pages that need correct meta tags."
+        ],
+        "domains": [
+          "web",
+          "data"
+        ],
+        "derived": [
+          "domains",
+          "summary",
+          "whenToUse"
+        ]
+      },
+      "format": "lss",
+      "path": "seo/fixing-metadata/SKILL.md",
+      "tokenEstimate": 1003
+    },
+    {
+      "id": "migrate-radix-to-base",
+      "name": "migrate-radix-to-base",
+      "category": "shadcn-ui",
+      "description": "Migrates React projects and components from Radix UI to Base UI. Use when asked to migrate from radix, move to base-ui, convert radix primitives, or switch a shadcn project's base library. Handles single components (\"migrate accordion\") and whole projects.",
+      "author": "unknown",
+      "license": "MIT",
+      "version": "1.0.0",
+      "tags": [],
+      "keywords": [],
+      "frameworks": [
+        "any"
+      ],
+      "dependencies": [],
+      "relatedSkills": [],
+      "lastVerified": "2026-11-09",
+      "summary": "Migrates React projects and components from Radix UI to Base UI. Use when asked to migrate from radix, move to base-ui, convert radix primitives, or switch a shadcn project's base library.",
+      "contract": {
+        "lss": 1,
+        "lastVerified": "2026-11-09",
+        "source": {
+          "repo": "shadcn-ui/ui",
+          "path": "skills/migrate-radix-to-base/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "repository license",
+          "licenseUrl": "https://github.com/shadcn-ui/ui/blob/main/LICENSE.md",
+          "licenseCheckedAt": "2026-11-09"
+        },
+        "summary": "Migrates React projects and components from Radix UI to Base UI. Use when asked to migrate from radix, move to base-ui, convert radix primitives, or switch a shadcn project's base library.",
+        "whenToUse": [
+          "Use when asked to migrate from radix, move to base-ui, convert radix primitives, or switch a shadcn project's base library."
+        ],
+        "verification": [
+          "Each run writes (or fully overwrites) the file for each component it",
+          "A multi-component run (\"migrate alert-dialog and dropdown-menu\") writes one",
+          "Whole-project mode writes the per-component files plus",
+          "There is NO index file. Migration status is derived from disk, not"
+        ],
+        "domains": [
+          "web",
+          "design"
+        ],
+        "derived": [
+          "domains",
+          "summary",
+          "verification",
+          "whenToUse"
+        ]
+      },
+      "format": "lss",
+      "path": "shadcn-ui/migrate-radix-to-base/SKILL.md",
+      "tokenEstimate": 2251
+    },
+    {
+      "id": "shadcn",
+      "name": "shadcn",
+      "category": "shadcn-ui",
+      "description": "Manages shadcn components and projects — adding, searching, fixing, debugging, styling, and composing UI, including chat interfaces. Provides project context, component docs, and usage examples. Applies when working with shadcn/ui, component registries, presets, --preset codes, or any project with a components.json file. Also triggers for \"shadcn init\", \"create an app with --preset\", \"switch to --preset\", and for building a design system or applying a DESIGN.md or brand spec to shadcn/ui.",
+      "author": "unknown",
+      "license": "MIT",
+      "version": "1.0.0",
+      "tags": [],
+      "keywords": [],
+      "frameworks": [
+        "any"
+      ],
+      "dependencies": [],
+      "relatedSkills": [],
+      "lastVerified": "2026-11-09",
+      "summary": "Manages shadcn components and projects — adding, searching, fixing, debugging, styling, and composing UI, including chat interfaces. Provides project context, component docs, and usage examples.",
+      "contract": {
+        "lss": 1,
+        "lastVerified": "2026-11-09",
+        "extraFrontmatter": {
+          "user-invocable": "user-invocable: false"
+        },
+        "source": {
+          "repo": "shadcn-ui/ui",
+          "path": "skills/shadcn/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "repository license",
+          "licenseUrl": "https://github.com/shadcn-ui/ui/blob/main/LICENSE.md",
+          "licenseCheckedAt": "2026-11-09"
+        },
+        "permissions": [
+          "shell"
+        ],
+        "summary": "Manages shadcn components and projects — adding, searching, fixing, debugging, styling, and composing UI, including chat interfaces. Provides project context, component docs, and usage examples.",
+        "whenToUse": [
+          "Also triggers for \"shadcn init\", \"create an app with --preset\", \"switch to --preset\", and for building a design system or applying a DESIGN.md or brand spec to shadcn/ui."
+        ],
+        "domains": [
+          "web",
+          "design",
+          "writing",
+          "business"
+        ],
+        "derived": [
+          "domains",
+          "summary",
+          "whenToUse"
+        ]
+      },
+      "format": "lss",
+      "path": "shadcn-ui/shadcn/SKILL.md",
+      "tokenEstimate": 2870
+    },
+    {
+      "id": "baseline-ui",
+      "name": "baseline-ui",
+      "category": "systems",
+      "description": "Quickly deslop UI code by fixing spacing, hierarchy, typography, and small layout issues. Use when the interface needs a fast cleanup or polish pass.",
+      "author": "ui-skills",
+      "license": "MIT",
+      "version": "1.0.0",
+      "tags": [],
+      "keywords": [],
+      "frameworks": [
+        "react",
+        "nextjs",
+        "tailwind"
+      ],
+      "dependencies": [],
+      "relatedSkills": [
+        "improve-ui",
+        "frontend-design"
+      ],
+      "lastVerified": "2026-11-06",
+      "summary": "Quickly deslop UI code by fixing spacing, hierarchy, typography, and small layout issues. Use when the interface needs a fast cleanup or polish pass.",
+      "contract": {
+        "lss": 1,
+        "related": [
+          "improve-ui",
+          "frontend-design"
+        ],
+        "frameworks": [
+          "react",
+          "nextjs",
+          "tailwind"
+        ],
+        "lastVerified": "2026-11-06",
+        "source": {
+          "repo": "ibelick/ui-skills",
+          "path": "skills/baseline-ui/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "repository license",
+          "licenseUrl": "https://github.com/ibelick/ui-skills/blob/main/LICENSE",
+          "licenseCheckedAt": "2026-11-08"
+        },
+        "summary": "Quickly deslop UI code by fixing spacing, hierarchy, typography, and small layout issues. Use when the interface needs a fast cleanup or polish pass.",
+        "whenToUse": [
+          "Use when the interface needs a fast cleanup or polish pass."
+        ],
+        "domains": [
+          "design",
+          "web"
+        ],
+        "derived": [
+          "domains",
+          "summary",
+          "whenToUse"
+        ]
+      },
+      "format": "lss",
+      "path": "systems/baseline-ui/SKILL.md",
+      "tokenEstimate": 807
+    },
+    {
+      "id": "tdd",
+      "name": "tdd",
+      "category": "testing",
+      "description": "Test-driven development. Use when the user wants to build features or fix bugs test-first, mentions \"red-green-refactor\", or wants integration tests.",
+      "author": "mattpocock",
+      "license": "MIT",
+      "version": "1.0.0",
+      "tags": [],
+      "keywords": [
+        "test-driven development",
+        "tests first"
+      ],
+      "frameworks": [
+        "any"
+      ],
+      "dependencies": [],
+      "relatedSkills": [],
+      "lastVerified": "2026-11-08",
+      "summary": "Test-driven development. Use when the user wants to build features or fix bugs test-first, mentions \"red-green-refactor\", or wants integration tests.",
+      "contract": {
+        "lss": 1,
+        "keywords": [
+          "test-driven development",
+          "tests first"
+        ],
+        "lastVerified": "2026-11-08",
+        "source": {
+          "repo": "mattpocock/skills",
+          "path": "skills/engineering/tdd/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "repository license",
+          "licenseUrl": "https://github.com/mattpocock/skills/blob/main/LICENSE",
+          "licenseCheckedAt": "2026-11-08"
+        },
+        "summary": "Test-driven development. Use when the user wants to build features or fix bugs test-first, mentions \"red-green-refactor\", or wants integration tests.",
+        "whenToUse": [
+          "Use when the user wants to build features or fix bugs test-first, mentions \"red-green-refactor\", or wants integration tests."
+        ],
+        "domains": [
+          "software"
+        ],
+        "derived": [
+          "domains",
+          "summary",
+          "whenToUse"
+        ]
+      },
+      "format": "lss",
+      "path": "testing/tdd/SKILL.md",
+      "tokenEstimate": 860
+    },
+    {
+      "id": "webapp-testing",
+      "name": "webapp-testing",
+      "category": "testing",
+      "description": "Toolkit for interacting with and testing local web applications using Playwright. Supports verifying frontend functionality, debugging UI behavior, capturing browser screenshots, and viewing browser logs.",
+      "author": "anthropics",
+      "license": "Apache-2.0",
+      "version": "1.0.0",
+      "tags": [],
+      "keywords": [
+        "end-to-end",
+        "e2e",
+        "browser testing"
+      ],
+      "frameworks": [
+        "any"
+      ],
+      "dependencies": [],
+      "relatedSkills": [],
+      "lastVerified": "2026-11-08",
+      "summary": "Toolkit for interacting with and testing local web applications using Playwright. Supports verifying frontend functionality, debugging UI behavior, capturing browser screenshots, and viewing browser logs.",
+      "contract": {
+        "lss": 1,
+        "keywords": [
+          "end-to-end",
+          "e2e",
+          "browser testing"
+        ],
+        "lastVerified": "2026-11-08",
+        "source": {
+          "repo": "anthropics/skills",
+          "path": "skills/webapp-testing/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "skill license file",
+          "licenseUrl": "https://github.com/anthropics/skills/blob/main/skills/webapp-testing/LICENSE.txt",
+          "licenseCheckedAt": "2026-11-08"
+        },
+        "summary": "Toolkit for interacting with and testing local web applications using Playwright. Supports verifying frontend functionality, debugging UI behavior, capturing browser screenshots, and viewing browser logs.",
+        "domains": [
+          "software"
+        ],
+        "permissions": [
+          "shell"
+        ],
+        "derived": [
+          "domains",
+          "permissions",
+          "summary"
+        ],
+        "whenToUse": [
+          "Use when testing a local web app in a real browser with Playwright: checking that features work, debugging UI behavior, taking screenshots or reading console logs."
+        ]
+      },
+      "format": "lss",
+      "path": "testing/webapp-testing/SKILL.md",
+      "tokenEstimate": 894
+    },
+    {
+      "id": "improve-ui",
+      "name": "Improve UI",
+      "category": "ui-ux",
+      "description": "Evidence-based audit of a product surface against its governing design system, eliminating interface slop without breaking functionality.",
+      "author": "ibelick",
+      "license": "MIT",
+      "version": "1.0.0",
+      "tags": [
+        "audit",
+        "polish",
+        "visual-hierarchy",
+        "clean-ui"
+      ],
+      "keywords": [
+        "ui audit",
+        "design review",
+        "visual polish",
+        "consistency check",
+        "design debt"
+      ],
+      "frameworks": [
+        "react",
+        "nextjs",
+        "vue",
+        "svelte",
+        "tailwind"
+      ],
+      "dependencies": [],
+      "relatedSkills": [
+        "baseline-ui",
+        "frontend-design",
+        "design-system-boss"
+      ],
+      "lastVerified": "2026-11-06",
+      "summary": "Evidence-based audit of a product surface against its governing design system, eliminating interface slop without breaking functionality.",
+      "contract": {
+        "lss": 1,
+        "related": [
+          "baseline-ui",
+          "frontend-design",
+          "design-system-boss"
+        ],
+        "frameworks": [
+          "react",
+          "nextjs",
+          "vue",
+          "svelte",
+          "tailwind"
+        ],
+        "lastVerified": "2026-11-06",
+        "source": {
+          "repo": "ibelick/ui-skills",
+          "path": "skills/improve-ui/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "repository license",
+          "licenseUrl": "https://github.com/ibelick/ui-skills/blob/main/LICENSE",
+          "licenseCheckedAt": "2026-11-08"
+        },
+        "summary": "Evidence-based audit of a product surface against its governing design system, eliminating interface slop without breaking functionality.",
+        "domains": [
+          "design",
+          "web"
+        ],
+        "derived": [
+          "domains",
+          "summary"
+        ],
+        "whenToUse": [
+          "Use when auditing one product screen or flow against its design system and writing plans for the fixes the user selects."
+        ],
+        "whenNotToUse": [
+          "Editing product source directly"
+        ],
+        "keywords": [
+          "ui audit",
+          "design review",
+          "visual polish",
+          "consistency check",
+          "design debt"
+        ],
+        "drafts": [
+          "keywords"
+        ]
+      },
+      "format": "lss",
+      "path": "ui-ux/improve-ui/SKILL.md",
+      "tokenEstimate": 1920
+    },
+    {
+      "id": "landing-page",
+      "name": "landing-page",
+      "category": "ui-ux",
+      "description": "Use when designing or rewriting a high-converting landing page (single-offer page) for SaaS/apps/services. Covers structure, layout patterns, conversion strategies, copywriting, SEO/AEO, and common pitfalls.",
+      "author": "Meng To",
+      "license": "MIT",
+      "version": "1.0.0",
+      "tags": [],
+      "keywords": [],
+      "frameworks": [
+        "react",
+        "nextjs",
+        "tailwind"
+      ],
+      "dependencies": [],
+      "relatedSkills": [
+        "frontend-design"
+      ],
+      "lastVerified": "2026-11-06",
+      "summary": "Use when designing or rewriting a high-converting landing page (single-offer page) for SaaS/apps/services. Covers structure, layout patterns, conversion strategies, copywriting, SEO/AEO, and common pitfalls.",
+      "contract": {
+        "lss": 1,
+        "related": [
+          "frontend-design"
+        ],
+        "frameworks": [
+          "react",
+          "nextjs",
+          "tailwind"
+        ],
+        "lastVerified": "2026-11-06",
+        "summary": "Use when designing or rewriting a high-converting landing page (single-offer page) for SaaS/apps/services. Covers structure, layout patterns, conversion strategies, copywriting, SEO/AEO, and common pitfalls.",
+        "whenToUse": [
+          "Use when designing or rewriting a high-converting landing page (single-offer page) for SaaS/apps/services."
+        ],
+        "verification": [
+          "ad-only campaigns",
+          "highly time-bound offers",
+          "noindex (or keep it behind a non-indexed path)",
+          "evergreen offers",
+          "search intent matches the promise",
+          "clear title + meta",
+          "internal links from homepage/feature pages",
+          "FAQ in plain Q/A for AEO"
+        ],
+        "domains": [
+          "design",
+          "web",
+          "writing"
+        ],
+        "derived": [
+          "domains",
+          "summary",
+          "verification",
+          "whenToUse"
+        ],
+        "source": {
+          "repo": "MengTo/Skills",
+          "path": "agent-skills/web-design/landing-page/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "repository license",
+          "licenseUrl": "https://github.com/MengTo/Skills/blob/main/LICENSE",
+          "licenseCheckedAt": "2026-11-12",
+          "copyright": "Copyright (c) 2026 Meng To"
+        }
+      },
+      "format": "lss",
+      "path": "ui-ux/landing-page/SKILL.md",
+      "tokenEstimate": 1227
+    },
+    {
+      "id": "pricing-page",
+      "name": "pricing-page",
+      "category": "ui-ux",
+      "description": "Use when designing or rewriting a high-converting SaaS pricing page (structure, plan design, copywriting, SEO/AEO, FAQs, layout patterns, experiments). Includes checklists, templates, and common pitfalls.",
+      "author": "Meng To",
+      "license": "MIT",
+      "version": "1.0.0",
+      "tags": [],
+      "keywords": [],
+      "frameworks": [
+        "react",
+        "nextjs",
+        "tailwind"
+      ],
+      "dependencies": [],
+      "relatedSkills": [
+        "landing-page"
+      ],
+      "lastVerified": "2026-11-06",
+      "summary": "Use when designing or rewriting a high-converting SaaS pricing page (structure, plan design, copywriting, SEO/AEO, FAQs, layout patterns, experiments). Includes checklists, templates, and common pitfalls.",
+      "contract": {
+        "lss": 1,
+        "related": [
+          "landing-page"
+        ],
+        "frameworks": [
+          "react",
+          "nextjs",
+          "tailwind"
+        ],
+        "lastVerified": "2026-11-06",
+        "summary": "Use when designing or rewriting a high-converting SaaS pricing page (structure, plan design, copywriting, SEO/AEO, FAQs, layout patterns, experiments). Includes checklists, templates, and common pitfalls.",
+        "whenToUse": [
+          "Use when designing or rewriting a high-converting SaaS pricing page (structure, plan design, copywriting, SEO/AEO, FAQs, layout patterns, experiments)."
+        ],
+        "verification": [
+          "Visible monthly/annual toggle",
+          "“Save X%” callout on annual",
+          "Recommended plan styling (subtle)",
+          "Key limits visible (3–6 max)",
+          "Included items visible (3–6 max)",
+          "Clear next step under each plan (trial/buy/contact)",
+          "Link: “Compare plans” (scrolls to matrix)",
+          "Mobile: table becomes stacked cards (not a horizontal scroll nightmare)"
+        ],
+        "domains": [
+          "design",
+          "web",
+          "writing"
+        ],
+        "derived": [
+          "domains",
+          "summary",
+          "verification",
+          "whenToUse"
+        ],
+        "source": {
+          "repo": "MengTo/Skills",
+          "path": "agent-skills/web-design/pricing-page/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "repository license",
+          "licenseUrl": "https://github.com/MengTo/Skills/blob/main/LICENSE",
+          "licenseCheckedAt": "2026-11-12",
+          "copyright": "Copyright (c) 2026 Meng To"
+        }
+      },
+      "format": "lss",
+      "path": "ui-ux/pricing-page/SKILL.md",
+      "tokenEstimate": 1364
+    },
+    {
+      "id": "prototype",
+      "name": "prototype",
+      "category": "ui-ux",
+      "description": "Build a throwaway prototype to answer a design question. Use when the user wants to sanity-check whether a state model or logic feels right, or explore what a UI should look like.",
+      "author": "mattpocock",
+      "license": "MIT",
+      "version": "1.0.0",
+      "tags": [],
+      "keywords": [
+        "throwaway code",
+        "spike",
+        "ui variations",
+        "state machine demo",
+        "proof of concept"
+      ],
+      "frameworks": [
+        "any"
+      ],
+      "dependencies": [],
+      "relatedSkills": [],
+      "lastVerified": "2026-11-08",
+      "summary": "Build a throwaway prototype to answer a design question. Use when the user wants to sanity-check whether a state model or logic feels right, or explore what a UI should look like.",
+      "contract": {
+        "lss": 1,
+        "lastVerified": "2026-11-08",
+        "source": {
+          "repo": "mattpocock/skills",
+          "path": "skills/engineering/prototype/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "repository license",
+          "licenseUrl": "https://github.com/mattpocock/skills/blob/main/LICENSE",
+          "licenseCheckedAt": "2026-11-08"
+        },
+        "summary": "Build a throwaway prototype to answer a design question. Use when the user wants to sanity-check whether a state model or logic feels right, or explore what a UI should look like.",
+        "whenToUse": [
+          "Use when the user wants to sanity-check whether a state model or logic feels right, or explore what a UI should look like."
+        ],
+        "domains": [
+          "design",
+          "web"
+        ],
+        "derived": [
+          "domains",
+          "summary",
+          "whenToUse"
+        ],
+        "keywords": [
+          "throwaway code",
+          "spike",
+          "ui variations",
+          "state machine demo",
+          "proof of concept"
+        ],
+        "drafts": [
+          "keywords"
+        ]
+      },
+      "format": "lss",
+      "path": "ui-ux/prototype/SKILL.md",
+      "tokenEstimate": 676
+    },
+    {
+      "id": "theme-factory",
+      "name": "theme-factory",
+      "category": "ui-ux",
+      "description": "Toolkit for styling artifacts with a theme. These artifacts can be slides, docs, reportings, HTML landing pages, etc. There are 10 pre-set themes with colors/fonts that you can apply to any artifact that has been creating, or can generate a new theme on-the-fly.",
+      "author": "anthropics",
+      "license": "Apache-2.0",
+      "version": "1.0.0",
+      "tags": [],
+      "keywords": [
+        "slide styling",
+        "presentation theme",
+        "document styling"
+      ],
+      "frameworks": [
+        "any"
+      ],
+      "dependencies": [],
+      "relatedSkills": [],
+      "lastVerified": "2026-11-08",
+      "summary": "Toolkit for styling artifacts with a theme. These artifacts can be slides, docs, reportings, HTML landing pages, etc.",
+      "contract": {
+        "lss": 1,
+        "lastVerified": "2026-11-08",
+        "source": {
+          "repo": "anthropics/skills",
+          "path": "skills/theme-factory/SKILL.md",
+          "licenseVerified": true,
+          "licenseStatus": "open",
+          "licenseEvidence": "skill license file",
+          "licenseUrl": "https://github.com/anthropics/skills/blob/main/skills/theme-factory/LICENSE.txt",
+          "licenseCheckedAt": "2026-11-08",
+          "filesLeftAtSource": 1
+        },
+        "summary": "Toolkit for styling artifacts with a theme. These artifacts can be slides, docs, reportings, HTML landing pages, etc.",
+        "domains": [
+          "design",
+          "web",
+          "writing"
+        ],
+        "derived": [
+          "domains",
+          "summary"
+        ],
+        "whenToUse": [
+          "Use when applying a consistent color and font theme to slides, documents, reports or HTML pages, from 10 preset themes or a new one."
+        ],
+        "keywords": [
+          "slide styling",
+          "presentation theme",
+          "document styling"
+        ],
+        "drafts": [
+          "keywords"
+        ]
+      },
+      "format": "lss",
+      "path": "ui-ux/theme-factory/SKILL.md",
+      "tokenEstimate": 695
+    }
+  ]
+}
