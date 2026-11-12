@@ -13,6 +13,7 @@ export default defineConfig({
   },
   test: {
     include: ['packages/*/test/**/*.test.ts'],
+    globalSetup: ['./test-global-setup.ts'],
     setupFiles: ['./test-setup.ts']
   }
 });

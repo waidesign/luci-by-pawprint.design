@@ -41,3 +41,11 @@ export {
 } from './agents/agentBlock.js';
 export { AGENT_IDS, configureAgent, configureAgents } from './agents/agentFiles.js';
 export { type InitOptions, type InitReport, initProject } from './init/initProject.js';
+export {
+  type Check,
+  type CheckStatus,
+  type Diagnosis,
+  type DiagnoseOptions,
+  type ProjectSummary,
+  diagnose
+} from './doctor/diagnose.js';
