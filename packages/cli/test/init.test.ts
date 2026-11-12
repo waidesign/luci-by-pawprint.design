@@ -19,9 +19,10 @@ describe('luci init', () => {
 
   it('asks for the goal and rules in a terminal', async () => {
     const dir = tempProject();
-    const f = fakeContext(dir, { isTTY: true, answers: ['A booking API', 'Use UTC everywhere', ''] });
+    // Goal, then the skills question (nothing matches this goal, so it isn't asked), packs (none fit), rules
+    const f = fakeContext(dir, { isTTY: true, answers: ['Flight control software for a drone', 'Use UTC everywhere', ''] });
     expect(await run(['init'], f.ctx)).toBe(0);
-    expect(readMemory(dir, 'context.md')).toContain('## Project Goal\nA booking API');
+    expect(readMemory(dir, 'context.md')).toContain('## Project Goal\nFlight control software for a drone');
     expect(readMemory(dir, 'rules.md')).toContain('- Use UTC everywhere');
   });
 

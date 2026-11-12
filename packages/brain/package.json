@@ -13,6 +13,7 @@
   },
   "files": ["dist", "templates", "defaults"],
   "dependencies": {
-    "@luci/format": "workspace:*"
+    "@luci/format": "workspace:*",
+    "@luci/skills": "workspace:*"
   }
 }

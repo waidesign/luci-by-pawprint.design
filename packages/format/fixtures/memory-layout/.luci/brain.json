@@ -37,6 +37,9 @@
     "playbook": "playbook.md",
     "decisions": "decisions/",
     "proposedMemory": "memory/proposed/",
+    "skills": "skills/",
+    "skillsLock": "skills.lock.json",
+    "skillCatalog": "project-skills.md",
     "local": "local/",
     "activeTask": "local/active-task.md"
   },

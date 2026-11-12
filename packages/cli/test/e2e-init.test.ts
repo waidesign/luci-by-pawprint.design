@@ -17,9 +17,12 @@ it('luci init on the sample React project: memory, agent files, onboarding answe
   const luci = (input: string, ...args: string[]) =>
     spawnSync(process.execPath, [BIN, ...args], { cwd: dir, input, encoding: 'utf8', env: { ...process.env, LUCI_HOME: home } });
 
-  // Answers piped in, as in a scripted setup: goal, one rule, then Enter to finish
-  const init = luci('Recipe sharing app for home cooks\nShow every price in euros\n\n', 'init', '-i');
+  // Answers piped in, as in a scripted setup: goal (no library skill matches it), "n" to the
+  // UI pack offered for a React project, one rule, then Enter to finish
+  const init = luci('Recipe sharing app for home cooks\nn\nShow every price in euros\n\n', 'init', '-i');
   expect(init.status, init.stderr).toBe(0);
+  expect(init.stdout).toContain('ui: UI basics');
+  expect(init.stdout).toContain('No packs added');
 
   const brain = parseBrainJson(fs.readFileSync(path.join(dir, '.luci', 'brain.json'), 'utf8'));
   if (!brain.ok) throw new Error(brain.error);

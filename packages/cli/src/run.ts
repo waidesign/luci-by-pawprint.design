@@ -1,6 +1,8 @@
 import { PRODUCT } from '@luci/format';
 import { DOCTOR_HELP, doctorCommand } from './commands/doctor.js';
 import { INIT_HELP, initCommand } from './commands/init.js';
+import { PACKS_HELP, packsCommand } from './commands/packs.js';
+import { SKILLS_HELP, skillsCommand } from './commands/skills.js';
 import type { CliContext, Command } from './context.js';
 import { cliVersion } from './version.js';
 
@@ -15,6 +17,8 @@ const helpCommand: Command = async (_args, ctx) => {
   ctx.out('Commands:');
   ctx.out(`  ${INIT_HELP}`);
   ctx.out(`  ${DOCTOR_HELP}`);
+  ctx.out(`  ${SKILLS_HELP}`);
+  ctx.out(`  ${PACKS_HELP}`);
   ctx.out('  version               Show the version');
   ctx.out('  help                  Show this help');
   return 0;
@@ -23,6 +27,9 @@ const helpCommand: Command = async (_args, ctx) => {
 export const COMMANDS: Readonly<Record<string, Command>> = {
   init: initCommand,
   doctor: doctorCommand,
+  skills: skillsCommand,
+  packs: packsCommand,
+  pack: packsCommand,
   version: versionCommand,
   '--version': versionCommand,
   '-v': versionCommand,

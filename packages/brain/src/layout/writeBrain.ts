@@ -1,8 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { MEMORY_FILES, TEMPLATE_DIRS, TEMPLATE_FILES, formatBrainJson } from '@luci/format';
+import { MEMORY_FILES, SKILL_FILE, TEMPLATE_DIRS, TEMPLATE_FILES, formatBrainJson } from '@luci/format';
 import type { ProjectInfo } from '../detect/detector.js';
 import {
+  TEMPLATES_DIR,
   buildBrainJson,
   ensureLocalDir,
   memoryDir,
@@ -20,6 +21,8 @@ export interface WriteBrainOptions {
   /** Luci's version, recorded in brain.json. */
   version?: string;
   templatesDir?: string;
+  /** Copy the starter project skills (default true). */
+  starterSkills?: boolean;
 }
 
 /** Paths relative to the project, such as ".luci/rules.md". */
@@ -69,6 +72,25 @@ export function writeBrain(dir: string, info: ProjectInfo, options: WriteBrainOp
   const gitignore = `${MEMORY_FILES.local}/.gitignore`;
   if (!fs.existsSync(path.join(root, gitignore))) report.created.push(memoryPath(gitignore));
   if (!dryRun) ensureLocalDir(dir);
+
+  // Starter project skills (Luci Skill Standard folders): short, committed with the project
+  const starterDir = path.join(options.templatesDir ?? TEMPLATES_DIR, MEMORY_FILES.skills);
+  const starters = options.starterSkills !== false && fs.existsSync(starterDir)
+    ? fs.readdirSync(starterDir, { withFileTypes: true }).filter(e => e.isDirectory()).map(e => e.name)
+    : [];
+  for (const name of starters) {
+    const rel = `${MEMORY_FILES.skills}/${name}/`;
+    const target = path.join(root, MEMORY_FILES.skills, name);
+    if (fs.existsSync(path.join(target, SKILL_FILE)) && !force) {
+      report.skipped.push(`${memoryPath(rel)} (exists)`);
+      continue;
+    }
+    if (!dryRun) {
+      fs.mkdirSync(target, { recursive: true });
+      for (const file of fs.readdirSync(path.join(starterDir, name))) fs.copyFileSync(path.join(starterDir, name, file), path.join(target, file));
+    }
+    report.created.push(memoryPath(rel));
+  }
 
   return report;
 }

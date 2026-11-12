@@ -14,7 +14,7 @@ export const doctorCommand: Command = async (args, ctx) => {
     return 1;
   }
 
-  const result = diagnose(ctx.cwd);
+  const result = await diagnose(ctx.cwd);
   if (flags.has('--json')) {
     ctx.out(JSON.stringify(result, null, 2));
     return result.ok ? 0 : 1;
@@ -38,6 +38,7 @@ export const doctorCommand: Command = async (args, ctx) => {
     ctx.out(`  Project:      ${p.name} (${p.framework})`);
     ctx.out(`  Goal:         ${p.goal ? p.goal.split('\n')[0] : '(not written yet)'}`);
     ctx.out(`  Own rules:    ${p.projectRules}`);
+    ctx.out(`  Skills:       ${p.skills} (listed in ${PRODUCT.projectDir}/project-skills.md)`);
     ctx.out(`  Active task:  ${p.activeTask ? `${p.activeTask.task ?? '(untitled)'}${p.activeTask.started ? `, since ${p.activeTask.started}` : ''}` : '(none)'}`);
     ctx.out(`  Code map:     ${p.hasCodeMap ? 'graphify-out/graph.json' : '(not built)'}`);
   }

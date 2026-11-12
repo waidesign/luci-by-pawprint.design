@@ -8,9 +8,9 @@ const read = (dir: string, file: string) => fs.readFileSync(path.join(dir, file)
 const react = { framework: 'react' };
 
 describe('agent files', () => {
-  it('init writes Claude Code and Cursor files only', () => {
+  it('init writes Claude Code and Cursor files only', async () => {
     const dir = tempProject({ 'package.json': pkg() });
-    initProject(dir);
+    await initProject(dir);
     expect(fs.existsSync(path.join(dir, 'CLAUDE.md'))).toBe(true);
     expect(fs.existsSync(path.join(dir, '.cursorrules'))).toBe(true);
     for (const later of ['AGENTS.md', 'GEMINI.md', 'AGENT_INSTRUCTIONS.md', '.github/copilot-instructions.md']) {
@@ -18,9 +18,9 @@ describe('agent files', () => {
     }
   });
 
-  it('every path the block points to exists after init', () => {
+  it('every path the block points to exists after init', async () => {
     const dir = tempProject({ 'package.json': pkg() });
-    initProject(dir);
+    await initProject(dir);
     const text = read(dir, 'CLAUDE.md');
     const paths = [...text.matchAll(/\.\/\.luci\/([\w./-]+?)(?=[\s,;)]|\.?\s|$)/g)].map(m => m[1] ?? '');
     expect(paths).toEqual(expect.arrayContaining(['rules.md', 'context.md', 'playbook.md', 'local/global-brain.md', 'decisions/', 'memory/proposed/']));
@@ -30,7 +30,7 @@ describe('agent files', () => {
     }
   });
 
-  it('uses Luci names and markers only', () => {
+  it('uses Luci names and markers only', async () => {
     const dir = tempProject();
     configureAgents(dir, react);
     for (const file of ['CLAUDE.md', '.cursorrules']) {
@@ -42,7 +42,7 @@ describe('agent files', () => {
   });
 
   // Ported from the prototype: project-context.test.js (with Luci's own markers)
-  it('the Luci section is refreshed in place, other content kept', () => {
+  it('the Luci section is refreshed in place, other content kept', async () => {
     const dir = tempProject();
     fs.writeFileSync(path.join(dir, 'CLAUDE.md'),
       '# My heading\n\n<!-- LUCI — CLAUDE CODE CONFIGURATION -->\n# Old\n- Old line\n<!-- END LUCI -->\n\n# My own notes\nKeep me.\n', 'utf8');
@@ -57,7 +57,7 @@ describe('agent files', () => {
     expect(configureAgent('claudeCode', dir, react).action).toBe('unchanged');
   });
 
-  it('a file without the section gets it at the top; a byte-order mark is dropped', () => {
+  it('a file without the section gets it at the top; a byte-order mark is dropped', async () => {
     const dir = tempProject({ '.cursorrules': '﻿Always use tabs.\n' });
     expect(configureAgent('cursor', dir, react).action).toBe('merged');
     const text = read(dir, '.cursorrules');
@@ -66,19 +66,19 @@ describe('agent files', () => {
     expect(text).not.toContain('﻿');
   });
 
-  it('a dry run writes nothing', () => {
+  it('a dry run writes nothing', async () => {
     const dir = tempProject({ 'CLAUDE.md': 'mine\n' });
     expect(configureAgents(dir, react, { dryRun: true })).toMatchObject({ claudeCode: { action: 'merged' }, cursor: { action: 'created' } });
     expect(read(dir, 'CLAUDE.md')).toBe('mine\n');
     expect(fs.existsSync(path.join(dir, '.cursorrules'))).toBe(false);
   });
 
-  it('init reports created, up to date and refreshed agent files', () => {
+  it('init reports created, up to date and refreshed agent files', async () => {
     const dir = tempProject({ 'package.json': pkg() });
-    expect(initProject(dir).created).toEqual(expect.arrayContaining(['CLAUDE.md', '.cursorrules']));
-    expect(initProject(dir).skipped).toEqual(expect.arrayContaining(['CLAUDE.md (up to date)', '.cursorrules (up to date)']));
+    expect((await initProject(dir)).created).toEqual(expect.arrayContaining(['CLAUDE.md', '.cursorrules']));
+    expect((await initProject(dir)).skipped).toEqual(expect.arrayContaining(['CLAUDE.md (up to date)', '.cursorrules (up to date)']));
     fs.writeFileSync(path.join(dir, 'package.json'), pkg({ dependencies: { next: '^14' } }), 'utf8');
-    const third = initProject(dir);
+    const third = await initProject(dir);
     expect(third.updated).toContain('CLAUDE.md (Luci section refreshed)');
     expect(read(dir, 'CLAUDE.md')).toContain('- Framework: nextjs');
   });

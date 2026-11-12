@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { MEMORY_FILES, type AgentId } from '@luci/format';
+import { SkillRegistry, addedPacks, detectPacks, loadPacks, packSkills, writeCatalog, type SkillSource } from '@luci/skills';
 import { configureAgents } from '../agents/agentFiles.js';
 import type { AgentFileResult } from '../agents/agentBlock.js';
 import { detectProject, type ProjectInfo } from '../detect/detector.js';
@@ -18,6 +19,16 @@ export interface InitOptions {
   version?: string;
   /** The user's Global Brain. Defaults to ~/.luci/brain (or LUCI_HOME/brain). */
   globalBrainDir?: string;
+  /** The skill library (default: Luci's library plus the user's personal one). */
+  registry?: SkillSource;
+}
+
+export interface PackSuggestion {
+  name: string;
+  title: string;
+  description: string;
+  reasons: string[];
+  skills: string[];
 }
 
 export interface InitReport {
@@ -27,6 +38,8 @@ export interface InitReport {
   globalBrainDir: string;
   /** What happened to each agent's instruction file. */
   agents: Record<AgentId, AgentFileResult>;
+  /** Skill packs that fit the project and aren't added yet. Nothing is added here. */
+  packsSuggested: PackSuggestion[];
   /** Project-relative paths written for the first time (or, in a dry run, that would be). */
   created: string[];
   /** Generated files rewritten with current content. */
@@ -36,23 +49,38 @@ export interface InitReport {
   warnings: string[];
 }
 
+/** Packs that fit the project and aren't added yet, each with why and the skills it would add here. */
+export async function suggestPacks(dir: string, info: ProjectInfo, registry: SkillSource, goal = ''): Promise<PackSuggestion[]> {
+  const added = new Set(addedPacks(dir));
+  const out: PackSuggestion[] = [];
+  for (const { pack, reasons } of detectPacks(loadPacks(), info, { projectDir: dir, goal })) {
+    if (added.has(pack.name)) continue;
+    const { skills } = await packSkills(pack, info, registry);
+    if (skills.length) out.push({ name: pack.name, title: pack.title, description: pack.description, reasons, skills: skills.map(s => s.id) });
+  }
+  return out;
+}
+
 /**
- * Set up a project: detect the stack, make sure the user's Global Brain exists,
- * create .luci/, write the Global Brain summary and each agent's instruction file.
- * Running it again keeps every file someone may have edited and refreshes only
- * generated files and the Luci section of agent files.
+ * Set up a project: detect the stack, make sure the user's Global Brain exists, create
+ * .luci/ (with the starter project skills), write the Global Brain summary, the skill
+ * catalog and each agent's instruction file, and suggest skill packs. Running it again
+ * keeps every file someone may have edited and refreshes only generated files and the
+ * Luci section of agent files.
  */
-export function initProject(targetDir: string = process.cwd(), options: InitOptions = {}): InitReport {
+export async function initProject(targetDir: string = process.cwd(), options: InitOptions = {}): Promise<InitReport> {
   const dir = path.resolve(targetDir);
   const dryRun = Boolean(options.dryRun);
   const projectInfo = detectProject(dir);
   const memory = new MemoryEngine(options.globalBrainDir ? { globalBrainDir: options.globalBrainDir } : {});
+  const registry = options.registry ?? new SkillRegistry({ user: true });
   const report: InitReport = {
     projectPath: dir,
     dryRun,
     projectInfo,
     globalBrainDir: memory.globalBrainDir,
     agents: {} as Record<AgentId, AgentFileResult>,
+    packsSuggested: [],
     created: [],
     updated: [],
     skipped: [],
@@ -69,11 +97,15 @@ export function initProject(targetDir: string = process.cwd(), options: InitOpti
   report.created.push(...brain.created);
   report.skipped.push(...brain.skipped);
 
+  const generated = async (rel: string, write: () => unknown) => {
+    const existed = fs.existsSync(path.join(memoryDir(dir), rel));
+    if (!dryRun) await write();
+    (existed ? report.updated : report.created).push(memoryPath(rel));
+  };
   // A read-only summary of the user's preferences, for agents that can't read ~/.luci
-  const summary = memoryPath(MEMORY_FILES.globalBrainSummary);
-  const hadSummary = fs.existsSync(path.join(memoryDir(dir), MEMORY_FILES.globalBrainSummary));
-  if (!dryRun) writeGlobalBrainSnapshot(dir, memory.globalBrainDir);
-  (hadSummary ? report.updated : report.created).push(summary);
+  await generated(MEMORY_FILES.globalBrainSummary, () => writeGlobalBrainSnapshot(dir, memory.globalBrainDir));
+  // The short list of project skills agents read instead of full skills
+  await generated(MEMORY_FILES.skillCatalog, () => writeCatalog(dir, registry));
 
   // Agent instruction files: only the Luci section is written; the rest of each file is the project's
   report.agents = configureAgents(dir, projectInfo, { dryRun });
@@ -84,5 +116,6 @@ export function initProject(targetDir: string = process.cwd(), options: InitOpti
     else report.updated.push(`${rel} (${result.action === 'merged' ? 'Luci section added' : 'Luci section refreshed'})`);
   }
 
+  report.packsSuggested = await suggestPacks(dir, projectInfo, registry);
   return report;
 }

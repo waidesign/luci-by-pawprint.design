@@ -20,6 +20,7 @@
   "files": ["dist"],
   "dependencies": {
     "@luci/brain": "workspace:*",
-    "@luci/format": "workspace:*"
+    "@luci/format": "workspace:*",
+    "@luci/skills": "workspace:*"
   }
 }

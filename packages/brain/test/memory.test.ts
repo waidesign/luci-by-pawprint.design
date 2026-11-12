@@ -16,7 +16,7 @@ import { listFiles, memoryExists, pkg, readMemory, tempDir, tempProject } from '
 
 describe('Global Brain', () => {
   // Ported from the prototype: memory-engine.test.js
-  it('initialises with the default preferences', () => {
+  it('initialises with the default preferences', async () => {
     const engine = new MemoryEngine({ globalBrainDir: tempDir('luci-brain-') });
     const brain = engine.getGlobalBrain();
     expect(brain['identity.md']).toBeTruthy();
@@ -24,14 +24,14 @@ describe('Global Brain', () => {
     expect(brain['coding-preferences.md']).toBeTruthy();
   });
 
-  it('precedence: safety rules first, then the request, project rules, Global Brain', () => {
+  it('precedence: safety rules first, then the request, project rules, Global Brain', async () => {
     expect(PRECEDENCE[0]).toMatch(/^Safety rules/);
     expect(PRECEDENCE[1]).toBe("The user's request");
     expect(PRECEDENCE[2]).toBe('.luci/rules.md (other rules)');
     expect(PRECEDENCE[3]).toBe('Global Brain (~/.luci/brain)');
   });
 
-  it('lives in the user folder (LUCI_HOME), never in the package', () => {
+  it('lives in the user folder (LUCI_HOME), never in the package', async () => {
     const engine = new MemoryEngine();
     expect(engine.globalBrainDir).toBe(userBrainDir());
     expect(userBrainDir()).toBe(path.join(luciHome(), 'brain'));
@@ -39,7 +39,7 @@ describe('Global Brain', () => {
     expect(path.resolve(engine.globalBrainDir)).not.toBe(path.resolve(DEFAULT_BRAIN_DIR));
   });
 
-  it('defaults to ~/.luci without LUCI_HOME', () => {
+  it('defaults to ~/.luci without LUCI_HOME', async () => {
     const saved = process.env['LUCI_HOME'];
     delete process.env['LUCI_HOME'];
     try {
@@ -49,7 +49,7 @@ describe('Global Brain', () => {
     }
   });
 
-  it('is seeded from the defaults without overwriting the user', () => {
+  it('is seeded from the defaults without overwriting the user', async () => {
     const defaults = tempDir('luci-defaults-');
     const user = tempDir('luci-user-brain-');
     fs.writeFileSync(path.join(defaults, 'design-principles.md'), '# Default principles', 'utf8');
@@ -70,7 +70,7 @@ describe('Global Brain', () => {
     expect(fs.existsSync(path.join(defaults, 'decision-history.md'))).toBe(false);
   });
 
-  it('the shipped defaults hold no personal decisions and no prototype names', () => {
+  it('the shipped defaults hold no personal decisions and no prototype names', async () => {
     const history = fs.readFileSync(path.join(DEFAULT_BRAIN_DIR, 'decision-history.md'), 'utf8');
     expect(history.split('\n').filter(l => /^\|\s*\d{4}-\d{2}-\d{2}/.test(l))).toEqual([]);
     for (const file of listFiles(DEFAULT_BRAIN_DIR)) {
@@ -78,7 +78,7 @@ describe('Global Brain', () => {
     }
   });
 
-  it('a global decision is one table row, whatever it contains', () => {
+  it('a global decision is one table row, whatever it contains', async () => {
     const engine = new MemoryEngine({ globalBrainDir: tempDir('luci-brain-') });
     const file = engine.recordGlobalDecision({ category: 'UI', decision: 'Grid | 8px', context: 'line one\nline two' });
     const row = fs.readFileSync(file, 'utf8').trim().split('\n').at(-1);
@@ -87,9 +87,9 @@ describe('Global Brain', () => {
 });
 
 describe('project decisions', () => {
-  it('are written as valid decision records, never overwriting one', () => {
+  it('are written as valid decision records, never overwriting one', async () => {
     const dir = tempProject({ 'package.json': pkg() });
-    initProject(dir);
+    await initProject(dir);
     const engine = new MemoryEngine();
     const input = { category: 'Architecture', decision: 'Use pnpm workspaces', context: 'One install links every package.' };
 
@@ -103,7 +103,7 @@ describe('project decisions', () => {
     expect(record.value).toMatchObject({ title: 'Use pnpm workspaces', status: 'accepted', area: 'Architecture', why: 'One install links every package.' });
   });
 
-  it('fail loudly when the project has no memory folder', () => {
+  it('fail loudly when the project has no memory folder', async () => {
     const dir = tempProject({ 'package.json': pkg() });
     expect(() => new MemoryEngine().recordProjectDecision(dir, { category: 'X', decision: 'Y', context: 'Z' })).toThrow(/luci init/);
   });
@@ -120,9 +120,9 @@ describe('link between global and project memory', () => {
     return { globalBrain, project };
   }
 
-  it('init: the project gets project files only, plus a read-only Global Brain summary', () => {
+  it('init: the project gets project files only, plus a read-only Global Brain summary', async () => {
     const { globalBrain, project } = setup();
-    initProject(project, { globalBrainDir: globalBrain });
+    await initProject(project, { globalBrainDir: globalBrain });
 
     for (const file of GLOBAL_PREFERENCE_FILES) expect(memoryExists(project, file), `${file} is not copied`).toBe(false);
     for (const file of ['context.md', 'rules.md', 'playbook.md']) expect(memoryExists(project, file)).toBe(true);
@@ -135,9 +135,9 @@ describe('link between global and project memory', () => {
     expect(fs.readFileSync(path.join(project, '.gitignore'), 'utf8')).toBe('node_modules/\n');
   });
 
-  it('the summary follows changes to the Global Brain', () => {
+  it('the summary follows changes to the Global Brain', async () => {
     const { globalBrain, project } = setup();
-    initProject(project, { globalBrainDir: globalBrain });
+    await initProject(project, { globalBrainDir: globalBrain });
     fs.writeFileSync(path.join(globalBrain, 'design-principles.md'), '# Design\n\n- Prefer generous whitespace', 'utf8');
 
     writeGlobalBrainSnapshot(project, globalBrain);
@@ -146,15 +146,15 @@ describe('link between global and project memory', () => {
     expect(summary).not.toContain('Prefer clean typography');
   });
 
-  it('a summary is only written into a project that has .luci/', () => {
+  it('a summary is only written into a project that has .luci/', async () => {
     const { globalBrain } = setup();
     expect(writeGlobalBrainSnapshot(tempProject(), globalBrain)).toBeNull();
   });
 
-  it('a dry run does not create the Global Brain either', () => {
+  it('a dry run does not create the Global Brain either', async () => {
     const globalBrain = path.join(tempDir('luci-gb-parent-'), 'brain');
     const project = tempProject({ 'package.json': pkg() });
-    const report = initProject(project, { dryRun: true, globalBrainDir: globalBrain });
+    const report = await initProject(project, { dryRun: true, globalBrainDir: globalBrain });
     expect(fs.existsSync(globalBrain)).toBe(false);
     expect(report.created).toContain('.luci/local/global-brain.md');
   });

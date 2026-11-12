@@ -18,6 +18,7 @@ import {
   type ActiveTaskHeader,
   type AgentId
 } from '@luci/format';
+import { SkillRegistry, missingSkillWarnings, projectSkillSet, readLock, type SkillSource } from '@luci/skills';
 import { AGENT_IDS, configureAgent } from '../agents/agentFiles.js';
 import { detectProject } from '../detect/detector.js';
 import { TEMPLATES_DIR, memoryDir, memoryPath, readBrainJson } from '../layout/brainLayout.js';
@@ -42,6 +43,8 @@ export interface ProjectSummary {
   projectRules: number;
   activeTask: ActiveTaskHeader | null;
   pendingProposals: number;
+  /** Library skills selected plus project skills. */
+  skills: number;
   hasCodeMap: boolean;
 }
 
@@ -58,6 +61,8 @@ export interface DiagnoseOptions {
   nodeVersion?: string;
   templatesDir?: string;
   defaultsDir?: string;
+  /** The skill library (default: Luci's library plus the user's personal one). */
+  registry?: SkillSource;
 }
 
 const MIN_NODE_MAJOR = 18;
@@ -100,7 +105,23 @@ function installChecks(options: DiagnoseOptions): Check[] {
   return checks;
 }
 
-function projectChecks(dir: string): { checks: Check[]; project: ProjectSummary | null } {
+async function skillChecks(dir: string, registry: SkillSource, add: (status: CheckStatus, label: string, detail?: string, fix?: string) => void): Promise<number> {
+  const lock = readLock(dir);
+  if (lock.invalid) {
+    add('warn', 'Skill selection', `${memoryPath(MEMORY_FILES.skillsLock)} is not valid, so no library skills are selected`, `Fix the JSON, or delete the file and select skills again with ${run('skills select <name>')}.`);
+    return 0;
+  }
+  const set = await projectSkillSet(dir, registry);
+  for (const w of missingSkillWarnings(lock, set.missing)) add('warn', 'Skill selection', w, `${run('skills deselect <name>')} removes a selection you no longer need.`);
+  if (!fs.existsSync(path.join(memoryDir(dir), MEMORY_FILES.skillCatalog))) {
+    add('warn', 'Skill catalog', `${memoryPath(MEMORY_FILES.skillCatalog)} is missing; agents won't see the project's skills`, `${run('init')} writes it.`);
+  } else if (!set.missing.length) {
+    add('ok', 'Skills', `${set.selected.length} from the library, ${set.own.length} project skill${set.own.length === 1 ? '' : 's'}`);
+  }
+  return set.selected.length + set.own.length;
+}
+
+async function projectChecks(dir: string, registry: SkillSource): Promise<{ checks: Check[]; project: ProjectSummary | null }> {
   const root = memoryDir(dir);
   const checks: Check[] = [];
   const add = (status: CheckStatus, label: string, detail?: string, fix?: string) =>
@@ -134,6 +155,7 @@ function projectChecks(dir: string): { checks: Check[]; project: ProjectSummary 
 
   const info = detectProject(dir);
   for (const id of AGENT_IDS) agentCheck(id, dir, info, add);
+  const skills = await skillChecks(dir, registry, add);
 
   const decisionsDir = path.join(root, MEMORY_FILES.decisions);
   const badDecisions = markdownFiles(decisionsDir)
@@ -186,6 +208,7 @@ function projectChecks(dir: string): { checks: Check[]; project: ProjectSummary 
       projectRules,
       activeTask,
       pendingProposals: proposals.length,
+      skills,
       hasCodeMap: info.hasGraphify
     }
   };
@@ -204,9 +227,9 @@ function agentCheck(
   else add('fail', file, result.action === 'created' ? 'missing' : `no ${PRODUCT.name} section`, `${run('init')} adds it; the rest of the file is kept.`);
 }
 
-export function diagnose(projectDir: string = process.cwd(), options: DiagnoseOptions = {}): Diagnosis {
+export async function diagnose(projectDir: string = process.cwd(), options: DiagnoseOptions = {}): Promise<Diagnosis> {
   const dir = path.resolve(projectDir);
-  const project = projectChecks(dir);
+  const project = await projectChecks(dir, options.registry ?? new SkillRegistry({ user: true }));
   const checks = [...installChecks(options), ...project.checks];
   return { checks, project: project.project, ok: !checks.some(c => c.status === 'fail') };
 }

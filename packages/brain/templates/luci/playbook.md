@@ -5,6 +5,7 @@ How work gets done here. Commands are in `context.md` → Commands; "done" alway
 ## Before any task
 1. Read `rules.md` and the goal in `context.md`.
 2. If `local/active-task.md` exists and its Status is active, continue that task.
+3. Check `project-skills.md` for a skill that fits, and open it only if it does. `{{COMMAND}} skills use "<task>"` lists the ones that fit a task.
 
 ## Feature
 Read first: `context.md` (Conventions, Folder Map) and the most similar existing feature.

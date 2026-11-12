@@ -72,6 +72,9 @@ export const BRAIN_JSON_FILES: Readonly<Record<string, string>> = {
   playbook: MEMORY_FILES.playbook,
   decisions: `${MEMORY_FILES.decisions}/`,
   proposedMemory: `${MEMORY_FILES.proposedMemory}/`,
+  skills: `${MEMORY_FILES.skills}/`,
+  skillsLock: MEMORY_FILES.skillsLock,
+  skillCatalog: MEMORY_FILES.skillCatalog,
   local: `${MEMORY_FILES.local}/`,
   activeTask: MEMORY_FILES.activeTask
 };

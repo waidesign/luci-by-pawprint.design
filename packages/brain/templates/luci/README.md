@@ -11,6 +11,7 @@ This folder tells AI coding agents how to work on this project. It was set up by
 | `playbook.md` | Step-by-step recipes per kind of task | Yes |
 | `decisions/` | Short records of decisions and why they were made | Yes |
 | `memory/proposed/` | Lessons agents suggest; a person moves them into the files above or deletes them | Yes |
+| `skills/`, `skills.lock.json`, `project-skills.md` | Skills for this project; agents open one only when a task needs it | Yes |
 | `brain.json` | Settings {{PRODUCT_NAME}} reads: layout version, detected stack, precedence | Yes |
 | `local/` | Your current task and a summary of your personal preferences | No (ignored by its own `.gitignore`) |
 
@@ -22,7 +23,7 @@ No API keys, passwords, tokens or customer data. These files are committed and r
 
 ## Updating
 
-Run `{{COMMAND}} update` to refresh the auto-detected sections, `brain.json` and the agent instruction files. Teammates without {{PRODUCT_NAME}} can still use every file here; nothing requires it.
+Run `{{COMMAND}} update` to refresh the auto-detected sections, `brain.json`, the agent instruction files and the skill catalog. Teammates without {{PRODUCT_NAME}} can still use every file here; nothing requires it.
 
 ## Removing
 

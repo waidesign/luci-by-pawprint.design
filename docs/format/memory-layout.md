@@ -20,7 +20,11 @@ Committed with the project, except `local/`.
 | `local/global-brain.md` | Read-only summary of the Global Brain, for agents that cannot read outside the project | `luci init` and `luci start` | none (generated) |
 | `local/archive/` | Finished or replaced tasks | task commands | none |
 
-Later milestones add `skills/`, `skills.lock.json` and `project-skills.md` (M2), `design/` (M4, M5) and `feedback/` (M6).
+| `skills/<name>/` | Project skills (Luci Skill Standard folders: `SKILL.md` + `luci.json`), committed so teammates have them; `luci init` adds five short starters | `luci init`, `luci skills share`, people | [skill standard](skill-standard.md) |
+| `skills.lock.json` | Library skills this project uses, each with version, reason, date and pack tags | `luci skills select`, packs, onboarding | `skillLockSchema` |
+| `project-skills.md` | Generated catalog: one short entry per project skill, so agents open a full skill only when needed | `luci init`, every skills command | none (generated) |
+
+Later milestones add `design/` (M4, M5) and `feedback/` (M6).
 
 ### Who owns a section
 

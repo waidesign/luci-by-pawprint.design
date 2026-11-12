@@ -49,7 +49,8 @@ const IGNORED_FOLDERS = new Set([
   '__pycache__', 'graphify-out', '.next', '.nuxt', '.svelte-kit', '.turbo', '.cache'
 ]);
 const LOCAL_PATH = memoryPath(`${MEMORY_FILES.local}/`);
-const GENERATED_PATHS = ['dist/', 'build/', '.next/', 'out/', 'coverage/', 'graphify-out/', LOCAL_PATH];
+const CATALOG_PATH = memoryPath(MEMORY_FILES.skillCatalog);
+const GENERATED_PATHS = ['dist/', 'build/', '.next/', 'out/', 'coverage/', 'graphify-out/', CATALOG_PATH, LOCAL_PATH];
 const STYLING_LABEL: Readonly<Record<string, string>> = {
   tailwindcss: 'Tailwind CSS', 'shadcn-ui': 'shadcn/ui', motion: 'Motion', threejs: 'three.js'
 };
@@ -74,7 +75,7 @@ export function projectFacts(info: ProjectInfo, projectDir: string): ProjectFact
   folders.sort();
 
   // The code map folder and Luci's own local/ are always listed; build output only when present
-  const generated = GENERATED_PATHS.filter(p => p === LOCAL_PATH || p === 'graphify-out/' || fs.existsSync(path.join(projectDir, p)));
+  const generated = GENERATED_PATHS.filter(p => p === LOCAL_PATH || p === CATALOG_PATH || p === 'graphify-out/' || fs.existsSync(path.join(projectDir, p)));
   return { info, commands: info.commands, folders, generated, hasUi: info.hasUi };
 }
 
