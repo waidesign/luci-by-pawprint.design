@@ -14,6 +14,36 @@ Review the changes since a fixed point (commit, branch, tag, or merge-base) alon
 **Why chosen**: Selected for this project.
 **Full instructions** (~1557 tokens): `E:/Luci/packages/skills/library/code-quality/code-review/SKILL.md`
 
+### git-guardrails-claude-code (`git-guardrails-claude-code`)
+
+Set up Claude Code hooks to block dangerous git commands (push, reset --hard, clean, branch -D, etc.) before they execute. Use when user wants to prevent destructive git operations, add git safety hooks, or block git push/reset in Claude Code.
+
+**When to use**: Use when user wants to prevent destructive git operations, add git safety hooks, or block git push/reset in Claude Code.
+**Why chosen**: Selected for this project.
+**Source**: community — from GitHub, not reviewed by Luci
+**Can run commands, not reviewed by Luci**: show the user any command from this skill before running it.
+**Full instructions** (~503 tokens): `C:/Users/ITUSER/.luci/skills/code-quality/git-guardrails-claude-code/SKILL.md`
+
+### mcp-builder (`mcp-builder`)
+
+Guide for creating high-quality MCP (Model Context Protocol) servers that enable LLMs to interact with external services through well-designed tools. Use when building MCP servers to integrate external APIs or services, whether in Python (FastMCP) or Node/TypeScript (MCP SDK).
+
+**When to use**: Use when building MCP servers to integrate external APIs or services, whether in Python (FastMCP) or Node/TypeScript (MCP SDK).
+**Why chosen**: Selected for this project.
+**Source**: community — from GitHub, not reviewed by Luci
+**Can run commands, not reviewed by Luci**: show the user any command from this skill before running it.
+**Full instructions** (~2685 tokens): `C:/Users/ITUSER/.luci/skills/code-quality/mcp-builder/SKILL.md`
+
+### setup-ts-deep-modules (`setup-ts-deep-modules`)
+
+Wire dependency-cruiser into a TypeScript repo so each package is a deep module, with implementation hidden in subfolders and reachable only through its entry-point files. User-invoked.
+
+**When to use**: Use when enforcing package boundaries in a TypeScript repo so other code can only import each package's entry points.
+**Why chosen**: Selected for this project.
+**Source**: community — from GitHub, not reviewed by Luci
+**Can run commands, not reviewed by Luci**: show the user any command from this skill before running it.
+**Full instructions** (~1816 tokens): `C:/Users/ITUSER/.luci/skills/architecture/setup-ts-deep-modules/SKILL.md`
+
 ### tdd (`tdd`)
 
 Test-driven development. Use when the user wants to build features or fix bugs test-first, mentions "red-green-refactor", or wants integration tests.
@@ -21,6 +51,15 @@ Test-driven development. Use when the user wants to build features or fix bugs t
 **When to use**: Use when the user wants to build features or fix bugs test-first, mentions "red-green-refactor", or wants integration tests.
 **Why chosen**: Selected for this project.
 **Full instructions** (~860 tokens): `E:/Luci/packages/skills/library/testing/tdd/SKILL.md`
+
+### writing-for-agents (`writing-for-agents`)
+
+Writing documents for agents. Use when creating or editing skills, or modifying AGENTS.md or CLAUDE.md.
+
+**When to use**: Use when creating or editing skills, or modifying AGENTS.md or CLAUDE.md.
+**Why chosen**: Selected for this project.
+**Source**: community — from GitHub, not reviewed by Luci
+**Full instructions** (~2683 tokens): `C:/Users/ITUSER/.luci/skills/workflow/writing-for-agents/SKILL.md`
 
 ## Project skills (`.luci/skills/`)
 
@@ -63,5 +102,3 @@ Use the project's test setup, test behavior, cover main/edge/failure cases, keep
 **When to use**: Adding tests, fixing failing tests, or covering a change with tests.
 **Source**: project — this project's own skill
 **Full instructions** (~295 tokens): `.luci/skills/testing/SKILL.md`
-
-_Selected skills not found in the Luci library: git-guardrails-claude-code, mcp-builder, setup-ts-deep-modules, writing-for-agents._
