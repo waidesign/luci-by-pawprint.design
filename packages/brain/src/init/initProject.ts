@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { MEMORY_FILES } from '@luci/format';
+import { MEMORY_FILES, type AgentId } from '@luci/format';
+import { configureAgents } from '../agents/agentFiles.js';
+import type { AgentFileResult } from '../agents/agentBlock.js';
 import { detectProject, type ProjectInfo } from '../detect/detector.js';
 import { memoryDir, memoryPath } from '../layout/brainLayout.js';
 import { writeBrain } from '../layout/writeBrain.js';
@@ -23,6 +25,8 @@ export interface InitReport {
   dryRun: boolean;
   projectInfo: ProjectInfo;
   globalBrainDir: string;
+  /** What happened to each agent's instruction file. */
+  agents: Record<AgentId, AgentFileResult>;
   /** Project-relative paths written for the first time (or, in a dry run, that would be). */
   created: string[];
   /** Generated files rewritten with current content. */
@@ -34,8 +38,9 @@ export interface InitReport {
 
 /**
  * Set up a project: detect the stack, make sure the user's Global Brain exists,
- * create .luci/ and write the Global Brain summary. Running it again keeps every
- * file someone may have edited and refreshes only generated files.
+ * create .luci/, write the Global Brain summary and each agent's instruction file.
+ * Running it again keeps every file someone may have edited and refreshes only
+ * generated files and the Luci section of agent files.
  */
 export function initProject(targetDir: string = process.cwd(), options: InitOptions = {}): InitReport {
   const dir = path.resolve(targetDir);
@@ -47,6 +52,7 @@ export function initProject(targetDir: string = process.cwd(), options: InitOpti
     dryRun,
     projectInfo,
     globalBrainDir: memory.globalBrainDir,
+    agents: {} as Record<AgentId, AgentFileResult>,
     created: [],
     updated: [],
     skipped: [],
@@ -68,6 +74,15 @@ export function initProject(targetDir: string = process.cwd(), options: InitOpti
   const hadSummary = fs.existsSync(path.join(memoryDir(dir), MEMORY_FILES.globalBrainSummary));
   if (!dryRun) writeGlobalBrainSnapshot(dir, memory.globalBrainDir);
   (hadSummary ? report.updated : report.created).push(summary);
+
+  // Agent instruction files: only the Luci section is written; the rest of each file is the project's
+  report.agents = configureAgents(dir, projectInfo, { dryRun });
+  for (const result of Object.values(report.agents)) {
+    const rel = path.relative(dir, result.target).replace(/\\/g, '/');
+    if (result.action === 'created') report.created.push(rel);
+    else if (result.action === 'unchanged') report.skipped.push(`${rel} (up to date)`);
+    else report.updated.push(`${rel} (${result.action === 'merged' ? 'Luci section added' : 'Luci section refreshed'})`);
+  }
 
   return report;
 }

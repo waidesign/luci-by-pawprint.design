@@ -33,4 +33,11 @@ export {
   MemoryEngine
 } from './memory/memoryEngine.js';
 export { GLOBAL_PREFERENCE_FILES, SNAPSHOT_TITLE, writeGlobalBrainSnapshot } from './memory/globalLink.js';
+export {
+  type AgentFileAction,
+  type AgentFileResult,
+  agentBlock,
+  upsertAgentBlock
+} from './agents/agentBlock.js';
+export { AGENT_IDS, configureAgent, configureAgents } from './agents/agentFiles.js';
 export { type InitOptions, type InitReport, initProject } from './init/initProject.js';

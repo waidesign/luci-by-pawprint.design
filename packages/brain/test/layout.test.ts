@@ -36,7 +36,7 @@ describe('init: memory layout', () => {
     const report = initProject(dir);
 
     expect(listFiles(path.join(dir, '.luci'))).toEqual(LAYOUT_FILES);
-    expect(report.created.sort()).toEqual(LAYOUT_FILES.map(f => `.luci/${f}`));
+    expect(report.created.filter(f => f.startsWith('.luci/')).sort()).toEqual(LAYOUT_FILES.map(f => `.luci/${f}`));
     for (const file of LAYOUT_FILES) {
       const text = readMemory(dir, file);
       expect(text, file).not.toMatch(/\{\{[A-Z_]+\}\}/);
