@@ -1,2 +1,8 @@
 # Generated graphify cache
 graphify-out/cache/
+
+# Dependencies and build output
+node_modules/
+dist/
+*.tsbuildinfo
+coverage/

@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    "paths": {
+      "@luci/format": ["./packages/format/src/index.ts"],
+      "@luci/brain": ["./packages/brain/src/index.ts"]
+    }
+  },
+  "include": ["packages/*/test/**/*.ts", "vitest.config.ts", "test-setup.ts"]
+}

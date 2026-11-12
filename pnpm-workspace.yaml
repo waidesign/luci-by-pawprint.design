@@ -1,0 +1,8 @@
+packages:
+  - packages/*
+
+# @types/node stays on 18, the oldest Node that Luci supports, so the compiler
+# rejects newer Node APIs. Vitest and Vite ask for newer types only for their own typings.
+peerDependencyRules:
+  allowedVersions:
+    '@types/node': '18'
