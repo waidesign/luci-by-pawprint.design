@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { parseDecision, parseProposal } from '@luci/format';
-import { initProject, writeActiveTask } from '@luci/brain';
+import { CodeMap, initProject, writeActiveTask } from '@luci/brain';
 import { SkillRegistry } from '@luci/skills';
 import { TOOLS, handleTool, type ToolDeps } from '../src/index.js';
 
@@ -32,12 +32,12 @@ const initialized = async () => {
   return dir;
 };
 
-// Ported from the prototype's mcp/server.js tool list (presets, agentation and the graph tool are not ported)
+// Ported from the prototype's mcp/server.js tool list (presets and agentation are dropped)
 describe('luci-mcp tools (B11)', () => {
   it('serves the ported tools plus get_active_task and propose_memory', () => {
     const names = TOOLS.map(t => t.name).sort();
     expect(names).toEqual([
-      'add_skill_packs', 'analyze_project', 'get_active_task', 'get_global_brain', 'get_project_context',
+      'add_skill_packs', 'analyze_project', 'get_active_task', 'get_global_brain', 'get_project_context', 'get_project_graph',
       'get_project_skills', 'get_project_status', 'get_skill', 'initialize_project', 'intake_docs', 'list_skill_packs',
       'list_skills', 'load_project_skills', 'load_skills', 'propose_memory', 'recommend_skills',
       'remove_skill_packs', 'search_skills', 'select_project_skills', 'update_project_memory'
@@ -136,6 +136,25 @@ describe('luci-mcp tools (B11)', () => {
     expect(skill.content.length).toBeGreaterThan(0);
     expect((await call(dir, 'get_skill', { id: 'no-such-skill' })).isError).toBe(true);
     expect((await call(dir, 'load_skills', { taskPrompt: 'file my quarterly taxes' })).isError).toBeUndefined();
+  });
+
+  it('get_project_graph reports the map, and builds it only when asked (never installs)', async () => {
+    const dir = tempProject({ 'index.js': 'export const a = 1;' });
+    expect(JSON.parse((await call(dir, 'get_project_graph')).text)).toMatchObject({ available: false });
+    const writeGraph = (cwd: string) => {
+      fs.mkdirSync(path.join(cwd, 'graphify-out'), { recursive: true });
+      fs.writeFileSync(path.join(cwd, 'graphify-out', 'graph.json'), JSON.stringify({ nodes: [{ id: 'a' }], links: [] }), 'utf8');
+      return '';
+    };
+    const withMap = (installed: boolean): ToolDeps => ({
+      ...deps(dir),
+      codeMap: (d) => new CodeMap({ projectRoot: d, run: (_c, _a, cwd) => writeGraph(cwd), locate: () => (installed ? { command: 'graphify', version: 'graphify 0.0.0-test' } : null) })
+    });
+    const notInstalled = await handleTool('get_project_graph', { update: true }, withMap(false));
+    expect(notInstalled.isError).toBe(true);
+    expect(notInstalled.content[0]?.text).toContain('luci map --install');
+    const built = JSON.parse((await handleTool('get_project_graph', { update: true }, withMap(true))).content[0]!.text);
+    expect(built).toMatchObject({ available: true, json: 'graphify-out/graph.json', nodeCount: 1 });
   });
 
   it('bad input and unknown tools come back as errors, not throws', async () => {

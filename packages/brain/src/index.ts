@@ -51,6 +51,31 @@ export {
   readProjectGoal,
   readProjectRules
 } from './context/projectContext.js';
+export { type FoundTool, TOOL_ENV, findTool, userBinDirs } from './codemap/toolLocator.js';
+export {
+  type GraphPaths,
+  type GraphStats,
+  type MapFreshness,
+  type GenerateResult,
+  type RunCommand,
+  GRAPHIFY_OUT_DIR,
+  GRAPHIFY_PACKAGE,
+  CODE_MAP_SETUP_HINT,
+  CodeMap,
+  graphPaths,
+  locateGraph,
+  readGraphStats,
+  builtAtCommit,
+  mapFreshness
+} from './codemap/codeMap.js';
+export {
+  type EnsureOptions,
+  type EnsureResult,
+  CODE_MAP_PITCH,
+  GraphifyInstaller,
+  ensureGraphify,
+  uvInstallCommand
+} from './codemap/installer.js';
 export {
   type DocAnalysis,
   type DocSection,

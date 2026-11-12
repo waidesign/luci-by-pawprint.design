@@ -44,6 +44,7 @@ export const updateCommand: Command = async (_args, ctx) => {
   ctx.out(report.refreshedSections.length ? `Refreshed: ${report.refreshedSections.join(', ')}` : 'Auto-detected sections are current.');
   if (report.agentFiles.length) ctx.out(`Refreshed the ${PRODUCT.name} section in: ${report.agentFiles.join(', ')}`);
   ctx.out(`Rewrote generated files: ${generatedFiles().join(', ')}`);
+  if (report.codeMap) ctx.out(`Code map: ${report.codeMap}`);
   ctx.out(`Everything you wrote was kept. Rename a section to "(confirmed)" to stop it being refreshed.`);
   return 0;
 };

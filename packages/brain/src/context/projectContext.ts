@@ -14,6 +14,7 @@ import {
   type ProjectCommands
 } from '@luci/format';
 import { SkillRegistry, addedPacks, missingSkillWarnings, projectSkillSet, readLock, trustLevel, type Skill, type SkillSource, type TrustLevel } from '@luci/skills';
+import { mapFreshness, type MapFreshness } from '../codemap/codeMap.js';
 import { GRAPH_JSON, detectProject } from '../detect/detector.js';
 import { suggestPacks, type PackSuggestion } from '../init/initProject.js';
 import { memoryDir, memoryPath, readBrainJson } from '../layout/brainLayout.js';
@@ -73,7 +74,8 @@ export interface ProjectContext {
   activeTask: ActiveTask | null;
   skills: { selected: ContextSkill[]; project: ContextSkill[] };
   packs: { added: string[]; suggested: PackSuggestion[] };
-  graph: { available: true; json: string; report: string | null } | { available: false };
+  /** The code map (B6); `freshness` says whether code changed since it was built. */
+  graph: { available: true; json: string; report: string | null; freshness: MapFreshness } | { available: false };
   globalBrain: string;
   warnings: string[];
 }
@@ -132,6 +134,8 @@ export async function loadProjectContext(projectDir: string = process.cwd(), opt
 
   const goal = initialized ? readProjectGoal(dir) : null;
   const graphJson = path.join(dir, GRAPH_JSON);
+  const freshness = mapFreshness(dir);
+  if (freshness.status === 'stale') warnings.push(`The code map is out of date (${freshness.changedFiles} code files changed since it was built). Read changed files directly, or run ${run('map --update')}.`);
 
   return {
     version: CONTEXT_VERSION,
@@ -165,7 +169,7 @@ export async function loadProjectContext(projectDir: string = process.cwd(), opt
       ? { added: addedPacks(dir), suggested: await suggestPacks(dir, info, registry, goal ?? '') }
       : { added: [], suggested: [] },
     graph: fs.existsSync(graphJson)
-      ? { available: true, json: GRAPH_JSON.replace(/\\/g, '/'), report: fs.existsSync(path.join(dir, GRAPH_REPORT)) ? GRAPH_REPORT.replace(/\\/g, '/') : null }
+      ? { available: true, json: GRAPH_JSON.replace(/\\/g, '/'), report: fs.existsSync(path.join(dir, GRAPH_REPORT)) ? GRAPH_REPORT.replace(/\\/g, '/') : null, freshness }
       : { available: false },
     globalBrain: options.globalBrainDir ?? userBrainDir(),
     warnings

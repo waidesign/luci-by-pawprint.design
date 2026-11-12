@@ -9,8 +9,13 @@ import path from 'node:path';
 import { z } from 'zod';
 import { MEMORY_FILES, PROPOSAL_TARGETS, PRODUCT, formatProposal } from '@luci/format';
 import {
+  CODE_MAP_SETUP_HINT,
+  CodeMap,
   MemoryEngine,
   detectProject,
+  locateGraph,
+  mapFreshness,
+  readGraphStats,
   initProject,
   intakeDocs,
   loadProjectContext,
@@ -43,6 +48,8 @@ export interface ToolDeps {
   cwd: string;
   /** The user's Global Brain (default ~/.luci/brain). */
   globalBrainDir?: string;
+  /** Makes the code map runner for a project (tests replace it so no real Graphify runs). */
+  codeMap?: (projectDir: string) => CodeMap;
 }
 
 export interface ToolResult {
@@ -141,6 +148,28 @@ export const TOOLS: readonly LuciTool[] = [
     'Detect the project from its files: framework, languages, package manager, UI libraries, testing tools, commands and which agents are set up. Reads only.',
     { projectPath }, READ,
     (args, deps) => json(detectProject(target(args, deps)))),
+
+  tool('get_project_graph',
+    `The project's code map (Graphify): where it is, its size, and whether code changed since it was built (a stale map can miss recent code; read changed files directly). With update: true it builds or refreshes the map with Graphify if installed, writing only graphify-out/. It never installs anything; \`${PRODUCT.command} map --install\` does, run by the user.`,
+    { projectPath, update: z.boolean().optional().describe('Build or refresh the map (only call after the user agrees; it can take a minute)') },
+    { ...WRITE, idempotentHint: true },
+    async (args, deps) => {
+      const dir = target(args, deps);
+      if (args.update) {
+        const result = await (deps.codeMap ?? ((d: string) => new CodeMap({ projectRoot: d })))(dir).generate({ targetDir: dir, force: true });
+        if (result.skipped) return error(`${result.summary} Ask the user whether they want it; it is optional.`);
+      }
+      const paths = locateGraph(dir);
+      if (!paths) return json({ available: false, hint: CODE_MAP_SETUP_HINT });
+      const rel = (p: string) => path.relative(dir, p).replace(/\\/g, '/');
+      return json({
+        available: true,
+        json: rel(paths.jsonPath),
+        report: fs.existsSync(paths.reportPath) ? rel(paths.reportPath) : null,
+        ...(readGraphStats(paths.jsonPath) ?? { nodeCount: 0, edgeCount: 0 }),
+        freshness: mapFreshness(dir)
+      });
+    }),
 
   tool('list_skills',
     `List the skills in the ${PRODUCT.name} library (and the user's personal library), with trust levels.`,

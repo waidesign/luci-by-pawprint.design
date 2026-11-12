@@ -18,6 +18,7 @@ import {
 } from '@luci/format';
 import { SkillRegistry, missingSkillWarnings, projectSkillSet, readLock, type SkillSource } from '@luci/skills';
 import { AGENT_IDS, configureAgent } from '../agents/agentFiles.js';
+import { mapFreshness } from '../codemap/codeMap.js';
 import { readProjectGoal, readProjectRules } from '../context/projectContext.js';
 import { detectProject } from '../detect/detector.js';
 import { TEMPLATES_DIR, memoryDir, memoryPath, readBrainJson } from '../layout/brainLayout.js';
@@ -181,6 +182,12 @@ async function projectChecks(dir: string, registry: SkillSource): Promise<{ chec
   const goal = readProjectGoal(dir);
   if (!goal) add('warn', 'Project goal', 'not written yet', `Write one or two sentences under "${PROJECT_GOAL_HEADING.slice(3)}" in ${memoryPath(MEMORY_FILES.context)}.`);
   const projectRules = readProjectRules(dir).length;
+
+  const map = mapFreshness(dir);
+  if (map.status === 'missing') add('info', 'Code map', 'not built (optional)', `${run('map')} explains how to set it up.`);
+  else if (map.status === 'stale') add('warn', 'Code map', `out of date: ${map.changedFiles} code file${map.changedFiles === 1 ? '' : 's'} changed since it was built (${map.sample.join(', ')}${map.changedFiles > map.sample.length ? ', ...' : ''})`, `${run('map --update')} refreshes it.`);
+  else if (map.status === 'unknown') add('info', 'Code map', `can't tell if it is current: ${map.reason}`);
+  else add('ok', 'Code map', `current${map.builtAtCommit ? ` (built at ${map.builtAtCommit.slice(0, 7)})` : ''}`);
 
   const taskFile = path.join(root, MEMORY_FILES.activeTask);
   let activeTask: ActiveTaskHeader | null = null;

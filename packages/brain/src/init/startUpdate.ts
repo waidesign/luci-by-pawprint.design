@@ -3,6 +3,7 @@ import path from 'node:path';
 import { MEMORY_FILES, refreshSections } from '@luci/format';
 import { SkillRegistry, writeCatalog, type SkillSource } from '@luci/skills';
 import { configureAgents } from '../agents/agentFiles.js';
+import { CodeMap, mapFreshness } from '../codemap/codeMap.js';
 import { detectProject } from '../detect/detector.js';
 import { diagnose, type Diagnosis } from '../doctor/diagnose.js';
 import { autoSections, memoryDir, memoryPath, projectFacts } from '../layout/brainLayout.js';
@@ -44,6 +45,8 @@ export interface UpdateReport {
   refreshedSections: string[];
   /** Agent files whose Luci section was added or refreshed. */
   agentFiles: string[];
+  /** What happened to an existing code map: refreshed when out of date and Graphify is installed. */
+  codeMap: string | null;
 }
 
 /**
@@ -51,9 +54,12 @@ export interface UpdateReport {
  * rewrite the "(auto-detected)" sections of context.md, brain.json, the Luci section of
  * agent files, the skill catalog and the Global Brain summary. Text people wrote is never touched.
  */
-export async function updateProject(targetDir: string = process.cwd(), options: { globalBrainDir?: string; registry?: SkillSource; version?: string } = {}): Promise<UpdateReport> {
+export async function updateProject(
+  targetDir: string = process.cwd(),
+  options: { globalBrainDir?: string; registry?: SkillSource; version?: string; codeMap?: CodeMap } = {}
+): Promise<UpdateReport> {
   const dir = path.resolve(targetDir);
-  const report: UpdateReport = { projectPath: dir, initialized: fs.existsSync(memoryDir(dir)), added: [], refreshedSections: [], agentFiles: [] };
+  const report: UpdateReport = { projectPath: dir, initialized: fs.existsSync(memoryDir(dir)), added: [], refreshedSections: [], agentFiles: [], codeMap: null };
   if (!report.initialized) return report;
 
   const info = detectProject(dir);
@@ -76,6 +82,18 @@ export async function updateProject(targetDir: string = process.cwd(), options: 
 
   for (const result of Object.values(configureAgents(dir, info))) {
     if (result.action !== 'unchanged') report.agentFiles.push(path.relative(dir, result.target).replace(/\\/g, '/'));
+  }
+
+  // The code map is refreshed only when one exists and is out of date; update never builds a new one
+  const map = mapFreshness(dir);
+  if (map.status === 'stale') {
+    try {
+      report.codeMap = (await (options.codeMap ?? new CodeMap({ projectRoot: dir })).generate({ targetDir: dir, force: true })).summary;
+    } catch (err) {
+      report.codeMap = `Could not refresh the code map: ${err instanceof Error ? err.message : String(err)}`;
+    }
+  } else if (map.status === 'fresh') {
+    report.codeMap = 'The code map is current.';
   }
   return report;
 }
