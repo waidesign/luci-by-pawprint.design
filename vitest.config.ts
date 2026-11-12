@@ -6,11 +6,13 @@ const pkg = (name: string) => fileURLToPath(new URL(`./packages/${name}/src/inde
 export default defineConfig({
   resolve: {
     // Tests run against the TypeScript sources, so no build is needed first
-    alias: {
-      '@luci/format': pkg('format'),
-      '@luci/brain': pkg('brain'),
-      '@luci/skills': pkg('skills')
-    }
+    // Exact matches, so the subpath "@luci/format/capture" is not caught by "@luci/format"
+    alias: [
+      { find: /^@luci\/format\/capture$/, replacement: fileURLToPath(new URL('./packages/format/src/capture/index.ts', import.meta.url)) },
+      { find: /^@luci\/format$/, replacement: pkg('format') },
+      { find: /^@luci\/brain$/, replacement: pkg('brain') },
+      { find: /^@luci\/skills$/, replacement: pkg('skills') }
+    ]
   },
   test: {
     include: ['packages/*/test/**/*.test.ts'],

@@ -7,6 +7,7 @@
     "noEmit": true,
     "paths": {
       "@luci/format": ["./packages/format/src/index.ts"],
+      "@luci/format/capture": ["./packages/format/src/capture/index.ts"],
       "@luci/brain": ["./packages/brain/src/index.ts"],
       "@luci/skills": ["./packages/skills/src/index.ts"]
     }

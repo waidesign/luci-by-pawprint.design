@@ -1,0 +1,85 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { describe, expect, it } from 'vitest';
+import {
+  captureFileName,
+  cleanSource,
+  colorKey,
+  formatCapture,
+  formatColor,
+  formatLength,
+  isTransparent,
+  parseCapture,
+  pxValue,
+  siteSlug,
+  textTokenSchema,
+  typographySystemSchema,
+  type Capture,
+  type CaptureSettings
+} from '@luci/format/capture';
+import { parseFrontmatter } from '@luci/format';
+
+const dir = fileURLToPath(new URL('../fixtures/capture/', import.meta.url));
+const inputs = JSON.parse(fs.readFileSync(path.join(dir, 'inputs.json'), 'utf8')) as Record<string, { capture: Capture; settings: CaptureSettings }>;
+
+describe('capture files: golden files are the spec (M4.1)', () => {
+  for (const [file, { capture, settings }] of Object.entries(inputs)) {
+    it(file, () => {
+      const golden = fs.readFileSync(path.join(dir, file), 'utf8').replace(/\r\n/g, '\n');
+      expect(captureFileName(capture.meta)).toBe(file);
+      expect(formatCapture(capture, settings)).toBe(golden);
+      const parsed = parseCapture(golden);
+      expect(parsed.ok, parsed.ok ? '' : parsed.error).toBe(true);
+    });
+  }
+});
+
+describe('capture values and settings', () => {
+  it('lengths in px, rem or both; keywords and lists', () => {
+    expect(formatLength('16px')).toBe('16px');
+    expect(formatLength('16px', { units: 'rem' })).toBe('1rem');
+    expect(formatLength('12px 20px', { units: 'both' })).toBe('12px 20px (0.75rem 1.25rem)');
+    expect(formatLength('0px', { units: 'rem' })).toBe('0');
+    expect(formatLength('20px', { units: 'rem', rootFontSize: 10 })).toBe('2rem');
+    expect(formatLength('normal', { units: 'both' })).toBe('normal');
+    expect(formatLength('15.999px')).toBe('15.999px');
+    expect(pxValue('24px')).toBe(24);
+    expect(pxValue('auto')).toBeNull();
+  });
+
+  it('colours in hex, rgb, hsl or oklch; transparent and unknown values', () => {
+    expect(formatColor('rgb(15, 98, 254)')).toBe('#0f62fe');
+    expect(formatColor('#0f62fe', { colors: 'rgb' })).toBe('rgb(15, 98, 254)');
+    expect(formatColor('rgb(15, 98, 254)', { colors: 'hsl' })).toMatch(/^hsl\(/);
+    expect(formatColor('rgba(0, 0, 0, 0)')).toBe('transparent');
+    expect(formatColor('currentcolor')).toBe('currentcolor');
+    expect(isTransparent('rgba(0, 0, 0, 0)')).toBe(true);
+    expect(colorKey('rgb(15, 98, 254)')).toBe(colorKey('#0F62FE'));
+  });
+
+  it('the source keeps no query or fragment, and names come from the host', () => {
+    expect(cleanSource('https://shop.example.com/a/b?token=secret#x')).toBe('https://shop.example.com/a/b');
+    expect(siteSlug('https://www.Example.co.uk/x')).toBe('example-co-uk');
+    expect(siteSlug('file:///C:/site/index.html')).toBe('local');
+  });
+
+  it('selectors that YAML would misread are quoted and read back the same', () => {
+    const base = inputs['example-com.token.color-primary.design.md']!.capture;
+    for (const selector of ['#app > .cta', 'a[href="/x"]', 'div: odd', 'true']) {
+      const text = formatCapture({ ...base, meta: { ...base.meta, selector } } as Capture);
+      expect(parseFrontmatter(text).data['selector']).toBe(selector);
+    }
+  });
+
+  it('schemas reject what the spec does not allow', () => {
+    const text = inputs['example-com.token.text-heading-1.design.md']!.capture as unknown as Record<string, unknown> & { meta: Record<string, unknown> };
+    expect(textTokenSchema.safeParse({ ...text, meta: { ...text.meta, name: 'Heading 1' } }).success).toBe(false);
+    expect(textTokenSchema.safeParse({ ...text, meta: { ...text.meta, captured: '12/11/2026' } }).success).toBe(false);
+    const typo = inputs['example-com.system.typography.design.md']!.capture as unknown as Record<string, unknown> & { meta: Record<string, unknown> };
+    expect(typographySystemSchema.safeParse({ ...typo, meta: { ...typo.meta, selector: 'main' } }).success).toBe(false);
+    expect(typographySystemSchema.safeParse({ ...typo, roles: [] }).success).toBe(false);
+    expect(parseCapture('# no frontmatter').ok).toBe(false);
+    expect(parseCapture('---\nname: x\nscope: token\ntype: color\nsource: https://a.b/\ncaptured: 2026-11-12\nmethod: measured\n---\n\n## Colour\n').ok).toBe(false);
+  });
+});
