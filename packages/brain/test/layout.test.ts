@@ -10,7 +10,7 @@ const reactProject = () => tempProject({
   'src/App.tsx': 'export default function App() { return null; }'
 });
 const LAYOUT_FILES = [
-  'README.md', 'brain.json', 'context.md', 'decisions/README.md', 'local/.gitignore',
+  'README.md', 'brain.json', 'context.md', 'decisions/README.md', 'local/.gitignore', 'local/global-brain.md',
   'memory/proposed/README.md', 'playbook.md', 'rules.md'
 ];
 

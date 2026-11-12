@@ -8,10 +8,16 @@ afterEach(() => {
   for (const dir of made.splice(0)) fs.rmSync(dir, { recursive: true, force: true });
 });
 
+/** A throwaway empty folder. Removed after each test. */
+export function tempDir(prefix = 'luci-test-'): string {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  made.push(dir);
+  return dir;
+}
+
 /** A throwaway project folder with these files (paths may include folders). Removed after each test. */
 export function tempProject(files: Record<string, string> = {}): string {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'luci-project-'));
-  made.push(dir);
+  const dir = tempDir('luci-project-');
   for (const [name, content] of Object.entries(files)) {
     fs.mkdirSync(path.dirname(path.join(dir, name)), { recursive: true });
     fs.writeFileSync(path.join(dir, name), content, 'utf8');
