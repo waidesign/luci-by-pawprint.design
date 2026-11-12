@@ -6,7 +6,7 @@ Nov 12, 2026 · @Lucas
 
 ## Summary
 
-Luci is one local-first toolkit that gives AI coding agents the four things they lack: memory of the project, the right skills for the task, exact design context, and precise feedback. It is a single product in a new repository, built from the prototype's tested code. Its name is Luci.
+Luci is one local-first toolkit that gives AI coding agents the four things they lack: memory of the project, the right skills for the task, exact design context, and precise feedback. It is a design-focused tool for designers, front-end developers and designer-developers: its skill library covers UI/UX and design, plus a few coding skills that close the gap between design and code. It is a single product in a new repository, built from the prototype's tested code. Its name is Luci.
 
 It has four modules. **Brain** keeps project and personal memory. **Skills** loads only the skills a task needs. **Capture** is an on-page toolbar that writes a design.md for exactly what you pick. **Feedback** lets you annotate a running page and hand the agent one prompt that it completes in full.
 
@@ -29,7 +29,7 @@ AI coding agents start each session without the project's history, load skills t
 
 1. One install and one command set up a project for every supported agent.
 2. Agents start each session with project memory and personal preferences, without being told again.
-3. Only skills that fit the task are loaded, each with a stated reason; nothing loads when nothing fits.
+3. Only skills that fit the task are loaded from a library focused on UI/UX, design and front-end work, each with a stated reason; nothing loads when nothing fits.
 4. Pick a component, text, colour or spacing on a live page and get a scoped design.md in under 10 seconds, as one item or as the page-wide system.
 5. Every captured value is measured from the live DOM, including hover, focus, active and disabled states.
 6. Several picks collect in a basket and export as one file; images cannot be captured.
@@ -53,7 +53,7 @@ The first user is you: a designer-developer who builds with AI coding agents eve
 | User | Need | Uses |
 | --- | --- | --- |
 | Designer-developer using AI agents (primary) | The whole loop in one tool | All four modules |
-| Developer on any stack | Agents that remember the project and load the right skills | Brain and Skills, through the command line |
+| Front-end developer | Agents that remember the project and load the right design and front-end skills | Brain and Skills, through the command line |
 | Designer | Exact design reference from any live site | Capture, through the browser extension |
 | React developer | Point at elements in a running app and send fixes to an agent | Feedback, through the dev toolbar |
 | Open-source users (later) | A free, local tool with no account | Install from npm or GitHub |
@@ -147,8 +147,8 @@ Version 0.1 covers all four modules: 56 requirements, 49 of them must-have (P0).
 | S3 | **Token budget.** Selection stays within a set context budget. | P0 |
 | S4 | **Search and recommend.** Find skills by keyword, and suggest skills for the detected stack. | P0 |
 | S5 | **Manage.** List, add, select and lint personal and project skills. | P0 |
-| S6 | **Official library.** Ship only skills whose licence allows redistribution. | P0 |
-| S7 | **Evaluation.** A benchmark for selection quality that runs with the test suite. | P0 |
+| S6 | **Official library.** A design-focused library: UI/UX, design systems, accessibility, motion, components and front-end UI, plus a few coding skills that bridge design and code (tests, code review, React practices). Ship only skills whose licence allows redistribution, verified at the source. | P0 |
+| S7 | **Evaluation.** A benchmark for selection quality that runs with the test suite. Tasks outside the design focus expect no skill. | P0 |
 
 **Added after reading the prototype's source**
 
@@ -405,7 +405,7 @@ No open questions remain as of 12 Nov 2026. The last three were settled as follo
 
 ## Decisions made on 12 Nov 2026
 
-Twenty-two decisions are settled and built into the PRD.
+Twenty-three decisions are settled and built into the PRD.
 
 | Topic | Decision |
 | --- | --- |
@@ -431,6 +431,7 @@ Twenty-two decisions are settled and built into the PRD.
 | Colour format | A setting: hex, `oklch`, `hsl` or `rgb` |
 | Storage | Local folders only; captures and feedback live in the project's memory folder |
 | Licence | MIT |
+| Focus | Design: the skill library covers UI/UX and design plus a coding bridge, for designers and front-end developers (added 12 Nov 2026, before M2) |
 
 ## Decisions still to settle before writing code
 
@@ -521,7 +522,7 @@ This table lists what the prototype does today, with my proposed decision for ea
 | Use, recommend and search commands | Keep | S2, S4 |
 | List, select, add and lint skills | Keep | S5 |
 | Skill standard that extends `SKILL.md` | Keep | S1 |
-| Official skill library | Change: ship only skills with a licence that allows redistribution | S6 |
+| Official skill library | Change: design-focused, and ship only skills with a licence that allows redistribution | S6 |
 | Code map through Graphify | Keep, built in | B6 |
 | Local MCP server for project context and skills | Change: also serves captures and feedback | B11 |
 | Test suite and skill-selection benchmark | Keep | S7 |
@@ -636,7 +637,7 @@ Build Luci one milestone at a time from Part 1, moving the prototype's code in w
 
 1. **Work in milestone order, M1 to M6.** Do not start a milestone until the previous one meets its "Done when" line and every test passes.
 2. **Port, do not rewrite.** For a module marked Port, move the code and its tests, convert both to strict TypeScript, and apply the renames. Change behaviour only where a requirement says so.
-3. **Protect selection quality.** After any change to the skills package, run the benchmark. Scores must not fall below the prototype's recorded baseline: hit rate 0.966 on the 36 tuning cases and 0.941 on the 22 held-out cases.
+3. **Protect selection quality.** After any change to the skills package, run the benchmark. The port must first reproduce the prototype's recorded baseline on the prototype's own library: hit rate 0.966 on the 36 tuning cases and 0.941 on the 22 held-out cases. From then on, scores on Luci's design library must not fall below Luci's recorded baseline.
 4. **Keep it local.** No network calls, telemetry, accounts or cloud storage. No new runtime dependency without a stated reason.
 5. **Respect licences.** Do not copy a skill into Luci's library unless its licence allows redistribution.
 6. **Use the new names only.** Product code, files and output never mention the prototype's name. The import command (B13) is the one place that reads the old layout.
