@@ -181,6 +181,8 @@ export function selectorFor(el: Element, root: Document | ShadowRoot): string {
 export interface SnapshotOptions {
   /** Also read inside open shadow roots (default true). */
   shadow?: boolean;
+  /** Filled with the live element of each snapshot entry, by id (for the toolbar). */
+  nodes?: Element[];
 }
 
 /** Read the page. Hidden elements are kept (marked not visible) so pickers can still name them. */
@@ -250,6 +252,7 @@ export function snapshotPage(doc: Document = document, options: SnapshotOptions 
         ...(Object.keys(browserDefault).length ? { browserDefault } : {})
       };
       elements.push(snapshot);
+      options.nodes?.push(el);
       // Children can show outside a zero-size box, and can override visibility; not past display:none or opacity 0
       const childrenCanShow = parentVisible && cs.display !== 'none' && Number(cs.opacity) > 0;
       for (const child of Array.from(el.children)) visit(child, snapshot, childrenCanShow);

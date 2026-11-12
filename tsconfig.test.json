@@ -5,6 +5,8 @@
     "declaration": false,
     "declarationMap": false,
     "noEmit": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact",
     "paths": {
       "@luci/format": ["./packages/format/src/index.ts"],
       "@luci/format/capture": ["./packages/format/src/capture/index.ts"],
