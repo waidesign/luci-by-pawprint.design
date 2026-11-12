@@ -29,7 +29,13 @@ export const MEMORY_FILES = {
   local: 'local',
   activeTask: 'local/active-task.md',
   taskArchive: 'local/archive',
-  globalBrainSummary: 'local/global-brain.md'
+  globalBrainSummary: 'local/global-brain.md',
+  /** Project skills: Luci Skill Standard folders committed with the project. */
+  skills: 'skills',
+  /** Library skills this project uses. */
+  skillsLock: 'skills.lock.json',
+  /** Generated list of the project's skills that agents read instead of full skills. */
+  skillCatalog: 'project-skills.md'
 } as const;
 
 /** Markdown files every project gets from the templates. */

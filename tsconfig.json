@@ -2,6 +2,7 @@
   "files": [],
   "references": [
     { "path": "packages/format" },
+    { "path": "packages/skills" },
     { "path": "packages/brain" },
     { "path": "packages/cli" }
   ]

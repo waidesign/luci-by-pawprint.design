@@ -8,7 +8,8 @@ export default defineConfig({
     // Tests run against the TypeScript sources, so no build is needed first
     alias: {
       '@luci/format': pkg('format'),
-      '@luci/brain': pkg('brain')
+      '@luci/brain': pkg('brain'),
+      '@luci/skills': pkg('skills')
     }
   },
   test: {
