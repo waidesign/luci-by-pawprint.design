@@ -15,6 +15,12 @@ button:disabled { color: #71717a; cursor: not-allowed; background: transparent; 
 button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .primary { background: var(--accent); color: #18181b; font-weight: 600; }
 .primary:hover { background: #c4b5fd; }
+.sub { position: fixed; top: 58px; right: 12px; z-index: 2147483647; width: min(380px, calc(100vw - 24px)); display: flex; flex-direction: column; gap: 6px;
+  padding: 8px 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 6px 24px rgb(0 0 0 / 0.35); }
+.sub p { margin: 0; }
+.keys { color: var(--muted); font-size: 12px; }
+.seg { display: inline-flex; align-self: flex-start; gap: 2px; padding: 2px; border: 1px solid var(--line); border-radius: 8px; }
+.seg button { padding: 4px 12px; }
 .highlight { position: fixed; z-index: 2147483646; pointer-events: none; border: 2px solid var(--accent); background: rgb(167 139 250 / 0.12); border-radius: 2px; }
 .highlight.blocked { border-color: var(--blocked); background: rgb(120 120 120 / 0.35); }
 .label { position: fixed; z-index: 2147483647; pointer-events: none; max-width: 360px; padding: 3px 7px; border-radius: 5px;

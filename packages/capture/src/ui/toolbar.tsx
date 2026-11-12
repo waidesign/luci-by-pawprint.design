@@ -43,6 +43,13 @@ interface Picked {
 }
 
 const DRAG_PX = 6;
+
+/** What to do with each tool, shown under the bar while it is picking. */
+export const TOOL_HINTS: Readonly<Record<ToolId, string>> = {
+  text: 'Click any text on the page: a heading, paragraph, link or label.',
+  color: 'Click an element to take its colour, or choose Pixel to pick any spot with the eyedropper.',
+  spacing: 'Click an element for its padding, margin or gap, or drag from one element to another to measure the distance.'
+};
 const px = (v: string) => parseFloat(v) || 0;
 
 function entryFor(live: LiveSnapshot, el: Element): ElementSnapshot | null {
@@ -66,6 +73,7 @@ export function Toolbar(props: ToolbarProps) {
   const [choice, setChoice] = useState(0);
   const [settings, setSettings] = useState<CaptureSettings>(props.settings);
   const [copied, setCopied] = useState(false);
+  const [dropperOpen, setDropperOpen] = useState(false);
   const [, setTick] = useState(0);
   const trail = useRef<Element[]>([]);
   const drag = useRef<{ el: Element; x: number; y: number } | null>(null);
@@ -278,16 +286,22 @@ export function Toolbar(props: ToolbarProps) {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
+  const Dropper = (win as unknown as { EyeDropper?: new () => { open(): Promise<{ sRGBHex: string }> } }).EyeDropper;
+  const hasDropper = Boolean(Dropper);
   const pickPixel = async () => {
-    const Dropper = (win as unknown as { EyeDropper?: new () => { open(): Promise<{ sRGBHex: string }> } }).EyeDropper;
     if (!Dropper) return;
+    // While the eyedropper is open, the page picker steps aside
+    setPicking(false);
+    setDropperOpen(true);
     try {
       const { sRGBHex } = await new Dropper().open();
-      show(capturePixel(liveSnapshot(doc), sRGBHex, settings));
-      setPicking(false);
+      setDropperOpen(false);
       setPicked(null);
+      show(capturePixel(liveSnapshot(doc), sRGBHex, settings));
     } catch {
-      // The user pressed Esc in the eyedropper
+      // Esc in the eyedropper: back to picking an element
+      setDropperOpen(false);
+      startPicking('color');
     }
   };
 
@@ -302,13 +316,24 @@ export function Toolbar(props: ToolbarProps) {
         <span class="brand">Luci</span>
         <button type="button" disabled title="The Component tool arrives in the next release">Component</button>
         {TOOLS.map(t => (
-          <button type="button" aria-pressed={tool === t && (picking || Boolean(picked) || Boolean(result))} data-tool={t} onClick={() => startPicking(t)}>{TOOL_LABELS[t]}</button>
+          <button type="button" aria-pressed={tool === t && (picking || dropperOpen || Boolean(picked) || Boolean(result))} data-tool={t} onClick={() => startPicking(t)}>{TOOL_LABELS[t]}</button>
         ))}
-        {tool === 'color' && 'EyeDropper' in win && (
-          <button type="button" data-action="eyedropper" onClick={pickPixel}>Pick a pixel</button>
-        )}
         <button type="button" aria-label="Close Luci" data-action="close" onClick={props.onClose}>×</button>
       </div>
+
+      {(picking || dropperOpen) && tool && (
+        <div class="sub" data-part="tool-hint" role="note">
+          {tool === 'color' && (
+            <div class="seg" role="group" aria-label="Pick a colour from">
+              <button type="button" aria-pressed={!dropperOpen} data-colour-mode="element" onClick={() => startPicking('color')}>Element</button>
+              <button type="button" aria-pressed={dropperOpen} data-colour-mode="pixel" data-action="eyedropper" disabled={!hasDropper}
+                title={hasDropper ? 'Pick any spot on the screen with the eyedropper' : 'This browser has no eyedropper. Click an element instead.'} onClick={pickPixel}>Pixel</button>
+            </div>
+          )}
+          <p class="hint" data-part="hint">{TOOL_HINTS[tool]}{tool === 'color' && !hasDropper ? ' (This browser has no eyedropper.)' : ''}</p>
+          <p class="keys">↑ ↓ widen or narrow · Enter picks · Esc cancels</p>
+        </div>
+      )}
 
       {hovered && rect && (
         <>

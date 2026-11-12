@@ -157,6 +157,60 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
   });
 });
 
+describe('tool hints and the Colour tool\'s two ways to pick (user feedback, M4)', { timeout: 30_000 }, () => {
+  it('each tool says what to do; Colour offers Element and Pixel side by side, Pixel off without an eyedropper', async () => {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
+    page.setDefaultTimeout(4000);
+    // A browser without the EyeDropper API (Firefox, older Chrome)
+    await page.addInitScript(() => { delete (window as unknown as { EyeDropper?: unknown }).EyeDropper; });
+    await page.goto(`${server.origin}/css-variables/`);
+    await page.addScriptTag({ content: bundle });
+    await page.evaluate(() => { (window as unknown as { LuciCapture: { mountToolbar(): unknown } }).LuciCapture.mountToolbar(); });
+    expect(await page.locator('[data-action="eyedropper"]').count()).toBe(0);
+    await page.click('button[data-tool="text"]');
+    expect(await page.locator('[data-part="hint"]').innerText()).toContain('Click any text');
+    await page.click('button[data-tool="spacing"]');
+    expect(await page.locator('[data-part="hint"]').innerText()).toContain('drag from one element to another');
+    await page.click('button[data-tool="color"]');
+    expect(await page.locator('[data-colour-mode]').allInnerTexts()).toEqual(['Element', 'Pixel']);
+    expect(await page.locator('[data-colour-mode="element"]').getAttribute('aria-pressed')).toBe('true');
+    // Without an eyedropper, Pixel stays visible but off, with the reason
+    expect(await page.locator('[data-colour-mode="pixel"]').isDisabled()).toBe(true);
+    expect(await page.locator('[data-part="hint"]').innerText()).toContain('no eyedropper');
+    // The hint goes away once something is picked
+    await page.click('h1');
+    expect(await page.locator('[data-part="tool-hint"]').count()).toBe(0);
+    await context.close();
+  });
+
+  it('Pixel opens the eyedropper; a picked spot becomes a colour file, and Esc goes back to Element', async () => {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
+    page.setDefaultTimeout(4000);
+    // A stand-in for Chrome's eyedropper: the first open picks the accent, the next one is cancelled
+    await page.addInitScript(() => {
+      let opens = 0;
+      (window as unknown as { EyeDropper: unknown }).EyeDropper = class {
+        open() { opens++; return opens === 1 ? Promise.resolve({ sRGBHex: '#0f62fe' }) : Promise.reject(new DOMException('cancelled', 'AbortError')); }
+      };
+    });
+    await page.goto(`${server.origin}/css-variables/`);
+    await page.addScriptTag({ content: bundle });
+    await page.evaluate(() => { (window as unknown as { LuciCapture: { mountToolbar(): unknown } }).LuciCapture.mountToolbar(); });
+    await page.click('button[data-tool="color"]');
+    await page.click('[data-colour-mode="pixel"]');
+    const md = await preview(page);
+    expect(md).toContain('`--color-primary`');
+    expect(md).toContain('method: measured');
+    await page.click('button[data-tool="color"]');
+    await page.click('[data-colour-mode="pixel"]');
+    expect(await page.locator('[data-colour-mode="element"]').getAttribute('aria-pressed')).toBe('true');
+    expect(await page.locator('[data-part="hint"]').count()).toBe(1);
+    await context.close();
+  });
+});
+
 describe('toolbar inside web components (FR6)', () => {
   it('picks an element inside a shadow root and resolves its token', async () => {
     const page = await open('web-components');
