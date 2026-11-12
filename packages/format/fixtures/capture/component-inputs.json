@@ -1,0 +1,70 @@
+{
+  "example-com.component.primary-button.design.md": {
+    "settings": { "units": "px", "colors": "hex" },
+    "capture": {
+      "meta": { "name": "primary-button", "scope": "component", "type": "button", "source": "https://example.com/pricing", "selector": "main section:nth-of-type(2) a", "captured": "2026-11-12", "method": "measured" },
+      "tokens": [
+        { "token": "--color-primary", "value": "#0f62fe", "usedFor": ["background-color"] },
+        { "token": "--radius-md", "value": "8px", "usedFor": ["border-radius"] }
+      ],
+      "anatomy": [
+        { "part": "container", "element": "a (link)", "styles": [
+          { "property": "display", "value": { "computed": "inline-flex" } },
+          { "property": "gap", "value": { "computed": "8px" } },
+          { "property": "padding", "value": { "computed": "12px 20px" } },
+          { "property": "border-radius", "value": { "computed": "8px", "authored": "var(--radius-md)", "token": "--radius-md" } },
+          { "property": "background-color", "value": { "computed": "rgb(15, 98, 254)", "authored": "var(--color-primary)", "token": "--color-primary" } }
+        ] },
+        { "part": "label", "element": "text", "styles": [
+          { "property": "font-size", "value": { "computed": "16px" } },
+          { "property": "line-height", "value": { "computed": "24px" } },
+          { "property": "font-weight", "value": { "computed": "600" } },
+          { "property": "color", "value": { "computed": "rgb(255, 255, 255)" } }
+        ] },
+        { "part": "icon", "element": "svg", "optional": true, "styles": [
+          { "property": "width", "value": { "computed": "16px" } },
+          { "property": "height", "value": { "computed": "16px" } }
+        ] }
+      ],
+      "states": [
+        { "state": "hover", "detected": true, "method": "forced", "changes": [{ "property": "background-color", "from": "rgb(15, 98, 254)", "to": { "computed": "rgb(3, 83, 233)" } }] },
+        { "state": "focus-visible", "detected": true, "method": "forced", "changes": [
+          { "property": "outline", "from": "rgb(255, 255, 255) none 0px", "to": { "computed": "rgb(15, 98, 254) solid 2px" } },
+          { "property": "outline-offset", "from": "0px", "to": { "computed": "2px" } }
+        ] },
+        { "state": "active", "detected": true, "method": "forced", "changes": [{ "property": "background-color", "from": "rgb(15, 98, 254)", "to": { "computed": "rgb(0, 45, 156)" } }] },
+        { "state": "disabled", "detected": true, "method": "attribute", "changes": [
+          { "property": "opacity", "from": "1", "to": { "computed": "0.5" } },
+          { "property": "cursor", "from": "pointer", "to": { "computed": "not-allowed" } }
+        ] }
+      ],
+      "motion": [{ "kind": "transition", "target": "background-color", "duration": "150ms", "easing": "ease-out", "delay": "0s" }]
+    }
+  },
+  "example-com.component.nav-link.design.md": {
+    "settings": { "units": "both", "colors": "hex" },
+    "capture": {
+      "meta": { "name": "nav-link", "scope": "component", "type": "link", "source": "https://example.com/", "selector": "header nav > a:nth-of-type(1)", "captured": "2026-11-12", "method": "measured" },
+      "tokens": [],
+      "anatomy": [
+        { "part": "container", "element": "a (link)", "styles": [
+          { "property": "font-size", "value": { "computed": "14px" } },
+          { "property": "color", "value": { "computed": "rgb(22, 22, 22)" } }
+        ] }
+      ],
+      "states": [
+        { "state": "hover", "detected": true, "method": "rules", "changes": [{ "property": "text-decoration-line", "from": "none", "to": { "computed": "underline", "authored": "underline" } }] },
+        { "state": "focus", "detected": false, "changes": [] },
+        { "state": "active", "detected": true, "method": "rules", "changes": [] }
+      ],
+      "motion": [],
+      "variants": [
+        { "name": "nav-link", "count": 3, "selector": "header nav > a:nth-of-type(1)", "differences": [] },
+        { "name": "nav-link-2", "count": 1, "selector": "header nav > a:nth-of-type(4)", "differences": [
+          { "property": "color", "value": { "computed": "rgb(15, 98, 254)" } },
+          { "property": "font-weight", "value": { "computed": "600" } }
+        ] }
+      ]
+    }
+  }
+}

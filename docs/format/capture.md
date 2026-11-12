@@ -4,7 +4,7 @@ Every capture is one Markdown file: YAML frontmatter that records where it came 
 
 The golden files in `packages/format/fixtures/capture/` are the reference for this spec, and the format tests check the formatter against them. Their inputs are in `inputs.json`; `node scripts/capture-goldens.mjs` rewrites them after a build. Review any change by eye before committing it.
 
-This page covers the scopes M4 writes: single tokens and page systems. Component, section and collection (the basket export) follow in M5.
+This page covers single tokens and page systems (M4), components and the basket export (M5). Section scope follows in v0.2.
 
 ## Frontmatter
 
@@ -50,3 +50,28 @@ One file per capture, flat: `<site>.<scope>.<name>.design.md`, where `<site>` is
 | system, spacing | Scale (values with uses and tokens); Base unit (the unit most uses are multiples of, and the share that fits); Outliers |
 
 `parseCapture` checks a file's frontmatter and that every section its scope and type need is present.
+
+## Components
+
+`scope: component`, with `type` naming what it is (`button`, `link`, `card`...) and `selector` required. Sections:
+
+| Section | Content |
+| --- | --- |
+| Tokens | Each custom property the component uses: its resolved value and the properties it sets |
+| Anatomy | One line per part, the container first. Parts are named from tag, ARIA role and structure (`container`, `label`, `icon`...), never from class names. Each line lists the part's own styles, without browser defaults; tokens and authored values in brackets |
+| States | One row per state: `hover`, `focus`, `focus-visible`, `active`, `disabled`. Each change is `property before → after`. **Read from** says how: `browser, state forced` (the extension's debugger), `stylesheet rules`, `disabled attribute` (set for a moment), or `captured by hand`. A state that changes nothing readable says **Not detected**, because it may change through JavaScript; "Capture current state" records it by hand |
+| Motion | Transitions (property, duration, easing, delay) and animations (name, duration, easing) |
+| Variants | Only in the whole-system output: similar elements on the page, grouped, with how each group differs from the picked one and an example selector |
+
+## Basket export (collection)
+
+The basket holds picks from any pages and sites and exports them as one file, `<name>.collection.design.md`:
+
+- **Frontmatter:** `name`, `scope: collection`, `captured`, `items` (the count) and `sources` (every page, query and fragment dropped).
+- **Body:** one `# group` per kind, in this order: Components, Text, Colours, Spacing, Systems.
+- **Items:** under its group, each item is a `## <name>` section (the name you gave it in the basket), followed by:
+  - its source, selector, type, method and date;
+  - the item's own sections, one heading level down (`### Tokens`...).
+- **Order:** within a group, items from the same page stay together, in the order they were added.
+
+`parseCollection` checks the frontmatter and that the item sections add up to `items`.

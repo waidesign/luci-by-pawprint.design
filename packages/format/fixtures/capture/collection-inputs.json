@@ -1,0 +1,36 @@
+{
+  "two-sites.collection.design.md": {
+    "settings": { "units": "px", "colors": "hex" },
+    "collection": {
+      "name": "two-sites",
+      "captured": "2026-11-12",
+      "items": [
+        {
+          "id": "a1", "name": "Signup button", "addedAt": "2026-11-12",
+          "capture": {
+            "meta": { "name": "primary-button", "scope": "component", "type": "button", "source": "https://example.com/pricing?ref=x", "selector": "main a.cta", "captured": "2026-11-12", "method": "measured" },
+            "tokens": [], "anatomy": [{ "part": "container", "element": "a (link)", "styles": [{ "property": "background-color", "value": { "computed": "rgb(15, 98, 254)" } }] }],
+            "states": [{ "state": "hover", "detected": true, "method": "forced", "changes": [{ "property": "background-color", "from": "rgb(15, 98, 254)", "to": { "computed": "rgb(3, 83, 233)" } }] }],
+            "motion": []
+          }
+        },
+        {
+          "id": "b2", "name": "Shop heading", "addedAt": "2026-11-12",
+          "capture": {
+            "meta": { "name": "text-heading-1", "scope": "token", "type": "text", "source": "https://shop.example.org/", "selector": "h1", "captured": "2026-11-12", "method": "measured" },
+            "style": { "family": { "computed": "Georgia, serif" }, "size": { "computed": "40px" }, "weight": { "computed": "700" }, "lineHeight": { "computed": "48px" }, "letterSpacing": { "computed": "normal" }, "color": { "computed": "rgb(34, 40, 49)" } },
+            "usedBy": { "element": "h1 (heading)", "selector": "h1" }
+          }
+        },
+        {
+          "id": "c3", "name": "Example accent", "addedAt": "2026-11-12",
+          "capture": {
+            "meta": { "name": "color-primary", "scope": "token", "type": "color", "source": "https://example.com/pricing", "selector": "main a.cta", "captured": "2026-11-12", "method": "measured" },
+            "value": { "computed": "rgb(15, 98, 254)", "authored": "var(--color-primary)", "token": "--color-primary" }, "role": "accent",
+            "usedFor": [{ "element": "a (link)", "property": "background-color", "selector": "main a.cta" }]
+          }
+        }
+      ]
+    }
+  }
+}

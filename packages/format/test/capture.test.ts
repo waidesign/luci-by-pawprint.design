@@ -5,6 +5,12 @@ import { describe, expect, it } from 'vitest';
 import {
   captureFileName,
   cleanSource,
+  collectionFileName,
+  collectionSchema,
+  componentSchema,
+  formatCollection,
+  parseCollection,
+  type Collection,
   colorKey,
   formatCapture,
   formatColor,
@@ -33,6 +39,44 @@ describe('capture files: golden files are the spec (M4.1)', () => {
       expect(parsed.ok, parsed.ok ? '' : parsed.error).toBe(true);
     });
   }
+});
+
+const componentInputs = JSON.parse(fs.readFileSync(path.join(dir, 'component-inputs.json'), 'utf8')) as Record<string, { capture: Capture; settings: CaptureSettings }>;
+const collectionInputs = JSON.parse(fs.readFileSync(path.join(dir, 'collection-inputs.json'), 'utf8')) as Record<string, { collection: Collection; settings: CaptureSettings }>;
+
+describe('component and collection files: golden files are the spec (M5.1)', () => {
+  for (const [file, { capture, settings }] of Object.entries(componentInputs)) {
+    it(file, () => {
+      const golden = fs.readFileSync(path.join(dir, file), 'utf8').replace(/\r\n/g, '\n');
+      expect(captureFileName(capture.meta)).toBe(file);
+      expect(formatCapture(capture, settings)).toBe(golden);
+      const parsed = parseCapture(golden);
+      expect(parsed.ok, parsed.ok ? '' : parsed.error).toBe(true);
+    });
+  }
+  for (const [file, { collection, settings }] of Object.entries(collectionInputs)) {
+    it(file, () => {
+      const golden = fs.readFileSync(path.join(dir, file), 'utf8').replace(/\r\n/g, '\n');
+      expect(collectionFileName(collection.name)).toBe(file);
+      expect(formatCollection(collection, settings)).toBe(golden);
+      const parsed = parseCollection(golden);
+      expect(parsed.ok, parsed.ok ? '' : parsed.error).toBe(true);
+      if (!parsed.ok) return;
+      // Items from both sites, grouped by type, each with its own source; no query strings
+      expect(parsed.value.sources).toEqual(['https://example.com/pricing', 'https://shop.example.org/']);
+      expect(parsed.value.groups).toEqual({ Components: ['Signup button'], Text: ['Shop heading'], Colours: ['Example accent'] });
+    });
+  }
+
+  it('the spec rejects a component without parts, an unknown state, and an empty basket', () => {
+    const button = componentInputs['example-com.component.primary-button.design.md']!.capture as unknown as Record<string, unknown>;
+    expect(componentSchema.safeParse({ ...button, anatomy: [] }).success).toBe(false);
+    expect(componentSchema.safeParse({ ...button, states: [{ state: 'visited', detected: true, changes: [] }] }).success).toBe(false);
+    const basket = collectionInputs['two-sites.collection.design.md']!.collection;
+    expect(collectionSchema.safeParse({ ...basket, items: [] }).success).toBe(false);
+    expect(parseCollection('---\nscope: collection\nitems: 2\n---\n\n# Text\n\n## One\n').ok).toBe(false);
+    expect(parseCapture('---\nname: x\nscope: component\ntype: button\nsource: https://a.b/\nselector: a\ncaptured: 2026-11-12\nmethod: measured\n---\n\n## Tokens\n').ok).toBe(false);
+  });
 });
 
 describe('capture values and settings', () => {

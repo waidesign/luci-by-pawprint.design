@@ -14,6 +14,7 @@ import {
   type CapturedValue,
   type ColorSystem,
   type ColorToken,
+  type ComponentCapture,
   type ElementRef,
   type SpacingSystem,
   type SpacingToken,
@@ -34,6 +35,9 @@ export const CAPTURE_SECTIONS: Readonly<Record<string, readonly string[]>> = {
   'system/color': ['Roles', 'Tokens'],
   'system/spacing': ['Scale', 'Base unit', 'Outliers']
 };
+
+/** Every component file has these; "Variants" is added for the whole-system output. */
+export const COMPONENT_SECTIONS: readonly string[] = ['Tokens', 'Anatomy', 'States', 'Motion'];
 
 /** "https://www.example.com/pricing?x=1#top" -> "https://www.example.com/pricing". */
 export function cleanSource(url: string): string {
@@ -82,8 +86,11 @@ function table(head: readonly string[], rows: readonly (readonly string[])[]): s
 const ref = (r: ElementRef) => `${r.element}: ${code(r.selector)}`;
 
 type Kind = 'length' | 'color' | 'raw';
+/** Colours inside compound values ("2px solid rgb(15, 98, 254)", shadows) follow the colour setting too. */
+const EMBEDDED_COLOR = /rgba?\([^)]*\)/g;
 const show = (v: CapturedValue, kind: Kind, s: CaptureSettings) =>
-  kind === 'length' ? formatLength(v.computed, s) : kind === 'color' ? formatColor(v.computed, s) : v.computed;
+  kind === 'length' ? formatLength(v.computed, s).replace(EMBEDDED_COLOR, c => formatColor(c, s))
+    : kind === 'color' ? formatColor(v.computed, s) : v.computed;
 /** The authored value, only when it says more than the computed one. */
 const authored = (v: CapturedValue) => (v.authored && v.authored !== v.computed ? code(v.authored) : '');
 
@@ -158,10 +165,47 @@ function spacingSystem(c: SpacingSystem, s: CaptureSettings): string[] {
   ];
 }
 
+/** Colours by property name; every other value goes through the length formatter (keywords pass unchanged). */
+const kindOf = (property: string): Kind => (/color$|^fill$|^stroke$/.test(property) ? 'color' : 'length');
+const styleText = (property: string, v: CapturedValue, s: CaptureSettings) =>
+  `${property} ${show(v, kindOf(property), s)}${v.token ? ` (${code(v.token)})` : v.authored && v.authored !== v.computed ? ` (${code(v.authored)})` : ''}`;
+
+const STATE_SOURCE: Readonly<Record<string, string>> = { forced: 'browser, state forced', rules: 'stylesheet rules', attribute: 'disabled attribute', manual: 'captured by hand' };
+
+function componentBody(c: ComponentCapture, s: CaptureSettings): string[] {
+  const tokens = c.tokens.length
+    ? table(['Token', 'Value', 'Used for'], c.tokens.map(t => [code(t.token), kindOf(t.usedFor[0] ?? '') === 'color' ? formatColor(t.value, s) : formatLength(t.value, s), t.usedFor.join(', ')]))
+    : '- The component uses no custom properties.';
+  const anatomy = c.anatomy.map(p => {
+    const label = `${p.part} — ${p.element}${p.optional ? ', optional' : ''}`;
+    return `- ${label}: ${p.styles.length ? p.styles.map(e => styleText(e.property, e.value, s)).join(', ') : 'no styles of its own'}`;
+  });
+  const states = c.states.length
+    ? table(['State', 'Changes', 'Read from'], c.states.map(st => [
+        st.state,
+        !st.detected ? 'Not detected: it may change through JavaScript. Use "Capture current state".'
+          : st.changes.length ? st.changes.map(ch => `${ch.part && ch.part !== c.anatomy[0]!.part ? `${ch.part} ` : ''}${ch.property} ${show({ computed: ch.from }, kindOf(ch.property), s)} → ${show(ch.to, kindOf(ch.property), s)}${ch.to.token ? ` (${code(ch.to.token)})` : ''}`).join('; ')
+          : 'No visible change',
+        st.method ? STATE_SOURCE[st.method]! : ''
+      ]))
+    : '- Not read.';
+  const motion = c.motion.length
+    ? c.motion.map(m => `- ${m.kind} ${m.target} ${m.duration} ${m.easing}${m.delay && m.delay !== '0s' ? `, delay ${m.delay}` : ''}`)
+    : ['- None.'];
+  const out = ['## Tokens', tokens, '', '## Anatomy', ...anatomy, '', '## States', states, '', '## Motion', ...motion];
+  if (c.variants) {
+    out.push('', '## Variants', c.variants.length
+      ? table(['Variant', 'Uses', 'Differences from this one', 'Example'], c.variants.map(v => [v.name, String(v.count), v.differences.length ? v.differences.map(d => styleText(d.property, d.value, s)).join(', ') : 'same styles', code(v.selector)]))
+      : '- No similar elements on this page.');
+  }
+  return out;
+}
+
 /** The file text for a capture. Throws when the capture does not match its schema. */
 export function formatCapture(capture: Capture, settings: CaptureSettings = {}): string {
   const c = captureSchema.parse(capture);
   const key = `${c.meta.scope}/${c.meta.type}`;
+  if (c.meta.scope === 'component') return `${frontmatter(c.meta)}\n\n${componentBody(c as ComponentCapture, settings).join('\n')}\n`;
   const body = key === 'token/text' ? textToken(c as TextToken, settings)
     : key === 'token/color' ? colorToken(c as ColorToken, settings)
     : key === 'token/spacing' ? spacingToken(c as SpacingToken, settings)
@@ -190,7 +234,7 @@ export function parseCapture(text: string): ParseResult<ParsedCapture> {
     if (h) { current = h[1]!.trim(); sections[current] = ''; } else if (current) sections[current] += `${line}\n`;
   }
   for (const k of Object.keys(sections)) sections[k] = sections[k]!.trim();
-  const expected = CAPTURE_SECTIONS[`${meta.data.scope}/${meta.data.type}`];
+  const expected = meta.data.scope === 'component' ? COMPONENT_SECTIONS : CAPTURE_SECTIONS[`${meta.data.scope}/${meta.data.type}`];
   const missing = (expected ?? []).filter(h => !(h in sections));
   if (missing.length) return fail(`capture "${meta.data.name}" is missing sections: ${missing.join(', ')}`);
   return ok({ meta: meta.data, sections });
