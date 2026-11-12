@@ -20,7 +20,9 @@ Luci: a local-first toolkit for AI coding agents with memory, skill selection, d
 
 ## Folder Map (auto-detected)
 - `docs/`: documentation
+- `eval/`
 - `packages/`: workspace packages
+- `scripts/`: scripts and tooling
 
 ## Architecture Notes
 _Not written yet: the main parts, how data flows between them, external services._
