@@ -1,0 +1,13 @@
+{
+  "lss": 1,
+  "summary": "UI animation with Motion (motion.dev, formerly Framer Motion): springs, gestures, enter and exit, layout transitions and scroll effects that respect reduced motion.",
+  "keywords": ["framer motion", "spring animation", "layout animation", "exit animation", "gesture animation", "shared element"],
+  "whenToUse": ["The project depends on motion or framer-motion and a component needs animation, transitions or gesture feedback."],
+  "whenNotToUse": ["The project uses another animation library such as GSAP or Anime.js; use that library's skill instead."],
+  "verification": ["Every animation still works with reduced motion on.", "Only transform and opacity animate.", "Exit animations run inside AnimatePresence with stable keys."],
+  "frameworks": ["react", "nextjs"],
+  "packages": ["motion", "framer-motion"],
+  "exclusiveGroup": "animation-library",
+  "domains": ["web", "design"],
+  "lastVerified": "2026-11-12"
+}

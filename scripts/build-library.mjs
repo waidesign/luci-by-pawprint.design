@@ -149,6 +149,14 @@ for (const [rel, extra] of Object.entries(SKILLS)) {
   }
 }
 
+// Luci's own skills, written for Luci (author Luci, MIT): scripts/library-own/<category>/<name>/
+const ownDir = path.join(root, 'scripts', 'library-own');
+for (const category of fs.existsSync(ownDir) ? fs.readdirSync(ownDir) : []) {
+  for (const name of fs.readdirSync(path.join(ownDir, category))) {
+    fs.cpSync(path.join(ownDir, category, name), path.join(out, category, name), { recursive: true });
+  }
+}
+
 // Reviewed AI-drafted fields (S10). A person (or an agent the user delegated the review to)
 // approves drafts here, so a rebuild keeps the review. `keywords` replaces the drafted list
 // when the reviewer edited it. Checked against the tuning benchmark set only.
