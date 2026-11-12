@@ -31,10 +31,6 @@
     "screen reader support",
     "focus trap",
     "tab order",
-    "icon button label",
-    "accessible name"
-  ],
-  "drafts": [
-    "keywords"
+    "icon button label"
   ]
 }

@@ -39,9 +39,6 @@
     "split text",
     "stagger reveal"
   ],
-  "drafts": [
-    "keywords"
-  ],
   "packages": [
     "gsap"
   ],

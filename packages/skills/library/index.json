@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "fingerprint": "3d/threejs/SKILL.md:3576:1275|accessibility/accessibility-baseline/SKILL.md:2456:994|accessibility/fixing-accessibility/SKILL.md:4832:1039|animation-motion/animation-systems/SKILL.md:5351:1022|animation-motion/react-view-transitions/SKILL.md:14595:1886|code-quality/code-review/SKILL.md:6836:1104|components/company-logos/SKILL.md:1176:1058|components/container-lines/SKILL.md:3719:1824|design-systems/build-design-system/SKILL.md:9226:1106|design-systems/component-docs/SKILL.md:3784:1114|design-systems/create-design-md/SKILL.md:16322:1530|design-systems/design-system-boss/SKILL.md:4072:1253|design-systems/migrate-design-system/SKILL.md:8212:1203|design-systems/token-mapping/SKILL.md:3601:921|design-systems/ui-review/SKILL.md:5546:1018|frontend-frameworks/react-best-practices/SKILL.md:7345:1147|frontend/composition-patterns/SKILL.md:2704:952|frontend/design-mobile-apps/SKILL.md:8557:903|frontend/frontend-design/SKILL.md:9624:1134|frontend/react-native-skills/SKILL.md:4272:933|frontend/tailwindcss/SKILL.md:2922:1206|general/algorithmic-art/SKILL.md:19846:958|general/canvas-design/SKILL.md:12016:980|interaction/animation-on-scroll/SKILL.md:3658:1246|micro-interactions/masked-reveal/SKILL.md:5255:1931|micro-interactions/micro-interaction/SKILL.md:8751:2530|performance/fixing-motion-performance/SKILL.md:5676:901|seo/fixing-metadata/SKILL.md:4504:1137|shadcn-ui/migrate-radix-to-base/SKILL.md:9422:1169|shadcn-ui/shadcn/SKILL.md:12287:1016|systems/baseline-ui/SKILL.md:3526:847|testing/tdd/SKILL.md:3739:856|testing/webapp-testing/SKILL.md:3990:1011|ui-ux/improve-ui/SKILL.md:8058:1149|ui-ux/landing-page/SKILL.md:5378:1334|ui-ux/pricing-page/SKILL.md:5961:1477|ui-ux/prototype/SKILL.md:3037:985|ui-ux/theme-factory/SKILL.md:3197:941",
+  "fingerprint": "3d/threejs/SKILL.md:3576:1275|accessibility/accessibility-baseline/SKILL.md:2456:994|accessibility/fixing-accessibility/SKILL.md:4832:982|animation-motion/animation-systems/SKILL.md:5351:1022|animation-motion/react-view-transitions/SKILL.md:14595:1852|code-quality/code-review/SKILL.md:6836:1070|components/company-logos/SKILL.md:1176:1024|components/container-lines/SKILL.md:3719:1790|design-systems/build-design-system/SKILL.md:9226:1106|design-systems/component-docs/SKILL.md:3784:1114|design-systems/create-design-md/SKILL.md:16322:1477|design-systems/design-system-boss/SKILL.md:4072:1253|design-systems/migrate-design-system/SKILL.md:8212:1203|design-systems/token-mapping/SKILL.md:3601:921|design-systems/ui-review/SKILL.md:5546:1018|frontend-frameworks/react-best-practices/SKILL.md:7345:1113|frontend/composition-patterns/SKILL.md:2704:918|frontend/design-mobile-apps/SKILL.md:8557:869|frontend/frontend-design/SKILL.md:9624:1086|frontend/react-native-skills/SKILL.md:4272:899|frontend/tailwindcss/SKILL.md:2922:1206|general/algorithmic-art/SKILL.md:19846:924|general/canvas-design/SKILL.md:12016:946|interaction/animation-on-scroll/SKILL.md:3658:1246|micro-interactions/masked-reveal/SKILL.md:5255:1897|micro-interactions/micro-interaction/SKILL.md:8751:2530|performance/fixing-motion-performance/SKILL.md:5676:901|seo/fixing-metadata/SKILL.md:4504:1137|shadcn-ui/migrate-radix-to-base/SKILL.md:9422:1169|shadcn-ui/shadcn/SKILL.md:12287:1016|systems/baseline-ui/SKILL.md:3526:847|testing/tdd/SKILL.md:3739:856|testing/webapp-testing/SKILL.md:3990:1011|ui-ux/improve-ui/SKILL.md:8058:1115|ui-ux/landing-page/SKILL.md:5378:1334|ui-ux/pricing-page/SKILL.md:5961:1477|ui-ux/prototype/SKILL.md:3037:951|ui-ux/theme-factory/SKILL.md:3197:941",
   "skills": [
     {
       "id": "threejs",
@@ -148,8 +148,7 @@
         "screen reader support",
         "focus trap",
         "tab order",
-        "icon button label",
-        "accessible name"
+        "icon button label"
       ],
       "frameworks": [
         "any"
@@ -193,11 +192,7 @@
           "screen reader support",
           "focus trap",
           "tab order",
-          "icon button label",
-          "accessible name"
-        ],
-        "drafts": [
-          "keywords"
+          "icon button label"
         ]
       },
       "format": "lss",
@@ -318,9 +313,6 @@
           "suspense reveal",
           "nav-forward",
           "cross-fade"
-        ],
-        "drafts": [
-          "keywords"
         ]
       },
       "format": "lss",
@@ -381,9 +373,6 @@
           "spec compliance",
           "pre-merge review",
           "branch review"
-        ],
-        "drafts": [
-          "keywords"
         ]
       },
       "format": "lss",
@@ -439,9 +428,6 @@
           "logo wall",
           "customer logos",
           "integration icons"
-        ],
-        "drafts": [
-          "keywords"
         ],
         "source": {
           "repo": "MengTo/Skills",
@@ -517,9 +503,6 @@
           "technical aesthetic",
           "border frame",
           "blueprint style"
-        ],
-        "drafts": [
-          "keywords"
         ],
         "source": {
           "repo": "MengTo/Skills",
@@ -650,8 +633,7 @@
         "design documentation",
         "style guide",
         "brand guidelines",
-        "agent ui context",
-        "design spec"
+        "agent ui context"
       ],
       "frameworks": [
         "any"
@@ -695,11 +677,7 @@
           "design documentation",
           "style guide",
           "brand guidelines",
-          "agent ui context",
-          "design spec"
-        ],
-        "drafts": [
-          "keywords"
+          "agent ui context"
         ]
       },
       "format": "lss",
@@ -959,9 +937,6 @@
           "server components",
           "web performance"
         ],
-        "drafts": [
-          "keywords"
-        ],
         "source": {
           "repo": "vercel-labs/agent-skills",
           "path": "skills/react-best-practices/SKILL.md",
@@ -1030,9 +1005,6 @@
           "component api design",
           "context provider",
           "react 19"
-        ],
-        "drafts": [
-          "keywords"
         ]
       },
       "format": "lss",
@@ -1090,9 +1062,6 @@
           "expo",
           "sleek api",
           "mobile mockup"
-        ],
-        "drafts": [
-          "keywords"
         ]
       },
       "format": "lss",
@@ -1117,7 +1086,6 @@
         "landing page design",
         "visual identity",
         "web design",
-        "layout",
         "art direction"
       ],
       "frameworks": [
@@ -1166,11 +1134,7 @@
           "landing page design",
           "visual identity",
           "web design",
-          "layout",
           "art direction"
-        ],
-        "drafts": [
-          "keywords"
         ],
         "source": {
           "repo": "anthropics/skills",
@@ -1240,9 +1204,6 @@
           "reanimated",
           "mobile app performance",
           "ios and android"
-        ],
-        "drafts": [
-          "keywords"
         ]
       },
       "format": "lss",
@@ -1361,9 +1322,6 @@
           "procedural art",
           "noise field",
           "p5 sketch"
-        ],
-        "drafts": [
-          "keywords"
         ]
       },
       "format": "lss",
@@ -1420,9 +1378,6 @@
           "graphic design",
           "visual composition",
           "static illustration"
-        ],
-        "drafts": [
-          "keywords"
         ]
       },
       "format": "lss",
@@ -1560,9 +1515,6 @@
           "headline animation",
           "split text",
           "stagger reveal"
-        ],
-        "drafts": [
-          "keywords"
         ],
         "packages": [
           "gsap"
@@ -2141,9 +2093,6 @@
           "visual polish",
           "consistency check",
           "design debt"
-        ],
-        "drafts": [
-          "keywords"
         ]
       },
       "format": "lss",
@@ -2348,9 +2297,6 @@
           "ui variations",
           "state machine demo",
           "proof of concept"
-        ],
-        "drafts": [
-          "keywords"
         ]
       },
       "format": "lss",

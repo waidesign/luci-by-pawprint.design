@@ -149,6 +149,31 @@ for (const [rel, extra] of Object.entries(SKILLS)) {
   }
 }
 
+// Reviewed AI-drafted fields (S10). A person (or an agent the user delegated the review to)
+// approves drafts here, so a rebuild keeps the review. `keywords` replaces the drafted list
+// when the reviewer edited it. Checked against the tuning benchmark set only.
+const REVIEWED = {
+  // "accessible name" made "accessible" common, so colour tasks drifted to theme-factory
+  'fixing-accessibility': { keywords: ['a11y', 'screen reader support', 'focus trap', 'tab order', 'icon button label'] },
+  'react-view-transitions': {}, 'code-review': {}, 'company-logos': {}, 'container-lines': {},
+  // "design spec" pulled in ticket and spec-writing tasks
+  'create-design-md': { keywords: ['design documentation', 'style guide', 'brand guidelines', 'agent ui context'] },
+  'react-best-practices': {}, 'composition-patterns': {}, 'design-mobile-apps': {},
+  'react-native-skills': {}, 'algorithmic-art': {}, 'canvas-design': {}, 'masked-reveal': {}, 'improve-ui': {}, 'prototype': {},
+  // "layout" alone matches almost any UI task
+  'frontend-design': { keywords: ['landing page design', 'visual identity', 'web design', 'art direction'] }
+};
+for (const [rel] of Object.entries(SKILLS)) {
+  const id = rel.split('/')[1];
+  const review = REVIEWED[id];
+  if (!review) continue;
+  const file = path.join(out, rel, 'luci.json');
+  const contract = JSON.parse(fs.readFileSync(file, 'utf8'));
+  if (review.keywords) contract.keywords = review.keywords;
+  delete contract.drafts;
+  fs.writeFileSync(file, `${JSON.stringify(contract, null, 2)}\n`, 'utf8');
+}
+
 // Notes the earlier tool wrote itself (split notices, its own skill's contract) name it: use Luci's name.
 // Third-party instructions are never edited.
 const OLD_NAME = ['G', 'A', 'W'].join('');

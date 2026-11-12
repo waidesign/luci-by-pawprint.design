@@ -27,9 +27,6 @@
     "server components",
     "web performance"
   ],
-  "drafts": [
-    "keywords"
-  ],
   "source": {
     "repo": "vercel-labs/agent-skills",
     "path": "skills/react-best-practices/SKILL.md",
