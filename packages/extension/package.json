@@ -1,0 +1,23 @@
+{
+  "name": "@luci/extension",
+  "version": "0.1.0-dev",
+  "private": true,
+  "description": "The Luci browser extension: the capture toolbar on any site. Chrome, Manifest V3.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "wxt build",
+    "dev": "wxt",
+    "zip": "wxt zip"
+  },
+  "dependencies": {
+    "@luci/capture": "workspace:*",
+    "@luci/format": "workspace:*"
+  },
+  "devDependencies": {
+    "wxt": "0.21.5"
+  }
+}

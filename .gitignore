@@ -6,3 +6,8 @@ node_modules/
 dist/
 *.tsbuildinfo
 coverage/
+
+# Extension builds (WXT)
+.output/
+.output-test/
+.wxt/

@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build": "tsc -b",
-    "typecheck": "tsc -b && tsc -p tsconfig.test.json",
+    "typecheck": "tsc -b && tsc -p tsconfig.test.json && pnpm --filter @luci/extension exec wxt prepare && tsc -p packages/extension/tsconfig.json",
     "test": "vitest run",
     "check": "pnpm typecheck && pnpm test"
   },

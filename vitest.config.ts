@@ -17,6 +17,9 @@ export default defineConfig({
   },
   test: {
     include: ['packages/*/test/**/*.test.ts'],
+    // Browser tests (Chromium) run in parallel with the rest; 5s is too tight under that load
+    testTimeout: 30_000,
+    hookTimeout: 60_000,
     globalSetup: ['./test-global-setup.ts'],
     setupFiles: ['./test-setup.ts']
   }
