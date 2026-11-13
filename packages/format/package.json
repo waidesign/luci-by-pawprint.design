@@ -13,6 +13,10 @@
     "./capture": {
       "types": "./dist/capture/index.d.ts",
       "default": "./dist/capture/index.js"
+    },
+    "./feedback": {
+      "types": "./dist/feedback/index.d.ts",
+      "default": "./dist/feedback/index.js"
     }
   },
   "files": [

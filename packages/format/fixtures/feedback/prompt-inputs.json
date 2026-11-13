@@ -1,0 +1,65 @@
+{
+  "three-pages.standard.prompt.md": {
+    "options": { "detail": "standard" },
+    "items": [
+      {
+        "id": "itm-checkout-1", "ref": "P3-A1",
+        "page": { "url": "http://localhost:5173/checkout", "route": "/checkout", "title": "Checkout", "source": "src/pages/Checkout.jsx" },
+        "target": { "kind": "element", "selector": "form > p:nth-of-type(2)", "element": "p", "text": "Card number is not valid", "components": ["App", "Checkout", "FieldError"], "source": { "file": "src/components/FieldError.jsx", "line": 4, "column": 10 } },
+        "comment": "Error text is too low contrast", "intent": "fix", "priority": "high", "status": "pending",
+        "createdAt": "2026-11-13T09:05:00.000Z", "updatedAt": "2026-11-13T09:05:00.000Z", "thread": []
+      },
+      {
+        "id": "itm-pricing-1", "ref": "P1-A1",
+        "page": { "url": "http://localhost:5173/pricing?plan=pro", "route": "/pricing", "title": "Pricing", "source": "src/pages/Pricing.jsx" },
+        "target": { "kind": "element", "selector": "main > section:nth-of-type(2) > button", "element": "button", "text": "Start free trial", "components": ["App", "Pricing", "PlanCard"], "source": { "file": "src/components/PlanCard.jsx", "line": 12, "column": 7 } },
+        "comment": "Button label wraps on mobile", "intent": "fix", "priority": "high", "status": "pending",
+        "createdAt": "2026-11-13T09:00:00.000Z", "updatedAt": "2026-11-13T09:00:00.000Z", "thread": []
+      },
+      {
+        "id": "itm-pricing-2", "ref": "P1-A2",
+        "page": { "url": "http://localhost:5173/pricing", "route": "/pricing", "title": "Pricing", "source": "src/pages/Pricing.jsx" },
+        "target": { "kind": "text", "selector": "main > h1", "element": "h1 (heading)", "text": "Simple pricng for teams", "selectedText": "pricng", "components": ["App", "Pricing"], "source": { "file": "src/pages/Pricing.jsx", "line": 8 } },
+        "comment": "Typo: \"pricing\"", "intent": "fix", "priority": "medium", "status": "pending",
+        "createdAt": "2026-11-13T09:01:00.000Z", "updatedAt": "2026-11-13T09:01:00.000Z", "thread": []
+      },
+      {
+        "id": "itm-home-1", "ref": "P2-A1",
+        "page": { "url": "http://localhost:5173/", "route": "/", "title": "Home", "source": "src/pages/Home.jsx" },
+        "target": { "kind": "element", "selector": "header > nav", "element": "nav (navigation)", "components": ["App", "Layout", "Nav"], "source": { "file": "src/components/Nav.jsx", "line": 3 } },
+        "comment": "Use 24px between the links\nand align them with the logo", "intent": "change", "priority": "medium", "status": "question",
+        "createdAt": "2026-11-13T09:02:00.000Z", "updatedAt": "2026-11-13T09:10:00.000Z",
+        "thread": [
+          { "from": "agent", "text": "Should the logo move, or only the links?", "at": "2026-11-13T09:08:00.000Z" },
+          { "from": "person", "text": "Only the links.", "at": "2026-11-13T09:10:00.000Z" }
+        ]
+      },
+      {
+        "id": "itm-home-2", "ref": "P2-A2",
+        "page": { "url": "http://localhost:5173/", "route": "/", "title": "Home", "source": "src/pages/Home.jsx" },
+        "target": { "kind": "element", "selector": "main > a:nth-of-type(1)", "element": "a (link)", "text": "Get started", "components": ["App", "Home", "Cta"], "source": { "file": "src/components/Cta.jsx", "line": 2 } },
+        "comment": "Use the secondary button style", "intent": "change", "priority": "low", "status": "pending",
+        "createdAt": "2026-11-13T09:03:00.000Z", "updatedAt": "2026-11-13T09:03:00.000Z", "thread": []
+      },
+      {
+        "id": "itm-checkout-2", "ref": "P3-A2",
+        "page": { "url": "http://localhost:5173/checkout", "route": "/checkout", "title": "Checkout", "source": "src/pages/Checkout.jsx" },
+        "target": { "kind": "element", "selector": "form > button", "element": "button", "text": "Pay now", "components": ["App", "Checkout"], "source": { "file": "src/pages/Checkout.jsx", "line": 21 } },
+        "comment": "Disable while the payment is sending", "intent": "fix", "priority": "medium", "status": "sent", "sentAt": "2026-11-13T09:06:00.000Z",
+        "createdAt": "2026-11-13T09:04:00.000Z", "updatedAt": "2026-11-13T09:06:00.000Z", "thread": []
+      }
+    ]
+  },
+  "one-page.detailed.prompt.md": {
+    "options": { "detail": "detailed" },
+    "items": [
+      {
+        "id": "itm-checkout-2", "ref": "P3-A2",
+        "page": { "url": "http://localhost:5173/checkout", "route": "/checkout" },
+        "target": { "kind": "element", "selector": "form > button", "element": "button", "text": "Pay now", "components": ["App", "Checkout"], "source": { "file": "src/pages/Checkout.jsx", "line": 21 }, "styles": { "background-color": "rgb(15, 98, 254)", "font-size": "16px", "padding": "12px 20px" } },
+        "comment": "Disable while the payment is sending", "intent": "fix", "priority": "medium", "status": "pending",
+        "createdAt": "2026-11-13T09:04:00.000Z", "updatedAt": "2026-11-13T09:04:00.000Z", "thread": []
+      }
+    ]
+  }
+}

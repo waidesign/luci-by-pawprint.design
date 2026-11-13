@@ -15,6 +15,13 @@ for (const file of ['inputs.json', 'component-inputs.json']) {
     console.log(`wrote ${name}`);
   }
 }
+// Feedback prompts (packages/format/fixtures/feedback/)
+const feedbackDir = fileURLToPath(new URL('../packages/format/fixtures/feedback/', import.meta.url));
+const { formatFeedbackPrompt, feedbackItemSchema } = await import(new URL('../packages/format/dist/feedback/index.js', import.meta.url).href);
+for (const [name, { items, options }] of Object.entries(JSON.parse(fs.readFileSync(path.join(feedbackDir, 'prompt-inputs.json'), 'utf8')))) {
+  fs.writeFileSync(path.join(feedbackDir, name), formatFeedbackPrompt(items.map(i => feedbackItemSchema.parse(i)), options), 'utf8');
+  console.log(`wrote feedback/${name}`);
+}
 for (const [name, { collection, settings }] of Object.entries(read('collection-inputs.json'))) {
   if (collectionFileName(collection.name) !== name) throw new Error(`${name}: the formatter names it ${collectionFileName(collection.name)}`);
   fs.writeFileSync(path.join(dir, name), formatCollection(collection, settings), 'utf8');

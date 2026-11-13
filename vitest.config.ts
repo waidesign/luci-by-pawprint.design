@@ -9,6 +9,7 @@ export default defineConfig({
     // Exact matches, so the subpath "@luci/format/capture" is not caught by "@luci/format"
     alias: [
       { find: /^@luci\/format\/capture$/, replacement: fileURLToPath(new URL('./packages/format/src/capture/index.ts', import.meta.url)) },
+      { find: /^@luci\/format\/feedback$/, replacement: fileURLToPath(new URL('./packages/format/src/feedback/index.ts', import.meta.url)) },
       { find: /^@luci\/format$/, replacement: pkg('format') },
       { find: /^@luci\/brain$/, replacement: pkg('brain') },
       { find: /^@luci\/skills$/, replacement: pkg('skills') },
