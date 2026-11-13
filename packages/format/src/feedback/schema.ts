@@ -52,9 +52,36 @@ export const LAYOUT_PROPERTIES = [
 ] as const;
 
 /**
+ * Generic blocks Layout mode can insert and sketch a new page with (added 13 Nov 2026): parts most
+ * pages are made of, for when the app has no component of that kind yet.
+ */
+export const LAYOUT_BLOCKS = ['section', 'heading', 'text', 'button', 'image slot', 'card', 'card grid', 'navigation', 'footer', 'form field'] as const;
+export type LayoutBlock = (typeof LAYOUT_BLOCKS)[number];
+
+/**
+ * What a new part is (Layout mode steps 2 and 3): one of the app's own components (by name, with
+ * its file and one on the page now), a saved design capture (a reference in .luci/design/), or a
+ * generic block.
+ */
+export const partSchema = z.object({
+  kind: z.enum(['component', 'capture', 'block']),
+  /** "PlanCard", the capture's name ("Card"), or a block ("card grid"). */
+  name: z.string().trim().min(1),
+  /** The component's source file, or the capture's path in the project (.luci/design/...). */
+  file: z.string().min(1).optional(),
+  /** One of this component on the page now: its selector and name. */
+  example: z.object({ selector: z.string().min(1), element: z.string().min(1) }).optional()
+});
+export type Part = z.infer<typeof partSchema>;
+
+/** A planned size: px as rendered (border and padding included), or "100%" for the full width. */
+const plannedSize = z.string().regex(/^(\d+(\.\d+)?px|100%)$/, 'px as rendered, or 100%');
+
+/**
  * One planned layout change (Layout mode, added 13 Nov 2026): a move among the element's siblings,
- * or one property from its current value to the planned one, snapped to the page's spacing scale,
- * with the custom property that has that value when the page has one.
+ * one property from its current value to the planned one (snapped to the page's spacing scale, with
+ * the custom property that has that value when the page has one), or a new part inserted before,
+ * after or inside the element.
  */
 export const layoutChangeSchema = z.discriminatedUnion('op', [
   z.object({
@@ -73,16 +100,50 @@ export const layoutChangeSchema = z.discriminatedUnion('op', [
     from: z.string().min(1),
     to: z.string().min(1),
     token: z.string().regex(/^--[\w-]+$/).optional()
+  }),
+  z.object({
+    op: z.literal('insert'),
+    what: partSchema,
+    /** Before or after the element (a sibling), or inside it at the start or the end. */
+    position: z.enum(['before', 'after', 'start', 'end']),
+    width: plannedSize.optional(),
+    height: plannedSize.optional(),
+    /** What goes in it, in the person's words. */
+    label: z.string().trim().min(1).optional()
   })
 ]);
 export type LayoutChange = z.infer<typeof layoutChangeSchema>;
 
+const viewportSchema = z.object({ width: z.number().int().positive(), height: z.number().int().positive() });
+
 export const layoutSchema = z.object({
   /** The window width it was planned at: the agent asks or decides for other widths. */
-  viewport: z.object({ width: z.number().int().positive(), height: z.number().int().positive() }),
+  viewport: viewportSchema,
   changes: z.array(layoutChangeSchema).min(1)
 });
 export type LayoutPlan = z.infer<typeof layoutSchema>;
+
+/**
+ * A new page sketched in Layout mode (step 3, added 13 Nov 2026): rows from top to bottom, each
+ * split into blocks side by side. A block's share of its row is its span over the row's spans.
+ */
+export const wireframeSchema = z.object({
+  /** The new page's route ("/enterprise"). */
+  route: z.string().regex(/^\//, 'a route, starting with /'),
+  viewport: viewportSchema,
+  rows: z.array(z.object({
+    /** Rough height as drawn, in px. */
+    height: z.string().regex(/^\d+(\.\d+)?px$/),
+    blocks: z.array(z.object({
+      /** What it is; nothing chosen is an area the label describes. */
+      what: partSchema.optional(),
+      /** What goes in it, in the person's words. */
+      label: z.string().trim().min(1).optional(),
+      span: z.number().int().min(1).max(12)
+    })).min(1).max(12)
+  })).min(1)
+});
+export type Wireframe = z.infer<typeof wireframeSchema>;
 
 export const feedbackItemSchema = z.object({
   /** The item's own id (its file name); never shown to agents. */
@@ -120,6 +181,8 @@ export const feedbackItemSchema = z.object({
   comment: z.string().trim().min(1),
   /** A layout change planned in Layout mode, on the target element. */
   layout: layoutSchema.optional(),
+  /** A new page sketched in Layout mode (the target is the page it was sketched on). */
+  wireframe: wireframeSchema.optional(),
   intent: z.enum(FEEDBACK_INTENTS),
   priority: z.enum(FEEDBACK_PRIORITIES),
   status: z.enum(FEEDBACK_STATUSES),

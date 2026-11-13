@@ -82,5 +82,43 @@
         "createdAt": "2026-11-13T09:04:00.000Z", "updatedAt": "2026-11-13T09:04:00.000Z", "thread": []
       }
     ]
+  },
+  "insert-and-new-page.standard.prompt.md": {
+    "options": { "detail": "standard" },
+    "items": [
+      {
+        "id": "itm-insert-1", "ref": "P1-A1",
+        "page": { "url": "http://localhost:5173/pricing", "route": "/pricing", "source": "src/pages/Pricing.jsx" },
+        "target": { "kind": "element", "selector": "main > section > div:nth-of-type(2)", "element": "div", "text": "Pro $12 per month Start free trial", "components": ["App", "Pricing", "PlanCard"], "source": { "file": "src/components/PlanCard.jsx", "line": 3, "column": 5 } },
+        "comment": "A third plan for big teams",
+        "layout": {
+          "viewport": { "width": 1280, "height": 800 },
+          "changes": [
+            { "op": "insert", "what": { "kind": "component", "name": "PlanCard", "file": "src/components/PlanCard.jsx", "example": { "selector": "main > section > div:nth-of-type(2)", "element": "div" } }, "position": "after", "width": "320px", "height": "240px", "label": "Enterprise: custom price, Talk to sales" }
+          ]
+        },
+        "intent": "change", "priority": "medium", "status": "pending",
+        "createdAt": "2026-11-13T11:00:00.000Z", "updatedAt": "2026-11-13T11:00:00.000Z", "thread": []
+      },
+      {
+        "id": "itm-page-1", "ref": "P1-A2",
+        "page": { "url": "http://localhost:5173/pricing", "route": "/pricing", "source": "src/pages/Pricing.jsx" },
+        "target": { "kind": "element", "selector": "body", "element": "body" },
+        "comment": "New page /enterprise for big teams",
+        "wireframe": {
+          "route": "/enterprise",
+          "viewport": { "width": 1280, "height": 800 },
+          "rows": [
+            { "height": "56px", "blocks": [{ "what": { "kind": "component", "name": "Nav", "file": "src/components/Nav.jsx", "example": { "selector": "nav", "element": "nav (navigation)" } }, "span": 12 }] },
+            { "height": "420px", "blocks": [
+              { "what": { "kind": "block", "name": "text" }, "label": "Headline, pitch, Talk to sales", "span": 6 },
+              { "what": { "kind": "block", "name": "image slot" }, "label": "Team dashboard screenshot", "span": 6 }
+            ] }
+          ]
+        },
+        "intent": "change", "priority": "high", "status": "pending",
+        "createdAt": "2026-11-13T11:05:00.000Z", "updatedAt": "2026-11-13T11:05:00.000Z", "thread": []
+      }
+    ]
   }
 }

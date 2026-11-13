@@ -1,11 +1,13 @@
 /**
- * Layout mode's engine (step 1: existing elements). Planned changes are previewed on the real page
- * through one stylesheet Luci owns (each touched element gets a data-luci-layout id): React's DOM is
- * never moved or rewritten, so the app keeps working and "Reset" puts everything back. Sizes and
- * spacing snap to the page's spacing scale, and name the custom property that has the value.
+ * Layout mode's engine. Planned changes are previewed on the real page through one stylesheet Luci
+ * owns (each touched element gets a data-luci-layout id): React's DOM is never moved or rewritten,
+ * so the app keeps working and "Reset" puts everything back. Sizes and spacing snap to the page's
+ * spacing scale, and name the custom property that has the value. Step 1 changes existing elements;
+ * step 2 inserts new parts: each is a placeholder Luci draws, its siblings shifted (translate) to
+ * make room, and its parent grown when it stacks top to bottom.
  */
 import { snapshotPage, spacingSystem } from '@luci/capture';
-import { LAYOUT_PROPERTIES, type LayoutChange } from '@luci/format/feedback';
+import { LAYOUT_PROPERTIES, type LayoutChange, type Part } from '@luci/format/feedback';
 
 export type LayoutProperty = (typeof LAYOUT_PROPERTIES)[number];
 export const LAYOUT_ATTRIBUTE = 'data-luci-layout';
@@ -114,9 +116,35 @@ const describe = (el: Element) => {
   return role ? `${tag} (${role})` : tag;
 };
 
+/** Where a new part goes: before or after an element, or inside it at the start or the end. */
+export type InsertPosition = 'before' | 'after' | 'start' | 'end';
+
+/** A planned new part (step 2): drawn by Luci as a placeholder, never put into the page's DOM. */
+export interface PlannedInsert {
+  readonly id: number;
+  what: Part;
+  anchor: Element;
+  position: InsertPosition;
+  /** px as rendered, or "100%" (the full width of its parent). */
+  width: string;
+  height: string;
+  label?: string;
+}
+type InsertState = Omit<PlannedInsert, 'id'>;
+
+/** Where a placeholder is, relative to its parent's box when it was measured (so it scrolls with it). */
+interface Placement { parent: Element; dx: number; dy: number; width: number; height: number }
+
 type Step =
   | { kind: 'set'; el: Element; prop: LayoutProperty; before: string | null; after: string | null }
-  | { kind: 'move'; parent: Element; before: Element[]; after: Element[] };
+  | { kind: 'move'; parent: Element; before: Element[]; after: Element[] }
+  | { kind: 'insert'; id: number; before: InsertState | null; after: InsertState | null };
+
+/** The element a new part's siblings belong to. */
+export const insertParent = (anchor: Element, position: InsertPosition): Element | null =>
+  position === 'start' || position === 'end' ? anchor : anchor.parentElement;
+
+const depth = (el: Element) => { let n = 0; for (let p = el.parentElement; p; p = p.parentElement) n++; return n; };
 
 /** The planned changes on a page, previewed live, with undo and redo. */
 export class LayoutPreview {
@@ -129,6 +157,10 @@ export class LayoutPreview {
   private readonly orders = new Map<Element, { original: Element[]; current: Element[] }>();
   /** Elements the person moved (their siblings shift too, but only these get a move step). */
   private readonly moved = new Set<Element>();
+  /** New parts, by id, in the order they were added. */
+  private readonly added = new Map<number, InsertState>();
+  private readonly placements = new Map<number, Placement>();
+  private nextInsert = 1;
   private done: Step[] = [];
   private undone: Step[] = [];
   private next = 1;
@@ -164,9 +196,22 @@ export class LayoutPreview {
       else shifted.push(entry);
     }
     this.style.textContent = rules.join('\n');
-    if (!shifted.length) return;
-    // A top-to-bottom stack: measure where each child is now (sizes and spacing already planned),
-    // then shift each into its new place with `translate` (which leaves the site's own transform alone)
+    this.placements.clear();
+    if (!shifted.length && !this.added.size) return;
+    // Shifts are measured on the page as laid out (sizes, spacing and orders already planned) and
+    // kept per element, so a move and an insert under the same parent add up
+    const shift = new Map<Element, { x: number; y: number }>();
+    const addShift = (el: Element, x: number, y: number) => {
+      const s = shift.get(el) ?? { x: 0, y: 0 };
+      shift.set(el, { x: s.x + x, y: s.y + y });
+    };
+    const rectOf = (el: Element) => {
+      const r = el.getBoundingClientRect();
+      const s = shift.get(el);
+      return s ? new DOMRect(r.left + s.x, r.top + s.y, r.width, r.height) : r;
+    };
+    // A top-to-bottom stack: shift each child into its new place with `translate` (which leaves the
+    // site's own transform alone)
     for (const { original, current } of shifted) {
       const rects = original.map(el => el.getBoundingClientRect());
       const top = new Map(original.map((el, i) => [el, rects[i]!.top]));
@@ -175,11 +220,164 @@ export class LayoutPreview {
       let y = rects[0]!.top;
       current.forEach((el, i) => {
         const dy = Math.round((y - top.get(el)!) * 100) / 100;
-        if (dy) rules.push(`[${LAYOUT_ATTRIBUTE}="${this.idOf(el)}"] { translate: 0 ${dy}px !important; }`);
+        if (dy) addShift(el, 0, dy);
         y += height.get(el)! + (spaceAfter[i] ?? 0);
       });
     }
+    if (this.added.size) rules.push(...this.placeInserts(rules, rectOf, addShift));
+    for (const [el, s] of shift) {
+      const x = Math.round(s.x * 100) / 100;
+      const y = Math.round(s.y * 100) / 100;
+      if (x || y) rules.push(`[${LAYOUT_ATTRIBUTE}="${this.idOf(el)}"] { translate: ${x}px ${y}px !important; }`);
+    }
     this.style.textContent = rules.join('\n');
+  }
+
+  /**
+   * Place every new part: in its parent's planned order, along the axis the parent lays children
+   * out (a row for flex rows and grids, else top to bottom), with the gap the siblings have. The
+   * siblings after it shift by its size and the gap; a top-to-bottom parent grows by as much
+   * (bottom padding), so what follows the parent moves down for real. Parents deepest in the page
+   * go first, each grown before the next is measured. Returns the growth rules.
+   */
+  private placeInserts(rules: string[], rectOf: (el: Element) => DOMRect, addShift: (el: Element, x: number, y: number) => void): string[] {
+    const win = this.doc.defaultView!;
+    const groups = new Map<Element, { id: number; ins: InsertState; slot: number }[]>();
+    for (const [id, ins] of this.added) {
+      const parent = insertParent(ins.anchor, ins.position);
+      if (!parent?.isConnected || !ins.anchor.isConnected) continue;
+      const list = groups.get(parent) ?? [];
+      list.push({ id, ins, slot: 0 });
+      groups.set(parent, list);
+    }
+    const grown: string[] = [];
+    for (const parent of [...groups.keys()].sort((a, b) => depth(b) - depth(a))) {
+      const kids = this.order(parent).filter(k => k.isConnected);
+      const list = groups.get(parent)!;
+      for (const item of list) {
+        const at = kids.indexOf(item.ins.anchor);
+        item.slot = item.ins.position === 'start' ? 0
+          : item.ins.position === 'end' || at === -1 ? kids.length
+          : item.ins.position === 'before' ? at : at + 1;
+      }
+      list.sort((a, b) => a.slot - b.slot || a.id - b.id);
+      const axis = reorderable(parent)?.axis ?? 'y';
+      const cs = win.getComputedStyle(parent);
+      const pr = parent.getBoundingClientRect();
+      const n = (v: string) => parseFloat(v) || 0;
+      const content = {
+        left: pr.left + n(cs.borderLeftWidth) + n(cs.paddingLeft),
+        top: pr.top + n(cs.borderTopWidth) + n(cs.paddingTop),
+        width: pr.width - n(cs.borderLeftWidth) - n(cs.borderRightWidth) - n(cs.paddingLeft) - n(cs.paddingRight)
+      };
+      const rects = kids.map(rectOf);
+      const gap = reorderable(parent)
+        ? n(axis === 'x' ? cs.columnGap : cs.rowGap)
+        : rects.length >= 2 ? Math.max(0, rects[1]!.top - rects[0]!.bottom) : 0;
+      let offset = 0;
+      let li = 0;
+      for (let i = 0; i <= kids.length; i++) {
+        for (; li < list.length && list[li]!.slot === i; li++) {
+          const { id, ins } = list[li]!;
+          const width = ins.width === '100%' ? content.width : n(ins.width);
+          const height = n(ins.height);
+          const ref = rects[i];
+          const last = rects[rects.length - 1];
+          let left: number;
+          let top: number;
+          if (axis === 'y') {
+            top = (ref ? ref.top : last ? last.bottom + gap : content.top) + offset;
+            left = ins.width === '100%' ? content.left : (ref ?? last)?.left ?? content.left;
+          } else {
+            left = (ref ? ref.left : last ? last.right + gap : content.left) + offset;
+            top = (ref ?? last)?.top ?? content.top;
+          }
+          this.placements.set(id, { parent, dx: left - pr.left, dy: top - pr.top, width, height });
+          offset += (axis === 'y' ? height : width) + gap;
+        }
+        if (i < kids.length && offset) addShift(kids[i]!, axis === 'x' ? offset : 0, axis === 'y' ? offset : 0);
+      }
+      if (axis === 'y' && offset) {
+        // Measured with the planned values, before this growth; the rule comes last, so it wins
+        grown.push(`[${LAYOUT_ATTRIBUTE}="${this.idOf(parent)}"] { padding-bottom: ${Math.round((n(cs.paddingBottom) + offset) * 100) / 100}px !important; }`);
+        this.style.textContent = [...rules, ...grown].join('\n');
+      }
+    }
+    return grown;
+  }
+
+  /** Measure again (the window changed size). */
+  refresh(): void {
+    this.render();
+  }
+
+  // ---- New parts (step 2) ---------------------------------------------------------------------
+
+  /** Plan a new part. Returns its id. */
+  insert(part: InsertState): number {
+    const id = this.nextInsert++;
+    const state = { ...part };
+    this.added.set(id, state);
+    this.done.push({ kind: 'insert', id, before: null, after: { ...state } });
+    this.undone = [];
+    this.render();
+    return id;
+  }
+
+  /** Change a new part: where it goes, its size, what goes in it. */
+  updateInsert(id: number, change: Partial<InsertState>): void {
+    const before = this.added.get(id);
+    if (!before) return;
+    const after = { ...before, ...change };
+    if (after.label !== undefined && !after.label.trim()) delete after.label;
+    if ((Object.keys(after) as (keyof InsertState)[]).every(k => after[k] === before[k]) && (before.label === undefined) === (after.label === undefined)) return;
+    this.added.set(id, after);
+    this.done.push({ kind: 'insert', id, before: { ...before }, after: { ...after } });
+    this.undone = [];
+    this.render();
+  }
+
+  /** Fill in what a part is (its component's file, found after it was placed), without an undo step. */
+  describeInsert(id: number, what: Part): void {
+    const ins = this.added.get(id);
+    if (ins) ins.what = what;
+    for (const step of [...this.done, ...this.undone]) {
+      if (step.kind !== 'insert' || step.id !== id) continue;
+      if (step.before) step.before.what = what;
+      if (step.after) step.after.what = what;
+    }
+  }
+
+  removeInsert(id: number): void {
+    const before = this.added.get(id);
+    if (!before) return;
+    this.added.delete(id);
+    this.done.push({ kind: 'insert', id, before: { ...before }, after: null });
+    this.undone = [];
+    this.render();
+  }
+
+  /** The planned new parts, in the order they were added. */
+  inserts(): PlannedInsert[] {
+    return [...this.added].map(([id, s]) => ({ id, ...s }));
+  }
+
+  getInsert(id: number): PlannedInsert | null {
+    const s = this.added.get(id);
+    return s ? { id, ...s } : null;
+  }
+
+  /** Where a new part's placeholder is on screen now, or null when it cannot be placed. */
+  insertRect(id: number): DOMRect | null {
+    const p = this.placements.get(id);
+    if (!p?.parent.isConnected) return null;
+    const r = p.parent.getBoundingClientRect();
+    return new DOMRect(r.left + p.dx, r.top + p.dy, p.width, p.height);
+  }
+
+  /** The axis a new part lays along under this parent: a row (flex row, grid) or top to bottom. */
+  axisOf(parent: Element): 'x' | 'y' {
+    return reorderable(parent)?.axis ?? 'y';
   }
 
   private applySet(el: Element, prop: LayoutProperty, value: string | null) {
@@ -248,7 +446,10 @@ export class LayoutPreview {
 
   private replay(step: Step, forward: boolean) {
     if (step.kind === 'set') this.applySet(step.el, step.prop, forward ? step.after : step.before);
-    else {
+    else if (step.kind === 'insert') {
+      const state = forward ? step.after : step.before;
+      if (state) this.added.set(step.id, { ...state }); else this.added.delete(step.id);
+    } else {
       const entry = this.orders.get(step.parent);
       if (entry) entry.current = forward ? step.after : step.before;
     }
@@ -280,6 +481,7 @@ export class LayoutPreview {
     this.orders.clear();
     this.original.clear();
     this.moved.clear();
+    this.added.clear();
     this.done = [];
     this.undone = [];
     for (const el of this.ids.keys()) el.removeAttribute(LAYOUT_ATTRIBUTE);
@@ -323,12 +525,17 @@ export class LayoutPreview {
       const token = scale.tokens.get(parseFloat(to));
       out.push({ op: 'set', property: prop, from, to, ...(token ? { token } : {}) });
     }
+    // New parts placed next to it or inside it
+    for (const ins of this.added.values()) {
+      if (ins.anchor !== el) continue;
+      out.push({ op: 'insert', what: ins.what, position: ins.position, width: ins.width, height: ins.height, ...(ins.label ? { label: ins.label } : {}) });
+    }
     return out;
   }
 
-  /** Elements with planned changes (their own, or a move among their siblings). */
+  /** Elements with planned changes (their own, a move among their siblings, or a new part next to or in them). */
   changed(scale: PageScale): Element[] {
-    const all = new Set<Element>([...this.values.keys(), ...this.moved]);
+    const all = new Set<Element>([...this.values.keys(), ...this.moved, ...[...this.added.values()].map(i => i.anchor)]);
     return [...all].filter(el => el.isConnected && this.changes(el, scale).length);
   }
 }

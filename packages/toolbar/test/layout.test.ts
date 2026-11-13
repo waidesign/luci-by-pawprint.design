@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { build } from 'esbuild';
 import { chromium, type Browser, type Page } from 'playwright';
-import { FeedbackStore, initProject } from '@luci/brain';
+import { DesignStore, FeedbackStore, initProject } from '@luci/brain';
 import { SkillRegistry } from '@luci/skills';
 import { handleTool } from '../../mcp/src/index.js';
 import { startBridge, type Bridge } from '../../cli/src/serve/bridge.js';
@@ -206,6 +206,121 @@ describe('Layout mode', { timeout: 120_000 }, () => {
     await page.click('luci-layout [data-mode="feedback"]');
     await page.locator('[data-action="annotate"]').waitFor();
     expect(await page.evaluate(() => ({ marked: document.querySelectorAll('[data-luci-layout]').length, sheets: document.querySelectorAll('style[data-part="layout-preview"]').length }))).toEqual({ marked: 0, sheets: 0 });
+    await page.context().close();
+  });
+
+  it('Insert (step 2): another of your components, a saved capture and a block, placed, sized, labeled and copied', async () => {
+    // A capture saved in the project shows in the catalog
+    const card = fs.readFileSync(fileURLToPath(new URL('../../format/fixtures/capture/example-com.component.card.design.md', import.meta.url)), 'utf8');
+    new DesignStore(dir).save('example-com.component.card.design.md', card);
+    const page = await open('/pricing');
+    const unit = await base(page);
+    const rect = (sel: string) => page.locator(sel).boundingBox().then(b => b!);
+    const plan2 = await rect('.plan:nth-of-type(2)');
+    const section = await rect('main > section');
+
+    await page.click('[data-action="insert"]');
+    await page.locator('[data-part="insert-catalog"]').waitFor();
+    // The page's own components, the most used first, each counted once per instance
+    const comps = await page.locator('[data-group="components"] [data-insert]').allInnerTexts();
+    expect(comps[0]).toBe('PlanCard ×2');
+    // Then the smaller parts before the page's shell
+    expect(comps.indexOf('Nav')).toBeLessThan(comps.indexOf('Pricing'));
+    expect(comps.indexOf('Pricing')).toBeLessThan(comps.indexOf('App'));
+    await page.locator('[data-insert="capture:example-com.component.card.design.md"]').waitFor();
+    expect(await page.locator('[data-group="blocks"] [data-insert]').count()).toBe(10);
+
+    // Another PlanCard, before the second one: the drop line and label say where
+    await page.click('[data-insert="component:PlanCard"]');
+    await page.locator('[data-part="placing"]').waitFor();
+    await page.mouse.move(plan2.x + plan2.width / 2, plan2.y + 4);
+    expect(await page.locator('[data-part="place-line"]').count()).toBe(1);
+    expect(await page.locator('[data-part="place-label"]').innerText()).toBe('PlanCard: before div · PlanCard');
+    await page.mouse.click(plan2.x + plan2.width / 2, plan2.y + 4);
+    const ph = page.locator('[data-part="insert-placeholder"]');
+    await ph.waitFor();
+    // As big as a PlanCard (snapped), where the second card was; the card and the section make room
+    const box = (await ph.boundingBox())!;
+    expect(Math.abs(box.y - plan2.y)).toBeLessThan(1);
+    expect(box.height % unit).toBe(0);
+    expect(Math.abs(box.height - plan2.height)).toBeLessThanOrEqual(unit);
+    const moved = await rect('.plan:nth-of-type(2)');
+    expect(moved.y).toBeGreaterThan(plan2.y + box.height);
+    expect((await rect('main > section')).height).toBeGreaterThan(section.height + box.height);
+    expect(await page.locator('[data-part="insert-where"]').innerText()).toContain('Goes before div · PlanCard.');
+
+    // Label it, make it taller with + and with the bottom handle, undo the last one
+    await page.fill('[data-part="insert-label"]', 'Enterprise plan');
+    await page.press('[data-part="insert-label"]', 'Enter');
+    expect(await ph.innerText()).toContain('Enterprise plan');
+    await page.click('[data-prop="insert-height"] [data-step="+"]');
+    const taller = (await ph.boundingBox())!.height;
+    expect(taller).toBe(box.height + unit);
+    const bottom = await center(page, '[data-handle="insert-s"]');
+    await drag(page, bottom, { x: bottom.x, y: bottom.y + 41 });
+    expect(Math.abs((await ph.boundingBox())!.height - (taller + 41))).toBeLessThanOrEqual(unit);
+    await page.keyboard.press('Control+z');
+    expect((await ph.boundingBox())!.height).toBeLessThan(taller + 41 - unit);
+    expect(await page.locator('[data-part="insert-inspector"] [data-part="changes"]').innerText()).toMatch(/^insert another `PlanCard` \(.*one is at `section > div:nth-of-type\(1\)`\) before it, \d+px wide, \d+px tall as rendered: "Enterprise plan"$/);
+
+    // A saved capture, inside the section at the end: with the section selected, the place buttons
+    await page.click('[data-action="deselect"]');
+    await page.click('main > section > h1', { force: true });
+    await page.click('[data-action="select-parent"]');
+    await page.click('[data-action="insert"]');
+    await page.click('[data-insert="capture:example-com.component.card.design.md"]');
+    expect(await page.locator('[data-part="placing"] [data-place]').allInnerTexts()).toEqual(['Before', 'After', 'Inside, start', 'Inside, end']);
+    await page.click('[data-part="placing"] [data-place="end"]');
+    await expect.poll(() => ph.count()).toBe(2);
+    expect(await page.locator('[data-part="insert-where"]').innerText()).toMatch(/^Saved capture · \.luci\/design\/example-com\.component\.card\.design\.md\. Goes inside, at the end of section/);
+
+    // A block in the nav, a flex row: with the nav selected, Inside, end
+    await page.click('[data-action="deselect"]');
+    await page.click('nav a:nth-of-type(1)', { force: true });
+    await page.click('[data-action="select-parent"]');
+    const lastLink = await rect('nav a:nth-of-type(3)');
+    await page.click('[data-action="insert"]');
+    await page.click('[data-insert="block:button"]');
+    await page.click('[data-part="placing"] [data-place="end"]');
+    await expect.poll(() => ph.count()).toBe(3);
+    const btn = (await page.locator('[data-part="insert-placeholder"]').nth(2).boundingBox())!;
+    expect(btn.x).toBeGreaterThan(lastLink.x + lastLink.width);
+    expect(Math.abs(btn.y - lastLink.y)).toBeLessThan(2);
+    // In a row there is no full width
+    expect(await page.locator('[data-action="insert-full-width"]').count()).toBe(0);
+
+    // Copy: one prompt with all three; the page is back
+    expect(await page.locator('[data-action="copy-layout-prompt"]').innerText()).toBe('Copy prompt (3)');
+    await page.click('[data-action="deselect"]');
+    await page.click('[data-action="copy-layout-prompt-panel"]');
+    const prompt = await page.locator('[data-part="layout-prompt"]').innerText();
+    expect(prompt).toContain('Inserted parts are new');
+    expect(prompt).toMatch(/- insert another `PlanCard` \(src\/components\/PlanCard\.jsx; one is at `section > div:nth-of-type\(1\)`\) before it, \d+px wide, \d+px tall as rendered: "Enterprise plan"/);
+    expect(prompt).toContain('- insert a part like the saved capture "');
+    expect(prompt).toContain('(.luci/design/example-com.component.card.design.md) inside it, at the end, 280px wide, 240px tall as rendered');
+    expect(prompt).toMatch(/## \d\. nav \(navigation\) · Nav[^\n]*\n[\s\S]*- insert a new button inside it, at the end, 160px wide, 44px tall as rendered/);
+    expect(await ph.count()).toBe(0);
+    expect(await marked(page)).toBe(0);
+    expect(Math.round((await rect('main > section')).height)).toBe(Math.round(section.height));
+
+    // A part kept as a Feedback note: the agent's prompt has the step
+    await page.click('[data-action="result-close"]');
+    await page.click('[data-action="insert"]');
+    await page.click('[data-insert="block:card grid"]');
+    const h1 = await rect('main > section > h1');
+    await page.mouse.click(h1.x + 20, h1.y + h1.height - 2);
+    await ph.waitFor();
+    // Full width in a top-to-bottom stack
+    expect(Math.round((await ph.boundingBox())!.width)).toBe(Math.round(section.width));
+    expect(await page.locator('[data-action="insert-full-width"]').getAttribute('aria-pressed')).toBe('true');
+    await page.fill('[data-part="insert-label"]', 'Customer logos');
+    await page.press('[data-part="insert-label"]', 'Enter');
+    await page.click('[data-action="add-layout-notes"]');
+    await page.locator('[data-part="layout-added"]').waitFor();
+    const note = new FeedbackStore(dir).list().find(n => n.layout?.changes.some(c => c.op === 'insert'))!;
+    expect(note.target.element).toBe('h1 (heading)');
+    const agent = (await handleTool('get_feedback_prompt', {}, { registry, cwd: dir })).content[0]!.text;
+    expect(agent).toContain('    - insert a new card grid after it, full width, 360px tall as rendered: "Customer logos"');
     await page.context().close();
   });
 });

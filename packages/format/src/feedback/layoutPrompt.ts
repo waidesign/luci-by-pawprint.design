@@ -25,6 +25,9 @@ export interface LayoutPromptInput {
   elements: readonly LayoutPromptElement[];
 }
 
+/** Said once when a plan inserts new parts. */
+export const INSERT_HINT = 'Inserted parts are new: reuse the named component when there is one; a saved capture (.luci/design/) is a reference to rebuild with the project\'s own components and tokens (luci-mcp get_capture reads it); a new block is a placeholder for what its label says.';
+
 const quote = (text: string) => `"${text.trim().replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\s*\n\s*/g, ' / ')}"`;
 const short = (text: string, max = 120) => (text.length > max ? `${text.slice(0, max - 1)}…` : text);
 
@@ -38,6 +41,7 @@ export function formatLayoutPrompt(input: LayoutPromptInput): string {
     `They were planned in a ${input.viewport.width}px wide window: keep the layout working at other widths.`,
     'Sizes "as rendered" (width, height and their min and max) are the size on screen, border and padding included.'
   ];
+  if (elements.some(e => e.changes.some(c => c.op === 'insert'))) out.push(INSERT_HINT);
   if (input.note?.trim()) out.push('', `Note: ${quote(input.note)}`);
   elements.forEach((e, i) => {
     out.push('', `## ${i + 1}. ${e.element}${e.components?.length ? ` · ${e.components[e.components.length - 1]}` : ''}${e.source ? `  (${sourceText(e.source)})` : ''}`);

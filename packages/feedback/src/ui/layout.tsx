@@ -8,9 +8,10 @@
  */
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { ButtonSpinner, ModeSwitch, elementAt, isLuciUi, parentOf, scrollableAncestor, selectorFor, type ModeSwitchProps } from '@luci/capture';
-import { formatLayoutPrompt, layoutChangeText, routeOf, type LayoutPromptElement } from '@luci/format/feedback';
-import type { FeedbackBackend } from '../backend.js';
-import { LayoutPreview, layoutChildren, pageScale, reorderable, snapTo, type LayoutProperty, type PageScale } from '../layout/preview.js';
+import { LAYOUT_BLOCKS, formatLayoutPrompt, layoutChangeText, routeOf, type LayoutPromptElement, type Part } from '@luci/format/feedback';
+import type { FeedbackBackend, SavedCapture } from '../backend.js';
+import { pageComponents, startSize, type PageComponent } from '../layout/catalog.js';
+import { LayoutPreview, insertParent, layoutChildren, pageScale, reorderable, snapTo, type InsertPosition, type LayoutProperty, type PageScale, type PlannedInsert } from '../layout/preview.js';
 import { reactInfo } from '../react.js';
 import { describeTarget, nameOf } from '../target.js';
 import { copyToClipboard } from './clipboard.js';
@@ -30,7 +31,45 @@ const CURSOR: Readonly<Record<Edge, string>> = { n: 'ns-resize', s: 'ns-resize',
 
 type Drag =
   | { kind: 'resize'; edge: Edge; el: Element; x: number; y: number; w: number; h: number }
-  | { kind: 'move'; el: Element; x: number; y: number };
+  | { kind: 'move'; el: Element; x: number; y: number }
+  | { kind: 'insert-resize'; edge: Edge; id: number; x: number; y: number; w: number; h: number; full: boolean }
+  | { kind: 'insert-move'; id: number; x: number; y: number };
+
+/** What is being placed: the part, and for a component the one on the page it copies. */
+interface Placing { what: Part; example?: Element; captureType?: string }
+
+/** Where a new part would go for a point on the page, and what shows it. */
+interface PlaceTarget {
+  anchor: Element;
+  position: InsertPosition;
+  /** A line before or after the anchor, or the anchor's outline for "inside". */
+  line?: { left: number; top: number; width: number; height: number };
+  outline?: DOMRect;
+}
+
+/** Elements a part is never put inside (it goes before or after them). */
+const LEAF = /^(img|input|textarea|select|button|a|svg|video|canvas|iframe|br|hr|p|h[1-6]|span|label|strong|em|b|i|small|code|picture|li)$/i;
+
+const KIND_TEXT: Readonly<Record<Part['kind'], string>> = { component: 'Your component', capture: 'Saved capture', block: 'Block' };
+const POSITION_TEXT: Readonly<Record<InsertPosition, string>> = { before: 'before', after: 'after', start: 'inside, at the start of', end: 'inside, at the end of' };
+
+/**
+ * Where a part goes for a point over an element: near its top or bottom edge (left or right in a
+ * row), before or after it; over the middle of a container, inside it at the end.
+ */
+function placeTarget(doc: Document, el: Element, x: number, y: number): PlaceTarget | null {
+  if (el === doc.documentElement) return null;
+  const r = el.getBoundingClientRect();
+  if (el === doc.body || !el.parentElement || el.parentElement === doc.documentElement) return { anchor: el, position: 'end', outline: r };
+  const axis = reorderable(el.parentElement)?.axis ?? 'y';
+  const t = axis === 'y' ? (y - r.top) / Math.max(1, r.height) : (x - r.left) / Math.max(1, r.width);
+  const container = !LEAF.test(el.tagName);
+  const position: InsertPosition = container ? (t < 0.25 ? 'before' : t > 0.75 ? 'after' : 'end') : t < 0.5 ? 'before' : 'after';
+  if (position === 'end') return { anchor: el, position, outline: r };
+  const edge = axis === 'y' ? (position === 'before' ? r.top : r.bottom) : (position === 'before' ? r.left : r.right);
+  const line = axis === 'y' ? { left: r.left, top: edge - 2, width: r.width, height: 4 } : { left: edge - 2, top: r.top, width: 4, height: r.height };
+  return { anchor: el, position, line };
+}
 
 const SIDES = ['top', 'right', 'bottom', 'left'] as const;
 const DISPLAYS = ['block', 'flex', 'grid', 'inline-block', 'inline-flex', 'inline-grid', 'inline'];
@@ -60,9 +99,8 @@ const columnCount = (v: string) => {
   return v.trim() === 'none' ? 0 : v.trim().split(/\s+(?![^(]*\))/).length;
 };
 
-/** Where a dragged element would land among its siblings, and the line that shows it. */
-function dropTarget(preview: LayoutPreview, el: Element, x: number, y: number): { index: number; line: { left: number; top: number; width: number; height: number } } | null {
-  const parent = el.parentElement;
+/** Where a dragged element (or new part, `el` null) would land among the parent's children, and the line that shows it. */
+function dropTarget(preview: LayoutPreview, parent: Element | null, el: Element | null, x: number, y: number): { index: number; line: { left: number; top: number; width: number; height: number } } | null {
   if (!parent) return null;
   const axis = reorderable(parent)?.axis ?? 'y';
   const others = preview.order(parent).filter(c => c !== el);
@@ -104,19 +142,28 @@ export function Layout(props: LayoutProps) {
   const [note, setNote] = useState('');
   const [result, setResult] = useState<{ prompt?: string; text: string; ok: boolean } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  // Step 2: inserting new parts
+  const [catalog, setCatalog] = useState(false);
+  const [components, setComponents] = useState<PageComponent[]>([]);
+  const [captures, setCaptures] = useState<SavedCapture[] | 'loading' | 'error'>('loading');
+  const [placing, setPlacing] = useState<Placing | null>(null);
+  const [placeHover, setPlaceHover] = useState<PlaceTarget | null>(null);
+  const [insertSel, setInsertSel] = useState<number | null>(null);
   const [, setTick] = useState(0);
   const bump = () => setTick(t => t + 1);
 
   // The page's scale is read once (a snapshot of the page); the preview is undone on leaving
   useEffect(() => {
     const t = setTimeout(() => setScale(pageScale(doc)), 0);
-    const onMove = () => bump();
-    win.addEventListener('scroll', onMove, true);
-    win.addEventListener('resize', onMove);
+    const onScroll = () => bump();
+    // A new width lays the page out again: measure the placeholders again
+    const onResize = () => { preview.current?.refresh(); bump(); };
+    win.addEventListener('scroll', onScroll, true);
+    win.addEventListener('resize', onResize);
     return () => {
       clearTimeout(t);
-      win.removeEventListener('scroll', onMove, true);
-      win.removeEventListener('resize', onMove);
+      win.removeEventListener('scroll', onScroll, true);
+      win.removeEventListener('resize', onResize);
       preview.current?.destroy();
     };
   }, []);
@@ -127,9 +174,15 @@ export function Layout(props: LayoutProps) {
       if (t instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
       if (e.key === 'Escape') {
         if (drag) setDrag(null);
+        else if (placing || catalog) { setPlacing(null); setPlaceHover(null); setCatalog(false); }
+        else if (insertSel !== null) { setInsertSel(null); setSelecting(true); }
         else if (selected) { setSelected(null); setSelecting(true); }
         else if (selecting) setSelecting(false);
         else return;
+      } else if ((e.key === 'Delete' || e.key === 'Backspace') && insertSel !== null) {
+        preview.current!.removeInsert(insertSel);
+        setInsertSel(null);
+        setSelecting(true);
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
         if (e.shiftKey) preview.current!.redo(); else preview.current!.undo();
         bump();
@@ -139,7 +192,7 @@ export function Layout(props: LayoutProps) {
     };
     doc.addEventListener('keydown', onKey, true);
     return () => doc.removeEventListener('keydown', onKey, true);
-  }, [drag, selected, selecting]);
+  }, [drag, selected, selecting, placing, catalog, insertSel]);
 
   const p = preview.current;
   const base = scale?.base ?? 4;
@@ -150,6 +203,53 @@ export function Layout(props: LayoutProps) {
     setSelected(el);
     setSelecting(!el);
     setHovered(null);
+    setInsertSel(null);
+  };
+  const selectInsert = (id: number | null) => {
+    setInsertSel(id);
+    setSelected(null);
+    setSelecting(id === null);
+    setHovered(null);
+    setCatalog(false);
+    setPlacing(null);
+    setResult(null);
+  };
+
+  // ---- Inserting new parts (step 2) -----------------------------------------------------------
+  const openCatalog = () => {
+    if (catalog || placing) { setCatalog(false); setPlacing(null); setPlaceHover(null); return; }
+    setResult(null);
+    setInsertSel(null);
+    setComponents(pageComponents(doc));
+    setCatalog(true);
+    if (backend.listCaptures) {
+      setCaptures('loading');
+      backend.listCaptures().then(files => setCaptures(files.filter(f => f.scope === 'component')), () => setCaptures('error'));
+    }
+  };
+  const choose = (what: Part, example?: Element, captureType?: string) => {
+    setCatalog(false);
+    setPlacing({ what, ...(example ? { example } : {}), ...(captureType ? { captureType } : {}) });
+    setHovered(null);
+  };
+  const placeAt = (anchor: Element, position: InsertPosition) => {
+    if (!placing) return;
+    const parent = insertParent(anchor, position);
+    if (!parent) return;
+    const { what, example, captureType } = placing;
+    const named: Part = what.kind === 'component' && example
+      ? { ...what, example: { selector: selectorFor(example, example.getRootNode() as Document | ShadowRoot), element: nameOf(example) } }
+      : what;
+    const id = p.insert({ what: named, anchor, position, ...startSize(what, p.axisOf(parent), base, example, captureType) });
+    setPlacing(null);
+    setPlaceHover(null);
+    selectInsert(id);
+    // The component's file, from the one on the page (its source map may take a moment)
+    if (what.kind === 'component' && example) {
+      void describeTarget(example, backend.resolveFrames ? { serverResolve: backend.resolveFrames } : {}).then(({ target }) => {
+        if (target.source) { p.describeInsert(id, { ...named, file: target.source.file }); bump(); }
+      }).catch(() => { /* named without its file */ });
+    }
   };
   const pickWheel = (e: WheelEvent) => {
     const box = scrollableAncestor(elementAt(doc, e.clientX, e.clientY), e.deltaX, e.deltaY);
@@ -165,11 +265,34 @@ export function Layout(props: LayoutProps) {
     setResult(null);
     setDrag(kind === 'move' ? { kind, el: selected, x: e.clientX, y: e.clientY } : { kind: 'resize', edge: kind, el: selected, x: e.clientX, y: e.clientY, w: r.width, h: r.height });
   };
+  const startInsertDrag = (kind: 'move' | Edge) => (e: PointerEvent) => {
+    const ins = insertSel !== null ? p.getInsert(insertSel) : null;
+    const r = ins ? p.insertRect(ins.id) : null;
+    if (!ins || !r) return;
+    e.preventDefault();
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    setResult(null);
+    setDrag(kind === 'move' ? { kind: 'insert-move', id: ins.id, x: e.clientX, y: e.clientY } : { kind: 'insert-resize', edge: kind, id: ins.id, x: e.clientX, y: e.clientY, w: r.width, h: r.height, full: ins.width === '100%' });
+  };
   const onDragMove = (e: PointerEvent) => {
     if (!drag) return;
-    if (drag.kind === 'move') { setDrop(dropTarget(p, drag.el, e.clientX, e.clientY)); return; }
+    if (drag.kind === 'move') { setDrop(dropTarget(p, drag.el.parentElement, drag.el, e.clientX, e.clientY)); return; }
+    if (drag.kind === 'insert-move') {
+      const ins = p.getInsert(drag.id);
+      setDrop(ins ? dropTarget(p, insertParent(ins.anchor, ins.position), null, e.clientX, e.clientY) : null);
+      return;
+    }
     const dx = e.clientX - drag.x;
     const dy = e.clientY - drag.y;
+    if (drag.kind === 'insert-resize') {
+      // A full-width part stays full width until a side handle sets a width
+      const sideways = /[ew]/.test(drag.edge);
+      const width = sideways ? `${Math.max(base, snapTo(drag.w + (drag.edge.includes('e') ? dx : -dx), base))}px` : drag.full ? '100%' : `${snapTo(drag.w, base)}px`;
+      const height = /[ns]/.test(drag.edge) ? `${Math.max(base, snapTo(drag.h + (drag.edge.includes('s') ? dy : -dy), base))}px` : `${snapTo(drag.h, base)}px`;
+      p.updateInsert(drag.id, { width, height });
+      bump();
+      return;
+    }
     // Left and top handles grow the size too; where it grows on screen depends on the layout
     if (drag.edge.includes('e')) p.set(drag.el, 'width', `${snapTo(drag.w + dx, base)}px`);
     if (drag.edge.includes('w')) p.set(drag.el, 'width', `${snapTo(drag.w - dx, base)}px`);
@@ -179,6 +302,17 @@ export function Layout(props: LayoutProps) {
   };
   const endDrag = () => {
     if (drag?.kind === 'move' && drop) p.move(drag.el, drop.index);
+    if (drag?.kind === 'insert-move' && drop) {
+      const ins = p.getInsert(drag.id);
+      const parent = ins ? insertParent(ins.anchor, ins.position) : null;
+      if (ins && parent) {
+        // Named by the neighbor it now goes before (or after the last one; inside an empty parent)
+        const kids = p.order(parent);
+        const at = kids[drop.index];
+        const last = kids[kids.length - 1];
+        p.updateInsert(ins.id, at ? { anchor: at, position: 'before' } : last ? { anchor: last, position: 'after' } : { anchor: parent, position: 'end' });
+      }
+    }
     setDrag(null);
     setDrop(null);
     bump();
@@ -206,6 +340,8 @@ export function Layout(props: LayoutProps) {
   const finish = (text: string, prompt?: string) => {
     p.reset();
     setSelected(null);
+    setInsertSel(null);
+    setPlacing(null);
     setSelecting(true);
     setNote('');
     setResult({ ok: true, text, ...(prompt ? { prompt } : {}) });
@@ -308,6 +444,126 @@ export function Layout(props: LayoutProps) {
     );
   };
 
+  // ---- Views for new parts --------------------------------------------------------------------
+  const selIns = insertSel !== null ? p.getInsert(insertSel) : null;
+  const insBox = selIns ? p.insertRect(selIns.id) : null;
+  const partName = (what: Part) => (what.kind === 'capture' ? `${what.name} (capture)` : what.name);
+  /** Before, After, and Inside for a container. */
+  const placeButtons = (anchor: Element, onPlace: (position: InsertPosition) => void, current?: InsertPosition) => (
+    <div class="row" data-part="place-buttons">
+      {(['before', 'after', ...(LEAF.test(anchor.tagName) ? [] : ['start', 'end'])] as InsertPosition[]).map(pos => (
+        <button type="button" data-place={pos} aria-pressed={current === pos} onClick={() => onPlace(pos)}>
+          {{ before: 'Before', after: 'After', start: 'Inside, start', end: 'Inside, end' }[pos]}
+        </button>
+      ))}
+    </div>
+  );
+  const catalogView = () => (
+    <div class="stack" data-part="insert-catalog">
+      <h2>Insert</h2>
+      <p class="dim">Pick what to add, then click on the page where it goes.</p>
+      <div class="cat-group" data-group="components">
+        <h3>Your components <span class="dim">on this page</span></h3>
+        {components.length ? (
+          <div class="cat-list">
+            {components.map(c => (
+              <button type="button" data-insert={`component:${c.name}`} title={`Another ${c.name}, like the one on this page`} onClick={() => choose({ kind: 'component', name: c.name }, c.example)}>
+                {c.name}{c.count > 1 && <span class="dim"> ×{c.count}</span>}
+              </button>
+            ))}
+          </div>
+        ) : <p class="dim">None found here. Luci reads React components in a development build.</p>}
+      </div>
+      <div class="cat-group" data-group="captures">
+        <h3>Saved captures <span class="dim">.luci/design/</span></h3>
+        {!backend.listCaptures ? <p class="dim">Run <code>luci serve</code> in your project to use the captures saved there.</p>
+          : captures === 'loading' ? <p class="loading"><ButtonSpinner />Reading the project's captures…</p>
+          : captures === 'error' ? <p class="error">Could not read the project's captures. Is <code>luci serve</code> still running?</p>
+          : captures.length ? (
+            <div class="cat-list">
+              {captures.map(c => (
+                <button type="button" data-insert={`capture:${c.file}`} title={`${c.type} from ${c.source}`}
+                  onClick={() => choose({ kind: 'capture', name: c.name || c.file, file: `.luci/design/${c.file}` }, undefined, c.type)}>
+                  {c.name || c.file} <span class="dim">{c.type}</span>
+                </button>
+              ))}
+            </div>
+          ) : <p class="dim">None saved yet. In Capture mode, take a component and press Save to project.</p>}
+      </div>
+      <div class="cat-group" data-group="blocks">
+        <h3>Blocks</h3>
+        <div class="cat-list">
+          {LAYOUT_BLOCKS.map(b => <button type="button" data-insert={`block:${b}`} onClick={() => choose({ kind: 'block', name: b })}>{b}</button>)}
+        </div>
+      </div>
+    </div>
+  );
+  const placingView = (pl: Placing) => (
+    <div class="stack" data-part="placing">
+      <h2>Place: {partName(pl.what)}</h2>
+      <p class="hint">Click on the page where it goes: near an element's top or bottom edge puts it before or after; the middle of a section, card or list puts it inside, at the end. Esc to cancel.</p>
+      {selected && (
+        <div class="stack">
+          <span>Or next to {nameWithComponent(selected)}:</span>
+          {placeButtons(selected, pos => placeAt(selected, pos))}
+        </div>
+      )}
+      <div class="row"><button type="button" data-action="cancel-insert" onClick={() => { setPlacing(null); setPlaceHover(null); }}>Cancel</button></div>
+    </div>
+  );
+  const insertSizeRow = (ins: PlannedInsert, dim: 'width' | 'height', label: string) => {
+    const full = ins[dim] === '100%';
+    const shown = full ? Math.round(insBox?.width ?? 0) : px(ins[dim]);
+    const apply = (value: string) => { setResult(null); p.updateInsert(ins.id, { [dim]: value }); bump(); };
+    const stack = p.axisOf(insertParent(ins.anchor, ins.position) ?? ins.anchor) === 'y';
+    return (
+      <div class="lrow" data-prop={`insert-${dim}`}>
+        <span class="lname">{label}</span>
+        <button type="button" data-step="-" aria-label={`Smaller ${label}`} onClick={() => apply(`${Math.max(base, snapTo(shown - base, base))}px`)}>−</button>
+        <input type="text" class="field" data-part={`value-insert-${dim}`} value={full ? 'full' : String(shown)} title="A number is px; full is the full width"
+          onChange={e => {
+            const raw = (e.currentTarget as HTMLInputElement).value.trim();
+            if (dim === 'width' && /^full$/i.test(raw)) apply('100%');
+            else if (Number(raw) > 0) apply(`${Math.max(base, snapTo(Number(raw), base))}px`);
+            else bump();
+          }} />
+        <button type="button" data-step="+" aria-label={`Larger ${label}`} onClick={() => apply(`${snapTo(shown + base, base)}px`)}>+</button>
+        {dim === 'width' && stack
+          ? <button type="button" class="link-toggle" data-action="insert-full-width" aria-pressed={full} onClick={() => apply(full ? `${snapTo(shown, base)}px` : '100%')}>Full width</button>
+          : <span class="token dim">px</span>}
+      </div>
+    );
+  };
+  const insertView = (ins: PlannedInsert) => (
+    <div class="stack" data-part="insert-inspector">
+      <h2>New: {partName(ins.what)}</h2>
+      <p class="dim" data-part="insert-where">{KIND_TEXT[ins.what.kind]}{ins.what.file ? ` · ${ins.what.file}` : ''}. Goes {POSITION_TEXT[ins.position]} {nameWithComponent(ins.anchor)}.</p>
+      <div class="row">
+        <button type="button" data-action="remove-insert" onClick={() => { p.removeInsert(ins.id); selectInsert(null); bump(); }}>Remove</button>
+        <button type="button" data-action="deselect" onClick={() => selectInsert(null)}>Pick another</button>
+      </div>
+      <label class="stack">
+        <span>What goes in it <span class="dim">(optional)</span></span>
+        <input type="text" class="field" data-part="insert-label" placeholder="Enterprise plan, customer quotes, sign-up form…" value={ins.label ?? ''}
+          onChange={e => { p.updateInsert(ins.id, { label: (e.currentTarget as HTMLInputElement).value }); setResult(null); bump(); }} />
+      </label>
+      <details open data-section="insert-size">
+        <summary>Size</summary>
+        {insertSizeRow(ins, 'width', 'Width')}
+        {insertSizeRow(ins, 'height', 'Height')}
+      </details>
+      <details open data-section="insert-where">
+        <summary>Where</summary>
+        {placeButtons(ins.anchor, pos => { p.updateInsert(ins.id, { position: pos }); bump(); }, ins.position)}
+        <p class="dim">Or drag ⠿ to move it among its neighbors.</p>
+      </details>
+      <div class="stack">
+        <span>Planned</span>
+        <ul class="thread" data-part="changes"><li>{layoutChangeText({ op: 'insert', what: ins.what, position: ins.position, width: ins.width, height: ins.height, ...(ins.label ? { label: ins.label } : {}) })}</li></ul>
+      </div>
+    </div>
+  );
+
   const box = selected?.isConnected ? selected.getBoundingClientRect() : null;
   const hoverBox = selecting && hovered && !drag ? hovered.getBoundingClientRect() : null;
   const parent = selected?.parentElement ?? null;
@@ -349,7 +605,8 @@ export function Layout(props: LayoutProps) {
       <div class="bar" role="toolbar" aria-label="Luci layout">
         <span class="brand">Luci</span>
         {props.modes && <ModeSwitch {...props.modes} />}
-        <button type="button" aria-pressed={selecting} data-action="select" title="Click an element to change its layout (Esc to stop)" onClick={() => { setSelecting(s => !s); setHovered(null); }}>Select</button>
+        <button type="button" aria-pressed={selecting && !placing} data-action="select" title="Click an element to change its layout (Esc to stop)" onClick={() => { setPlacing(null); setCatalog(false); setSelecting(s => !s); setHovered(null); }}>Select</button>
+        <button type="button" aria-pressed={catalog || Boolean(placing)} data-action="insert" title="Add one of your components, a saved capture or a block, and place it on the page" onClick={openCatalog}>Insert</button>
         <button type="button" data-action="undo" disabled={!p.canUndo} title="Undo (Ctrl+Z)" onClick={() => { p.undo(); bump(); }}>Undo</button>
         <button type="button" data-action="redo" disabled={!p.canRedo} title="Redo (Ctrl+Shift+Z)" onClick={() => { p.redo(); bump(); }}>Redo</button>
         <button type="button" data-action="reset" disabled={!plannedCount && !p.canUndo} title="Put the page back as it is in your code" onClick={() => { p.reset(); bump(); }}>Reset</button>
@@ -362,13 +619,66 @@ export function Layout(props: LayoutProps) {
       </div>
 
       {!scale && <div class="sub"><p class="loading"><ButtonSpinner />Reading the page's spacing scale…</p></div>}
-      {scale && selecting && !selected && !result && (
+      {scale && selecting && !selected && !result && !catalog && !placing && (
         <div class="sub" role="note" data-part="hint">
-          <p class="hint">Click an element to change its layout: drag its handles to resize, ⠿ to move it among its neighbors. Values snap to this page's {scale.base}px scale. Nothing changes in your code: copy the prompt for your agent.</p>
+          <p class="hint">Click an element to change its layout: drag its handles to resize, ⠿ to move it among its neighbors. Insert adds your components, saved captures or blocks. Values snap to this page's {scale.base}px scale. Nothing changes in your code: copy the prompt for your agent.</p>
         </div>
       )}
 
-      {scale && selecting && !drag && (
+      {scale && placing && !drag && (
+        <div class="pick-layer" data-part="place-layer"
+          onPointerMove={e => { const el = elementAt(doc, e.clientX, e.clientY); setPlaceHover(el && !isLuciUi(el) ? placeTarget(doc, el, e.clientX, e.clientY) : null); }}
+          onClick={e => { const el = elementAt(doc, e.clientX, e.clientY); const t = el && !isLuciUi(el) ? placeTarget(doc, el, e.clientX, e.clientY) : null; if (t) placeAt(t.anchor, t.position); }}
+          onWheel={pickWheel} onPointerLeave={() => setPlaceHover(null)} />
+      )}
+      {placing && placeHover && (
+        <>
+          {placeHover.line && <div class="drop-line" data-part="place-line" style={{ left: `${placeHover.line.left}px`, top: `${placeHover.line.top}px`, width: `${placeHover.line.width}px`, height: `${placeHover.line.height}px` }} />}
+          {placeHover.outline && <div class="highlight inside" data-part="place-inside" style={{ left: `${placeHover.outline.left}px`, top: `${placeHover.outline.top}px`, width: `${placeHover.outline.width}px`, height: `${placeHover.outline.height}px` }} />}
+          {(() => {
+            const r = placeHover.line ?? placeHover.outline!;
+            return <div class="label" data-part="place-label" style={{ left: `${Math.max(2, r.left)}px`, top: `${Math.max(0, r.top - 24)}px` }}>{partName(placing.what)}: {POSITION_TEXT[placeHover.position]} {nameWithComponent(placeHover.anchor)}</div>;
+          })()}
+        </>
+      )}
+
+      {p.inserts().map(ins => {
+        const r = p.insertRect(ins.id);
+        if (!r) return null;
+        return (
+          <div class="ins" data-part="insert-placeholder" data-insert-id={ins.id} aria-selected={insertSel === ins.id} role="button" tabIndex={0}
+            title="A new part, planned: click to change it" style={{ left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px` }}
+            onClick={() => selectInsert(ins.id)}>
+            <span class="ins-name">＋ {partName(ins.what)}</span>
+            {ins.label && <span class="ins-label">{ins.label}</span>}
+          </div>
+        );
+      })}
+      {selIns && insBox && (
+        <>
+          <div class="sel" data-part="insert-selection" style={{ left: `${insBox.left}px`, top: `${insBox.top}px`, width: `${insBox.width}px`, height: `${insBox.height}px` }} />
+          {(() => {
+            const above = insBox.top >= 34;
+            const y = above ? insBox.top - 32 : insBox.bottom + 6;
+            return (
+              <>
+                <button type="button" class="handle h-move" data-handle="insert-move" title="Drag to move it among its neighbors"
+                  style={{ left: `${Math.max(2, insBox.left)}px`, top: `${y}px` }}
+                  onPointerDown={startInsertDrag('move')} onPointerMove={onDragMove} onPointerUp={endDrag}>⠿</button>
+                <div class="label" data-part="insert-size-label" style={{ left: `${Math.max(2, insBox.left) + 32}px`, top: `${y + 2}px` }}>
+                  New {partName(selIns.what)}  {Math.round(insBox.width)} × {Math.round(insBox.height)}
+                </div>
+              </>
+            );
+          })()}
+          {EDGES.map(edge => (
+            <span class={`handle h-${edge.length === 1 ? 'side' : 'corner'}`} data-handle={`insert-${edge}`} title="Drag to resize" style={handleStyle(edge, insBox)}
+              onPointerDown={startInsertDrag(edge)} onPointerMove={onDragMove} onPointerUp={endDrag} />
+          ))}
+        </>
+      )}
+
+      {scale && selecting && !placing && !drag && (
         <div class="pick-layer" data-part="pick-layer"
           onPointerMove={e => setHovered(elementAt(doc, e.clientX, e.clientY))}
           onClick={e => { const el = elementAt(doc, e.clientX, e.clientY); if (el && !isLuciUi(el)) select(el); }}
@@ -411,9 +721,9 @@ export function Layout(props: LayoutProps) {
       )}
       {drop && <div class="drop-line" data-part="drop-line" style={{ left: `${drop.line.left}px`, top: `${drop.line.top}px`, width: `${drop.line.width}px`, height: `${drop.line.height}px` }} />}
 
-      {scale && (selected || plannedCount > 0 || result) && (
+      {scale && (selected || selIns || catalog || placing || plannedCount > 0 || result) && (
         <div class="panel layout-panel" role="dialog" aria-label="Layout" data-part="inspector">
-          {selected ? (
+          {catalog ? catalogView() : placing ? placingView(placing) : selIns ? insertView(selIns) : selected ? (
             <>
               <h2>{nameWithComponent(selected)}</h2>
               <div class="row">
@@ -489,7 +799,7 @@ export function Layout(props: LayoutProps) {
             </>
           )}
 
-          {result ? (
+          {catalog || placing ? null : result ? (
             <div class="stack" data-part="layout-result">
               <p class={result.ok ? 'hint' : 'error'} data-part="layout-added">{result.text}</p>
               {result.prompt && <pre data-part="layout-prompt">{result.prompt}</pre>}

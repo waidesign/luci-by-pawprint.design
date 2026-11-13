@@ -119,7 +119,8 @@ export function creationFrames(x: Fiber): CodeFrame[] {
 /** The first frame in user code, if any. */
 export const creationFrame = (x: Fiber): CodeFrame | undefined => creationFrames(x).find(f => !isLibraryFrame(f));
 
-const ownerOf = (x: Fiber): Fiber | null => (isServerRecord(x) ? x.owner ?? null : x?._debugOwner ?? null);
+/** Who created this fiber or server record (its owner), or null. */
+export const ownerOf = (x: Fiber): Fiber | null => (isServerRecord(x) ? x.owner ?? null : x?._debugOwner ?? null);
 
 /** At most this many components, innermost kept (the outer ones are the app's shell). */
 export const MAX_COMPONENTS = 8;

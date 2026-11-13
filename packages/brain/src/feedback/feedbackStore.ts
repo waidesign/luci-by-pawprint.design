@@ -18,7 +18,8 @@ import {
   type FeedbackItem,
   type FeedbackPriority,
   type FeedbackStatus,
-  type LayoutPlan
+  type LayoutPlan,
+  type Wireframe
 } from '@luci/format/feedback';
 import { memoryDir } from '../layout/brainLayout.js';
 
@@ -31,6 +32,8 @@ export interface NewFeedback {
   priority: FeedbackPriority;
   /** A layout change planned in Layout mode. */
   layout?: LayoutPlan;
+  /** A new page sketched in Layout mode. */
+  wireframe?: Wireframe;
 }
 
 export class FeedbackError extends Error {}
@@ -121,6 +124,7 @@ export class FeedbackStore {
       target: input.target,
       comment: input.comment,
       ...(input.layout ? { layout: input.layout } : {}),
+      ...(input.wireframe ? { wireframe: input.wireframe } : {}),
       intent: input.intent,
       priority: input.priority,
       status: 'pending',

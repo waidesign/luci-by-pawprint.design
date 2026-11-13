@@ -25,5 +25,28 @@
         ]
       }
     ]
+  },
+  "insert.layout.prompt.md": {
+    "route": "/pricing",
+    "pageSource": "src/pages/Pricing.jsx",
+    "viewport": { "width": 1280, "height": 800 },
+    "note": "Room for an Enterprise plan and a short FAQ",
+    "elements": [
+      {
+        "element": "div", "selector": "main > section > div:nth-of-type(2)", "text": "Pro $12 per month Start free trial",
+        "components": ["App", "Pricing", "PlanCard"], "source": { "file": "src/components/PlanCard.jsx", "line": 3, "column": 5 },
+        "changes": [
+          { "op": "insert", "what": { "kind": "component", "name": "PlanCard", "file": "src/components/PlanCard.jsx", "example": { "selector": "main > section > div:nth-of-type(2)", "element": "div" } }, "position": "after", "width": "320px", "height": "240px", "label": "Enterprise: custom price, Talk to sales" }
+        ]
+      },
+      {
+        "element": "section (region)", "selector": "main > section",
+        "components": ["App", "Pricing"], "source": { "file": "src/pages/Pricing.jsx", "line": 5 },
+        "changes": [
+          { "op": "insert", "what": { "kind": "capture", "name": "Accordion", "file": ".luci/design/example-com.component.accordion.design.md" }, "position": "end", "width": "100%", "height": "200px", "label": "Three questions about billing" },
+          { "op": "insert", "what": { "kind": "block", "name": "heading" }, "position": "start" }
+        ]
+      }
+    ]
   }
 }

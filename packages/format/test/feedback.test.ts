@@ -7,7 +7,13 @@ import {
   feedbackItemSchema,
   formatFeedbackPrompt,
   formatLayoutPrompt,
+  formatWireframePrompt,
+  layoutChangeSchema,
+  layoutChangeText,
   nextRef,
+  partText,
+  shareText,
+  wireframeSchema,
   type LayoutPromptInput,
   parseRef,
   refsIn,
@@ -62,6 +68,37 @@ describe('layout prompt: the golden file is the spec', () => {
     expect(text).toContain('Report every element number (1 to 2)');
     expect(formatLayoutPrompt({ ...input, note: '' })).not.toContain('Note:');
     expect(() => formatLayoutPrompt({ ...input, elements: [] })).toThrow(/No layout changes/);
+  });
+});
+
+describe('inserted parts and new pages (Layout mode steps 2 and 3)', () => {
+  const wireInputs = JSON.parse(fs.readFileSync(path.join(dir, 'wireframe-prompt-inputs.json'), 'utf8')) as Record<string, { wireframe: unknown; sketchedOn?: string; note?: string }>;
+  for (const [file, input] of Object.entries(wireInputs)) {
+    it(file, () => {
+      expect(formatWireframePrompt({ ...input, wireframe: wireframeSchema.parse(input.wireframe) })).toBe(fs.readFileSync(path.join(dir, file), 'utf8').replace(/\r\n/g, '\n'));
+    });
+  }
+
+  it('an insert says what, where, how big and what goes in it', () => {
+    const what = { kind: 'block', name: 'card grid' } as const;
+    expect(layoutChangeText({ op: 'insert', what, position: 'before' })).toBe('insert a new card grid before it');
+    expect(layoutChangeText({ op: 'insert', what, position: 'start', height: '360px', label: 'Testimonials' })).toBe('insert a new card grid inside it, at the start, 360px tall as rendered: "Testimonials"');
+    expect(layoutChangeText({ op: 'insert', what: { kind: 'component', name: 'PlanCard' }, position: 'after', width: '100%' })).toBe('insert a `PlanCard` after it, full width');
+    expect(partText({ kind: 'component', name: 'Nav', example: { selector: 'nav', element: 'nav' } }, true)).toBe('the `Nav` component (one is at `nav`)');
+    expect(shareText(6, 12)).toBe('1/2 of the width');
+    expect(shareText(3, 3)).toBe('full width');
+  });
+
+  it('the schemas refuse a size that is not px or 100%, a route without /, and empty rows', () => {
+    const insert = { op: 'insert', what: { kind: 'block', name: 'text' }, position: 'end' };
+    expect(layoutChangeSchema.safeParse({ ...insert, width: '320px' }).success).toBe(true);
+    expect(layoutChangeSchema.safeParse({ ...insert, width: '50%' }).success).toBe(false);
+    expect(layoutChangeSchema.safeParse({ ...insert, position: 'inside' }).success).toBe(false);
+    const page = { route: '/new', viewport: { width: 1280, height: 800 }, rows: [{ height: '200px', blocks: [{ span: 12 }] }] };
+    expect(wireframeSchema.safeParse(page).success).toBe(true);
+    expect(wireframeSchema.safeParse({ ...page, route: 'new' }).success).toBe(false);
+    expect(wireframeSchema.safeParse({ ...page, rows: [] }).success).toBe(false);
+    expect(wireframeSchema.safeParse({ ...page, rows: [{ height: '200px', blocks: [] }] }).success).toBe(false);
   });
 });
 

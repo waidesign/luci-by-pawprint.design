@@ -17,9 +17,13 @@ for (const file of ['inputs.json', 'component-inputs.json']) {
 }
 // Feedback prompts (packages/format/fixtures/feedback/)
 const feedbackDir = fileURLToPath(new URL('../packages/format/fixtures/feedback/', import.meta.url));
-const { formatFeedbackPrompt, formatLayoutPrompt, feedbackItemSchema } = await import(new URL('../packages/format/dist/feedback/index.js', import.meta.url).href);
+const { formatFeedbackPrompt, formatLayoutPrompt, formatWireframePrompt, feedbackItemSchema, wireframeSchema } = await import(new URL('../packages/format/dist/feedback/index.js', import.meta.url).href);
 for (const [name, input] of Object.entries(JSON.parse(fs.readFileSync(path.join(feedbackDir, 'layout-prompt-inputs.json'), 'utf8')))) {
   fs.writeFileSync(path.join(feedbackDir, name), formatLayoutPrompt(input), 'utf8');
+  console.log(`wrote feedback/${name}`);
+}
+for (const [name, input] of Object.entries(JSON.parse(fs.readFileSync(path.join(feedbackDir, 'wireframe-prompt-inputs.json'), 'utf8')))) {
+  fs.writeFileSync(path.join(feedbackDir, name), formatWireframePrompt({ ...input, wireframe: wireframeSchema.parse(input.wireframe) }), 'utf8');
   console.log(`wrote feedback/${name}`);
 }
 for (const [name, { items, options }] of Object.entries(JSON.parse(fs.readFileSync(path.join(feedbackDir, 'prompt-inputs.json'), 'utf8')))) {

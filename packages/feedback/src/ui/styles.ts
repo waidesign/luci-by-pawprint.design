@@ -89,6 +89,19 @@ export const FEEDBACK_CSS = `${TOOLBAR_CSS}
 .lrow .token { font: 12px ui-monospace, monospace; }
 .layout-panel { max-height: min(80vh, 680px); overflow: auto; }
 .layout-panel textarea { font: 13px/1.4 system-ui, sans-serif; background: #27272a; min-height: 56px; }
+/* Layout mode, new parts: placeholders Luci draws (never in the page's DOM) */
+.ins { position: fixed; z-index: 2147483641; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  padding: 4px; overflow: hidden; border: 2px dashed #f472b6; border-radius: 6px; background: rgb(244 114 182 / 0.14); cursor: pointer; text-align: center; }
+.ins[aria-selected="true"] { border-style: solid; background: rgb(244 114 182 / 0.22); }
+.ins:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ins-name, .ins-label { max-width: 100%; padding: 2px 6px; border-radius: 4px; background: #18181b; color: #fbcfe8; font: 600 12px/1.3 system-ui, sans-serif;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ins-label { font-weight: 400; color: #f4f4f5; }
+.highlight.inside { border-style: dashed; border-color: #f472b6; background: rgb(244 114 182 / 0.08); }
+.cat-group { display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--line); padding-top: 8px; }
+.cat-group h3 { margin: 0; font-size: 12px; font-weight: 600; }
+.cat-list { display: flex; flex-wrap: wrap; gap: 4px; }
+.cat-list button { padding: 4px 10px; }
 .footer { border-top: 1px solid var(--line); padding-top: 10px; }
 .danger { border-top: 1px solid var(--line); padding-top: 10px; }
 `;

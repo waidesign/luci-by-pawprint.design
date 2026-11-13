@@ -3,6 +3,7 @@
  * items grouped by page (route and source file), each with its stable ID, and a closing request to
  * report every ID page by page. Pure: the same items and options always give the same text.
  */
+import { partText, sizeText, wireframeLines } from './parts.js';
 import { byRef, parseRef, type DetailLevel, type FeedbackItem, type LayoutChange, type SourceLocation } from './schema.js';
 
 export interface PromptOptions {
@@ -23,6 +24,11 @@ export function layoutChangeText(c: LayoutChange): string {
     if (c.property === 'grid-template-columns') return `grid columns ${c.from} → ${c.to}`;
     const rendered = /^(min-|max-)?(width|height)$/.test(c.property) && /px$/.test(c.to);
     return `${c.property}${rendered ? ' as rendered' : ''} ${c.from} → ${c.to}${c.token ? ` (${c.token})` : ''}`;
+  }
+  if (c.op === 'insert') {
+    const where = { before: 'before it', after: 'after it', start: 'inside it, at the start', end: 'inside it, at the end' }[c.position];
+    const size = sizeText(c.width, c.height);
+    return `insert ${partText(c.what)} ${where}${size ? `, ${size}${/px/.test(size) ? ' as rendered' : ''}` : ''}${c.label ? `: ${quote(c.label)}` : ''}`;
   }
   const ord = (n: number) => `${n}${n % 10 === 1 && n % 100 !== 11 ? 'st' : n % 10 === 2 && n % 100 !== 12 ? 'nd' : n % 10 === 3 && n % 100 !== 13 ? 'rd' : 'th'}`;
   const where = c.position === 'first' ? 'to the start of its parent'
@@ -48,6 +54,10 @@ function itemLines(item: FeedbackItem, detail: DetailLevel): string[] {
   if (item.layout) {
     lines.push(`  layout, planned in a ${item.layout.viewport.width}px wide window (keep it working at other widths):`);
     for (const c of item.layout.changes) lines.push(`    - ${layoutChangeText(c)}`);
+  }
+  if (item.wireframe) {
+    lines.push(`  new page ${item.wireframe.route}, sketched in a ${item.wireframe.viewport.width}px wide window (create it with the project's own components; heights are rough), top to bottom:`);
+    lines.push(...wireframeLines(item.wireframe, '    '));
   }
   if (detail === 'detailed' && t.styles && Object.keys(t.styles).length) {
     lines.push(`  styles: ${Object.entries(t.styles).map(([k, v]) => `${k} ${v}`).join('; ')}`);

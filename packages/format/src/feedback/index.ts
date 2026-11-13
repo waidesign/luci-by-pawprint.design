@@ -2,3 +2,5 @@
 export * from './schema.js';
 export * from './prompt.js';
 export * from './layoutPrompt.js';
+export * from './parts.js';
+export * from './wireframePrompt.js';

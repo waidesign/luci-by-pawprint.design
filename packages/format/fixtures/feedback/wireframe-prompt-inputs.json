@@ -1,0 +1,23 @@
+{
+  "enterprise.page.prompt.md": {
+    "sketchedOn": "/pricing",
+    "note": "Same look as Pricing, for teams of 50 and more",
+    "wireframe": {
+      "route": "/enterprise",
+      "viewport": { "width": 1280, "height": 800 },
+      "rows": [
+        { "height": "56px", "blocks": [{ "what": { "kind": "component", "name": "Nav", "file": "src/components/Nav.jsx", "example": { "selector": "nav", "element": "nav (navigation)" } }, "span": 12 }] },
+        { "height": "420px", "blocks": [
+          { "what": { "kind": "block", "name": "text" }, "label": "Headline, pitch, Talk to sales", "span": 8 },
+          { "what": { "kind": "block", "name": "image slot" }, "label": "Team dashboard screenshot", "span": 4 }
+        ] },
+        { "height": "320px", "blocks": [
+          { "what": { "kind": "component", "name": "PlanCard", "file": "src/components/PlanCard.jsx", "example": { "selector": "main > section > div:nth-of-type(1)", "element": "div" } }, "label": "Business", "span": 4 },
+          { "what": { "kind": "capture", "name": "Card", "file": ".luci/design/example-com.component.card.design.md" }, "label": "Customer quote", "span": 4 },
+          { "label": "Logos of customers", "span": 4 }
+        ] },
+        { "height": "160px", "blocks": [{ "what": { "kind": "block", "name": "footer" }, "span": 12 }] }
+      ]
+    }
+  }
+}
