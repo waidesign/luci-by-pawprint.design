@@ -41,7 +41,7 @@ describe('luci-mcp tools (B11)', () => {
       'get_active_task', 'get_capture', 'get_feedback_prompt', 'get_global_brain', 'get_project_context', 'get_project_graph',
       'get_project_skills', 'get_project_status', 'get_skill', 'initialize_project', 'intake_docs', 'list_captures', 'list_feedback',
       'list_skill_packs', 'list_skills', 'load_project_skills', 'load_skills', 'propose_memory', 'recommend_skills',
-      'remove_skill_packs', 'search_skills', 'select_project_skills', 'update_project_memory'
+      'remove_skill_packs', 'search_skills', 'select_project_skills', 'update_project_memory', 'watch_feedback'
     ]);
     const readOnly = TOOLS.filter(t => t.annotations.readOnlyHint).map(t => t.name);
     expect(readOnly).toContain('get_project_context');
@@ -199,9 +199,32 @@ describe('feedback and captures over MCP (M6, FR30)', () => {
     expect(JSON.parse((await call(dir, 'list_feedback')).text).map((i: { id: string }) => i.id)).toEqual(['P1-A2', 'P2-A1']);
   });
 
+  it('watch mode (v0.2): waits for new notes and returns only them; says when none came; reads only', async () => {
+    const dir = await initialized();
+    add(dir, '/pricing', 'Already there before watching');
+    const watching = handleTool('watch_feedback', { seconds: 5 }, { registry, cwd: dir, watchPollMs: 20 });
+    await new Promise(r => setTimeout(r, 120));
+    add(dir, '/checkout', 'Disable while sending');
+    const first = (await watching).content[0]!.text;
+    expect(first).toMatch(/^# UI feedback: 1 page, 1 item/);
+    expect(first).toContain('[P2-A1] fix, high: "Disable while sending"');
+    expect(first).not.toContain('Already there');
+    const since = /since "([^"]+)"/.exec(first)![1]!;
+    // The next call from that time: nothing new, so it says so after its wait
+    const none = (await handleTool('watch_feedback', { seconds: 1, since }, { registry, cwd: dir, watchPollMs: 20 })).content[0]!.text;
+    expect(none).toBe(`No new feedback notes in 1 second. Call watch_feedback again with since "${since}" to keep watching.`);
+    // A note added in between two calls is not missed
+    add(dir, '/pricing', 'Typo in heading');
+    const next = (await handleTool('watch_feedback', { seconds: 1, since }, { registry, cwd: dir, watchPollMs: 20 })).content[0]!.text;
+    expect(next).toContain('"Typo in heading"');
+    expect(next).not.toContain('Disable while sending');
+    expect(TOOLS.find(t => t.name === 'watch_feedback')!.annotations.readOnlyHint).toBe(true);
+    expect(new FeedbackStore(dir).list().every(i => i.status === 'pending')).toBe(true);
+  });
+
   it('every tool says how to set up a project without .luci/, and writes nothing', async () => {
     const dir = tempProject();
-    for (const name of ['list_feedback', 'get_feedback_prompt', 'list_captures']) {
+    for (const name of ['list_feedback', 'get_feedback_prompt', 'list_captures', 'watch_feedback']) {
       const r = await call(dir, name);
       expect(r.isError, name).toBe(true);
       expect(r.text).toContain('luci init');

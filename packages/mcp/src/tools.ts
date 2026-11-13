@@ -53,6 +53,8 @@ export interface ToolDeps {
   globalBrainDir?: string;
   /** Makes the code map runner for a project (tests replace it so no real Graphify runs). */
   codeMap?: (projectDir: string) => CodeMap;
+  /** How often watch_feedback looks for new notes, in ms (default 1000; tests use less). */
+  watchPollMs?: number;
 }
 
 export interface ToolResult {
@@ -81,6 +83,9 @@ const json = (value: unknown): ToolResult => text(JSON.stringify(value, null, 2)
 const error = (message: string): ToolResult => ({ isError: true, content: [{ type: 'text', text: message }] });
 
 const READ: ToolAnnotations = { readOnlyHint: true, openWorldHint: false };
+/** watch_feedback waits this long by default, and at most this long (v0.2 watch mode). */
+export const WATCH_DEFAULT_SECONDS = 120;
+export const WATCH_MAX_SECONDS = 600;
 const WRITE: ToolAnnotations = { readOnlyHint: false, destructiveHint: false, openWorldHint: false };
 
 function tool<S extends z.ZodRawShape>(
@@ -409,6 +414,34 @@ export const TOOLS: readonly LuciTool[] = [
       const items = store.open();
       if (!items.length) return text('No open feedback. The person can add some with the dev toolbar.');
       return text(formatFeedbackPrompt(items, { detail: args.detail ?? 'standard' }));
+    }),
+
+  tool('watch_feedback',
+    `Watch mode: wait while the person leaves new UI feedback notes with the dev toolbar, then return the new ones as one page-grouped prompt, as soon as there are any. Waits up to \`seconds\` (default ${WATCH_DEFAULT_SECONDS}, at most ${WATCH_MAX_SECONDS}); when nothing comes it says so, and you call it again to keep watching. Pass \`since\` from the previous answer so no note is missed or repeated. Apply each batch, report its IDs, then watch again. Reads only.`,
+    {
+      seconds: z.number().int().min(1).max(WATCH_MAX_SECONDS).optional().describe(`How long to wait for new notes (default ${WATCH_DEFAULT_SECONDS})`),
+      since: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/).optional().describe('Only notes added after this time (ISO, UTC), as the previous answer gives it; default: from now'),
+      detail: z.enum(DETAIL_LEVELS).optional().describe('compact, standard (default) or detailed'),
+      projectPath
+    }, READ,
+    async (args, deps) => {
+      const store = new FeedbackStore(target(args, deps));
+      if (!store.available) return notInitialized(store.projectDir);
+      const since = args.since ?? new Date().toISOString();
+      const seconds = args.seconds ?? WATCH_DEFAULT_SECONDS;
+      const deadline = Date.now() + seconds * 1000;
+      const poll = deps.watchPollMs ?? 1000;
+      for (;;) {
+        // New notes not copied or done yet; their files are written whole, so a read never sees half a note
+        const fresh = store.list({ status: ['pending'] }).filter(i => i.createdAt > since);
+        if (fresh.length) {
+          const next = fresh.reduce((m, i) => (i.createdAt > m ? i.createdAt : m), since);
+          return text(`${formatFeedbackPrompt(fresh, { detail: args.detail ?? 'standard' })}\nWatching: after this, call watch_feedback again with since "${next}" for the next notes.\n`);
+        }
+        const left = deadline - Date.now();
+        if (left <= 0) return text(`No new feedback notes in ${seconds} second${seconds === 1 ? '' : 's'}. Call watch_feedback again with since "${since}" to keep watching.`);
+        await new Promise(r => setTimeout(r, Math.min(poll, left)));
+      }
     }),
 
   // Design captures saved from the toolbar into the project
