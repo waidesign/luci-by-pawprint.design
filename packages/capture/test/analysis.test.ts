@@ -38,12 +38,11 @@ const CAPTURED = { captured: '2026-11-12' };
 const roundTrips = (capture: Parameters<typeof formatCapture>[0]) => expect(parseCapture(formatCapture(capture)).ok).toBe(true);
 
 describe('eligibility (FR4)', () => {
-  it('blocks images, video and canvas with a reason; allows SVG and components; the body redirects', () => {
-    for (const tag of ['img', 'picture', 'video', 'canvas']) expect(eligibility({ tag }).status, tag).toBe('blocked');
-    expect(eligibility({ tag: 'img' })).toMatchObject({ reason: 'This is an image. Use the Image tool for how it is shown (size, crop, corners, effects).' });
-    for (const tag of ['svg', 'button', 'my-card', 'section']) expect(eligibility({ tag }).status, tag).toBe('allowed');
-    expect(eligibility({ tag: 'div', backgroundImage: 'url("hero.jpg")' }).status).toBe('blocked');
-    expect(eligibility({ tag: 'div', backgroundImage: 'linear-gradient(red, blue)' }).status).toBe('allowed');
+  it('a bare image, video or canvas points to the component around it; SVG, components and background photos are allowed; the body redirects', () => {
+    for (const tag of ['img', 'picture', 'video', 'canvas', 'image']) expect(eligibility({ tag }).status, tag).toBe('blocked');
+    expect(eligibility({ tag: 'img' })).toMatchObject({ reason: 'This is an image. Pick the component around it (↑ Wider): its file describes how the image is shown.' });
+    // An element with a background photo is picked by tag like any other (user request, 2026-11-13)
+    for (const tag of ['svg', 'button', 'my-card', 'section', 'div']) expect(eligibility({ tag }).status, tag).toBe('allowed');
     expect(eligibility({ tag: 'BODY' }).status).toBe('redirected');
   });
 

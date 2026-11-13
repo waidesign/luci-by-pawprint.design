@@ -17,7 +17,6 @@ import {
   type ColorToken,
   type ComponentCapture,
   type ElementRef,
-  type ImageToken,
   type PageCapture,
   type SpacingSet,
   type SpacingSystem,
@@ -35,7 +34,6 @@ export const CAPTURE_SECTIONS: Readonly<Record<string, readonly string[]>> = {
   'token/text': ['Text style', 'Where used'],
   'token/color': ['Color', 'Where used'],
   'token/spacing': ['Spacing', 'Where used'],
-  'token/image': ['Image', 'Treatment', 'Overlays', 'Use', 'Where used'],
   'system/typography': ['Roles', 'Families', 'Scale'],
   'system/color': ['Roles', 'Tokens'],
   'system/spacing': ['Scale', 'Base unit', 'Outliers'],
@@ -92,7 +90,7 @@ function frontmatter(meta: CaptureMeta, settings: CaptureSettings): string {
   const m = metaSchema.parse(meta);
   const rows: [string, string | undefined][] = [
     ['name', m.name], ['scope', m.scope], ['type', m.type], ['source', sourceText(m.source, settings)],
-    ['selector', m.selector], ['captured', m.captured], ['method', m.method], ['extends', m.extends], ['reference', m.reference]
+    ['selector', m.selector], ['captured', m.captured], ['method', m.method], ['extends', m.extends]
   ];
   return ['---', ...rows.filter(([, v]) => v !== undefined).map(([k, v]) => `${k}: ${yaml(v!)}`), '---'].join('\n');
 }
@@ -107,13 +105,16 @@ const ref = (r: ElementRef) => `${r.element}: ${code(r.selector)}`;
 type Kind = 'length' | 'color' | 'transform' | 'shadow' | 'raw';
 /** Colors inside compound values ("2px solid rgb(15, 98, 254)", shadows) follow the color setting too. */
 const EMBEDDED_COLOR = /rgba?\([^)]*\)|color\(srgb [^)]*\)/g;
-const show = (v: CapturedValue, kind: Kind, s: CaptureSettings) =>
-  kind === 'shadow' ? formatLength(formatShadow(v.computed), s).replace(EMBEDDED_COLOR, c => formatColor(c, s))
-    : kind === 'length' ? formatLength(v.computed, s).replace(EMBEDDED_COLOR, c => formatColor(c, s))
-    : kind === 'transform' ? formatLength(formatTransform(v.computed), s)
-    : kind === 'color' ? formatColor(v.computed, s) : v.computed;
+/** A value as the settings ask; any url(...) in it is written "<image>" (FR21: no image addresses). */
+const show = (v: CapturedValue, kind: Kind, s: CaptureSettings) => {
+  const computed = withoutUrls(v.computed);
+  return kind === 'shadow' ? formatLength(formatShadow(computed), s).replace(EMBEDDED_COLOR, c => formatColor(c, s))
+    : kind === 'length' ? formatLength(computed, s).replace(EMBEDDED_COLOR, c => formatColor(c, s))
+    : kind === 'transform' ? formatLength(formatTransform(computed), s)
+    : kind === 'color' ? formatColor(computed, s) : computed;
+};
 /** The authored value, only when it says more than the computed one. */
-const authored = (v: CapturedValue) => (v.authored && v.authored !== v.computed ? code(v.authored) : '');
+const authored = (v: CapturedValue) => (v.authored && v.authored !== v.computed ? code(withoutUrls(v.authored)) : '');
 
 const TEXT_ROWS: readonly [keyof TextStyle, string, Kind][] = [
   ['family', 'font-family', 'raw'], ['size', 'font-size', 'length'], ['weight', 'font-weight', 'raw'],
@@ -158,56 +159,6 @@ function spacingSet(c: SpacingSet, s: CaptureSettings): string[] {
   ];
 }
 
-const IMAGE_KIND_LABEL: Readonly<Record<ImageToken['kind'], string>> = { img: 'img', video: 'video', canvas: 'canvas', svg: 'svg', background: 'background image' };
-const IMAGE_NOUN: Readonly<Record<ImageToken['kind'], string>> = { img: 'image', video: 'video', canvas: 'drawing', svg: 'illustration', background: 'image' };
-const EFFECT_NAMES: Readonly<Record<string, string>> = { 'box-shadow': 'shadow', filter: 'filter', opacity: 'opacity', 'mix-blend-mode': 'blend mode', 'mask-image': 'mask', 'clip-path': 'clip path' };
-const list = (words: readonly string[]) => (words.length < 2 ? words.join('') : `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}`);
-
-/** What the agent does with an image capture: its own picture, framed the same way. */
-function imageUse(c: ImageToken, s: CaptureSettings): string {
-  const get = (p: string) => c.treatment.find(t => t.property === p);
-  const parts = [`shown at ${c.aspectRatio}`];
-  const fit = get('object-fit') ?? get('background-size');
-  if (fit) parts.push(`${fit.property} ${fit.value.computed}`);
-  const position = get('object-position') ?? get('background-position');
-  if (position) parts.push(`${position.property} ${formatLength(position.value.computed, s)}`);
-  const radius = get('border-radius');
-  if (radius) parts.push(`${show(radius.value, 'length', s)} corners${radius.on ? ` (clipped by the ${radius.on} around it)` : ''}`);
-  const effects = Object.keys(EFFECT_NAMES).filter(p => get(p)).map(p => EFFECT_NAMES[p]!);
-  if (c.overlays.length) effects.push(c.overlays.length === 1 ? 'overlay' : 'overlays');
-  const noun = IMAGE_NOUN[c.kind];
-  return `- Use your own ${noun} here, ${parts.join(', ')}${effects.length ? `, with the ${list(effects)} listed above` : ''}. The original ${noun} is not in this file, only how it is shown.`;
-}
-
-/** "640 × 360px", "40 × 22.5rem" or "640 × 360px (40 × 22.5rem)", as the unit setting asks. */
-function sizeText(width: number, height: number, settings: CaptureSettings): string {
-  const s = resolveSettings(settings);
-  const px = `${round(width, 2)} × ${round(height, 2)}px`;
-  const rem = `${round(width / s.rootFontSize, 4)} × ${round(height / s.rootFontSize, 4)}rem`;
-  return s.units === 'px' ? px : s.units === 'rem' ? rem : `${px} (${rem})`;
-}
-
-function imageToken(c: ImageToken, s: CaptureSettings): string[] {
-  const clean = (v: CapturedValue): CapturedValue => ({ ...v, computed: withoutUrls(v.computed), ...(v.authored ? { authored: withoutUrls(v.authored) } : {}) });
-  const treatment = c.treatment.length
-    ? table(['Property', 'Value', 'Authored', 'Token', 'On'], c.treatment.map(t => {
-        const v = clean(t.value);
-        return [t.property, show(v, kindOf(t.property), s), authored(v), code(v.token), t.on ? `${t.on} around it` : ''];
-      }))
-    : '- None: the image is shown as it is, with no fit, corners or effects set.';
-  const overlays = c.overlays.length
-    ? c.overlays.map(o => `- ${o.on}: ${show({ computed: withoutUrls(o.background) }, 'length', s)}${o.opacity ? `, opacity ${o.opacity}` : ''}${o.blend ? `, blend ${o.blend}` : ''}`)
-    : ['- None.'];
-  return [
-    '## Image',
-    table(['Kind', 'Size', 'Aspect ratio', 'Source aspect ratio'], [[IMAGE_KIND_LABEL[c.kind], sizeText(c.size.width, c.size.height, s), c.aspectRatio, c.sourceAspectRatio ?? '']]),
-    '', '## Treatment', treatment,
-    '', '## Overlays', ...overlays,
-    '', '## Use', imageUse(c, s),
-    '', '## Where used', `- ${ref(c.usedBy)}`
-  ];
-}
-
 function typographySystem(c: TypographySystem, s: CaptureSettings): string[] {
   const roles = c.roles.map(r => [
     r.role, r.style.family.computed, show(r.style.size, 'length', s), r.style.weight.computed,
@@ -248,7 +199,7 @@ function spacingSystem(c: SpacingSystem, s: CaptureSettings): string[] {
 const kindOf = (property: string): Kind =>
   (/color$|^fill$|^stroke$/.test(property) ? 'color' : property === 'transform' ? 'transform' : property === 'box-shadow' ? 'shadow' : 'length');
 const styleText = (property: string, v: CapturedValue, s: CaptureSettings) =>
-  `${property} ${show(v, kindOf(property), s)}${v.token ? ` (${code(v.token)})` : v.authored && v.authored !== v.computed ? ` (${code(v.authored)})` : ''}`;
+  `${property} ${show(v, kindOf(property), s)}${v.token ? ` (${code(v.token)})` : v.authored && v.authored !== v.computed ? ` (${code(withoutUrls(v.authored))})` : ''}`;
 
 const STATE_SOURCE: Readonly<Record<string, string>> = {
   forced: 'browser, state forced', rules: 'stylesheet rules', attribute: 'disabled attribute', pointer: 'browser, pointer moved onto it', manual: 'captured by hand'
@@ -274,6 +225,52 @@ function stateChanges(st: ComponentState, container: string, s: CaptureSettings)
   return `${where}${list}`;
 }
 
+type ComponentImage = NonNullable<ComponentCapture['images']>[number];
+const IMAGE_KIND_LABEL: Readonly<Record<ComponentImage['kind'], string>> = { img: 'img', video: 'video', canvas: 'canvas', 'svg-image': 'SVG image', background: 'background image' };
+const EFFECTS = ['box-shadow', 'filter', 'opacity', 'mix-blend-mode', 'mask-image', 'clip-path'] as const;
+export const IMAGES_NOTE = '- These are slots for your own images, framed as above. No image file or URL is included.';
+
+/** "640 × 360px", "40 × 22.5rem" or "640 × 360px (40 × 22.5rem)", as the unit setting asks. */
+function sizeText(width: number, height: number, settings: CaptureSettings): string {
+  const s = resolveSettings(settings);
+  const px = `${round(width, 2)} × ${round(height, 2)}px`;
+  const rem = `${round(width / s.rootFontSize, 4)} × ${round(height / s.rootFontSize, 4)}rem`;
+  return s.units === 'px' ? px : s.units === 'rem' ? rem : `${px} (${rem})`;
+}
+
+/**
+ * One row per image slot: its part, kind, size and shape, how it fits, its corners, effects and the
+ * layers over it. Every url(...) is written "<image>", whatever reaches the formatter (FR21).
+ */
+function imagesSection(images: readonly ComponentImage[], s: CaptureSettings): string[] {
+  const rows = images.map(img => {
+    const get = (p: string) => img.treatment.find(t => t.property === p);
+    const val = (p: string) => {
+      const t = get(p);
+      return t ? `${show(t.value, kindOf(p), s)}${t.value.token ? ` (${code(t.value.token)})` : ''}` : '';
+    };
+    const shape = `${img.aspectRatio}${img.sourceAspectRatio ? ` (file is ${img.sourceAspectRatio})` : ''}${get('aspect-ratio') ? `, set by aspect-ratio ${val('aspect-ratio')}` : ''}`;
+    const fit = [
+      val('object-fit') || val('background-size') || (get('preserveAspectRatio') ? `preserveAspectRatio ${val('preserveAspectRatio')}` : ''),
+      get('object-position') || get('background-position') ? `position ${val('object-position') || val('background-position')}` : '',
+      val('background-repeat')
+    ].filter(Boolean).join(', ') || (img.kind === 'background' ? 'auto' : 'fill');
+    const radius = get('border-radius');
+    const corners = radius
+      ? `${val('border-radius')}${radius.corners ? `, ${radius.corners} corners` : ''}${radius.on ? `, clipped by the ${radius.on}${radius.on === 'container' ? '' : ' around it'}` : ''}`
+      : 'none';
+    const effects = EFFECTS.filter(p => get(p)).map(p => `${p} ${val(p)}`).join('; ') || 'none';
+    // A background photo's own gradients are drawn over it: they count as layers too
+    const own = get('background-image');
+    const layers = [
+      ...(own ? [`its own background: ${val('background-image')}`] : []),
+      ...img.overlays.map(o => `${o.on}: ${show({ computed: withoutUrls(o.background) }, 'length', s)}${o.opacity ? `, opacity ${o.opacity}` : ''}${o.blend ? `, blend ${o.blend}` : ''}`)
+    ].join('; ') || 'none';
+    return [img.part, IMAGE_KIND_LABEL[img.kind], sizeText(img.size.width, img.size.height, s), shape, fit, corners, effects, layers];
+  });
+  return [table(['Part', 'Kind', 'Size', 'Shape', 'Fit', 'Corners', 'Effects', 'Layers over it'], rows), '', IMAGES_NOTE];
+}
+
 function componentBody(c: ComponentCapture, s: CaptureSettings, noStates = '- Not read.'): string[] {
   const tokens = c.tokens.length
     ? table(['Token', 'Value', 'Used for'], c.tokens.map(t => [code(t.token), kindOf(t.usedFor[0] ?? '') === 'color' ? formatColor(t.value, s) : formatLength(t.value, s), t.usedFor.join(', ')]))
@@ -293,7 +290,9 @@ function componentBody(c: ComponentCapture, s: CaptureSettings, noStates = '- No
   const motion = c.motion.length
     ? c.motion.map(m => `- ${m.part ? `${m.part}: ` : ''}${m.kind} ${m.target} ${m.duration} ${m.easing}${m.delay && m.delay !== '0s' ? `, delay ${m.delay}` : ''}`)
     : ['- None.'];
-  const out = ['## Tokens', tokens, '', '## Anatomy', ...anatomy, '', '## States', states, '', '## Motion', ...motion];
+  const out = ['## Tokens', tokens, '', '## Anatomy', ...anatomy];
+  if (c.images?.length) out.push('', '## Images', ...imagesSection(c.images, s));
+  out.push('', '## States', states, '', '## Motion', ...motion);
   if (c.variants) {
     out.push('', '## Variants', c.variants.length
       ? table(['Variant', 'Uses', 'Differences from this one', 'Example'], c.variants.map(v => [v.name, String(v.count), v.differences.length ? v.differences.map(d => styleText(d.property, d.value, s)).join(', ') : 'same styles', code(v.selector)]))
@@ -370,7 +369,6 @@ function formatMeasured(c: Capture, settings: CaptureSettings): string {
     : key === 'token/text' ? textToken(c as TextToken, settings)
     : key === 'token/color' ? colorToken(c as ColorToken, settings)
     : key === 'token/spacing' ? ('values' in c ? spacingSet(c as SpacingSet, settings) : spacingToken(c as SpacingToken, settings))
-    : key === 'token/image' ? imageToken(c as ImageToken, settings)
     : key === 'system/typography' ? typographySystem(c as TypographySystem, settings)
     : key === 'system/color' ? colorSystem(c as ColorSystem, settings)
     : spacingSystem(c as SpacingSystem, settings);

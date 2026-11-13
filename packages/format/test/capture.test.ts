@@ -9,12 +9,11 @@ import {
   collectionSchema,
   componentSchema,
   formatCollection,
-  imageTokenSchema,
   parseCollection,
-  withoutUrls,
-  type ImageToken,
   withInstructions,
+  withoutUrls,
   type Collection,
+  type ComponentCapture,
   colorKey,
   formatCapture,
   formatColor,
@@ -152,48 +151,45 @@ describe('your instructions for the agent (user request, 2026-11-13)', () => {
   });
 });
 
-describe('images and reference screenshots (user request, 2026-11-13)', () => {
-  const image = inputs['example-com.token.image-img-16-9.design.md']!.capture as ImageToken;
+describe('images inside a component (user request, 2026-11-13)', () => {
+  const card = componentInputs['example-com.component.card.design.md']!.capture as ComponentCapture;
+  const slot = card.images![0]!;
 
-  it('an image file never carries an image address, even when one slips into its values (FR21)', () => {
+  it('writes no image address anywhere, even when one reaches the formatter (FR21)', () => {
     expect(withoutUrls('linear-gradient(red, blue), url("https://cdn.example.com/a (1).jpg"), url(b.png)')).toBe('linear-gradient(red, blue), <image>, <image>');
-    const leaky = {
-      ...image,
-      treatment: [...image.treatment, { property: 'mask-image', value: { computed: 'url("https://cdn.example.com/mask.svg")', authored: "url('/mask.svg')" } }],
-      overlays: [{ on: '::after', background: 'url(https://cdn.example.com/noise.png)' }]
-    } as ImageToken;
+    const leaky: ComponentCapture = {
+      ...card,
+      anatomy: [{ ...card.anatomy[0]!, styles: [{ property: 'background-image', value: { computed: 'url("https://cdn.example.com/hero.jpg")', authored: "url('/hero.jpg')" } }] }, ...card.anatomy.slice(1)],
+      images: [
+        { ...slot, part: 'container', kind: 'background', treatment: [
+          { property: 'background-image', value: { computed: 'linear-gradient(red, blue), url("https://cdn.example.com/hero.jpg")' } },
+          { property: 'mask-image', value: { computed: 'url("https://cdn.example.com/mask.svg")' } }
+        ], overlays: [{ on: '::after', background: 'url(https://cdn.example.com/noise.png)', opacity: '0.5', blend: 'multiply' }] }
+      ],
+      states: [{ state: 'hover', detected: true, method: 'forced', changes: [{ property: 'background-image', from: 'url("https://cdn.example.com/a.jpg")', to: { computed: 'url("https://cdn.example.com/b.jpg")' } }] }]
+    };
     const text = formatCapture(leaky);
-    expect(text).not.toMatch(/url\(|cdn\.example|mask\.svg|noise\.png/);
-    expect(text).toContain('| mask-image | <image> |');
-    expect(text).toContain('with the shadow, filter, mask and overlay listed above');
+    expect(text).not.toMatch(/url\(|cdn\.example|hero\.jpg|mask\.svg|noise\.png/);
+    expect(text).toContain('| container | background image |');
+    expect(text).toContain('its own background: linear-gradient(red, blue), <image>; ::after: <image>, opacity 0.5, blend multiply');
+    expect(text).toContain('mask-image <image>');
+    expect(text).toContain('background-image <image> → <image>');
   });
 
-  it('size follows the unit setting; an image with nothing set says so', () => {
-    expect(formatCapture(image, { units: 'rem' })).toContain('| img | 40 × 22.5rem | 16:9 | 3:2 |');
-    const bare = formatCapture({ ...image, treatment: [], overlays: [], sourceAspectRatio: undefined } as ImageToken);
-    expect(bare).toContain('- None: the image is shown as it is');
-    expect(bare).toContain('- Use your own image here, shown at 16:9. The original image');
-    expect(parseCapture(bare).ok).toBe(true);
+  it('the section comes only with images, and parses either way; units follow the setting', () => {
+    const without = formatCapture({ ...card, images: undefined } as ComponentCapture);
+    expect(without).not.toContain('## Images');
+    expect(parseCapture(without).ok).toBe(true);
+    const rem = formatCapture(card, { units: 'rem' });
+    expect(rem).toContain('| image | img | 22.5 × 12.6563rem |');
+    const parsed = parseCapture(rem);
+    expect(parsed.ok && parsed.value.sections['Images']).toContain('These are slots for your own images');
   });
 
-  it('a reference is a relative .png or .jpg path, never a web address or a way out of the folder', () => {
-    const withRef = (reference: string) => imageTokenSchema.safeParse({ ...image, meta: { ...image.meta, reference } }).success;
-    expect(withRef('example-com.token.image-img-16-9.png')).toBe(true);
-    expect(withRef('references/01-hero.jpg')).toBe(true);
-    for (const bad of ['https://example.com/a.png', '../a.png', '/a.png', 'a.gif', 'a b.png']) expect(withRef(bad), bad).toBe(false);
-  });
-
-  it('the basket groups images, and the .zip export names each screenshot beside its item', () => {
-    const basket = collectionInputs['two-sites.collection.design.md']!.collection;
-    const items = [...basket.items, { id: 'img1', name: 'Hero photo', addedAt: '2026-11-13', capture: image }];
-    const plain = formatCollection({ ...basket, items });
-    expect(plain).not.toContain('reference screenshot');
-    const zipped = formatCollection({ ...basket, items }, {}, { references: { img1: 'references/04-hero-photo.jpg' } });
-    expect(zipped).toContain('# Images\n\n## Hero photo\n');
-    expect(zipped).toContain('- reference screenshot: `references/04-hero-photo.jpg` (to look at only; the values above come from the page)');
-    const parsed = parseCollection(zipped);
-    expect(parsed.ok && parsed.value.groups['Images']).toEqual(['Hero photo']);
-    expect(parsed.ok && parsed.value.items).toBe(4);
+  it('a bare slot says how it is shown without inventing anything', () => {
+    const bare = formatCapture({ ...card, images: [{ part: 'image', kind: 'svg-image', size: { width: 100, height: 100 }, aspectRatio: '1:1', treatment: [], overlays: [] }] } as ComponentCapture);
+    expect(bare).toContain('| image | SVG image | 100 × 100px | 1:1 | fill | none | none | none |');
+    expect(componentSchema.safeParse({ ...card, images: [{ ...slot, kind: 'photo' }] }).success).toBe(false);
   });
 });
 

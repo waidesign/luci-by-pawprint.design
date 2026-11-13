@@ -6,9 +6,14 @@
 <style>
   :root { --radius-lg: 12px; --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.2); }
   body { margin: 0; padding: 24px; font: 16px/1.5 system-ui, sans-serif; color: #161616; }
-  /* A photo cropped to 16:9 in a wrapper that clips its corners, under a gradient tint */
+  /* A card whose rounded corners clip the top of its photo; the photo zooms on hover */
+  #card { display: flex; flex-direction: column; width: 360px; margin-bottom: 24px; overflow: hidden; border-radius: var(--radius-lg); background: #fff; box-shadow: var(--shadow-card); }
+  #card img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; object-position: 50% 30%; filter: saturate(1.2); transition: transform 0.4s ease-out; }
+  #card:hover img { transform: scale(1.05); }
+  #card h3 { margin: 0; padding: 16px; font-size: 20px; }
+  /* A photo in a wrapper of its size that clips every corner, under a gradient tint */
   .media { position: relative; width: 640px; margin: 0 0 24px; overflow: hidden; border-radius: var(--radius-lg); }
-  .media img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; object-position: 50% 30%; filter: saturate(1.2); }
+  .media img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
   .media .tint { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent); }
   /* A background photo with a color wash, and a blended layer on ::after */
   #hero { position: relative; width: 960px; height: 400px; margin-bottom: 24px;
@@ -17,21 +22,29 @@
   #hero::after { content: ""; position: absolute; inset: 0; background: radial-gradient(circle, transparent, rgba(0, 0, 0, 0.5)); opacity: 0.5; mix-blend-mode: multiply; }
   #hero h2 { position: relative; margin: 0; padding: 32px; color: #fff; }
   #avatar { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; box-shadow: var(--shadow-card); }
+  #art { width: 240px; margin-bottom: 24px; }
+  #art svg { display: block; width: 240px; height: 160px; }
+  #row { display: flex; gap: 16px; margin-bottom: 24px; }
   #clip { display: block; width: 320px; height: 180px; border-radius: 8px; background: #000; }
   #chart { display: block; width: 200px; height: 150px; }
-  .plain { display: block; width: 300px; }
 </style>
 </head>
 <body>
-  <figure class="media">
+  <article id="card">
     <img id="photo" alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='200'%3E%3Crect width='300' height='200' fill='%23c9a227'/%3E%3C/svg%3E">
+    <h3>Card title</h3>
+  </article>
+  <figure class="media" id="figure">
+    <img alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='200'%3E%3Crect width='300' height='200' fill='%23c9a227'/%3E%3C/svg%3E">
     <div class="tint"></div>
   </figure>
   <div id="hero"><h2>Hero</h2></div>
-  <img id="avatar" alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' fill='%230f62fe'/%3E%3C/svg%3E">
-  <video id="clip" muted></video>
-  <canvas id="chart" width="400" height="300"></canvas>
-  <picture id="pic"><source srcset="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3C/svg%3E" media="(min-width: 10000px)"><img class="plain" alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='300' height='300' fill='%23da1e28'/%3E%3C/svg%3E"></picture>
+  <p><img id="avatar" alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' fill='%230f62fe'/%3E%3C/svg%3E"></p>
+  <div id="art"><svg viewBox="0 0 240 160" xmlns="http://www.w3.org/2000/svg"><image id="drawn" width="240" height="160" preserveAspectRatio="xMidYMid slice" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='300' height='300' fill='%23da1e28'/%3E%3C/svg%3E"/></svg></div>
+  <div id="row">
+    <video id="clip" muted></video>
+    <canvas id="chart" width="400" height="300"></canvas>
+  </div>
   <p><button type="button" id="buy">Buy</button></p>
   <script>
     const ctx = document.getElementById('chart').getContext('2d');

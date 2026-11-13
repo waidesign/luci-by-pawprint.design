@@ -4,7 +4,8 @@
  */
 import { colorSystemSchema, componentSchema, spacingSystemSchema, toCaptureName, typographySystemSchema, type ComponentCapture, type PageCapture } from '@luci/format/capture';
 import { colorSystem } from './color.js';
-import { componentCapture, componentType } from './component.js';
+import { componentCapture, componentType, type ComponentImageInput } from './component.js';
+import { eligibility } from './eligibility.js';
 import type { ElementSnapshot, PageSnapshot } from './model.js';
 import { spacingSystem } from './spacing.js';
 import { typographySystem } from './text.js';
@@ -29,7 +30,8 @@ export function pageComponents(snap: PageSnapshot): ElementSnapshot[] {
   const out: ElementSnapshot[] = [];
   for (const el of snap.elements) {
     if (out.length >= MAX_PAGE_COMPONENTS) break;
-    if (!el.visible || el.tag === 'html' || el.tag === 'body') continue;
+    // A bare image is not a component: it is an image slot of the component around it (FR4)
+    if (!el.visible || eligibility({ tag: el.tag }).status !== 'allowed') continue;
     const type = componentType(el);
     if (!PAGE_COMPONENT_TYPES.has(type)) continue;
     if (type === 'card' && el.rect.width * el.rect.height > pageArea * MAX_CARD_SHARE) continue;
@@ -54,6 +56,8 @@ export interface PageComponentInput {
   /** How deep an element is inside this component (0 for itself, null outside). */
   inside: (el: ElementSnapshot) => number | null;
   states: ComponentCapture['states'];
+  /** The images inside it, read from the live page. */
+  images?: readonly ComponentImageInput[];
 }
 
 export type SkippedPart = NonNullable<PageCapture['skipped']>[number];
@@ -73,10 +77,10 @@ export function pageCapture(snap: PageSnapshot, components: readonly PageCompone
   const captured = options.captured ?? today();
   const skipped: SkippedPart[] = [...(options.skipped ?? [])];
   const used = new Map<string, number>();
-  const entries = components.flatMap(({ entry, inside, states }) => {
+  const entries = components.flatMap(({ entry, inside, states, images }) => {
     try {
       // Checked against the format here, so one part that does not fit is left out, not the whole file
-      const c = componentSchema.parse(componentCapture(snap, entry, inside, { captured, system: true, states }));
+      const c = componentSchema.parse(componentCapture(snap, entry, inside, { captured, system: true, states, ...(images ? { images } : {}) }));
       const n = (used.get(c.meta.name) ?? 0) + 1;
       used.set(c.meta.name, n);
       return [n > 1 ? { ...c, meta: { ...c.meta, name: `${c.meta.name}-${n}` } } : c];

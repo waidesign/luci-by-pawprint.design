@@ -1,46 +1,17 @@
 /// <reference lib="dom" />
 /**
- * Image capture (FR4 as changed 2026-11-13, FR21, FR22): the Image tool records how an image is
- * shown and never the image (no URL, no pixels); any pick can carry a reference screenshot; the
- * basket exports as one .zip with the screenshots beside the collection file.
+ * Images inside components (user request, 2026-11-13): a component file describes how each image
+ * in it is shown (its Images section), never the image itself (FR21: no URL, no pixels). A bare
+ * image points to the component around it; an element with a background photo is picked like any
+ * other.
  */
-import fs from 'node:fs';
-import zlib from 'node:zlib';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Browser, Page } from 'playwright';
-import { parseCapture, parseCollection, type ImageToken } from '@luci/format/capture';
-import { aspectRatioOf, crc32, eligibility, imageToken, visiblePart, zip, type ImageReading } from '../src/index.js';
+import { parseCapture, type ComponentCapture, type PageCapture } from '@luci/format/capture';
+import { aspectRatioOf, cornersLabel, imageSlot, type ImageReading } from '../src/index.js';
 import { captureBundle, launch, serveSites } from './browser.js';
 
-/** Node's own CRC-32 (Node 22.2+), independent of Luci's; the installed Node types predate it. */
-const nodeCrc32 = (zlib as unknown as { crc32(data: Uint8Array): number }).crc32;
-
-/** Read a .zip the way an unzip tool does: from the central directory, checking each file's CRC. */
-function unzip(bytes: Uint8Array): Record<string, Buffer> {
-  const buf = Buffer.from(bytes);
-  const end = buf.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
-  expect(end).toBeGreaterThan(-1);
-  const count = buf.readUInt16LE(end + 10);
-  let at = buf.readUInt32LE(end + 16);
-  const files: Record<string, Buffer> = {};
-  for (let i = 0; i < count; i++) {
-    expect(buf.readUInt32LE(at)).toBe(0x02014b50);
-    const crc = buf.readUInt32LE(at + 16);
-    const size = buf.readUInt32LE(at + 20);
-    const nameLength = buf.readUInt16LE(at + 28);
-    const local = buf.readUInt32LE(at + 42);
-    const name = buf.subarray(at + 46, at + 46 + nameLength).toString('utf8');
-    expect(buf.readUInt32LE(local)).toBe(0x04034b50);
-    const start = local + 30 + buf.readUInt16LE(local + 26) + buf.readUInt16LE(local + 28);
-    const data = buf.subarray(start, start + size);
-    expect(nodeCrc32(data), name).toBe(crc);
-    files[name] = data;
-    at += 46 + nameLength + buf.readUInt16LE(at + 30) + buf.readUInt16LE(at + 32);
-  }
-  return files;
-}
-
-describe('image analysis (pure)', () => {
+describe('image slots (pure)', () => {
   it('names common shapes, and writes others as a ratio to 1', () => {
     expect(aspectRatioOf(1280, 720)).toBe('16:9');
     expect(aspectRatioOf(720, 1280)).toBe('9:16');
@@ -51,50 +22,29 @@ describe('image analysis (pure)', () => {
     expect(aspectRatioOf(100, 0)).toBe('unknown');
   });
 
-  it('the Image tool takes images and nothing else; the other tools point to it', () => {
-    for (const tag of ['img', 'picture', 'video', 'canvas', 'svg']) expect(eligibility({ tag }, { imageTool: true }).status, tag).toBe('allowed');
-    expect(eligibility({ tag: 'div', backgroundImage: 'url("a.jpg")' }, { imageTool: true }).status).toBe('allowed');
-    expect(eligibility({ tag: 'button' }, { imageTool: true })).toMatchObject({ status: 'blocked', reason: expect.stringContaining('Not an image') });
-    expect(eligibility({ tag: 'iframe' }, { imageTool: true }).status).toBe('blocked');
-    expect(eligibility({ tag: 'img' })).toMatchObject({ status: 'blocked', reason: expect.stringContaining('Use the Image tool') });
+  it('says which corners a wrapper clips, or nothing when it clips all four', () => {
+    expect(cornersLabel({ tl: true, tr: true, br: true, bl: true })).toBeUndefined();
+    expect(cornersLabel({ tl: true, tr: true, br: false, bl: false })).toBe('top');
+    expect(cornersLabel({ tl: false, tr: true, br: true, bl: false })).toBe('right');
+    expect(cornersLabel({ tl: true, tr: false, br: false, bl: false })).toBe('top-left');
   });
 
   it('keeps no URL anywhere, even from authored values and overlays (FR21)', () => {
     const reading: ImageReading = {
-      url: 'https://example.com/a?b=1', kind: 'background', element: 'section (region)', selector: 'section', width: 1600, height: 900,
-      styles: { 'background-image': 'linear-gradient(red, blue), url("https://cdn.example.com/hero.jpg")', 'background-size': 'cover', 'background-position': '50% 50%', 'background-repeat': 'no-repeat', 'border-radius': '0px' },
+      kind: 'background', width: 1600, height: 900,
+      styles: { 'background-image': 'linear-gradient(red, blue), url("https://cdn.example.com/hero.jpg")', 'background-size': 'cover, cover', 'background-position': '50% 50%', 'background-repeat': 'no-repeat', 'border-radius': '0px' },
       authored: { 'background-image': 'var(--hero), url(hero.jpg)' },
       overlays: [{ on: '::after', background: "url('https://cdn.example.com/noise.png'), rgba(0, 0, 0, 0.4)" }]
     };
-    const token = imageToken(reading, { captured: '2026-11-13' });
-    expect(JSON.stringify(token)).not.toMatch(/url\(|cdn\.example|hero\.jpg/);
-    expect(token.treatment.find(t => t.property === 'background-image')!.value.computed).toBe('linear-gradient(red, blue), <image>');
-    expect(token.meta.name).toBe('image-background-16-9');
-  });
-
-  it('visiblePart crops a box to the window', () => {
-    expect(visiblePart({ left: -10, top: 100, width: 50, height: 2000 }, { width: 1280, height: 900 })).toEqual({ left: 0, top: 100, width: 40, height: 800 });
-    expect(visiblePart({ left: 0, top: 1000, width: 50, height: 50 }, { width: 1280, height: 900 })).toBeNull();
+    const slot = imageSlot(reading, 'container');
+    expect(JSON.stringify(slot)).not.toMatch(/url\(|cdn\.example|hero\.jpg/);
+    expect(slot.treatment.find(t => t.property === 'background-image')!.value.computed).toBe('linear-gradient(red, blue), <image>');
+    expect(slot.treatment.find(t => t.property === 'background-size')!.value.computed).toBe('cover');
+    expect(slot).toMatchObject({ part: 'container', aspectRatio: '16:9' });
   });
 });
 
-describe('zip (basket export)', () => {
-  it('writes stored files with UTF-8 names that read back with the right CRC', () => {
-    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3]);
-    const files = unzip(zip([{ name: 'a.collection.design.md', data: '# Grüße\n' }, { name: 'references/01-hero.png', data: png }]));
-    expect(Object.keys(files)).toEqual(['a.collection.design.md', 'references/01-hero.png']);
-    expect(files['a.collection.design.md']!.toString('utf8')).toBe('# Grüße\n');
-    expect([...files['references/01-hero.png']!]).toEqual([...png]);
-    expect(crc32(new TextEncoder().encode('123456789'))).toBe(0xcbf43926);
-  });
-
-  it('refuses names that could leave the folder, and repeated names', () => {
-    for (const name of ['../x', '/x', 'a\\b', 'a/../../b', '']) expect(() => zip([{ name, data: 'x' }]), name).toThrow();
-    expect(() => zip([{ name: 'a', data: '1' }, { name: 'a', data: '2' }])).toThrow(/two files/);
-  });
-});
-
-describe('the Image tool on a real page', { timeout: 60_000 }, () => {
+describe('images in component files on a real page', { timeout: 60_000 }, () => {
   let browser: Browser;
   let server: Awaited<ReturnType<typeof serveSites>>;
   let bundle: string;
@@ -106,164 +56,144 @@ describe('the Image tool on a real page', { timeout: 60_000 }, () => {
     await server?.close();
   });
 
-  async function open(viewport = { width: 1280, height: 900 }): Promise<Page> {
-    const context = await browser.newContext({ viewport, acceptDownloads: true });
-    const page = await context.newPage();
+  async function open(): Promise<Page> {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
     page.setDefaultTimeout(5000);
-    // The extension's screenshot of the visible tab, here from Playwright
-    await page.exposeFunction('luciScreenshot', async () => `data:image/png;base64,${(await page.screenshot()).toString('base64')}`);
     await page.goto(`${server.origin}/images/`);
     await page.addScriptTag({ content: bundle });
     return page;
   }
 
-  it('reads how each kind of image is shown, with no URL in any file', async () => {
-    const page = await open();
-    const results = await page.evaluate(() => {
+  /** A component capture of each selector, with states from the stylesheet rules. */
+  async function components(page: Page, selectors: string[]) {
+    return await page.evaluate(async (sels) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const L = (window as any).LuciCapture;
       const live = L.liveSnapshot();
-      return Object.fromEntries(['#photo', '#hero', '#avatar', '#clip', '#chart', '#pic', '#buy'].map(sel => {
-        const r = L.captureImage(live, live.entryFor(document.querySelector(sel)), { units: 'px' });
-        return [sel, r.ok ? { capture: r.output.capture, markdown: r.output.markdown, fileName: r.output.fileName } : { message: r.message }];
-      }));
-    }) as Record<string, { capture: ImageToken; markdown: string; fileName: string; message?: string }>;
+      const out: Record<string, { capture: ComponentCapture; markdown: string }> = {};
+      for (const sel of sels) {
+        const entry = live.entryFor(document.querySelector(sel));
+        const { states } = await L.readComponentStates(live, entry);
+        const r = L.captureComponent(live, entry, { units: 'px' }, { states });
+        out[sel] = { capture: r.output.capture, markdown: r.output.markdown };
+      }
+      return out;
+    }, selectors);
+  }
 
-    for (const [sel, r] of Object.entries(results)) {
-      if (sel === '#buy') continue;
+  it('a card: its photo is a slot named like its part, with the corners the card clips, and its hover zoom', async () => {
+    const page = await open();
+    const { '#card': card } = await components(page, ['#card']);
+    const c = card!.capture;
+    expect(c.images).toHaveLength(1);
+    const slot = c.images![0]!;
+    expect(slot).toMatchObject({ part: 'image', kind: 'img', aspectRatio: '16:9', sourceAspectRatio: '3:2', size: { width: 360, height: 202.5 } });
+    expect(c.anatomy.some(a => a.part === 'image')).toBe(true);
+    const prop = (p: string) => slot.treatment.find(t => t.property === p);
+    expect(prop('object-fit')!.value.computed).toBe('cover');
+    expect(prop('object-position')!.value.computed).toBe('50% 30%');
+    expect(prop('filter')!.value.computed).toBe('saturate(1.2)');
+    // The card clips only the top corners of the photo, through a token
+    expect(prop('border-radius')).toMatchObject({ on: 'container', corners: 'top', value: { computed: '12px', token: '--radius-lg' } });
+    expect(c.tokens.find(t => t.token === '--radius-lg')).toBeTruthy();
+    // States and Motion name the same part
+    const hover = c.states.find(s => s.state === 'hover')!;
+    expect(hover.changes.some(ch => ch.part === 'image' && ch.property === 'transform')).toBe(true);
+    expect(c.motion.some(m => m.part === 'image' && m.target === 'transform')).toBe(true);
+
+    const md = card!.markdown;
+    expect(parseCapture(md).ok).toBe(true);
+    expect(md).toContain('## Images\n| Part | Kind | Size | Shape | Fit | Corners | Effects | Layers over it |');
+    expect(md).toContain('| image | img | 360 × 202.5px | 16:9 (file is 3:2), set by aspect-ratio 16 / 9 | cover, position 50% 30% | 12px (`--radius-lg`), top corners, clipped by the container | filter saturate(1.2) | none |');
+    expect(md).toContain('- These are slots for your own images, framed as above. No image file or URL is included.');
+    expect(md.indexOf('## Images')).toBeLessThan(md.indexOf('## States'));
+    expect(md).not.toMatch(/url\(|data:image|base64/);
+    await page.close();
+  });
+
+  it('a hero with a background photo is a component; a figure, an SVG image, video and canvas are slots too', async () => {
+    const page = await open();
+    const got = await components(page, ['#hero', '#figure', '#art', '#row']);
+    for (const [sel, r] of Object.entries(got)) {
       expect(parseCapture(r.markdown).ok, sel).toBe(true);
       expect(r.markdown, sel).not.toMatch(/url\(|data:image|base64/);
     }
-    const prop = (r: { capture: ImageToken }, p: string) => r.capture.treatment.find(t => t.property === p);
 
-    const photo = results['#photo']!;
-    expect(photo.fileName).toBe('127-0-0-1.token.image-img-16-9.design.md');
-    expect(photo.capture).toMatchObject({ kind: 'img', aspectRatio: '16:9', sourceAspectRatio: '3:2', size: { width: 640, height: 360 } });
-    expect(prop(photo, 'object-fit')!.value.computed).toBe('cover');
-    expect(prop(photo, 'object-position')!.value.computed).toBe('50% 30%');
-    expect(prop(photo, 'filter')!.value.computed).toBe('saturate(1.2)');
-    // The wrapper clips the corners, through a token
-    expect(prop(photo, 'border-radius')).toMatchObject({ on: 'figure', value: { computed: '12px', token: '--radius-lg' } });
-    expect(photo.capture.overlays).toEqual([{ on: 'div over it', background: 'linear-gradient(to top, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0))' }]);
-    expect(photo.markdown).toContain('| border-radius | 12px | `var(--radius-lg)` | `--radius-lg` | figure around it |');
-    expect(photo.markdown).toContain('- Use your own image here, shown at 16:9, object-fit cover, object-position 50% 30%, 12px corners (clipped by the figure around it), with the filter and overlay listed above.');
+    const hero = got['#hero']!.capture;
+    expect(hero.images).toEqual([expect.objectContaining({ part: 'container', kind: 'background', aspectRatio: '2.4:1' })]);
+    const heroSlot = hero.images![0]!;
+    expect(heroSlot.treatment.find(t => t.property === 'background-image')!.value.computed).toBe('linear-gradient(rgba(15, 98, 254, 0.4), rgba(15, 98, 254, 0.4)), <image>');
+    expect(heroSlot.overlays).toEqual([{ on: '::after', background: 'radial-gradient(circle, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.5))', opacity: '0.5', blend: 'multiply' }]);
+    expect(got['#hero']!.markdown).toContain('| container | background image | 960 × 400px | 2.4:1 | cover, position 50% 50%, no-repeat | none | none | its own background: linear-gradient(#0f62fe66, #0f62fe66), <image>; ::after: radial-gradient(circle, transparent, #00000080), opacity 0.5, blend multiply |');
 
-    const hero = results['#hero']!;
-    expect(hero.capture).toMatchObject({ kind: 'background', aspectRatio: '2.4:1' });
-    expect(prop(hero, 'background-size')!.value.computed).toBe('cover');
-    expect(prop(hero, 'background-repeat')!.value.computed).toBe('no-repeat');
-    expect(prop(hero, 'background-image')!.value.computed).toBe('linear-gradient(rgba(15, 98, 254, 0.4), rgba(15, 98, 254, 0.4)), <image>');
-    expect(hero.capture.overlays).toEqual([{ on: '::after', background: 'radial-gradient(circle, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.5))', opacity: '0.5', blend: 'multiply' }]);
+    const figure = got['#figure']!.capture.images![0]!;
+    // The wrapper has the photo's size: it clips all four corners, and the tint lies over it
+    expect(figure.treatment.find(t => t.property === 'border-radius')).toMatchObject({ on: 'container', value: { token: '--radius-lg' } });
+    expect(figure.treatment.find(t => t.property === 'border-radius')!.corners).toBeUndefined();
+    expect(figure.overlays).toEqual([{ on: 'div over it', background: 'linear-gradient(to top, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0))' }]);
 
-    const avatar = results['#avatar']!;
-    expect(avatar.capture.aspectRatio).toBe('1:1');
-    expect(prop(avatar, 'border-radius')!.value.computed).toBe('50%');
-    expect(prop(avatar, 'box-shadow')!.value.token).toBe('--shadow-card');
+    // The Evernote case: a picture placed inside an SVG drawing
+    const art = got['#art']!.capture;
+    expect(art.images).toEqual([expect.objectContaining({ part: 'image', kind: 'svg-image', aspectRatio: '3:2' })]);
+    expect(art.images![0]!.treatment[0]).toEqual({ property: 'preserveAspectRatio', value: { computed: 'xMidYMid slice' } });
+    expect(art.anatomy.some(a => a.part === 'image')).toBe(true);
+    expect(got['#art']!.markdown).toContain('| image | SVG image | 240 × 160px | 3:2 | preserveAspectRatio xMidYMid slice |');
 
-    expect(results['#clip']!.capture).toMatchObject({ kind: 'video', aspectRatio: '16:9' });
-    expect(results['#clip']!.capture.sourceAspectRatio).toBeUndefined();
-    // The canvas draws at 400 x 300 and shows at 200 x 150: the same shape, so no source ratio
-    expect(results['#chart']!.capture).toMatchObject({ kind: 'canvas', aspectRatio: '4:3' });
-    expect(results['#chart']!.capture.sourceAspectRatio).toBeUndefined();
-    // A picture element is measured through its img
-    expect(results['#pic']!.capture).toMatchObject({ kind: 'img', aspectRatio: '1:1', usedBy: { element: 'img' } });
-    expect(results['#pic']!.capture.meta.selector).toMatch(/img$/);
-    expect(results['#buy']!.message).toContain('Not an image');
-    await page.context().close();
+    const row = got['#row']!.capture.images!;
+    expect(row.map(i => [i.part, i.kind, i.aspectRatio])).toEqual([['image', 'video', '16:9'], ['image-2', 'canvas', '4:3']]);
+    // The canvas draws at 400 x 300 and shows at 200 x 150: the same shape, so no file shape
+    expect(row[1]!.sourceAspectRatio).toBeUndefined();
+    expect(row[0]!.treatment.find(t => t.property === 'border-radius')!.value.computed).toBe('8px');
+
+    // A component with no image has no Images section
+    const { '#buy': buy } = await components(page, ['#buy']);
+    expect(buy!.capture.images).toBeUndefined();
+    expect(buy!.markdown).not.toContain('## Images');
+    await page.close();
   });
 
-  it('toolbar: picks the image under a tint, adds a reference screenshot, and exports the basket as a .zip', async () => {
+  it('Whole page gives each component that has images its Images section', async () => {
     const page = await open();
-    await page.evaluate(() => {
-      const w = window as unknown as { LuciCapture: { mountToolbar(o: object): unknown }; luciScreenshot(): Promise<string> };
-      w.LuciCapture.mountToolbar({ captureScreen: () => w.luciScreenshot() });
-    });
-    const label = () => page.locator('[data-part="hover-label"]').innerText();
-    const preview = () => page.locator('[data-part="preview"]').inputValue();
-
-    // Other tools still don't take images, and say which tool does
-    await page.click('button[data-tool="component"]');
-    await page.hover('#avatar', { force: true });
-    expect(await label()).toContain('Use the Image tool');
-    await page.keyboard.press('Escape');
-
-    await page.click('button[data-tool="image"]');
-    expect(await page.locator('[data-part="hint"]').innerText()).toContain('never the image itself');
-    // The tint lies over the photo; the Image tool looks through it
-    await page.hover('#photo', { force: true });
-    expect(await label()).toMatch(/^img {2}640 × 360/);
-    await page.hover('#buy', { force: true });
-    expect(await label()).toContain('Not an image');
-    await page.click('#photo', { force: true });
-    expect(await page.locator('[data-part="selected-name"]').innerText()).toBe('img');
-    expect(await page.locator('[data-output="system"]').count()).toBe(0);
-    await page.click('[data-output="one"]');
-    expect(await page.locator('[data-part="file-name"]').innerText()).toBe('127-0-0-1.token.image-img-16-9.design.md');
-    expect(await preview()).not.toContain('reference:');
-
-    await page.click('[data-action="take-reference"]');
-    await page.locator('[data-part="reference-thumb"]').waitFor();
-    expect(await preview()).toContain('\nreference: 127-0-0-1.token.image-img-16-9.png\n');
-    expect(await page.locator('[data-part="reference"]').innerText()).toContain('640 × 360px');
-    const [png] = await Promise.all([page.waitForEvent('download'), page.click('[data-action="download-reference"]')]);
-    expect(png.suggestedFilename()).toBe('127-0-0-1.token.image-img-16-9.png');
-    const bytes = fs.readFileSync((await png.path())!);
-    expect([...bytes.subarray(1, 4)].map(b => String.fromCharCode(b)).join('')).toBe('PNG');
-    expect([bytes.readUInt32BE(16), bytes.readUInt32BE(20)]).toEqual([640, 360]);
-    await page.click('[data-action="add-to-basket"]');
-
-    // A text pick without a screenshot, to show the zip only carries what was taken
-    await page.click('button[data-tool="text"]');
-    await page.click('#buy', { force: true });
-    await page.click('[data-output="one"]');
-    await page.click('[data-action="add-to-basket"]');
-
-    await page.click('[data-action="basket"]');
-    expect(await page.locator('[data-item] .meta').first().innerText()).toContain('· screenshot');
-    await page.click('[data-action="export-all"]');
-    // The one-file export has no screenshot paths (they would point nowhere)
-    expect(await page.locator('[data-part="preview"]').innerText()).not.toContain('references/');
-    expect(await page.locator('[data-action="download-zip"]').innerText()).toBe('Download .zip (with 1 screenshot)');
-    const [download] = await Promise.all([page.waitForEvent('download'), page.click('[data-action="download-zip"]')]);
-    expect(download.suggestedFilename()).toMatch(/^basket-\d{4}-\d{2}-\d{2}\.zip$/);
-    const files = unzip(fs.readFileSync((await download.path())!));
-    const names = Object.keys(files);
-    expect(names).toEqual([expect.stringMatching(/^basket-\d{4}-\d{2}-\d{2}\.collection\.design\.md$/), 'references/01-image-img-16-9.jpg']);
-    const md = files[names[0]!]!.toString('utf8');
-    const parsed = parseCollection(md);
-    expect(parsed.ok && parsed.value.groups).toEqual({ Text: [expect.stringMatching(/^Text /)], Images: ['Image img 16 9'] });
-    expect(md).toContain('- reference screenshot: `references/01-image-img-16-9.jpg`');
-    expect(md).not.toMatch(/data:image|url\(/);
-    // A JPEG, at most 640px a side
-    const jpg = files['references/01-image-img-16-9.jpg']!;
-    expect([jpg[0], jpg[1]]).toEqual([0xff, 0xd8]);
-
-    // One item on its own offers its screenshot beside it
-    await page.click('[data-action="basket-back"]');
-    await page.locator('[data-item-export]').first().click();
-    expect(await page.locator('[data-part="preview"]').innerText()).toContain('reference: 127-0-0-1.token.image-img-16-9.jpg');
-    const [one] = await Promise.all([page.waitForEvent('download'), page.click('[data-action="download-reference"]')]);
-    expect(one.suggestedFilename()).toBe('127-0-0-1.token.image-img-16-9.jpg');
-    await page.context().close();
+    const r = await page.evaluate(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const L = (window as any).LuciCapture;
+      const out = L.capturePage(L.liveSnapshot(), { units: 'px' });
+      return { capture: out.output.capture, markdown: out.output.markdown };
+    }) as { capture: PageCapture; markdown: string };
+    expect(parseCapture(r.markdown).ok).toBe(true);
+    const withImages = r.capture.components.filter(c => c.images?.length);
+    expect(withImages.map(c => c.meta.selector)).toEqual(['#card']);
+    // Bare images are slots, never components of their own
+    expect(r.capture.components.map(c => c.meta.selector)).not.toEqual(expect.arrayContaining(['#avatar']));
+    expect(r.capture.components.some(c => ['img', 'video', 'canvas'].some(t => c.anatomy[0]!.element.startsWith(t)))).toBe(false);
+    expect(r.markdown).toContain('#### Images');
+    expect(r.markdown).not.toMatch(/url\(|data:image|base64/);
+    expect(r.capture.skipped ?? []).toEqual([]);
+    await page.close();
   });
 
-  it('a reference screenshot of an element out of view scrolls to it, then back', async () => {
-    const page = await open({ width: 1280, height: 600 });
-    await page.evaluate(() => {
-      const w = window as unknown as { LuciCapture: { mountToolbar(o: object): unknown }; luciScreenshot(): Promise<string> };
-      w.LuciCapture.mountToolbar({ captureScreen: () => w.luciScreenshot() });
-    });
+  it('toolbar: a bare image points to the component around it; ↑ Wider takes the card; a background photo can be picked', async () => {
+    const page = await open();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await page.evaluate(() => { (window as any).LuciCapture.mountToolbar(); });
+    const label = () => page.locator('[data-part="hover-label"]').innerText();
     await page.click('button[data-tool="component"]');
-    await page.click('#buy', { force: true });
+    await page.hover('#photo', { force: true });
+    expect(await label()).toContain('Pick the component around it (↑ Wider)');
+    await page.keyboard.press('ArrowUp');
+    expect(await label()).toMatch(/^article/);
+    await page.keyboard.press('Enter');
+    expect(await page.locator('[data-part="selected-name"]').innerText()).toMatch(/^article/);
     await page.click('[data-output="one"]');
-    await page.evaluate(() => window.scrollTo(0, 0));
-    const box = await page.evaluate(() => document.getElementById('buy')!.getBoundingClientRect().top);
-    expect(box).toBeGreaterThan(600);
-    await page.click('[data-action="take-reference"]');
-    await page.locator('[data-part="reference-thumb"]').waitFor();
-    expect(await page.evaluate(() => window.scrollY)).toBe(0);
-    const size = await page.evaluate(() => { const r = document.getElementById('buy')!.getBoundingClientRect(); return `${Math.round(r.width)} × ${Math.round(r.height)}px`; });
-    expect(await page.locator('[data-part="reference"]').innerText()).toContain(size);
-    await page.context().close();
+    const md = await page.locator('[data-part="preview"]').inputValue();
+    expect(md).toContain('## Images');
+
+    await page.click('button[data-tool="component"]');
+    await page.hover('#hero', { position: { x: 600, y: 300 }, force: true });
+    expect(await label()).toMatch(/^div {2}960 × 400/);
+    await page.click('#hero', { position: { x: 600, y: 300 }, force: true });
+    await page.click('[data-output="one"]');
+    expect(await page.locator('[data-part="preview"]').inputValue()).toContain('| container | background image |');
+    await page.close();
   });
 });

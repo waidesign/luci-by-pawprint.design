@@ -32,7 +32,7 @@ AI coding agents start each session without the project's history, load skills t
 3. Only skills that fit the task are loaded from a library focused on UI/UX, design and front-end work, each with a stated reason; nothing loads when nothing fits.
 4. Pick a component, text, colour or spacing on a live page and get a scoped design.md in under 10 seconds, as one item or as the page-wide system.
 5. Every captured value is measured from the live DOM, including hover, focus, active and disabled states.
-6. Several picks collect in a basket and export as one file (or one .zip with their reference screenshots); images are captured only for how they are shown, never the image itself.
+6. Several picks collect in a basket and export as one file; images are described only by how a component shows them, never copied.
 7. Feedback from several pages reaches the agent as one prompt and is applied in full (React first).
 8. Captures and feedback are saved into the project's memory, so every agent sees them without copy and paste.
 9. Everything runs locally: no backend, no account, no API key.
@@ -104,8 +104,8 @@ The toolbar checks every element under the cursor before it can be selected.
 | Result | Elements | Behaviour |
 | --- | --- | --- |
 | Allowed | Buttons, inputs, cards, navigation, sections, text, inline SVG, and components or SVG drawings used as product imagery | Normal highlight and capture |
-| Image tool only | Images: `img`, `picture`, video, canvas, and photo backgrounds | Selectable with the Image tool, which records how the image is shown (size, shape, fit, corners, effects, overlays), never the image, its URL or its pixels. The other tools grey them out and point to the Image tool |
-| Blocked | Embedded pages and content: `iframe`, `embed`, `object` | Greyed highlight with the reason; cannot be selected |
+| Allowed, with images described | Elements with a photo background (a hero, a card) | Normal capture; the component file's Images section describes the photo's treatment, never the photo |
+| Blocked | Bare images: `img`, `picture`, video, canvas, SVG `<image>` | Greyed highlight pointing to the component around it (↑ Wider); cannot be selected on their own |
 | Redirected | The whole page body | Suggests the page-wide system outputs instead |
 
 **Scopes**
@@ -165,10 +165,10 @@ Version 0.1 covers all four modules: 56 requirements, 49 of them must-have (P0).
 
 | ID | Requirement | Priority |
 | --- | --- | --- |
-| FR1 | **On-page toolbar.** A floating toolbar with tool modes: Component, Text, Colour, Spacing, Image. Rendered in a Shadow DOM so it never clashes with the page. | P0 |
+| FR1 | **On-page toolbar.** A floating toolbar with tool modes: Component, Text, Colour, Spacing. Rendered in a Shadow DOM so it never clashes with the page. | P0 |
 | FR2 | **Element picker.** Hover highlights the element with its tag and size; click selects; Esc cancels. | P0 |
 | FR3 | **Tree navigation.** Arrow keys widen to the parent or narrow to a child before confirming. | P0 |
-| FR4 | **Eligibility check.** Images are selectable only with the Image tool, for their design treatment; the other tools grey them out with a reason; inline SVG and components are allowed; the page body redirects to system outputs. (Changed 13 Nov 2026: images were fully blocked.) | P0 |
+| FR4 | **Eligibility check.** A bare image (`img`, `picture`, video, canvas, SVG `<image>`) is greyed out and points to the component around it; elements with a photo background, inline SVG and components are allowed; the page body redirects to system outputs. (Changed 13 Nov 2026: photo backgrounds were blocked too.) | P0 |
 | FR5 | **Two outputs per pick.** After any pick, choose "This one" or "The whole system". | P0 |
 | FR6 | **Shadow DOM picking.** The picker can select inside web components. | P1 |
 
@@ -187,17 +187,17 @@ Version 0.1 covers all four modules: 56 requirements, 49 of them must-have (P0).
 | FR15 | **Spacing ruler, single.** Padding, margin and gap overlays on hover; drag to measure between two elements; each value labelled authored or measured. | P0 |
 | FR16 | **Spacing system.** All spacing values on the page, the scale, the base unit and outliers. | P0 |
 | FR17 | **Pseudo-elements and motion.** `::before`, `::after`, transitions and animations. | P1 |
-| FR17a | **Image tool.** For an image, video, canvas, illustration or photo background: kind, rendered size, aspect ratio (and the file's own when cropped), fit and position, corners (including a clipping wrapper), shadow, filters, mask and the layers over it. No URL and no pixels; the agent is told to use its own image with the same treatment. (Added 13 Nov 2026.) | P1 |
+| FR17a | **Images in components.** A component file describes each image slot inside it (its own background photo included), named as its part: kind, size, shape and the file's own shape when cropped, fit and position, corners (including those an element around it clips), effects and the layers over it. No URL, no pixels: the agent puts its own images in the slots. Whole page files do the same for each component. (Added 13 Nov 2026.) | P1 |
 
 **Basket and output (both shells)**
 
 | ID | Requirement | Priority |
 | --- | --- | --- |
 | FR18 | **Capture basket.** Picks are added to a basket that persists across pages; items can be removed or renamed. | P0 |
-| FR19 | **Export.** Export one item, or the whole basket as a single design.md grouped by type and source page, or as one .zip with that file and each item's reference screenshot. | P0 |
+| FR19 | **Export.** Export one item, or the whole basket as a single design.md grouped by type and source page. | P0 |
 | FR20 | **Preview, copy, download.** Preview the markdown in the toolbar panel; copy or download as `.design.md`. | P0 |
 | FR21 | **Structure only.** No page text or image URLs in the output by default. | P0 |
-| FR22 | **Evidence screenshot.** A cropped image of the selection saved beside the file, named in its `reference` field and labelled reference only (values never come from it). Built 13 Nov 2026. | P1 |
+| FR22 | **Evidence screenshot.** A cropped image of the selection saved beside the file. (Dropped 13 Nov 2026: a screenshot taken by hand does the same, and files stay simpler.) | — |
 
 **Feedback for agents (dev toolbar)**
 
@@ -368,7 +368,7 @@ Version 0.1 is done when it passes these fifteen checks: ten for capture and fee
 | Typography system | Every distinct text style on a test page appears once, with no duplicates |
 | Colour system | Every colour used by a visible element appears, each with a role |
 | Spacing system | The detected base unit matches the site's real one on 4 of 5 test sites |
-| Images | Only the Image tool selects an `img`, video or canvas; inline SVG can be picked by every tool; no image file, URL or pixel data is in any capture file |
+| Images | No bare `img`, video or canvas can be selected; inline SVG can; a component with images describes each slot, and no image file, URL or pixel data is in any capture file |
 | Site coverage | Works on five sites, one per styling approach: utility classes, CSS-in-JS, CSS Modules, web components, plain CSS variables |
 | Multi-page feedback | Items from three pages, pasted as one prompt, are all applied and all reported, in 10 of 10 runs |
 | Agent rebuild test | A coding agent given only the file rebuilds the component, and it matches the original in default and hover states |
@@ -419,7 +419,7 @@ Twenty-three decisions are settled and built into the PRD.
 | Capture delivery | An on-page toolbar: thin browser extension for any site, dev toolbar for your own projects |
 | First release | Everything: all four modules in v0.1 |
 | Capture basket | Yes |
-| Images | Selectable with the Image tool for their design treatment, plus a reference screenshot of any pick; the original image files are not copied (changed 13 Nov 2026; was: fully blocked) |
+| Images | Never copied. A component file describes how each image in it is shown (its Images section); bare images are not picked on their own; no Image tool, no reference screenshots (changed 13 Nov 2026; was: fully blocked) |
 | Feedback | Our own module replaces Agentation, with feature parity plus the multi-page fix; React first |
 | Feedback on other sites | Yes: notes attached to captures from sites you do not own |
 | Code map | Graphify stays as a built-in tool |

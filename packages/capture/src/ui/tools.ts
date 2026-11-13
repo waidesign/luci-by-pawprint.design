@@ -4,21 +4,18 @@
  */
 import { captureFileName, formatCapture, type Capture, type CaptureSettings, type ComponentCapture } from '@luci/format/capture';
 import { colorToken, colorUses, colorSystem } from '../color.js';
-import { componentCapture, componentType, stateParts } from '../component.js';
+import { componentCapture, componentType, stateParts, type ComponentImageInput } from '../component.js';
+import { imagesInside, readImage } from '../image.js';
 import { focusDepthOf, prepareTargets, readComputed, readDisabled, readStatesFromRules, statesFromForced, type CdpReadOptions, type ComputedMap, type ForcedReading, type StateTarget } from '../states.js';
-import { snapshotPage } from '../dom.js';
-import { NOT_AN_IMAGE } from '../eligibility.js';
-import { imageElementOf, imageKindOf, imageToken, readImage } from '../image.js';
+import { snapshotPage, type RuleCache } from '../dom.js';
 import type { ElementSnapshot, PageSnapshot } from '../model.js';
 import { pageCapture, pageComponents, type SkippedPart } from '../page.js';
 import { distanceToken, spacingSet, spacingSystem, spacingToken, spacingUses, type SpacingUse } from '../spacing.js';
 import { textToken, typographySystem } from '../text.js';
 
-export const TOOLS = ['component', 'text', 'color', 'spacing', 'image'] as const;
+export const TOOLS = ['component', 'text', 'color', 'spacing'] as const;
 export type ToolId = (typeof TOOLS)[number];
-export const TOOL_LABELS: Readonly<Record<ToolId, string>> = { component: 'Component', text: 'Text', color: 'Color', spacing: 'Spacing', image: 'Image' };
-/** Tools with a "whole system" output (the Image tool has only "This one"). */
-export const hasSystem = (tool: ToolId) => tool !== 'image';
+export const TOOL_LABELS: Readonly<Record<ToolId, string>> = { component: 'Component', text: 'Text', color: 'Color', spacing: 'Spacing' };
 
 export interface Output {
   capture: Capture;
@@ -78,7 +75,17 @@ export function insideOf(live: LiveSnapshot, container: ElementSnapshot): (el: E
 
 /** A component capture from a pick; `system` adds the page's variants. States are read separately (states.ts). */
 export function captureComponent(live: LiveSnapshot, entry: ElementSnapshot, settings: CaptureSettings, options: { system?: boolean; states?: ComponentCapture['states'] } = {}): Result {
-  return { ok: true, output: toOutput(componentCapture(live.snapshot, entry, insideOf(live, entry), { captured: CAPTURED(), ...options }), settings) };
+  const images = componentImages(live, entry);
+  return { ok: true, output: toOutput(componentCapture(live.snapshot, entry, insideOf(live, entry), { captured: CAPTURED(), ...options, images }), settings) };
+}
+
+/** The images inside a component, read from the live page: how each is shown, never the image itself. */
+export function componentImages(live: LiveSnapshot, entry: ElementSnapshot, cache: RuleCache = new Map()): ComponentImageInput[] {
+  const container = live.nodes[entry.id]!;
+  return imagesInside(container).flatMap(node => {
+    const el = live.entryFor(node);
+    return el ? [{ el, reading: readImage(node, container, cache) }] : [];
+  });
 }
 
 /** Reads states through the debugger; the extension provides it (it sends the commands from its background). */
@@ -151,19 +158,10 @@ export async function readComponentStates(live: LiveSnapshot, entry: ElementSnap
   }
 }
 
-/** The Image tool: how the picked image is shown (never the image, its URL or its pixels). */
-export function captureImage(live: LiveSnapshot, entry: ElementSnapshot, settings: CaptureSettings): Result {
-  const el = imageElementOf(live.nodes[entry.id]!);
-  if (!imageKindOf(el)) return { ok: false, message: NOT_AN_IMAGE };
-  const target = live.entryFor(el) ?? entry;
-  return { ok: true, output: toOutput(imageToken(readImage(el, target), { captured: CAPTURED() }), settings) };
-}
-
 /** "This one": one item from the picked element. */
 export function captureOne(tool: ToolId, live: LiveSnapshot, entry: ElementSnapshot, settings: CaptureSettings, choice = ALL_SPACING): Result {
   const options = { captured: CAPTURED() };
   if (tool === 'component') return captureComponent(live, entry, settings);
-  if (tool === 'image') return captureImage(live, entry, settings);
   if (tool === 'text') {
     const target = textTarget(live, entry);
     if (!target) return { ok: false, message: 'This element has no text. Pick a heading, paragraph, link or label.' };
@@ -204,12 +202,17 @@ function ruleStates(live: LiveSnapshot, entry: ElementSnapshot): ComponentCaptur
 /** "Whole page": one file with the page's systems and every kind of component on it. */
 export function capturePage(live: LiveSnapshot, settings: CaptureSettings, options: { captured?: string } = {}): Result {
   const skipped: SkippedPart[] = [];
+  const rules: RuleCache = new Map();
   const components = pageComponents(live.snapshot).map(entry => {
     let states: ComponentCapture['states'] = [];
     try { states = ruleStates(live, entry); } catch (err) {
       skipped.push({ part: `states of ${entry.selector}`, reason: (err instanceof Error ? err.message : String(err)).slice(0, 200) });
     }
-    return { entry, inside: insideOf(live, entry), states };
+    let images: ComponentImageInput[] = [];
+    try { images = componentImages(live, entry, rules); } catch (err) {
+      skipped.push({ part: `images of ${entry.selector}`, reason: (err instanceof Error ? err.message : String(err)).slice(0, 200) });
+    }
+    return { entry, inside: insideOf(live, entry), states, images };
   });
   const page = pageCapture(live.snapshot, components, { captured: options.captured ?? CAPTURED(), skipped });
   if (!page.typography && !page.color && !page.spacing && !page.components.length) return { ok: false, message: 'This page has nothing visible to capture.' };
@@ -234,7 +237,6 @@ export function captureSystem(tool: ToolId, live: LiveSnapshot, settings: Captur
     if (!entry || entry.tag === 'body' || entry.tag === 'html') return { ok: false, message: 'Pick a component first (a button, card, link...), then "The whole system" lists its variants on this page.' };
     return captureComponent(live, entry, settings, { system: true });
   }
-  if (tool === 'image') return { ok: false, message: 'The Image tool captures one image at a time: use "This one".' };
   const system = tool === 'text' ? typographySystem(live.snapshot, options) : tool === 'color' ? colorSystem(live.snapshot, options) : spacingSystem(live.snapshot, options);
   if (!system) return { ok: false, message: `This page has no ${tool === 'text' ? 'visible text' : tool === 'color' ? 'visible colors' : 'spacing'} to capture.` };
   return { ok: true, output: toOutput(system, settings) };

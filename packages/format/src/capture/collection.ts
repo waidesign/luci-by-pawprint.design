@@ -18,16 +18,7 @@ export const basketItemSchema = z.object({
   addedAt: isoDate,
   capture: captureSchema,
   /** The file as the user edited it by hand in the toolbar; exports use it instead of the generated text. */
-  edited: z.string().min(1).optional(),
-  /**
-   * A small copy of the reference screenshot (JPEG, at most 640px a side), so the basket stays small
-   * in the extension's storage. The .zip export saves it beside the collection file.
-   */
-  screenshot: z.object({
-    dataUrl: z.string().regex(/^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/, 'a base64 PNG or JPEG data URL'),
-    width: z.number().int().positive(),
-    height: z.number().int().positive()
-  }).optional()
+  edited: z.string().min(1).optional()
 });
 export type BasketItem = z.infer<typeof basketItemSchema>;
 
@@ -39,20 +30,14 @@ export const collectionSchema = z.object({
 export type Collection = z.infer<typeof collectionSchema>;
 
 /** Groups in export order. */
-export const COLLECTION_GROUPS = ['Components', 'Text', 'Colors', 'Spacing', 'Images', 'Systems', 'Pages'] as const;
+export const COLLECTION_GROUPS = ['Components', 'Text', 'Colors', 'Spacing', 'Systems', 'Pages'] as const;
 export type CollectionGroup = (typeof COLLECTION_GROUPS)[number];
 
 export function groupOf(capture: Capture): CollectionGroup {
   if (capture.meta.scope === 'page') return 'Pages';
   if (capture.meta.scope === 'component') return 'Components';
   if (capture.meta.scope === 'system') return 'Systems';
-  const type = capture.meta.type;
-  return type === 'text' ? 'Text' : type === 'color' ? 'Colors' : type === 'image' ? 'Images' : 'Spacing';
-}
-
-export interface CollectionOptions {
-  /** Item id -> the path of its reference screenshot beside the collection file (the .zip export). */
-  references?: Readonly<Record<string, string>>;
+  return capture.meta.type === 'text' ? 'Text' : capture.meta.type === 'color' ? 'Colors' : 'Spacing';
 }
 
 /** An item's body (the hand-edited text when there is one) without frontmatter, headings one level down. */
@@ -66,7 +51,7 @@ function bodyOf(item: BasketItem, settings: CaptureSettings): string {
 export const collectionFileName = (name: string) => `${toCaptureName(name)}.collection${CAPTURE_EXTENSION}`;
 
 /** The basket export. Throws when the collection does not match its schema. */
-export function formatCollection(collection: Collection, settings: CaptureSettings = {}, options: CollectionOptions = {}): string {
+export function formatCollection(collection: Collection, settings: CaptureSettings = {}): string {
   const c = collectionSchema.parse(collection);
   const sources = [...new Set(c.items.map(i => sourceText(i.capture.meta.source, settings)))];
   const lines = [
@@ -88,13 +73,11 @@ export function formatCollection(collection: Collection, settings: CaptureSettin
     lines.push(`# ${group}`, '');
     for (const item of items) {
       const m = item.capture.meta;
-      const reference = options.references?.[item.id];
       lines.push(
         `## ${item.name}`,
         `- source: ${sourceText(m.source, settings)}`,
         ...(m.selector ? [`- selector: \`${m.selector.replace(/`/g, "'")}\``] : []),
         `- type: ${m.scope} ${m.type} · method: ${m.method} · captured: ${m.captured}`,
-        ...(reference ? [`- reference screenshot: \`${reference}\` (to look at only; the values above come from the page)`] : []),
         '',
         bodyOf(item, settings),
         ''

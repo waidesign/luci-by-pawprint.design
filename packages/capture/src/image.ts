@@ -1,20 +1,20 @@
 /**
- * The Image tool: how a picture is shown (its design treatment), never the picture itself. It
- * records the kind, rendered size and shape, the CSS that frames it (fit, position, corners,
- * shadow, filters, mask) and the layers painted over it. No URL and no pixels (FR21): every
- * url(...) becomes "<image>", so the agent uses its own picture with the same treatment.
+ * Images inside a component: how each picture is shown (its design treatment), never the picture
+ * itself. For every image slot it records the kind, rendered size and shape, the CSS that frames it
+ * (fit, position, corners, shadow, filters, mask) and the layers painted over it. No URL and no
+ * pixels (FR21): every url(...) becomes "<image>", so the agent puts its own picture in the slot.
  *
- * readImage (browser) reads one element into plain data; imageToken (pure) makes the capture.
+ * readImage (browser) reads one element into plain data; imageSlot (pure) makes the file's entry.
  */
-import { formatShadow, isTransparent, toCaptureName, withoutUrls, type ImageToken } from '@luci/format/capture';
-import { authoredFor, LUCI_UI_ATTRIBUTE } from './dom.js';
+import { formatShadow, isTransparent, withoutUrls, type ComponentImage } from '@luci/format/capture';
+import { authoredFor, LUCI_UI_ATTRIBUTE, type RuleCache } from './dom.js';
 import { hasPhotoBackground } from './eligibility.js';
 import { tokenOf } from './model.js';
 import { elementName, implicitRole } from './naming.js';
 
-export type ImageKind = ImageToken['kind'];
+export type ImageKind = ComponentImage['kind'];
 
-/** The properties the Image tool reads, in the order the file lists them. */
+/** The properties read for an image, in the order the file lists them. */
 export const IMAGE_PROPERTIES = [
   'object-fit', 'object-position', 'aspect-ratio', 'background-size', 'background-position', 'background-repeat', 'background-image',
   'border-radius', 'box-shadow', 'filter', 'opacity', 'mix-blend-mode', 'mask-image', 'clip-path'
@@ -43,6 +43,7 @@ const UNSET: Partial<Record<ImageProperty, (v: string) => boolean>> = {
   'mask-image': v => v === 'none',
   'clip-path': v => v === 'none'
 };
+const noRadius = (v: string) => UNSET['border-radius']!(v.trim());
 
 export interface ImageOverlay {
   /** Where the layer is: "::after", "div around it, ::before", "div over it". */
@@ -52,12 +53,9 @@ export interface ImageOverlay {
   blend?: string;
 }
 
-/** One image as read from the page: plain data, image URLs already removed. */
+/** One image as read from the page: plain data, image URLs already removed from overlays. */
 export interface ImageReading {
-  url: string;
   kind: ImageKind;
-  element: string;
-  selector: string;
   width: number;
   height: number;
   /** The file's own size, when the browser knows it (img, video, canvas). */
@@ -65,8 +63,13 @@ export interface ImageReading {
   /** Computed values of the properties that apply to its kind. */
   styles: Partial<Record<ImageProperty, string>>;
   authored: Partial<Record<ImageProperty, string>>;
-  /** An element around it that clips its corners (overflow hidden with a radius), when the image has none. */
-  clip?: { element: string; radius: string; authored?: string };
+  /** An SVG <image>'s preserveAspectRatio, its own way of fitting ("xMidYMid slice" is cover). */
+  preserveAspectRatio?: string;
+  /**
+   * An element around it that clips its corners (overflow hidden with a radius), when the image has
+   * none: "container" when it is the component itself. `corners` when only some touch ("top").
+   */
+  clip?: { element: string; radius: string; authored?: string; corners?: string };
   overlays: ImageOverlay[];
 }
 
@@ -93,11 +96,25 @@ export function oneLayer(value: string): string {
   return layers.every(l => l === layers[0]) ? layers[0]! : value;
 }
 
-/** The capture for one image (FR21: structure only, no URL anywhere). */
-export function imageToken(r: ImageReading, options: { captured: string }): ImageToken {
+/** "top", "left", "top-left"...: which of the four corners are listed, or undefined for all four. */
+export function cornersLabel(touching: { tl: boolean; tr: boolean; br: boolean; bl: boolean }): string | undefined {
+  const { tl, tr, br, bl } = touching;
+  const n = [tl, tr, br, bl].filter(Boolean).length;
+  if (n === 4 || n === 0) return undefined;
+  if (n === 2) {
+    if (tl && tr) return 'top';
+    if (bl && br) return 'bottom';
+    if (tl && bl) return 'left';
+    if (tr && br) return 'right';
+  }
+  return [tl && 'top-left', tr && 'top-right', br && 'bottom-right', bl && 'bottom-left'].filter(Boolean).join(' and ');
+}
+
+/** One image slot of a component (FR21: structure only, no URL anywhere). */
+export function imageSlot(r: ImageReading, part: string): ComponentImage {
   const ratio = aspectRatioOf(r.width, r.height);
   const source = r.natural ? aspectRatioOf(r.natural.width, r.natural.height) : undefined;
-  const treatment: ImageToken['treatment'] = [];
+  const treatment: ComponentImage['treatment'] = [];
   for (const p of propertiesFor(r.kind)) {
     const raw = r.styles[p];
     const computed = raw && BACKGROUND_PROPS.has(p) && p !== 'background-image' ? oneLayer(raw) : raw;
@@ -111,50 +128,43 @@ export function imageToken(r: ImageReading, options: { captured: string }): Imag
       value: { computed: withoutUrls(computed), ...(authored && authored !== computed ? { authored: withoutUrls(authored) } : {}), ...(token ? { token } : {}) }
     });
   }
+  if (r.preserveAspectRatio) treatment.unshift({ property: 'preserveAspectRatio', value: { computed: r.preserveAspectRatio } });
   if (r.clip && !treatment.some(t => t.property === 'border-radius')) {
     const token = tokenOf(r.clip.authored);
     treatment.push({
       property: 'border-radius',
       value: { computed: r.clip.radius, ...(r.clip.authored && r.clip.authored !== r.clip.radius ? { authored: r.clip.authored } : {}), ...(token ? { token } : {}) },
-      on: r.clip.element
+      on: r.clip.element,
+      ...(r.clip.corners ? { corners: r.clip.corners } : {})
     });
   }
   return {
-    meta: {
-      name: toCaptureName(`image ${r.kind} ${ratio === 'unknown' ? '' : ratio}`),
-      scope: 'token',
-      type: 'image',
-      source: r.url,
-      selector: r.selector,
-      captured: options.captured,
-      method: 'measured'
-    },
+    part,
     kind: r.kind,
     size: { width: Math.round(r.width * 100) / 100, height: Math.round(r.height * 100) / 100 },
     aspectRatio: ratio,
     ...(source && source !== 'unknown' && source !== ratio ? { sourceAspectRatio: source } : {}),
     treatment,
-    overlays: r.overlays.map(o => ({ ...o, background: withoutUrls(o.background) })),
-    usedBy: { element: r.element, selector: r.selector }
+    overlays: r.overlays.map(o => ({ ...o, background: withoutUrls(o.background) }))
   };
 }
 
 // ---------------------------------------------------------------------------------------------
 // Reading the page (browser only)
 
-/** The element the Image tool measures for a pick: a picture's img, else the element itself. */
-export function imageElementOf(el: Element): Element {
-  return el.tagName.toLowerCase() === 'picture' ? el.querySelector('img') ?? el : el;
-}
+const SVG_NS = 'http://www.w3.org/2000/svg';
 
+/** What kind of image an element is, or null when it is none (a picture element is read through its img). */
 export function imageKindOf(el: Element): ImageKind | null {
   const tag = el.tagName.toLowerCase();
-  if (tag === 'img' || tag === 'video' || tag === 'canvas' || tag === 'svg') return tag;
+  if (tag === 'img' || tag === 'video' || tag === 'canvas') return tag;
+  if (tag === 'image' && el.namespaceURI === SVG_NS) return 'svg-image';
+  if (tag === 'svg' || el.namespaceURI === SVG_NS) return null;
   const bg = el.ownerDocument.defaultView?.getComputedStyle(el).backgroundImage;
   return hasPhotoBackground(bg) ? 'background' : null;
 }
 
-const nameOf = (el: Element) => elementName(el.tagName, el.getAttribute('role') ?? implicitRole(el.tagName, { href: el.hasAttribute('href'), type: el.getAttribute('type') ?? undefined }));
+const nameOf = (el: Element) => elementName(el.tagName.toLowerCase(), el.getAttribute('role') ?? implicitRole(el.tagName.toLowerCase(), { href: el.hasAttribute('href'), type: el.getAttribute('type') ?? undefined }));
 const parentOf = (el: Element): Element | null => el.parentElement ?? ((el.getRootNode() as ShadowRoot).host ?? null);
 
 /** The paint of a layer: its background image (URLs removed) over its background color. */
@@ -180,9 +190,13 @@ function pseudoOverlay(host: Element, which: '::before' | '::after', on: string)
 const area = (r: DOMRect) => Math.max(0, r.width) * Math.max(0, r.height);
 const overlap = (a: DOMRect, b: DOMRect) =>
   Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left)) * Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+const near = (a: number, b: number) => Math.abs(a - b) < 1.5;
 
-/** Read one image from the live page. `ref` is its snapshot entry (for the selector). */
-export function readImage(el: Element, ref: { tag: string; role: string | null; selector: string }): ImageReading {
+/**
+ * Read one image from the live page. `container` is the component it belongs to: an element around
+ * the image up to it can clip the image's corners, and is named "container" when it is the component.
+ */
+export function readImage(el: Element, container?: Element, cache: RuleCache = new Map()): ImageReading {
   const doc = el.ownerDocument;
   const win = doc.defaultView!;
   const kind = imageKindOf(el) ?? 'img';
@@ -191,37 +205,51 @@ export function readImage(el: Element, ref: { tag: string; role: string | null; 
   const props = propertiesFor(kind);
   const styles: ImageReading['styles'] = {};
   for (const p of props) styles[p] = cs.getPropertyValue(p).trim();
-  const authored = authoredFor(el, props) as ImageReading['authored'];
+  const authored = authoredFor(el, props, cache) as ImageReading['authored'];
 
   let natural: ImageReading['natural'];
-  if (el instanceof HTMLImageElement && el.naturalWidth > 0) natural = { width: el.naturalWidth, height: el.naturalHeight };
-  else if (el instanceof HTMLVideoElement && el.videoWidth > 0) natural = { width: el.videoWidth, height: el.videoHeight };
-  else if (el instanceof HTMLCanvasElement && el.width > 0) natural = { width: el.width, height: el.height };
+  if (el instanceof win.HTMLImageElement && el.naturalWidth > 0) natural = { width: el.naturalWidth, height: el.naturalHeight };
+  else if (el instanceof win.HTMLVideoElement && el.videoWidth > 0) natural = { width: el.videoWidth, height: el.videoHeight };
+  else if (el instanceof win.HTMLCanvasElement && el.width > 0) natural = { width: el.width, height: el.height };
+  const preserve = kind === 'svg-image' ? el.getAttribute('preserveAspectRatio')?.trim() || 'xMidYMid meet' : undefined;
 
-  // Elements around the image that have its size: they frame it (clip its corners, carry overlays)
+  // Elements around it, up to the component (none when the image is the component's own background)
+  const ancestors: Element[] = [];
+  for (let n = el === container ? null : parentOf(el); n && n !== doc.body && n !== doc.documentElement; n = parentOf(n)) {
+    ancestors.push(n);
+    if (n === container || (!container && ancestors.length >= 3)) break;
+  }
+
+  // The first element around it that clips with rounded corners, where the image reaches a corner
+  let clip: ImageReading['clip'];
+  if (noRadius(cs.borderRadius) && kind !== 'svg-image') {
+    for (const f of ancestors) {
+      const fcs = win.getComputedStyle(f);
+      if (fcs.overflow === 'visible' || noRadius(fcs.borderRadius)) continue;
+      const r = f.getBoundingClientRect();
+      const touching = {
+        tl: near(box.left, r.left) && near(box.top, r.top), tr: near(box.right, r.right) && near(box.top, r.top),
+        br: near(box.right, r.right) && near(box.bottom, r.bottom), bl: near(box.left, r.left) && near(box.bottom, r.bottom)
+      };
+      if (!Object.values(touching).some(Boolean)) continue;
+      const a = authoredFor(f, ['border-radius'], cache)['border-radius'];
+      const corners = cornersLabel(touching);
+      clip = { element: f === container ? 'container' : nameOf(f), radius: fcs.borderRadius.trim(), ...(a ? { authored: a } : {}), ...(corners ? { corners } : {}) };
+      break;
+    }
+  }
+
+  // Elements around the image that have its size frame it: they can carry layers over it
   const frames: Element[] = [];
-  for (let n = parentOf(el), i = 0; n && i < 3 && n !== doc.body && n !== doc.documentElement; n = parentOf(n), i++) {
+  for (const n of ancestors.slice(0, 3)) {
     const r = n.getBoundingClientRect();
     if (area(r) > area(box) * 1.15 || overlap(r, box) < area(box) * 0.9) break;
     frames.push(n);
   }
-
-  let clip: ImageReading['clip'];
-  if (UNSET['border-radius']!(cs.borderRadius.trim())) {
-    for (const f of frames) {
-      const fcs = win.getComputedStyle(f);
-      if (fcs.overflow !== 'visible' && !UNSET['border-radius']!(fcs.borderRadius.trim())) {
-        const a = authoredFor(f, ['border-radius'])['border-radius'];
-        clip = { element: nameOf(f), radius: fcs.borderRadius.trim(), ...(a ? { authored: a } : {}) };
-        break;
-      }
-    }
-  }
-
   const overlays: ImageOverlay[] = [];
   const add = (o: ImageOverlay | null) => { if (o) overlays.push(o); };
   // An element with a background image can paint layers over it itself, and hold one as a child
-  // (img, video and canvas have no ::before or ::after; an svg's are not drawn)
+  // (img, video and canvas have no ::before or ::after)
   if (kind === 'background') {
     add(pseudoOverlay(el, '::before', '::before'));
     add(pseudoOverlay(el, '::after', '::after'));
@@ -242,16 +270,35 @@ export function readImage(el: Element, ref: { tag: string; role: string | null; 
   }
 
   return {
-    url: doc.location?.href ?? '',
     kind,
-    element: elementName(ref.tag, ref.role),
-    selector: ref.selector,
     width: box.width,
     height: box.height,
     ...(natural ? { natural } : {}),
     styles,
     authored,
+    ...(preserve ? { preserveAspectRatio: preserve } : {}),
     ...(clip ? { clip } : {}),
     overlays
   };
+}
+
+/** At most this many image slots per component. */
+export const MAX_IMAGES = 12;
+
+/**
+ * The images inside a component (the component itself included, for a background photo), in page
+ * order, as live elements. A picture element counts through its img; an inline svg drawing is not
+ * an image (it is an icon or illustration part), but an SVG <image> inside it is.
+ */
+export function imagesInside(container: Element): Element[] {
+  const out: Element[] = [];
+  const visit = (el: Element) => {
+    if (out.length >= MAX_IMAGES || el.hasAttribute(LUCI_UI_ATTRIBUTE)) return;
+    const r = el.getBoundingClientRect();
+    if (r.width > 0 && r.height > 0 && imageKindOf(el)) out.push(el);
+    for (const child of Array.from(el.shadowRoot?.children ?? [])) visit(child);
+    for (const child of Array.from(el.children)) visit(child);
+  };
+  visit(container);
+  return out;
 }

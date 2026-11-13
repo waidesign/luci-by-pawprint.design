@@ -41,6 +41,57 @@
       "motion": [{ "kind": "transition", "target": "background-color", "duration": "150ms", "easing": "ease-out", "delay": "0s" }]
     }
   },
+  "example-com.component.card.design.md": {
+    "settings": { "units": "px", "colors": "hex" },
+    "capture": {
+      "meta": { "name": "card", "scope": "component", "type": "card", "source": "https://example.com/blog", "selector": "main article:nth-of-type(1)", "captured": "2026-11-13", "method": "measured" },
+      "tokens": [
+        { "token": "--radius-lg", "value": "12px", "usedFor": ["border-radius"] }
+      ],
+      "anatomy": [
+        { "part": "container", "element": "article (article)", "styles": [
+          { "property": "display", "value": { "computed": "flex" } },
+          { "property": "flex-direction", "value": { "computed": "column" } },
+          { "property": "border-radius", "value": { "computed": "12px", "authored": "var(--radius-lg)", "token": "--radius-lg" } },
+          { "property": "background-color", "value": { "computed": "rgb(255, 255, 255)" } }
+        ] },
+        { "part": "image", "element": "img", "styles": [
+          { "property": "width", "value": { "computed": "360px" } },
+          { "property": "height", "value": { "computed": "202.5px" } }
+        ] },
+        { "part": "heading", "element": "h3 (heading)", "styles": [
+          { "property": "font-size", "value": { "computed": "20px" } },
+          { "property": "font-weight", "value": { "computed": "600" } },
+          { "property": "color", "value": { "computed": "rgb(22, 22, 22)" } }
+        ] }
+      ],
+      "images": [
+        {
+          "part": "image", "kind": "img", "size": { "width": 360, "height": 202.5 }, "aspectRatio": "16:9", "sourceAspectRatio": "3:2",
+          "treatment": [
+            { "property": "object-fit", "value": { "computed": "cover" } },
+            { "property": "object-position", "value": { "computed": "50% 30%" } },
+            { "property": "aspect-ratio", "value": { "computed": "16 / 9" } },
+            { "property": "filter", "value": { "computed": "saturate(1.2)" } },
+            { "property": "border-radius", "value": { "computed": "12px", "authored": "var(--radius-lg)", "token": "--radius-lg" }, "on": "container", "corners": "top" }
+          ],
+          "overlays": [
+            { "on": "div over it", "background": "linear-gradient(to top, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0))" }
+          ]
+        }
+      ],
+      "states": [
+        { "state": "hover", "detected": true, "method": "forced", "changes": [
+          { "property": "box-shadow", "from": "none", "to": { "computed": "rgba(0, 0, 0, 0.2) 0px 8px 24px 0px" } },
+          { "part": "image", "property": "transform", "from": "none", "to": { "computed": "matrix(1.05, 0, 0, 1.05, 0, 0)" } }
+        ] }
+      ],
+      "motion": [
+        { "kind": "transition", "target": "box-shadow", "duration": "0.2s", "easing": "ease" },
+        { "part": "image", "kind": "transition", "target": "transform", "duration": "0.4s", "easing": "ease-out" }
+      ]
+    }
+  },
   "example-com.component.nav-link.design.md": {
     "settings": { "units": "both", "colors": "hex" },
     "capture": {

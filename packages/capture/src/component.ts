@@ -3,8 +3,9 @@
  * "The whole system", the similar elements on the page grouped as variants. States come from
  * states.ts. Works on the page snapshot only, so it is the same in both toolbar shells.
  */
-import { colorKey, isTransparent, round, toCaptureName, type CapturedValue, type ComponentCapture } from '@luci/format/capture';
+import { colorKey, isTransparent, round, toCaptureName, withoutUrls, type CapturedValue, type ComponentCapture, type ComponentImage } from '@luci/format/capture';
 import { isChromatic } from './color.js';
+import { imageSlot, type ImageReading } from './image.js';
 import { tokenOf, valueOf, type ElementSnapshot, type PageSnapshot, type SnapshotProperty } from './model.js';
 import { elementName } from './naming.js';
 
@@ -74,9 +75,12 @@ export function boxStyles(snap: PageSnapshot, el: ElementSnapshot): ComponentCap
       for (const s of visible) add(`border-${s}`, { computed: `${el.styles[`border-${s}-width`]} ${el.styles[`border-${s}-style`]} ${el.styles[`border-${s}-color`]}` });
     }
   }
-  for (const p of BOX.slice(6)) if (own(snap, el, p)) add(p, p === 'background-image' && /url\(/.test(el.styles[p] ?? '') ? { computed: 'image (not captured)' } : valueOf(el, p));
+  // A background photo's address is never kept (FR21); its slot is described under Images
+  for (const p of BOX.slice(6)) if (own(snap, el, p)) add(p, p === 'background-image' ? noUrls(valueOf(el, p)) : valueOf(el, p));
   return out;
 }
+
+const noUrls = (v: CapturedValue): CapturedValue => ({ ...v, computed: withoutUrls(v.computed), ...(v.authored ? { authored: withoutUrls(v.authored) } : {}) });
 
 function textStyles(el: ElementSnapshot): ComponentCapture['anatomy'][number]['styles'] {
   return TEXT.filter(p => !isNothing(p, el.styles[p] ?? '')).map(p => ({ property: p, value: valueOf(el, p) }));
@@ -101,7 +105,8 @@ export function componentType(el: ElementSnapshot): string {
 function partName(el: ElementSnapshot): string {
   if (/^h[1-6]$/.test(el.tag) || el.role === 'heading') return 'heading';
   if (['svg', 'i'].includes(el.tag) || el.role === 'img' && el.tag !== 'img') return 'icon';
-  if (el.tag === 'img' || el.tag === 'picture') return 'image';
+  // "image" is an SVG <image>: a picture placed inside a drawing
+  if (el.tag === 'img' || el.tag === 'picture' || el.tag === 'image') return 'image';
   if (['input', 'select', 'textarea'].includes(el.tag)) return 'field';
   if (el.tag === 'button' || el.role === 'button') return 'action';
   if (el.tag === 'a') return 'link';
@@ -181,15 +186,15 @@ export function anatomyOf(snap: PageSnapshot, container: ElementSnapshot, inside
     const isIcon = name === 'icon' || name === 'image';
     const styles = isIcon
       ? [{ property: 'width', value: { computed: `${round(el.rect.width)}px` } }, { property: 'height', value: { computed: `${round(el.rect.height)}px` } },
-        ...(['fill', 'color'] as const).filter(p => el.styles[p] && el.styles[p] !== 'none' && el.tag !== 'img').slice(0, 1).map(p => ({ property: p, value: valueOf(el, p) }))]
+        ...(['fill', 'color'] as const).filter(p => el.styles[p] && el.styles[p] !== 'none' && el.tag !== 'img' && el.tag !== 'image').slice(0, 1).map(p => ({ property: p, value: valueOf(el, p) }))]
       : [...textStyles(el), ...boxStyles(snap, el).filter(s => s.property !== 'display')];
     parts.push({ part, element: elementName(el.tag, el.role), styles });
   }
   return parts;
 }
 
-/** Custom properties the component's parts use, with resolved values and what they set. */
-export function tokensOf(snap: PageSnapshot, anatomy: ComponentCapture['anatomy']): ComponentCapture['tokens'] {
+/** Custom properties the component's parts (and its images) use, with resolved values and what they set. */
+export function tokensOf(snap: PageSnapshot, anatomy: readonly { styles: readonly { property: string; value: CapturedValue }[] }[]): ComponentCapture['tokens'] {
   const uses = new Map<string, Set<string>>();
   for (const part of anatomy) for (const s of part.styles) {
     for (const m of (s.value.authored ?? '').matchAll(/var\(\s*(--[\w-]+)/g)) {
@@ -262,7 +267,7 @@ export function componentCapture(
   snap: PageSnapshot,
   el: ElementSnapshot,
   inside: (e: ElementSnapshot) => number | null,
-  options: { captured?: string; system?: boolean; states?: ComponentCapture['states'] } = {}
+  options: { captured?: string; system?: boolean; states?: ComponentCapture['states']; images?: readonly ComponentImageInput[] } = {}
 ): ComponentCapture {
   const name = componentName(el);
   const anatomy = anatomyOf(snap, el, inside);
@@ -308,12 +313,41 @@ export function componentCapture(
     ...motionOf(el),
     ...[...changing].filter(p => p !== 'container' && all.has(p)).flatMap(part => motionOf(all.get(part)!).map(m => ({ part, ...m })))
   ];
+  // Image slots, named as the anatomy names their element; an image the anatomy does not list yet
+  // (deeper than parts are read, or a div with a background photo) becomes a new "image" part
+  const partOf = new Map<number, string>();
+  for (const [part, e] of all) if (part === 'container' || anatomy.some(a => a.part === part)) partOf.set(e.id, part);
+  partOf.set(el.id, 'container');
+  const images: ComponentImage[] = [];
+  for (const { el: imageEl, reading } of options.images ?? []) {
+    let part = partOf.get(imageEl.id);
+    if (!part) {
+      const n = (counters.get('image') ?? 0) + 1;
+      counters.set('image', n);
+      part = n > 1 ? `image-${n}` : 'image';
+      partOf.set(imageEl.id, part);
+      anatomy.push({
+        part,
+        element: elementName(imageEl.tag, imageEl.role),
+        styles: [{ property: 'width', value: { computed: `${round(imageEl.rect.width)}px` } }, { property: 'height', value: { computed: `${round(imageEl.rect.height)}px` } },
+          ...boxStyles(snap, imageEl).filter(s => !['display', 'width', 'height'].includes(s.property))]
+      });
+    }
+    images.push(imageSlot(reading, part));
+  }
   return {
     meta: { name, scope: 'component', type: componentType(el), source: snap.url, selector: el.selector, captured: options.captured ?? today(), method: 'measured' },
-    tokens: tokensOf(snap, anatomy),
+    tokens: tokensOf(snap, [...anatomy, ...images.map(i => ({ styles: i.treatment }))]),
     anatomy,
+    ...(images.length ? { images } : {}),
     states,
     motion,
     ...(options.system ? { variants: variantsOf(snap, el, name) } : {})
   };
+}
+
+/** One image inside a component, as read from the live page (image.ts readImage). */
+export interface ComponentImageInput {
+  el: ElementSnapshot;
+  reading: ImageReading;
 }

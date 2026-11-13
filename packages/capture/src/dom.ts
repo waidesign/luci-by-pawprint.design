@@ -157,15 +157,22 @@ function authoredValue(el: Element, prop: string, matches: readonly Match[]): st
 
 const CSS_WIDE = /^(inherit|initial|unset|revert|revert-layer)$/;
 
+/** Stylesheet rules per tree, kept for one capture so several authoredFor calls collect them once. */
+export type RuleCache = Map<Node, CSSStyleRule[]>;
+
 /**
  * What the site wrote for some properties of one element (any properties, not only the snapshot's):
- * inline style, then the stylesheet rules of its own tree that match it at rest. Used by the Image
- * tool, which reads a few properties of one element rather than the whole page.
+ * inline style, then the stylesheet rules of its own tree that match it at rest. Used for a
+ * component's images, where a few properties of a few elements are read.
  */
-export function authoredFor(el: Element, props: readonly string[]): Record<string, string> {
+export function authoredFor(el: Element, props: readonly string[], cache?: RuleCache): Record<string, string> {
   const root = el.getRootNode() as Document | ShadowRoot;
-  const rules: CSSStyleRule[] = [];
-  collectRules(sheetsOf(root), rules, { allReadable: true });
+  let rules = cache?.get(root);
+  if (!rules) {
+    rules = [];
+    collectRules(sheetsOf(root), rules, { allReadable: true });
+    cache?.set(root, rules);
+  }
   const matches: Match[] = [];
   rules.forEach((rule, order) => {
     for (const part of rule.selectorText.split(/,(?![^(]*\))/).map(p => p.trim()).filter(Boolean)) {
@@ -183,7 +190,7 @@ export function authoredFor(el: Element, props: readonly string[]): Record<strin
   return out;
 }
 
-const looksHashed =(id: string) => /\d{3,}|[a-z]+[A-Z0-9][a-zA-Z0-9]{4,}|_[a-z0-9]{5,}$/i.test(id) && /\d/.test(id);
+const looksHashed = (id: string) => /\d{3,}|[a-z]+[A-Z0-9][a-zA-Z0-9]{4,}|_[a-z0-9]{5,}$/i.test(id) && /\d/.test(id);
 
 /** A selector that finds exactly this element in its tree, from tags and positions (not hashed classes). */
 export function selectorFor(el: Element, root: Document | ShadowRoot): string {

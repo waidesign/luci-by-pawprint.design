@@ -163,8 +163,8 @@ describe.each(SITES)('capture tools on the %s site (M4)', (site) => {
     await page.close();
   }, 60_000);
 
-  it('blocks the image and the photo background; allows SVG; the body redirects (FR4)', () => {
-    expect(result.eligibility).toEqual({ image: 'blocked', hero: 'blocked', svg: 'allowed', body: 'redirected' });
+  it('blocks the bare image; allows the photo background and SVG; the body redirects (FR4, changed 2026-11-13)', () => {
+    expect(result.eligibility).toEqual({ image: 'blocked', hero: 'allowed', svg: 'allowed', body: 'redirected' });
   });
 
   it('Text: each style appears once, every text element has a role, and the h1 matches the browser (FR11, FR12)', () => {
