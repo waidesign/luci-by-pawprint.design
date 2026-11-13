@@ -11,12 +11,13 @@ import type { ElementSnapshot } from '../model.js';
 import { manualState, type ComputedMap, type StateName } from '../states.js';
 import { elementName } from '../naming.js';
 import { elementAt, eligibilityOf, eventTarget, firstChildOf, hoverLabel, parentOf, scrollableAncestor } from './picker.js';
+import { ButtonSpinner, Loading, nextPaint } from './loading.js';
 import {
   ALL_SPACING,
   TOOLS,
   TOOL_LABELS,
   captureComponent,
-  capturePage,
+  capturePageInSteps,
   captureDistance,
   readComponentStates,
   restingValues,
@@ -71,7 +72,7 @@ function SaveButton(props: { save: () => Promise<{ path: string; replaced: boole
   return (
     <>
       <button type="button" data-action="save-to-project" disabled={state.busy} title="Into the project's .luci/design/, where your agent reads it" onClick={() => void run()}>
-        {state.busy ? 'Saving…' : 'Save to project'}
+        {state.busy ? <><ButtonSpinner />Saving…</> : 'Save to project'}
       </button>
       {state.done && <span class="dim" data-part="saved">{state.done}</span>}
       {state.error && <span class="error" data-part="save-error">{state.error}</span>}
@@ -232,7 +233,7 @@ export function Toolbar(props: ToolbarProps) {
       try { show(captureSystem(tool, picked.live, settings, picked.entry)); } catch (err) { failed(err); }
       return;
     }
-    setBusy('Reading states…');
+    setBusy('Reading hover, focus, active and disabled…');
     try {
       const rest = restingValues(stateTargets(picked.live, picked.entry));
       const { states, note } = await readComponentStates(picked.live, picked.entry, props.readForcedStates);
@@ -296,6 +297,9 @@ export function Toolbar(props: ToolbarProps) {
 
   // "Whole page": the page's systems and every kind of component on it, in one file
   const [pageBusy, setPageBusy] = useState(false);
+  const [pageStep, setPageStep] = useState<string | null>(null);
+  // Bumped when another action starts, so a page read still running does not show its result over it
+  const pageRun = useRef(0);
   const [wholePage, setWholePage] = useState(false);
   const captureWholePage = () => {
     cancelCapture();
@@ -313,16 +317,14 @@ export function Toolbar(props: ToolbarProps) {
     aim(null);
     setWholePage(true);
     setPageBusy(true);
-    // Let the "Reading the page" note paint before the work
-    setTimeout(() => {
-      try {
-        show(capturePage(liveSnapshot(doc), settingsRef.current));
-      } catch (err) {
-        failed(err);
-      } finally {
-        setPageBusy(false);
-      }
-    }, 30);
+    setPageStep(null);
+    // In steps, each painted before its work, so the loader says where Luci is
+    const run = ++pageRun.current;
+    void capturePageInSteps(doc, settingsRef.current, {
+      onStep: s => { if (run === pageRun.current) setPageStep(s); },
+      pause: () => nextPaint(win)
+    }).then(r => { if (run === pageRun.current) show(r); }, err => { if (run === pageRun.current) failed(err); })
+      .finally(() => { if (run === pageRun.current) { setPageBusy(false); setPageStep(null); } });
   };
 
   const startPicking = (t: ToolId) => {
@@ -330,6 +332,9 @@ export function Toolbar(props: ToolbarProps) {
     const active = (doc.querySelector('luci-toolbar')?.shadowRoot?.activeElement ?? null) as HTMLElement | null;
     active?.blur();
     cancelCapture();
+    pageRun.current++;
+    setPageBusy(false);
+    setPageStep(null);
     setWholePage(false);
     setTool(t);
     setPicking(true);
@@ -727,7 +732,7 @@ export function Toolbar(props: ToolbarProps) {
       </div>
 
       {pageBusy && !basketOpen && (
-        <div class="panel" role="status"><p class="hint" data-part="busy">Reading the whole page: text, colors, spacing and components…</p></div>
+        <div class="panel"><Loading text="Reading the whole page: text, colors, spacing and components…" step={pageStep} /></div>
       )}
 
       {basketOpen && (
@@ -866,7 +871,7 @@ export function Toolbar(props: ToolbarProps) {
               ))}
             </div>
           )}
-          {busy ? <p class="hint" data-part="busy">{busy}</p> : (
+          {busy ? <Loading text={busy} /> : (
             <>
               <div class="row">
                 {picked.eligibility.status === 'allowed' && (

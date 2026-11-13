@@ -76,6 +76,24 @@ export function storageBasket(storage: KeyValue, key: string = KEYS.basket): Bas
   };
 }
 
+export const CONNECTING_TAG = 'luci-connecting';
+
+/** "Connecting to your project…" with a spinner, where the bar will appear. */
+function connectingPill(doc: Document): HTMLElement {
+  const host = doc.createElement(CONNECTING_TAG);
+  host.setAttribute(LUCI_UI_ATTRIBUTE, '');
+  const root = host.attachShadow({ mode: 'open' });
+  root.innerHTML = `<style>
+    div{position:fixed;top:12px;right:12px;z-index:2147483647;display:flex;gap:8px;align-items:center;padding:8px 12px;border-radius:10px;border:1px solid #3f3f46;
+      background:#18181b;color:#f4f4f5;font:13px/1.4 system-ui,sans-serif;box-shadow:0 6px 24px rgb(0 0 0 / .35)}
+    i{width:14px;height:14px;border-radius:50%;border:2px solid rgb(167 139 250 / .25);border-top-color:#a78bfa;animation:s .8s linear infinite}
+    @keyframes s{to{transform:rotate(360deg)}} @keyframes p{50%{opacity:.35}}
+    @media (prefers-reduced-motion: reduce){i{animation:p 1.6s ease-in-out infinite;border-color:#a78bfa}}
+  </style><div role="status" aria-live="polite" data-part="connecting"><i aria-hidden="true"></i><span>Luci: connecting to your project…</span></div>`;
+  doc.documentElement.appendChild(host);
+  return host;
+}
+
 /** Mount the dev toolbar once per page. */
 export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<DevToolbarHandle> {
   const doc = options.doc ?? document;
@@ -86,7 +104,14 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
   const noteFor = (h: BridgeHealth) => (h.ok
     ? `luci serve is running, but ${h.project ?? 'its folder'} has no .luci/ yet: run \`luci init\` there. Until then, notes stay in this browser.`
     : `Not connected to your project (${bridge}: ${h.reason ?? 'no answer'}). Run \`luci serve\` in it to save notes where your agent reads them, then click here. Until then, they stay in this browser.`);
-  const health = await bridgeReachable(bridge);
+  // The bar's place says what Luci is doing while it looks for `luci serve` (up to a few seconds)
+  const connecting = connectingPill(doc);
+  let health: BridgeHealth;
+  try {
+    health = await bridgeReachable(bridge);
+  } finally {
+    connecting.remove();
+  }
   let connected = health.ok && health.initialized;
   let backend: FeedbackBackend = connected ? bridgeBackend(bridge) : browserBackend(storage, KEYS.items);
   let connectNote = noteFor(health);

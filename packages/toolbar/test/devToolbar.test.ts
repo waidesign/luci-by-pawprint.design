@@ -7,7 +7,7 @@
  */
 import fs from 'node:fs';
 import http from 'node:http';
-import type { AddressInfo } from 'node:net';
+import net, { type AddressInfo } from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -170,6 +170,31 @@ describe('webhook (FR31)', { timeout: 60_000 }, () => {
     } finally {
       await ctx.close();
       await new Promise<void>(r => { hook.closeAllConnections(); hook.close(() => r()); });
+    }
+  });
+});
+
+describe('connecting', { timeout: 60_000 }, () => {
+  it('says "connecting to your project" while it waits for an answer, then shows the bar', async () => {
+    // A server that accepts and never answers: the check waits its full time
+    const sockets = new Set<net.Socket>();
+    const silent = net.createServer(s => { sockets.add(s); /* never answer */ });
+    await new Promise<void>(r => silent.listen(0, '127.0.0.1', () => r()));
+    const ctx = await context(`http://127.0.0.1:${(silent.address() as AddressInfo).port}`);
+    try {
+      const page = await ctx.newPage();
+      page.setDefaultTimeout(8000);
+      await page.goto(`${app.origin}/`);
+      const pill = page.locator('[data-part="connecting"]');
+      await pill.waitFor();
+      expect(await pill.innerText()).toBe('Luci: connecting to your project…');
+      await page.locator('[data-action="annotate"]').waitFor();
+      expect(await pill.count()).toBe(0);
+      expect(await page.locator('[data-part="connection"]').getAttribute('title')).toContain('no answer within');
+    } finally {
+      await ctx.close();
+      for (const s of sockets) s.destroy();
+      await new Promise<void>(r => silent.close(() => r()));
     }
   });
 });

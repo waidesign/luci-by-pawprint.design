@@ -199,24 +199,63 @@ function ruleStates(live: LiveSnapshot, entry: ElementSnapshot): ComponentCaptur
   }
 }
 
+/** One component of a page file, read from the live page: its states and images. A part that fails is listed in `skipped`. */
+function readPageComponent(live: LiveSnapshot, entry: ElementSnapshot, skipped: SkippedPart[], rules: RuleCache) {
+  let states: ComponentCapture['states'] = [];
+  try { states = ruleStates(live, entry); } catch (err) {
+    skipped.push({ part: `states of ${entry.selector}`, reason: (err instanceof Error ? err.message : String(err)).slice(0, 200) });
+  }
+  let images: ComponentImageInput[] = [];
+  try { images = componentImages(live, entry, rules); } catch (err) {
+    skipped.push({ part: `images of ${entry.selector}`, reason: (err instanceof Error ? err.message : String(err)).slice(0, 200) });
+  }
+  return { entry, inside: insideOf(live, entry), states, images };
+}
+
+function pageResult(live: LiveSnapshot, components: ReturnType<typeof readPageComponent>[], skipped: SkippedPart[], settings: CaptureSettings, captured: string): Result {
+  const page = pageCapture(live.snapshot, components, { captured, skipped });
+  if (!page.typography && !page.color && !page.spacing && !page.components.length) return { ok: false, message: 'This page has nothing visible to capture.' };
+  return { ok: true, output: toOutput(page, settings) };
+}
+
 /** "Whole page": one file with the page's systems and every kind of component on it. */
 export function capturePage(live: LiveSnapshot, settings: CaptureSettings, options: { captured?: string } = {}): Result {
   const skipped: SkippedPart[] = [];
   const rules: RuleCache = new Map();
-  const components = pageComponents(live.snapshot).map(entry => {
-    let states: ComponentCapture['states'] = [];
-    try { states = ruleStates(live, entry); } catch (err) {
-      skipped.push({ part: `states of ${entry.selector}`, reason: (err instanceof Error ? err.message : String(err)).slice(0, 200) });
-    }
-    let images: ComponentImageInput[] = [];
-    try { images = componentImages(live, entry, rules); } catch (err) {
-      skipped.push({ part: `images of ${entry.selector}`, reason: (err instanceof Error ? err.message : String(err)).slice(0, 200) });
-    }
-    return { entry, inside: insideOf(live, entry), states, images };
-  });
-  const page = pageCapture(live.snapshot, components, { captured: options.captured ?? CAPTURED(), skipped });
-  if (!page.typography && !page.color && !page.spacing && !page.components.length) return { ok: false, message: 'This page has nothing visible to capture.' };
-  return { ok: true, output: toOutput(page, settings) };
+  const components = pageComponents(live.snapshot).map(entry => readPageComponent(live, entry, skipped, rules));
+  return pageResult(live, components, skipped, settings, options.captured ?? CAPTURED());
+}
+
+/** The steps of "Whole page", as the loader says them. */
+export const PAGE_STEPS = {
+  snapshot: 'Reading the page',
+  component: (i: number, n: number) => `Components ${i} of ${n}: states and images`,
+  systems: 'Text styles, colors and spacing'
+} as const;
+
+/**
+ * "Whole page" in steps, the same file as capturePage: between steps it waits for `pause` (the
+ * toolbar: the next paint), so the loader can show where Luci is on a large page.
+ */
+export async function capturePageInSteps(
+  doc: Document,
+  settings: CaptureSettings,
+  options: { captured?: string; onStep?: (step: string) => void; pause?: () => Promise<void> } = {}
+): Promise<Result> {
+  const pause = options.pause ?? (() => new Promise<void>(r => setTimeout(r, 0)));
+  const step = async (text: string) => { options.onStep?.(text); await pause(); };
+  await step(PAGE_STEPS.snapshot);
+  const live = liveSnapshot(doc);
+  const skipped: SkippedPart[] = [];
+  const rules: RuleCache = new Map();
+  const entries = pageComponents(live.snapshot);
+  const components: ReturnType<typeof readPageComponent>[] = [];
+  for (const [i, entry] of entries.entries()) {
+    await step(PAGE_STEPS.component(i + 1, entries.length));
+    components.push(readPageComponent(live, entry, skipped, rules));
+  }
+  await step(PAGE_STEPS.systems);
+  return pageResult(live, components, skipped, settings, options.captured ?? CAPTURED());
 }
 
 /** The color of a pixel from the eyedropper. */

@@ -5,7 +5,7 @@
  * prompt's detail level; pause animations to annotate one frame. Items live in a FeedbackBackend.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import { elementAt, isLuciUi, scrollableAncestor } from '@luci/capture';
+import { ButtonSpinner, elementAt, isLuciUi, scrollableAncestor } from '@luci/capture';
 import {
   DETAIL_LEVELS,
   FEEDBACK_INTENTS,
@@ -99,6 +99,7 @@ export function Feedback(props: FeedbackProps) {
   const [href, setHref] = useState(doc.location.href);
   const [selection, setSelection] = useState<{ el: Element; text: string; x: number; y: number } | null>(null);
   const [paused, setPaused] = useState(false);
+  const [checking, setChecking] = useState(false);
   const [, setTick] = useState(0);
 
   const reload = async () => {
@@ -291,8 +292,10 @@ export function Feedback(props: FeedbackProps) {
             {backend.kind === 'project' ? 'Project' : 'This browser'}
           </span>
         ) : (
-          <button type="button" class={`conn ${backend.kind}`} data-part="connection" data-action="connect" title={props.connectNote ?? ''}
-            onClick={() => void props.onConnect!().then(why => setError(why))}>This browser</button>
+          <button type="button" class={`conn ${backend.kind}`} data-part="connection" data-action="connect" title={props.connectNote ?? ''} disabled={checking}
+            onClick={() => { setChecking(true); void props.onConnect!().then(why => { setChecking(false); setError(why); }); }}>
+            {checking ? <><ButtonSpinner />Checking…</> : 'This browser'}
+          </button>
         )}
         <button type="button" aria-label="Close Luci" data-action="close" onClick={props.onClose}>×</button>
       </div>
@@ -405,7 +408,7 @@ function NoteForm(props: { draft: Draft; win: Window; onSave: (f: { comment: str
         </select></label>
       </div>
       <div class="row">
-        <button type="button" class="primary" data-action="save-note" disabled={!comment.trim() || busy} onClick={() => void submit()}>{busy ? 'Saving…' : 'Save'}</button>
+        <button type="button" class="primary" data-action="save-note" disabled={!comment.trim() || busy} onClick={() => void submit()}>{busy ? <><ButtonSpinner />Saving…</> : 'Save'}</button>
         <button type="button" data-action="cancel-note" onClick={props.onCancel}>Cancel</button>
       </div>
     </div>
