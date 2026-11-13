@@ -212,6 +212,7 @@ Version 0.1 covers all four modules: 56 requirements, 49 of them must-have (P0).
 | FR29 | **Sent state.** Copied items are marked as sent, so the next copy does not repeat them unless asked. | P0 |
 | FR30 | **Agent sync over MCP.** The agent can list pending items, acknowledge, ask a question, resolve with a summary and clear; each marker shows its status on the page. | P0 |
 | FR31 | **Pause animations and webhook send.** Freeze the page to annotate a frame; send annotations to a configured webhook. | P1 |
+| FR32 | **Layout mode.** Plan layout changes on the live page and send them as notes: step 1 resizes existing elements, moves them among their siblings, and sets gap, padding and margins, snapped to the page's spacing scale with its token named, previewed on the real page with undo, redo and reset (React's DOM is never moved). Each note carries exact steps and the window width it was planned at. Later steps: insert the project's own components, saved captures or blocks; wireframe a new page. (Added 13 Nov 2026, after Agentation's Layout mode.) | P1 |
 
 FR26 to FR29 are the fix for the multi-page problem. The cause was confirmed in daily use: Agentation gives every batch the same style of page header, so an agent cannot tell two pages' feedback apart. One top header, numbered pages and a unique ID per item remove that confusion.
 

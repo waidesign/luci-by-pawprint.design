@@ -345,7 +345,7 @@ describe('dev toolbar with luci serve (M6 Done when, automated)', { timeout: 90_
     await page.click('[data-mode="capture"]');
     await page.locator('button[data-tool="component"]').waitFor();
     expect(await page.locator('luci-toolbar [data-mode="capture"]').getAttribute('aria-pressed')).toBe('true');
-    expect(await page.locator('luci-toolbar [data-part="modes"] button').allInnerTexts()).toEqual(['Feedback', 'Capture']);
+    expect(await page.locator('luci-toolbar [data-part="modes"] button').allInnerTexts()).toEqual(['Feedback', 'Layout', 'Capture']);
     // The mode is remembered in this tab
     await page.reload();
     await page.locator('button[data-tool="component"]').waitFor();

@@ -15,7 +15,7 @@ import { z } from 'zod';
 import { DesignError, DesignStore, FeedbackError, FeedbackStore } from '@luci/brain';
 import { serverResolver } from './resolve.js';
 import { PRODUCT } from '@luci/format';
-import { DETAIL_LEVELS, FEEDBACK_INTENTS, FEEDBACK_PRIORITIES, feedbackItemSchema, formatFeedbackPrompt } from '@luci/format/feedback';
+import { DETAIL_LEVELS, FEEDBACK_INTENTS, FEEDBACK_PRIORITIES, feedbackItemSchema, formatFeedbackPrompt, layoutSchema } from '@luci/format/feedback';
 
 export const DEFAULT_PORT = 4545;
 /** The header every write must carry (a page cannot send it without passing the CORS check). */
@@ -65,6 +65,7 @@ const newItemSchema = z.object({
   page: z.object({ url: z.string().min(1), route: z.string().min(1).optional(), title: z.string().optional(), source: z.string().min(1).optional() }),
   target: feedbackItemSchema.shape.target,
   comment: z.string().trim().min(1),
+  layout: layoutSchema.optional(),
   intent: z.enum(FEEDBACK_INTENTS),
   priority: z.enum(FEEDBACK_PRIORITIES)
 });

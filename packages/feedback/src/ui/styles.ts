@@ -68,6 +68,20 @@ export const FEEDBACK_CSS = `${TOOLBAR_CSS}
 .link-button { padding: 0; text-decoration: underline; }
 .link-button:hover { background: transparent; }
 .row-details .details { gap: 6px; }
+/* Layout mode */
+.sel { position: fixed; z-index: 2147483643; pointer-events: none; border: 2px solid var(--accent); box-shadow: 0 0 0 1px rgb(24 24 27 / 0.6); }
+.handle { position: fixed; z-index: 2147483646; display: block; background: var(--accent); border: 2px solid #18181b; border-radius: 4px; touch-action: none; }
+.h-right { width: 10px; height: 24px; cursor: ew-resize; }
+.h-bottom { width: 24px; height: 10px; cursor: ns-resize; }
+.h-corner { width: 14px; height: 14px; cursor: nwse-resize; }
+.h-move { width: 26px; height: 26px; padding: 0; display: inline-flex; align-items: center; justify-content: center; color: #18181b; font: 600 14px/1 system-ui; cursor: grab; }
+.h-move:hover { background: #c4b5fd; }
+.drop-line { position: fixed; z-index: 2147483646; pointer-events: none; background: #f472b6; border-radius: 2px; box-shadow: 0 0 0 2px rgb(244 114 182 / 0.3); }
+.lrow { display: grid; grid-template-columns: 96px auto 72px auto auto 1fr; gap: 6px; align-items: center; }
+.lrow button { padding: 2px 8px; }
+.lrow .token { font: 12px ui-monospace, monospace; }
+.layout-panel { max-height: min(80vh, 680px); overflow: auto; }
+.layout-panel textarea { font: 13px/1.4 system-ui, sans-serif; background: #27272a; min-height: 56px; }
 .footer { border-top: 1px solid var(--line); padding-top: 10px; }
 .danger { border-top: 1px solid var(--line); padding-top: 10px; }
 `;

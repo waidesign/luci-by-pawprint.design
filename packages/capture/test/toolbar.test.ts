@@ -22,8 +22,9 @@ async function open(site: string): Promise<Page> {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, acceptDownloads: true });
   await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: server.origin });
   const page = await context.newPage();
-  // Fail with Playwright's message (which step, which element) before the test's own timeout
-  page.setDefaultTimeout(4000);
+  // Fail with Playwright's message (which step, which element) before the test's own timeout; 10s
+  // because the whole suite runs many browsers at once
+  page.setDefaultTimeout(10_000);
   await page.goto(`${server.origin}/${site}/`);
   await page.addScriptTag({ content: bundle });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

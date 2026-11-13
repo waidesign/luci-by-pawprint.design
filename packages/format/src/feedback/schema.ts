@@ -35,6 +35,42 @@ export const sourceLocationSchema = z.object({
 });
 export type SourceLocation = z.infer<typeof sourceLocationSchema>;
 
+/** Properties Layout mode changes (step 1: size, spacing and order of existing elements). */
+export const LAYOUT_PROPERTIES = ['width', 'height', 'gap', 'row-gap', 'column-gap', 'padding', 'margin-top', 'margin-bottom'] as const;
+
+/**
+ * One planned layout change (Layout mode, added 13 Nov 2026): a move among the element's siblings,
+ * or one property from its current value to the planned one, snapped to the page's spacing scale,
+ * with the custom property that has that value when the page has one.
+ */
+export const layoutChangeSchema = z.discriminatedUnion('op', [
+  z.object({
+    op: z.literal('move'),
+    /** The sibling it goes before or after (its selector and name), or the start or end of its parent. */
+    position: z.enum(['before', 'after', 'first', 'last']),
+    sibling: z.object({ selector: z.string().min(1), element: z.string().min(1) }).optional(),
+    /** Its place among its siblings, 1-based, before and after. */
+    from: z.number().int().positive(),
+    to: z.number().int().positive(),
+    of: z.number().int().positive()
+  }),
+  z.object({
+    op: z.literal('set'),
+    property: z.enum(LAYOUT_PROPERTIES),
+    from: z.string().min(1),
+    to: z.string().min(1),
+    token: z.string().regex(/^--[\w-]+$/).optional()
+  })
+]);
+export type LayoutChange = z.infer<typeof layoutChangeSchema>;
+
+export const layoutSchema = z.object({
+  /** The window width it was planned at: the agent asks or decides for other widths. */
+  viewport: z.object({ width: z.number().int().positive(), height: z.number().int().positive() }),
+  changes: z.array(layoutChangeSchema).min(1)
+});
+export type LayoutPlan = z.infer<typeof layoutSchema>;
+
 export const feedbackItemSchema = z.object({
   /** The item's own id (its file name); never shown to agents. */
   id: z.string().regex(/^[A-Za-z0-9_-]{6,64}$/, 'letters, digits, "-" and "_"'),
@@ -69,6 +105,8 @@ export const feedbackItemSchema = z.object({
     rect: z.object({ x: z.number(), y: z.number(), width: z.number().nonnegative(), height: z.number().nonnegative() }).optional()
   }),
   comment: z.string().trim().min(1),
+  /** A layout change planned in Layout mode, on the target element. */
+  layout: layoutSchema.optional(),
   intent: z.enum(FEEDBACK_INTENTS),
   priority: z.enum(FEEDBACK_PRIORITIES),
   status: z.enum(FEEDBACK_STATUSES),

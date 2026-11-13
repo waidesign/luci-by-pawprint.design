@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { z } from 'zod';
 import { MEMORY_FILES, PROPOSAL_TARGETS, PRODUCT, formatProposal } from '@luci/format';
-import { DETAIL_LEVELS, FEEDBACK_STATUSES, formatFeedbackPrompt, sourceText as feedbackSourceText, type FeedbackItem } from '@luci/format/feedback';
+import { DETAIL_LEVELS, FEEDBACK_STATUSES, formatFeedbackPrompt, layoutChangeText, sourceText as feedbackSourceText, type FeedbackItem } from '@luci/format/feedback';
 import {
   CODE_MAP_SETUP_HINT,
   CodeMap,
@@ -480,6 +480,7 @@ function feedbackBrief(i: FeedbackItem) {
     ...(i.target.selectedText ? { selectedText: i.target.selectedText } : {}),
     ...(i.target.source ? { source: feedbackSourceText(i.target.source) } : {}),
     ...(i.target.components?.length ? { components: i.target.components.join(' > ') } : {}),
+    ...(i.layout ? { layout: { plannedAtWidth: i.layout.viewport.width, changes: i.layout.changes.map(layoutChangeText) } } : {}),
     ...(i.thread.length ? { thread: i.thread.map(m => `${m.from}: ${m.text}`) } : {}),
     ...(i.resolution ? { resolution: i.resolution } : {})
   };

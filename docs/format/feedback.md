@@ -19,6 +19,7 @@ One file per item, `.luci/feedback/<id>.json`. Two programs write them (`luci se
 | `createdAt`, `updatedAt`, `sentAt` | ISO times in UTC |
 | `thread` | Messages between the agent and the person: `from` (`agent` or `person`), `text`, `at` |
 | `resolution` | What the agent did (resolved) or why not (dismissed) |
+| `layout` | Optional, from Layout mode: `viewport` (the window's `width` and `height` it was planned at) and `changes`, each either `{ op: "move", position: "before" \| "after" \| "first" \| "last", sibling: { selector, element }, from, to, of }` (its place among its siblings, 1-based) or `{ op: "set", property, from, to, token }`. Properties: `width`, `height` (the size as rendered, border and padding included), `gap`, `row-gap`, `column-gap`, `padding`, `margin-top`, `margin-bottom`. `token` names the page's custom property with that value |
 
 ## The prompt
 
@@ -44,6 +45,7 @@ If Luci's MCP tools are connected, also call resolve_feedback ...
 - **Header:** the number of pages and items. With more than one page, the agent is told not to stop after the first.
 - **Pages:** `## Page i of N: <route>  (<page source>)`, in page-number order. When a prompt leaves out a page (all its items done), the IDs keep the session's page number and the heading says so: `(item IDs start with P3)`.
 - **Items:** `- [ref] intent, priority: "comment"` (a multi-line comment is joined with ` / `), then `selector:`, `selected text:` for a text selection, `text:` (or `element:` when it has no text). Questions and answers so far follow as `you asked:` and `answer:`.
+- **Layout notes:** after the element lines, `layout, planned in a 1280px wide window (keep it working at other widths):` and one step per change, such as `move it before \`nav > a:nth-of-type(1)\` (a): 3rd of 3 → 1st` or `padding 16px → 24px (--space-6)`.
 - **Detail level:** `compact` stops there; `standard` (the default) adds `source:` and `components:`; `detailed` adds `styles:`.
 - **When done:** the report request (FR28) with the item count, and the MCP tools to use when connected.
 

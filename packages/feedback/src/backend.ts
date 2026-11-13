@@ -14,6 +14,7 @@ import {
   type FeedbackIntent,
   type FeedbackItem,
   type FeedbackPriority,
+  type LayoutPlan,
   type SourceLocation
 } from '@luci/format/feedback';
 import type { ServerResolver } from './react.js';
@@ -24,6 +25,8 @@ export interface NewItem {
   comment: string;
   intent: FeedbackIntent;
   priority: FeedbackPriority;
+  /** A layout change planned in Layout mode. */
+  layout?: LayoutPlan;
 }
 
 export type ItemChange =
@@ -162,7 +165,7 @@ export function browserBackend(storage: KeyValue, key = 'luci.feedback'): Feedba
       const at = now();
       const item = feedbackItemSchema.parse({
         id: randomId(), ref: nextRef(items, route), page: { ...input.page, route }, target: input.target,
-        comment: input.comment, intent: input.intent, priority: input.priority, status: 'pending', createdAt: at, updatedAt: at, thread: []
+        comment: input.comment, ...(input.layout ? { layout: input.layout } : {}), intent: input.intent, priority: input.priority, status: 'pending', createdAt: at, updatedAt: at, thread: []
       });
       save([...items, item]);
       return item;

@@ -13,6 +13,7 @@ import {
   bridgeReachable,
   browserBackend,
   mountFeedback,
+  mountLayout,
   type BridgeHealth,
   type FeedbackBackend,
   type FeedbackSettings,
@@ -21,10 +22,11 @@ import {
 
 export const DEFAULT_BRIDGE = 'http://127.0.0.1:4545';
 export const LAUNCHER_TAG = 'luci-launcher';
-export type Mode = 'feedback' | 'capture';
+export type Mode = 'feedback' | 'layout' | 'capture';
 /** The modes, as the switch shows them. */
 export const MODES = [
   { id: 'feedback', label: 'Feedback', title: 'Feedback: leave notes on your app for your coding agent' },
+  { id: 'layout', label: 'Layout', title: 'Layout: resize, move and space elements on the live page, then send the plan to your agent' },
   { id: 'capture', label: 'Capture', title: 'Capture: take a component, text, color or spacing as a design file' }
 ] as const;
 
@@ -168,6 +170,14 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
         modes: modeSwitch(),
         onClose: () => { current = null; showLauncher(); },
         ...(options.pollMs ? { pollMs: options.pollMs } : {})
+      });
+    } else if (mode === 'layout') {
+      current = mountLayout({
+        doc,
+        backend,
+        modes: modeSwitch(),
+        ...(connected ? {} : { connectNote }),
+        onClose: () => { current = null; showLauncher(); }
       });
     } else {
       current = mountToolbar({
