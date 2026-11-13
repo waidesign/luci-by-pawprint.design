@@ -40,7 +40,7 @@ export {
   agentBlock,
   upsertAgentBlock
 } from './agents/agentBlock.js';
-export { AGENT_IDS, configureAgent, configureAgents } from './agents/agentFiles.js';
+export { AGENT_IDS, configureAgent, configureAgents, projectAgents } from './agents/agentFiles.js';
 export { type InitOptions, type InitReport, type PackSuggestion, initProject, suggestPacks } from './init/initProject.js';
 export {
   type ContextSkill,

@@ -8,14 +8,30 @@ const read = (dir: string, file: string) => fs.readFileSync(path.join(dir, file)
 const react = { framework: 'react' };
 
 describe('agent files', () => {
-  it('init writes Claude Code and Cursor files only', async () => {
+  it('init writes Claude Code and Cursor by default, and no file for agents the project does not use', async () => {
     const dir = tempProject({ 'package.json': pkg() });
     await initProject(dir);
     expect(fs.existsSync(path.join(dir, 'CLAUDE.md'))).toBe(true);
     expect(fs.existsSync(path.join(dir, '.cursorrules'))).toBe(true);
-    for (const later of ['AGENTS.md', 'GEMINI.md', 'AGENT_INSTRUCTIONS.md', '.github/copilot-instructions.md']) {
-      expect(fs.existsSync(path.join(dir, later)), `${later} comes in v0.2`).toBe(false);
+    for (const other of ['AGENTS.md', 'GEMINI.md', 'AGENT_INSTRUCTIONS.md', '.github/copilot-instructions.md']) {
+      expect(fs.existsSync(path.join(dir, other)), other).toBe(false);
     }
+  });
+
+  it('Codex, Gemini CLI, Copilot and the generic file (v0.2): when asked for, or when the project has their file', async () => {
+    const dir = tempProject({ 'package.json': pkg(), 'GEMINI.md': '# Our Gemini notes\n' });
+    const report = await initProject(dir, { agents: ['codex', 'copilot'] });
+    expect(Object.keys(report.agents).sort()).toEqual(['claudeCode', 'codex', 'copilot', 'cursor', 'gemini']);
+    expect(read(dir, 'AGENTS.md')).toMatch(/^<!-- LUCI — CODEX CONFIGURATION -->\n# Codex Project Guidelines\n/);
+    expect(read(dir, '.github/copilot-instructions.md')).toMatch(/^<!-- LUCI — GITHUB COPILOT CONFIGURATION -->\n# GitHub Copilot Custom Instructions\n/);
+    // The project's own Gemini file keeps its text under the section
+    expect(read(dir, 'GEMINI.md')).toMatch(/^<!-- LUCI — GEMINI CLI CONFIGURATION -->[\s\S]*<!-- END LUCI -->\n\n# Our Gemini notes\n$/);
+    expect(fs.existsSync(path.join(dir, 'AGENT_INSTRUCTIONS.md'))).toBe(false);
+    for (const file of ['AGENTS.md', 'GEMINI.md', '.github/copilot-instructions.md']) expect(read(dir, file), file).toContain('./.luci/rules.md');
+    // Later runs keep them current without being asked again
+    expect(Object.keys(configureAgents(dir, react)).sort()).toEqual(['claudeCode', 'codex', 'copilot', 'cursor', 'gemini']);
+    expect(configureAgent('generic', dir, react).action).toBe('created');
+    expect(read(dir, 'AGENT_INSTRUCTIONS.md')).toContain('<!-- LUCI — GENERIC AGENTS CONFIGURATION -->');
   });
 
   it('every path the block points to exists after init', async () => {

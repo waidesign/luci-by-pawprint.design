@@ -27,4 +27,4 @@ Run `{{COMMAND}} update` to refresh the auto-detected sections, `brain.json`, th
 
 ## Removing
 
-Delete this folder, and the section between the `{{MARKER}}` markers in {{AGENT_FILES}}. Nothing else depends on it.
+Delete this folder, and the section between the `{{MARKER}}` markers in each agent file that has it ({{AGENT_FILES}}). Nothing else depends on it.

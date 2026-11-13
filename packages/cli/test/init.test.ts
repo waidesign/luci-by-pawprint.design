@@ -57,6 +57,24 @@ describe('luci init', () => {
     expect(fs.readdirSync(dir)).toEqual(['package.json']);
   });
 
+  it('--agents adds Codex, Gemini CLI, Copilot or the generic file; doctor then checks them', async () => {
+    const dir = tempProject();
+    const f = fakeContext(dir);
+    expect(await run(['init', '--yes', '--agents', 'codex,gemini'], f.ctx)).toBe(0);
+    expect(f.text()).toContain('Your agents read .luci/ through CLAUDE.md, .cursorrules, AGENTS.md and GEMINI.md');
+    expect(fs.existsSync(path.join(dir, 'AGENTS.md'))).toBe(true);
+    const all = fakeContext(dir);
+    expect(await run(['init', '--yes', '--agents=all'], all.ctx)).toBe(0);
+    expect(fs.existsSync(path.join(dir, '.github', 'copilot-instructions.md'))).toBe(true);
+    expect(fs.existsSync(path.join(dir, 'AGENT_INSTRUCTIONS.md'))).toBe(true);
+    const doc = fakeContext(dir);
+    await run(['doctor'], doc.ctx);
+    expect(doc.text()).toContain('.github/copilot-instructions.md');
+    const bad = fakeContext(dir);
+    expect(await run(['init', '--agents', 'windsurf'], bad.ctx)).toBe(1);
+    expect(bad.errors()).toContain('Unknown agent "windsurf"');
+  });
+
   it('rejects unknown options', async () => {
     const f = fakeContext(tempProject());
     expect(await run(['init', '--frobnicate'], f.ctx)).toBe(1);

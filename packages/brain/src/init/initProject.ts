@@ -21,6 +21,8 @@ export interface InitOptions {
   globalBrainDir?: string;
   /** The skill library (default: Luci's library plus the user's personal one). */
   registry?: SkillSource;
+  /** Agents to write files for besides Claude Code, Cursor and those the project has a file for. */
+  agents?: readonly AgentId[];
 }
 
 export interface PackSuggestion {
@@ -37,7 +39,7 @@ export interface InitReport {
   projectInfo: ProjectInfo;
   globalBrainDir: string;
   /** What happened to each agent's instruction file. */
-  agents: Record<AgentId, AgentFileResult>;
+  agents: Partial<Record<AgentId, AgentFileResult>>;
   /** Skill packs that fit the project and aren't added yet. Nothing is added here. */
   packsSuggested: PackSuggestion[];
   /** Project-relative paths written for the first time (or, in a dry run, that would be). */
@@ -79,7 +81,7 @@ export async function initProject(targetDir: string = process.cwd(), options: In
     dryRun,
     projectInfo,
     globalBrainDir: memory.globalBrainDir,
-    agents: {} as Record<AgentId, AgentFileResult>,
+    agents: {},
     packsSuggested: [],
     created: [],
     updated: [],
@@ -108,8 +110,9 @@ export async function initProject(targetDir: string = process.cwd(), options: In
   await generated(MEMORY_FILES.skillCatalog, () => writeCatalog(dir, registry));
 
   // Agent instruction files: only the Luci section is written; the rest of each file is the project's
-  report.agents = configureAgents(dir, projectInfo, { dryRun });
+  report.agents = configureAgents(dir, projectInfo, { dryRun, ...(options.agents ? { agents: options.agents } : {}) });
   for (const result of Object.values(report.agents)) {
+    if (!result) continue;
     const rel = path.relative(dir, result.target).replace(/\\/g, '/');
     if (result.action === 'created') report.created.push(rel);
     else if (result.action === 'unchanged') report.skipped.push(`${rel} (up to date)`);

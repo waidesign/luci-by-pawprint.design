@@ -1,6 +1,6 @@
 export { PRODUCT } from './product.js';
 export { luciHome, userBrainDir, userSkillsDir, skillPreferencesFile } from './home.js';
-export { type AgentId, AGENT_MARKER_PREFIX, AGENT_END_MARKER, AGENT_FILES, agentStartMarker } from './agents.js';
+export { type AgentId, AGENT_MARKER_PREFIX, AGENT_END_MARKER, AGENT_FILES, AGENT_LABELS, AGENT_NAMES, DEFAULT_AGENTS, agentStartMarker } from './agents.js';
 export { type ParseResult, ok, fail, stripBom, normalizeText, parseJsonText } from './result.js';
 export {
   type SectionRange,

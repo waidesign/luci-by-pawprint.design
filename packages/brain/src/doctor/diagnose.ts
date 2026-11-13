@@ -5,6 +5,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {
+  DEFAULT_AGENTS,
   MEMORY_FILES,
   PRODUCT,
   PROJECT_GOAL_HEADING,
@@ -17,7 +18,7 @@ import {
   type AgentId
 } from '@luci/format';
 import { SkillRegistry, missingSkillWarnings, projectSkillSet, readLock, type SkillSource } from '@luci/skills';
-import { AGENT_IDS, configureAgent } from '../agents/agentFiles.js';
+import { configureAgent, projectAgents } from '../agents/agentFiles.js';
 import { mapFreshness } from '../codemap/codeMap.js';
 import { readProjectGoal, readProjectRules } from '../context/projectContext.js';
 import { detectProject } from '../detect/detector.js';
@@ -153,7 +154,7 @@ async function projectChecks(dir: string, registry: SkillSource): Promise<{ chec
   }
 
   const info = detectProject(dir);
-  for (const id of AGENT_IDS) agentCheck(id, dir, info, add);
+  for (const id of projectAgents(dir)) agentCheck(id, dir, info, add);
   const skills = await skillChecks(dir, registry, add);
 
   const decisionsDir = path.join(root, MEMORY_FILES.decisions);
@@ -223,7 +224,8 @@ function agentCheck(
   const file = path.relative(dir, result.target).replace(/\\/g, '/');
   if (result.action === 'unchanged') add('ok', file, `${PRODUCT.name} section up to date`);
   else if (result.action === 'updated') add('warn', file, `${PRODUCT.name} section is out of date`, `${run('init')} refreshes it; the rest of the file is kept.`);
-  else add('fail', file, result.action === 'created' ? 'missing' : `no ${PRODUCT.name} section`, `${run('init')} adds it; the rest of the file is kept.`);
+  // Claude Code and Cursor are always expected; another agent's own file without the section is a warning
+  else add(DEFAULT_AGENTS.includes(id) ? 'fail' : 'warn', file, result.action === 'created' ? 'missing' : `no ${PRODUCT.name} section`, `${run('init')} adds it; the rest of the file is kept.`);
 }
 
 export async function diagnose(projectDir: string = process.cwd(), options: DiagnoseOptions = {}): Promise<Diagnosis> {

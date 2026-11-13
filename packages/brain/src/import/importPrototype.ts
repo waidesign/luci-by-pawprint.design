@@ -22,6 +22,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   AGENT_END_MARKER,
+  AGENT_FILES as LUCI_AGENT_FILES,
+  AGENT_LABELS as LUCI_AGENT_LABELS,
+  DEFAULT_AGENTS,
   LSS_VERSION,
   MEMORY_FILES,
   PRODUCT,
@@ -34,7 +37,7 @@ import {
 } from '@luci/format';
 import { SkillRegistry, writeCatalog, writeLock, type SkillSource } from '@luci/skills';
 import { agentBlock } from '../agents/agentBlock.js';
-import { configureAgent } from '../agents/agentFiles.js';
+import { configureAgent, projectAgents } from '../agents/agentFiles.js';
 import { detectProject } from '../detect/detector.js';
 import { TEMPLATES_DIR, memoryDir, memoryPath, projectFacts, renderTemplateFile } from '../layout/brainLayout.js';
 import { writeBrain } from '../layout/writeBrain.js';
@@ -57,7 +60,7 @@ export const PROTOTYPE = {
   oldGoalHeading: '## Product Overview',
   oldGoalPlaceholder: 'Add an overview of what the application does',
   /** Agent files the prototype wrote. */
-  agentFiles: ['CLAUDE.md', '.cursorrules', 'AGENTS.md', 'GEMINI.md', '.github/copilot-instructions.md', '.windsurfrules']
+  agentFiles: ['CLAUDE.md', '.cursorrules', 'AGENTS.md', 'GEMINI.md', '.github/copilot-instructions.md', 'AGENT_INSTRUCTIONS.md', '.windsurfrules']
 } as const;
 
 const MERGED_FILES = ['context.md', 'rules.md', 'playbook.md', 'README.md'] as const;
@@ -65,8 +68,9 @@ const MERGED_FILES = ['context.md', 'rules.md', 'playbook.md', 'README.md'] as c
 const GENERATED = new Set(['brain.json', 'project-skills.md', 'skills.lock.json', 'index.json']);
 /** Task files of the prototype's first layout: archived, never deleted. */
 const OLD_TASK_FILES = new Set(['active-skills.md', 'ACTIVE_TASK.md']);
-const LUCI_AGENTS: Readonly<Record<string, AgentId>> = { 'CLAUDE CODE': 'claudeCode', CURSOR: 'cursor' };
-const AGENT_LABELS: Readonly<Record<string, string>> = { CODEX: 'Codex', 'GEMINI CLI': 'Gemini CLI', 'GITHUB COPILOT': 'GitHub Copilot', WINDSURF: 'Windsurf' };
+/** The prototype's marker labels of agents Luci writes for (the generic file was "GENERIC AGENT INSTRUCTIONS"). */
+const LUCI_AGENTS: Readonly<Record<string, AgentId>> = { 'CLAUDE CODE': 'claudeCode', CURSOR: 'cursor', CODEX: 'codex', 'GEMINI CLI': 'gemini', 'GITHUB COPILOT': 'copilot', 'GENERIC AGENT': 'generic' };
+const AGENT_LABELS: Readonly<Record<string, string>> = { WINDSURF: 'Windsurf' };
 
 /** Rename the prototype's paths, variables and commands in text people wrote. Prose words are left alone. */
 export function renameText(text: string): string {
@@ -370,14 +374,14 @@ export async function importPrototype(projectDir: string = process.cwd(), option
     const end = endMatch ? start.index + endMatch.index + endMatch[0].length : text.length;
     const label = start[1]!.trim().toUpperCase();
     const luci = LUCI_AGENTS[label];
-    const name = AGENT_LABELS[label] ?? label.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+    const name = luci ? LUCI_AGENT_LABELS[luci] : AGENT_LABELS[label] ?? label.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
     // Supported agents get an empty Luci section that configureAgent fills; others get the full section now
     const replacement = luci ? `${agentStartMarker(name)}\n${AGENT_END_MARKER}` : agentBlock({ agentLabel: name, heading: `${name} Project Guidelines`, extra: [`- Framework: ${info.framework}`] }).trimEnd();
     agentEdits.set(file, `${text.slice(0, start.index)}${replacement}${text.slice(end)}`);
     report.agentFiles.push({ file: rel, action: luci ? `${PRODUCT.name} section replaces the old one` : `${PRODUCT.name} section replaces the old one (${PRODUCT.command} update does not refresh it yet)` });
   }
-  for (const id of Object.values(LUCI_AGENTS)) {
-    const rel = id === 'claudeCode' ? 'CLAUDE.md' : '.cursorrules';
+  for (const id of DEFAULT_AGENTS) {
+    const rel = LUCI_AGENT_FILES[id];
     if (!report.agentFiles.some(a => a.file === rel)) report.agentFiles.push({ file: rel, action: fs.existsSync(path.join(dir, rel)) ? `${PRODUCT.name} section added` : 'created' });
   }
 
@@ -401,6 +405,7 @@ export async function importPrototype(projectDir: string = process.cwd(), option
   writeGlobalBrainSnapshot(dir, memory.globalBrainDir);
   await writeCatalog(dir, registry);
   for (const [file, content] of agentEdits) fs.writeFileSync(file, content, 'utf8');
-  for (const id of Object.values(LUCI_AGENTS)) configureAgent(id, dir, info);
+  // Every agent the project now has a file for (the defaults, and the prototype's other agents)
+  for (const id of projectAgents(dir)) configureAgent(id, dir, info);
   return report;
 }

@@ -81,7 +81,7 @@ export async function updateProject(
   await writeCatalog(dir, options.registry ?? new SkillRegistry({ user: true }));
 
   for (const result of Object.values(configureAgents(dir, info))) {
-    if (result.action !== 'unchanged') report.agentFiles.push(path.relative(dir, result.target).replace(/\\/g, '/'));
+    if (result && result.action !== 'unchanged') report.agentFiles.push(path.relative(dir, result.target).replace(/\\/g, '/'));
   }
 
   // The code map is refreshed only when one exists and is out of date; update never builds a new one

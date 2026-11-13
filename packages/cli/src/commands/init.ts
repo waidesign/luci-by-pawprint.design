@@ -1,4 +1,4 @@
-import { AGENT_FILES, PRODUCT } from '@luci/format';
+import { AGENT_FILES, AGENT_NAMES, PRODUCT, type AgentId } from '@luci/format';
 import { initProject } from '@luci/brain';
 import { SkillRegistry } from '@luci/skills';
 import { parseFlags, type Command } from '../context.js';
@@ -7,11 +7,39 @@ import { cliVersion } from '../version.js';
 
 export const INIT_FLAGS = ['--dry-run', '--force', '--yes', '--non-interactive', '-i', '--interactive'] as const;
 
-export const INIT_HELP = `init [--dry-run] [--force] [--yes | -i]
+export const INIT_HELP = `init [--dry-run] [--force] [--yes | -i] [--agents <list>]
                         Set up this project: ${PRODUCT.projectDir}/, your Global Brain, starter skills and the
-                        agent files. In a terminal it asks for the goal, matching skills, packs and rules.`;
+                        agent files. In a terminal it asks for the goal, matching skills, packs and rules.
+                        Agent files: Claude Code and Cursor, any agent whose file the project has, and
+                        --agents codex,gemini,copilot,generic (or all).`;
 
-export const initCommand: Command = async (args, ctx) => {
+/** "--agents codex,gemini" or "--agents=all": the agents asked for, or an error. */
+export function parseAgents(args: readonly string[]): { args: string[]; agents: AgentId[]; error?: string } {
+  const rest: string[] = [];
+  const agents: AgentId[] = [];
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i]!;
+    let list: string | undefined;
+    if (arg === '--agents') list = args[++i];
+    else if (arg.startsWith('--agents=')) list = arg.slice('--agents='.length);
+    else { rest.push(arg); continue; }
+    if (!list) return { args: rest, agents, error: `--agents needs a list: ${Object.keys(AGENT_NAMES).filter(n => !n.includes('-')).join(', ')} or all` };
+    for (const name of list.split(',').map(s => s.trim().toLowerCase()).filter(Boolean)) {
+      if (name === 'all') agents.push(...(Object.keys(AGENT_FILES) as AgentId[]));
+      else if (AGENT_NAMES[name]) agents.push(AGENT_NAMES[name]!);
+      else return { args: rest, agents, error: `Unknown agent "${name}". Known: ${Object.keys(AGENT_NAMES).filter(n => !n.includes('-')).join(', ')}, all` };
+    }
+  }
+  return { args: rest, agents: [...new Set(agents)] };
+}
+
+export const initCommand: Command = async (rawArgs, ctx) => {
+  const parsedAgents = parseAgents(rawArgs);
+  if (parsedAgents.error) {
+    ctx.err(parsedAgents.error);
+    return 1;
+  }
+  const args = parsedAgents.args;
   const { flags, unknown, rest } = parseFlags(args, INIT_FLAGS);
   if (unknown.length || rest.length) {
     ctx.err(`Unknown option for init: ${[...unknown, ...rest].join(' ')}`);
@@ -23,7 +51,7 @@ export const initCommand: Command = async (args, ctx) => {
     || (ctx.isTTY && !flags.has('--yes') && !flags.has('--non-interactive'));
 
   const registry = new SkillRegistry({ user: true });
-  const report = await initProject(ctx.cwd, { dryRun, force: flags.has('--force'), version: cliVersion(), registry });
+  const report = await initProject(ctx.cwd, { dryRun, force: flags.has('--force'), version: cliVersion(), registry, agents: parsedAgents.agents });
   const info = report.projectInfo;
 
   ctx.out(`${PRODUCT.name} init${dryRun ? ' (dry run: nothing is written)' : ''}: ${report.projectPath}`);
@@ -59,7 +87,9 @@ export const initCommand: Command = async (args, ctx) => {
     ctx.out(`  Add with: ${PRODUCT.command} packs add ${report.packsSuggested.map(p => p.name).join(' ')}`);
   }
 
-  ctx.out(`\nDone. Your agents read ${PRODUCT.projectDir}/ through ${Object.values(AGENT_FILES).join(' and ')}.`);
+  const files = (Object.keys(report.agents) as AgentId[]).map(id => AGENT_FILES[id]);
+  ctx.out(`\nDone. Your agents read ${PRODUCT.projectDir}/ through ${files.slice(0, -1).join(', ')}${files.length > 1 ? ' and ' : ''}${files[files.length - 1]}.`);
+  ctx.out(`Other agents: ${PRODUCT.command} init --agents codex,gemini,copilot,generic (or all).`);
   ctx.out(`Check the setup any time with: ${PRODUCT.command} doctor`);
   return 0;
 };

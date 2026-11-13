@@ -121,7 +121,7 @@ Version 0.1 covers all four modules: 56 requirements, 49 of them must-have (P0).
 | ID | Requirement | Priority |
 | --- | --- | --- |
 | B1 | **Init.** One command detects the stack, creates the project's memory folder, runs a short onboarding and writes each agent's instruction file. | P0 |
-| B2 | **Supported agents.** Claude Code and Cursor first; then Codex, Gemini CLI, GitHub Copilot and a generic instructions file. | P0 for the first two, P1 for the rest |
+| B2 | **Supported agents.** Claude Code and Cursor first; then Codex, Gemini CLI, GitHub Copilot and a generic instructions file (v0.2: `AGENTS.md`, `GEMINI.md`, `.github/copilot-instructions.md`, `AGENT_INSTRUCTIONS.md`, written when asked with `luci init --agents`, or when the project already has the file; Claude Code and Cursor always). | P0 for the first two, P1 for the rest |
 | B3 | **Start.** Resume a project: show the active task and the context an agent needs to continue. | P0 |
 | B4 | **Update.** Refresh agent files and the skill catalogue after changes. | P0 |
 | B5 | **Doctor.** Check the install and the project setup, and say how to fix what is wrong. | P0 |
