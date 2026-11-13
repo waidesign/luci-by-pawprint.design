@@ -22,6 +22,7 @@
     "@luci/brain": "workspace:*",
     "@luci/format": "workspace:*",
     "@luci/skills": "workspace:*",
+    "@luci/toolbar": "workspace:*",
     "zod": "4.6.7"
   }
 }

@@ -15,6 +15,7 @@ export default defineConfig({
       { find: /^@luci\/skills$/, replacement: pkg('skills') },
       { find: /^@luci\/capture$/, replacement: pkg('capture') },
       { find: /^@luci\/feedback$/, replacement: pkg('feedback') },
+      { find: /^@luci\/toolbar$/, replacement: pkg('toolbar') },
       { find: /^@luci\/capture\/states$/, replacement: fileURLToPath(new URL('./packages/capture/src/states.ts', import.meta.url)) }
     ]
   },

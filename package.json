@@ -8,8 +8,8 @@
     "node": ">=18"
   },
   "scripts": {
-    "build": "tsc -b",
-    "typecheck": "tsc -b && tsc -p tsconfig.test.json && pnpm --filter @luci/extension exec wxt prepare && tsc -p packages/extension/tsconfig.json",
+    "build": "tsc -b && node scripts/build-toolbar.mjs",
+    "typecheck": "tsc -b && node scripts/build-toolbar.mjs && tsc -p tsconfig.test.json && pnpm --filter @luci/extension exec wxt prepare && tsc -p packages/extension/tsconfig.json",
     "test": "vitest run",
     "check": "pnpm typecheck && pnpm test",
     "test:extension": "node scripts/test-extension.mjs"

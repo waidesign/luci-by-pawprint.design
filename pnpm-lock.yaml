@@ -224,6 +224,9 @@ importers:
       '@luci/skills':
         specifier: workspace:*
         version: link:../skills
+      '@luci/toolbar':
+        specifier: workspace:*
+        version: link:../toolbar
       zod:
         specifier: 4.6.7
         version: 4.6.7
@@ -286,6 +289,18 @@ importers:
 
   packages/skills:
     dependencies:
+      '@luci/format':
+        specifier: workspace:*
+        version: link:../format
+
+  packages/toolbar:
+    dependencies:
+      '@luci/capture':
+        specifier: workspace:*
+        version: link:../capture
+      '@luci/feedback':
+        specifier: workspace:*
+        version: link:../feedback
       '@luci/format':
         specifier: workspace:*
         version: link:../format

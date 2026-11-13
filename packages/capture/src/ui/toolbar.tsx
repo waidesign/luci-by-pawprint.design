@@ -50,6 +50,33 @@ export interface ToolbarProps {
   captureScreen?: () => Promise<string>;
   /** Opens a help page; the "?" button shows only when the shell has one. */
   onHelp?: () => void;
+  /** A button in the bar that switches the shell to another mode (the dev toolbar: Feedback). */
+  modeButton?: { label: string; title?: string; onClick: () => void };
+  /** Saves a file into the project's .luci/design/ (the dev toolbar, through luci serve); adds "Save to project". */
+  saveToProject?: (fileName: string, markdown: string) => Promise<{ path: string; replaced: boolean }>;
+}
+
+/** "Save to project", then where it went (or why not). */
+function SaveButton(props: { save: () => Promise<{ path: string; replaced: boolean }> }) {
+  const [state, setState] = useState<{ busy?: boolean; done?: string; error?: string }>({});
+  const run = async () => {
+    setState({ busy: true });
+    try {
+      const r = await props.save();
+      setState({ done: `${r.replaced ? 'Replaced' : 'Saved'} ${r.path}` });
+    } catch (err) {
+      setState({ error: err instanceof Error ? err.message : String(err) });
+    }
+  };
+  return (
+    <>
+      <button type="button" data-action="save-to-project" disabled={state.busy} title="Into the project's .luci/design/, where your agent reads it" onClick={() => void run()}>
+        {state.busy ? 'Saving…' : 'Save to project'}
+      </button>
+      {state.done && <span class="dim" data-part="saved">{state.done}</span>}
+      {state.error && <span class="error" data-part="save-error">{state.error}</span>}
+    </>
+  );
 }
 
 const STATE_ORDER: readonly StateName[] = ['hover', 'focus', 'focus-visible', 'active', 'disabled'];
@@ -694,6 +721,7 @@ export function Toolbar(props: ToolbarProps) {
         ))}
         <button type="button" aria-pressed={wholePage && !basketOpen && (pageBusy || Boolean(result))} data-action="whole-page" title="One file for this whole page: its typography, colors, spacing and every kind of component" onClick={captureWholePage}>Whole page</button>
         <button type="button" aria-pressed={basketOpen} data-action="basket" onClick={() => (basketOpen ? setBasketOpen(false) : openBasket())}>Basket ({basket.length})</button>
+        {props.modeButton && <button type="button" data-action="mode" title={props.modeButton.title} onClick={props.modeButton.onClick}>{props.modeButton.label}</button>}
         {props.onHelp && <button type="button" aria-label="How to use Luci" title="How to use Luci" data-action="help" onClick={props.onHelp}>?</button>}
         <button type="button" aria-label="Close Luci" data-action="close" onClick={props.onClose}>×</button>
       </div>
@@ -712,6 +740,7 @@ export function Toolbar(props: ToolbarProps) {
               <div class="row">
                 <button type="button" class="primary" data-action="copy" onClick={() => void copyText(exported.markdown)}>{copied ? 'Copied' : 'Copy'}</button>
                 <button type="button" data-action="download" onClick={() => downloadText(exported.fileName, exported.markdown)}>Download .design.md</button>
+                {props.saveToProject && <SaveButton save={() => props.saveToProject!(exported.fileName, exported.markdown)} key={exported.fileName} />}
                 <button type="button" data-action="basket-back" onClick={() => { setBasketExport(null); setCopied(false); }}>Back to the basket</button>
               </div>
             </>
@@ -926,6 +955,7 @@ export function Toolbar(props: ToolbarProps) {
               <div class="row">
                 <button type="button" class="primary" data-action="copy" onClick={copy}>{copied ? 'Copied' : 'Copy'}</button>
                 <button type="button" data-action="download" onClick={download}>Download .design.md</button>
+                {props.saveToProject && output && <SaveButton save={() => props.saveToProject!(output.fileName, markdown)} key={output.fileName} />}
                 <button type="button" data-action="add-to-basket" disabled={added} onClick={() => void addCurrent()}>{added ? 'Added to basket' : 'Add to basket'}</button>
                 {tool && <button type="button" onClick={() => startPicking(tool)}>Pick again</button>}
               </div>

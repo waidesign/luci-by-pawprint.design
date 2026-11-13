@@ -81,18 +81,43 @@ export function bridgeBackend(url: string, fetchImpl: typeof fetch = (...a) => f
   };
 }
 
-/** Is `luci serve` answering at this address, for this kind of page? Resolves false quickly when not. */
-export async function bridgeReachable(url: string, timeoutMs = 1500): Promise<{ ok: boolean; initialized: boolean; project?: string }> {
+export interface BridgeHealth {
+  ok: boolean;
+  initialized: boolean;
+  project?: string;
+  /** Why it is not reachable: refused, timed out, or an unexpected answer. */
+  reason?: string;
+}
+
+/** Is `luci serve` answering at this address? One try, at most `timeoutMs`. */
+export async function bridgeHealth(url: string, timeoutMs = 3000): Promise<BridgeHealth> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
-    const res = await fetch(`${url}/health`, { signal: ctrl.signal });
+    const res = await fetch(`${url}/health`, { signal: ctrl.signal, cache: 'no-store' });
+    const data = await res.json() as { ok?: boolean; initialized?: boolean; project?: string; error?: string };
+    if (!res.ok || !data.ok) return { ok: false, initialized: false, reason: data.error ?? `answered ${res.status}` };
+    return { ok: true, initialized: Boolean(data.initialized), ...(data.project ? { project: data.project } : {}) };
+  } catch (err) {
+    return { ok: false, initialized: false, reason: ctrl.signal.aborted ? `no answer within ${timeoutMs}ms` : err instanceof Error ? err.message : String(err) };
+  } finally {
     clearTimeout(timer);
-    const data = await res.json() as { ok?: boolean; initialized?: boolean; project?: string };
-    return { ok: Boolean(data.ok), initialized: Boolean(data.initialized), ...(data.project ? { project: data.project } : {}) };
-  } catch {
-    return { ok: false, initialized: false };
   }
+}
+
+/**
+ * Is `luci serve` answering? One try by default (a refused connection takes about 2s on Windows, so
+ * retries would hold the toolbar back); the toolbar's "This browser" badge checks again on a click.
+ */
+export async function bridgeReachable(url: string, options: { attempts?: number; timeoutMs?: number; waitMs?: number } = {}): Promise<BridgeHealth> {
+  const attempts = options.attempts ?? 1;
+  let last: BridgeHealth = { ok: false, initialized: false };
+  for (let i = 0; i < attempts; i++) {
+    last = await bridgeHealth(url, options.timeoutMs ?? 3000);
+    if (last.ok) return last;
+    if (i < attempts - 1) await new Promise(r => setTimeout(r, options.waitMs ?? 300));
+  }
+  return last;
 }
 
 /** A tiny storage interface (localStorage fits), so tests can use a Map. */
