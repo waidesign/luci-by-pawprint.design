@@ -38,8 +38,18 @@ export const sourceLocationSchema = z.object({
 });
 export type SourceLocation = z.infer<typeof sourceLocationSchema>;
 
-/** Properties Layout mode changes (step 1: size, spacing and order of existing elements). */
-export const LAYOUT_PROPERTIES = ['width', 'height', 'gap', 'row-gap', 'column-gap', 'padding', 'margin-top', 'margin-bottom'] as const;
+/**
+ * Properties Layout mode changes: size, spacing (each side), the element as a flex or grid
+ * container, and its place in a flex or grid parent. `padding` (all sides) is from the first
+ * version and is still read.
+ */
+export const LAYOUT_PROPERTIES = [
+  'width', 'height', 'min-width', 'max-width', 'min-height', 'max-height',
+  'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
+  'padding-top', 'padding-right', 'padding-bottom', 'padding-left', 'padding',
+  'display', 'flex-direction', 'flex-wrap', 'justify-content', 'align-items', 'gap', 'row-gap', 'column-gap', 'grid-template-columns',
+  'align-self', 'flex-grow', 'flex-shrink'
+] as const;
 
 /**
  * One planned layout change (Layout mode, added 13 Nov 2026): a move among the element's siblings,

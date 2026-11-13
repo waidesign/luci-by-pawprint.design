@@ -19,7 +19,7 @@ One file per item, `.luci/feedback/<id>.json`. `luci serve` writes them for the 
 | `createdAt`, `updatedAt`, `sentAt` | ISO times in UTC |
 | `thread` | From the earlier agent sync, on older notes only: questions and answers (`from`, `text`, `at`) |
 | `resolution` | From the earlier agent sync, on older notes only: what the agent said it did |
-| `layout` | Optional, from Layout mode: `viewport` (the window's `width` and `height` it was planned at) and `changes`, each either `{ op: "move", position: "before" \| "after" \| "first" \| "last", sibling: { selector, element }, from, to, of }` (its place among its siblings, 1-based) or `{ op: "set", property, from, to, token }`. Properties: `width`, `height` (the size as rendered, border and padding included), `gap`, `row-gap`, `column-gap`, `padding`, `margin-top`, `margin-bottom`. `token` names the page's custom property with that value |
+| `layout` | Optional, from Layout mode: `viewport` (the window's `width` and `height` it was planned at) and `changes`, each either `{ op: "move", position: "before" \| "after" \| "first" \| "last", sibling: { selector, element }, from, to, of }` (its place among its siblings, 1-based) or `{ op: "set", property, from, to, token }`. Properties: size (`width`, `height`, `min-width`, `max-width`, `min-height`, `max-height`: sizes as rendered, border and padding included), spacing (`margin-*` and `padding-*` for each side; `padding` for all sides is from the first version), the element as a container (`display`, `flex-direction`, `flex-wrap`, `justify-content`, `align-items`, `gap`, `row-gap`, `column-gap`, `grid-template-columns`) and in its parent (`align-self`, `flex-grow`, `flex-shrink`). `token` names the page's custom property with that value |
 
 ## The prompt
 
@@ -47,5 +47,28 @@ End with the number of items done out of 6.
 - **Layout notes:** after the element lines, `layout, planned in a 1280px wide window (keep it working at other widths):` and one step per change, such as `move it before \`nav > a:nth-of-type(1)\` (a): 3rd of 3 → 1st` or `padding 16px → 24px (--space-6)`.
 - **Detail level:** `compact` stops there; `standard` (the default) adds `source:` and `components:`; `detailed` adds `styles:`.
 - **When done:** the report request (FR28) with the item count. The person reads the report, checks the work and marks notes done in the toolbar.
+
+## The layout prompt
+
+Layout mode's **Copy prompt** gives one prompt for the changes planned on a page, without storing notes (`formatLayoutPrompt`; golden `pricing.layout.prompt.md`):
+
+```
+# Layout changes: /pricing, 2 elements, 7 changes
+Make every change below on /pricing (src/pages/Pricing.jsx), in the code, with the project's own styles and tokens.
+They were planned in a 1920px wide window: keep the layout working at other widths.
+Sizes "as rendered" (width, height and their min and max) are the size on screen, border and padding included.
+
+Note: "Make the plans feel more spacious, and put Pro first"
+
+## 1. div · PlanCard  (src/components/PlanCard.jsx:3:5)
+selector: main > section > div:nth-of-type(2)
+components: App > Pricing > PlanCard
+- move it before `main > section > div:nth-of-type(1)` (div): 2nd of 2 → 1st
+- max-width as rendered none → 480px
+...
+
+## When done
+Report every element number (1 to 2) as done, skipped or blocked, and name the route to open to verify it.
+```
 
 Copying a prompt marks its items `sent` (copied); the next copy holds the new notes, or every note not done when there are none new (FR29). Reading the prompt over MCP changes nothing.

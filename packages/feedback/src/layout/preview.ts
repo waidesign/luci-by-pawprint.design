@@ -43,7 +43,14 @@ export function pageScale(doc: Document): PageScale {
 /** A value snapped to the scale (never below 0). */
 export const snapTo = (px: number, base: number) => Math.max(0, Math.round(px / base) * base);
 
-/** The element's current value of a property, as a px string ("360px"). */
+/** Properties measured in px that snap to the scale and get − and + steps. */
+export const LENGTH_PROPERTIES: ReadonlySet<LayoutProperty> = new Set<LayoutProperty>([
+  'width', 'height', 'min-width', 'max-width', 'min-height', 'max-height',
+  'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
+  'padding-top', 'padding-right', 'padding-bottom', 'padding-left', 'padding', 'gap', 'row-gap', 'column-gap'
+]);
+
+/** The element's current value of a property: width and height as rendered, the rest as computed. */
 export function currentValue(el: Element, prop: LayoutProperty): string {
   const cs = el.ownerDocument.defaultView!.getComputedStyle(el);
   const r = el.getBoundingClientRect();
@@ -51,8 +58,23 @@ export function currentValue(el: Element, prop: LayoutProperty): string {
   if (prop === 'height') return `${Math.round(r.height * 100) / 100}px`;
   if (prop === 'gap') return cs.columnGap === 'normal' ? '0px' : cs.columnGap;
   if (prop === 'padding') return cs.paddingTop;
-  return cs.getPropertyValue(prop).trim() || '0px';
+  const v = cs.getPropertyValue(prop).trim() || '0px';
+  // Min and max sizes are on-screen sizes too (border and padding included), like width and height
+  if (SIZE_LIMITS.has(prop) && /^-?\d*\.?\d+px$/.test(v) && cs.boxSizing !== 'border-box') {
+    const sides = prop.endsWith('width') ? ['left', 'right'] : ['top', 'bottom'];
+    const extra = sides.reduce((n, s) => n + (parseFloat(cs.getPropertyValue(`padding-${s}`)) || 0) + (parseFloat(cs.getPropertyValue(`border-${s}-width`)) || 0), 0);
+    const total = parseFloat(v) + extra;
+    return parseFloat(v) === 0 ? v : `${Math.round(total * 100) / 100}px`;
+  }
+  return v;
 }
+
+/** Sizes measured as rendered (border and padding included); the preview sets them with border-box. */
+export const RENDERED_SIZES: ReadonlySet<LayoutProperty> = new Set<LayoutProperty>(['width', 'height', 'min-width', 'max-width', 'min-height', 'max-height']);
+const SIZE_LIMITS: ReadonlySet<LayoutProperty> = new Set<LayoutProperty>(['min-width', 'max-width', 'min-height', 'max-height']);
+
+/** How a move among an element's siblings can be shown: CSS order (flex, grid), shifting (a top-to-bottom stack), or not at all. */
+export type MovePreview = 'order' | 'shift' | null;
 
 /** Whether the element lays its children out in a row or column that `order` can rearrange. */
 export function reorderable(parent: Element): { axis: 'x' | 'y' } | null {
@@ -60,6 +82,18 @@ export function reorderable(parent: Element): { axis: 'x' | 'y' } | null {
   if (/flex/.test(cs.display)) return { axis: cs.flexDirection.startsWith('column') ? 'y' : 'x' };
   if (/grid/.test(cs.display)) return { axis: cs.gridAutoFlow.startsWith('column') ? 'y' : 'x' };
   return null;
+}
+
+/**
+ * How a move under this parent is previewed. A block parent whose children sit one below the other
+ * (sections, cards in a column) is shown by shifting them into the new order.
+ */
+export function movePreview(parent: Element): MovePreview {
+  if (reorderable(parent)) return 'order';
+  const kids = layoutChildren(parent);
+  if (kids.length < 2) return null;
+  const rects = kids.map(k => k.getBoundingClientRect());
+  return rects.every((r, i) => i === 0 || r.top >= rects[i - 1]!.bottom - 1) ? 'shift' : null;
 }
 
 /** The element children that take part in layout (visible, not Luci's). */
@@ -93,6 +127,8 @@ export class LayoutPreview {
   private readonly original = new Map<Element, Map<LayoutProperty, string>>();
   /** Each reordered parent's children: as they were, and as planned. */
   private readonly orders = new Map<Element, { original: Element[]; current: Element[] }>();
+  /** Elements the person moved (their siblings shift too, but only these get a move step). */
+  private readonly moved = new Set<Element>();
   private done: Step[] = [];
   private undone: Step[] = [];
   private next = 1;
@@ -118,12 +154,30 @@ export class LayoutPreview {
     const rules: string[] = [];
     for (const [el, props] of this.values) {
       // Width and height are the size as rendered (border and padding included), like Luci measures them
-      const sized = props.has('width') || props.has('height');
+      const sized = [...props.keys()].some(p => RENDERED_SIZES.has(p));
       const decl = [...props].map(([p, v]) => `${p}: ${v} !important;`).join(' ') + (sized ? ' box-sizing: border-box !important;' : '');
       if (decl) rules.push(`[${LAYOUT_ATTRIBUTE}="${this.idOf(el)}"] { ${decl} }`);
     }
-    for (const { current } of this.orders.values()) {
-      current.forEach((el, i) => rules.push(`[${LAYOUT_ATTRIBUTE}="${this.idOf(el)}"] { order: ${i} !important; }`));
+    const shifted: { original: Element[]; current: Element[] }[] = [];
+    for (const [parent, entry] of this.orders) {
+      if (reorderable(parent)) entry.current.forEach((el, i) => rules.push(`[${LAYOUT_ATTRIBUTE}="${this.idOf(el)}"] { order: ${i} !important; }`));
+      else shifted.push(entry);
+    }
+    this.style.textContent = rules.join('\n');
+    if (!shifted.length) return;
+    // A top-to-bottom stack: measure where each child is now (sizes and spacing already planned),
+    // then shift each into its new place with `translate` (which leaves the site's own transform alone)
+    for (const { original, current } of shifted) {
+      const rects = original.map(el => el.getBoundingClientRect());
+      const top = new Map(original.map((el, i) => [el, rects[i]!.top]));
+      const height = new Map(original.map((el, i) => [el, rects[i]!.height]));
+      const spaceAfter = rects.map((r, i) => (i < rects.length - 1 ? rects[i + 1]!.top - r.bottom : 0));
+      let y = rects[0]!.top;
+      current.forEach((el, i) => {
+        const dy = Math.round((y - top.get(el)!) * 100) / 100;
+        if (dy) rules.push(`[${LAYOUT_ATTRIBUTE}="${this.idOf(el)}"] { translate: 0 ${dy}px !important; }`);
+        y += height.get(el)! + (spaceAfter[i] ?? 0);
+      });
     }
     this.style.textContent = rules.join('\n');
   }
@@ -154,29 +208,42 @@ export class LayoutPreview {
   }
 
   /**
-   * Move an element to a new place among its siblings (0-based). Previewed with `order` when its
-   * parent is flex or grid; otherwise planned only (returns false).
+   * Move an element to a new place among its siblings (0-based). Shown with `order` in a flex or
+   * grid parent, by shifting in a top-to-bottom stack; otherwise planned only. Returns how it shows.
    */
-  move(el: Element, toIndex: number): boolean {
+  move(el: Element, toIndex: number): MovePreview {
     const parent = el.parentElement;
-    if (!parent) return false;
+    if (!parent) return null;
+    const kind = this.orders.has(parent) ? (reorderable(parent) ? 'order' : 'shift') : movePreview(parent);
     const entry = this.orders.get(parent) ?? { original: layoutChildren(parent), current: layoutChildren(parent) };
     const before = [...entry.current];
     const from = before.indexOf(el);
-    if (from === -1) return false;
+    if (from === -1) return null;
     const after = before.filter(c => c !== el);
     after.splice(Math.max(0, Math.min(toIndex, after.length)), 0, el);
-    if (after.every((c, i) => c === before[i])) return Boolean(reorderable(parent));
+    if (after.every((c, i) => c === before[i])) return kind;
+    this.moved.add(el);
     this.orders.set(parent, { original: entry.original, current: after });
     this.done.push({ kind: 'move', parent, before, after });
     this.undone = [];
     this.render();
-    return Boolean(reorderable(parent));
+    return kind;
   }
 
   /** The planned order of a parent's children (as previewed), or the page's. */
   order(parent: Element): Element[] {
     return this.orders.get(parent)?.current ?? layoutChildren(parent);
+  }
+
+  /** Whether a move is planned for this parent's children. */
+  reordered(parent: Element): boolean {
+    return this.orders.has(parent);
+  }
+
+  /** How a move under this parent shows, also once one is previewed (its children then look out of order). */
+  previewOf(parent: Element): MovePreview {
+    if (this.orders.has(parent)) return reorderable(parent) ? 'order' : 'shift';
+    return movePreview(parent);
   }
 
   private replay(step: Step, forward: boolean) {
@@ -212,6 +279,7 @@ export class LayoutPreview {
     this.values.clear();
     this.orders.clear();
     this.original.clear();
+    this.moved.clear();
     this.done = [];
     this.undone = [];
     for (const el of this.ids.keys()) el.removeAttribute(LAYOUT_ATTRIBUTE);
@@ -230,7 +298,7 @@ export class LayoutPreview {
     const out: LayoutChange[] = [];
     const parent = el.parentElement;
     const order = parent ? this.orders.get(parent) : undefined;
-    if (order) {
+    if (order && this.moved.has(el)) {
       const from = order.original.indexOf(el);
       const to = order.current.indexOf(el);
       if (from !== -1 && to !== -1 && from !== to) {
@@ -260,8 +328,7 @@ export class LayoutPreview {
 
   /** Elements with planned changes (their own, or a move among their siblings). */
   changed(scale: PageScale): Element[] {
-    const all = new Set<Element>([...this.values.keys()]);
-    for (const { current } of this.orders.values()) for (const el of current) all.add(el);
-    return [...all].filter(el => this.changes(el, scale).length);
+    const all = new Set<Element>([...this.values.keys(), ...this.moved]);
+    return [...all].filter(el => el.isConnected && this.changes(el, scale).length);
   }
 }

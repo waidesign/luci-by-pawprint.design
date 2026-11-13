@@ -6,7 +6,9 @@ import {
   byRef,
   feedbackItemSchema,
   formatFeedbackPrompt,
+  formatLayoutPrompt,
   nextRef,
+  type LayoutPromptInput,
   parseRef,
   refsIn,
   routeOf,
@@ -42,6 +44,24 @@ describe('feedback prompt: golden files are the spec (FR24, FR27, FR28)', () => 
     expect(compact).toContain('  selector: main > section:nth-of-type(2) > button\n  text: "Start free trial"');
     expect(formatFeedbackPrompt(parsed('one-page.detailed.prompt.md'), { detail: 'detailed' })).toContain('styles: background-color rgb(15, 98, 254)');
     expect(() => formatFeedbackPrompt([])).toThrow(/No feedback items/);
+  });
+});
+
+describe('layout prompt: the golden file is the spec', () => {
+  const layoutInputs = JSON.parse(fs.readFileSync(path.join(dir, 'layout-prompt-inputs.json'), 'utf8')) as Record<string, LayoutPromptInput>;
+  for (const [file, input] of Object.entries(layoutInputs)) {
+    it(file, () => {
+      expect(formatLayoutPrompt(input)).toBe(fs.readFileSync(path.join(dir, file), 'utf8').replace(/\r\n/g, '\n'));
+    });
+  }
+  it('numbers the elements, keeps the note, and refuses an empty plan', () => {
+    const input = Object.values(layoutInputs)[0]!;
+    const text = formatLayoutPrompt(input);
+    expect([...text.matchAll(/^## (\d)\. /gm)].map(m => m[1])).toEqual(['1', '2']);
+    expect(text).toContain('Note: "Make the plans feel more spacious, and put Pro first"');
+    expect(text).toContain('Report every element number (1 to 2)');
+    expect(formatLayoutPrompt({ ...input, note: '' })).not.toContain('Note:');
+    expect(() => formatLayoutPrompt({ ...input, elements: [] })).toThrow(/No layout changes/);
   });
 });
 

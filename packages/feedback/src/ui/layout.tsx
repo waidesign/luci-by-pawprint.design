@@ -1,17 +1,19 @@
 /**
- * Layout mode (step 1, added 13 Nov 2026): plan layout changes on the live page and hand them to the
- * agent as notes. Select an element; drag its edges to resize, ⠿ to move it among its siblings; set
- * width, height, gap, padding and margins exactly. Sizes snap to the page's spacing scale and name
- * its token. Everything is previewed on the real page (LayoutPreview), with undo, redo and reset;
- * "Add as note" turns an element's changes into a feedback note with exact steps.
+ * Layout mode (FR32, changed 13 Nov 2026): try layout changes on the live page, then copy them as one
+ * prompt for your agent. Select an element; drag any of its 8 handles to resize, ⠿ to move it among
+ * its neighbors; set size (with min and max), margin and padding per side, the element as a flex or
+ * grid container, and its place in a flex or grid parent. Values snap to the page's spacing scale and
+ * name its token. Everything is previewed on the real page (LayoutPreview); copying the prompt (or
+ * adding the plan to Feedback notes) puts the page back as it was.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { ButtonSpinner, ModeSwitch, elementAt, isLuciUi, parentOf, scrollableAncestor, selectorFor, type ModeSwitchProps } from '@luci/capture';
-import { FEEDBACK_PRIORITIES, layoutChangeText, type FeedbackPriority, type LayoutChange } from '@luci/format/feedback';
+import { formatLayoutPrompt, layoutChangeText, routeOf, type LayoutPromptElement } from '@luci/format/feedback';
 import type { FeedbackBackend } from '../backend.js';
 import { LayoutPreview, layoutChildren, pageScale, reorderable, snapTo, type LayoutProperty, type PageScale } from '../layout/preview.js';
 import { reactInfo } from '../react.js';
 import { describeTarget, nameOf } from '../target.js';
+import { copyToClipboard } from './clipboard.js';
 
 export interface LayoutProps {
   doc: Document;
@@ -21,14 +23,41 @@ export interface LayoutProps {
   onClose: () => void;
 }
 
+/** The 8 handles: sides and corners. */
+type Edge = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
+const EDGES: readonly Edge[] = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
+const CURSOR: Readonly<Record<Edge, string>> = { n: 'ns-resize', s: 'ns-resize', e: 'ew-resize', w: 'ew-resize', ne: 'nesw-resize', sw: 'nesw-resize', nw: 'nwse-resize', se: 'nwse-resize' };
+
 type Drag =
-  | { kind: 'width' | 'height' | 'both'; el: Element; x: number; y: number; w: number; h: number }
+  | { kind: 'resize'; edge: Edge; el: Element; x: number; y: number; w: number; h: number }
   | { kind: 'move'; el: Element; x: number; y: number };
 
+const SIDES = ['top', 'right', 'bottom', 'left'] as const;
+const DISPLAYS = ['block', 'flex', 'grid', 'inline-block', 'inline-flex', 'inline-grid', 'inline'];
+const DIRECTIONS = ['row', 'row-reverse', 'column', 'column-reverse'];
+const WRAPS = ['nowrap', 'wrap', 'wrap-reverse'];
+const JUSTIFY = ['normal', 'flex-start', 'center', 'flex-end', 'space-between', 'space-around', 'space-evenly', 'start', 'end', 'stretch'];
+const ALIGN = ['normal', 'stretch', 'flex-start', 'center', 'flex-end', 'baseline', 'start', 'end'];
+const ALIGN_SELF = ['auto', 'stretch', 'flex-start', 'center', 'flex-end', 'baseline', 'start', 'end'];
+
 const px = (v: string) => parseFloat(v) || 0;
+const isPx = (v: string) => /^-?\d*\.?\d+px$/.test(v.trim());
 const nameWithComponent = (el: Element) => {
   const c = reactInfo(el)?.components.at(-1);
   return `${nameOf(el)}${c ? ` · ${c}` : ''}`;
+};
+/** A typed value: a bare number is px; "none", "auto", "50%", "20rem" are kept as written. */
+const typed = (raw: string): string | null => {
+  const v = raw.trim();
+  if (!v) return null;
+  if (/^-?\d*\.?\d+$/.test(v)) return `${Math.round(Number(v) * 100) / 100}px`;
+  return /^(-?\d*\.?\d+(px|rem|em|%|vw|vh|ch|fr)|none|auto|min-content|max-content|fit-content)$/.test(v) ? v : null;
+};
+/** "repeat(3, minmax(0, 1fr))" or "200px 200px 200px" -> 3; "none" -> 0. */
+const columnCount = (v: string) => {
+  const rep = /^repeat\((\d+)/.exec(v.trim());
+  if (rep) return Number(rep[1]);
+  return v.trim() === 'none' ? 0 : v.trim().split(/\s+(?![^(]*\))/).length;
 };
 
 /** Where a dragged element would land among its siblings, and the line that shows it. */
@@ -50,6 +79,16 @@ function dropTarget(preview: LayoutPreview, el: Element, x: number, y: number): 
   return { index, line };
 }
 
+/** Where a handle sits on the selection box. */
+function handleStyle(edge: Edge, b: DOMRect): Record<string, string> {
+  const x = edge.includes('w') ? b.left : edge.includes('e') ? b.right : b.left + b.width / 2;
+  const y = edge.includes('n') ? b.top : edge.includes('s') ? b.bottom : b.top + b.height / 2;
+  const side = edge.length === 1;
+  const w = side && (edge === 'e' || edge === 'w') ? 10 : side ? 24 : 14;
+  const h = side && (edge === 'n' || edge === 's') ? 10 : side ? 24 : 14;
+  return { left: `${x - w / 2}px`, top: `${y - h / 2}px`, width: `${w}px`, height: `${h}px`, cursor: CURSOR[edge] };
+}
+
 export function Layout(props: LayoutProps) {
   const { doc, backend } = props;
   const win = doc.defaultView ?? window;
@@ -61,7 +100,10 @@ export function Layout(props: LayoutProps) {
   const [selected, setSelected] = useState<Element | null>(null);
   const [drag, setDrag] = useState<Drag | null>(null);
   const [drop, setDrop] = useState<ReturnType<typeof dropTarget>>(null);
-  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
+  const [linked, setLinked] = useState<{ margin: boolean; padding: boolean }>({ margin: false, padding: false });
+  const [note, setNote] = useState('');
+  const [result, setResult] = useState<{ prompt?: string; text: string; ok: boolean } | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
   const [, setTick] = useState(0);
   const bump = () => setTick(t => t + 1);
 
@@ -101,14 +143,13 @@ export function Layout(props: LayoutProps) {
 
   const p = preview.current;
   const base = scale?.base ?? 4;
-  const tokenFor = (v: string) => scale?.tokens.get(px(v));
+  const tokenFor = (v: string) => (isPx(v) ? scale?.tokens.get(px(v)) : undefined);
 
   // ---- Picking ---------------------------------------------------------------------------------
   const select = (el: Element | null) => {
     setSelected(el);
     setSelecting(!el);
     setHovered(null);
-    setNote(null);
   };
   const pickWheel = (e: WheelEvent) => {
     const box = scrollableAncestor(elementAt(doc, e.clientX, e.clientY), e.deltaX, e.deltaY);
@@ -116,18 +157,24 @@ export function Layout(props: LayoutProps) {
   };
 
   // ---- Dragging handles ------------------------------------------------------------------------
-  const startDrag = (kind: Drag['kind']) => (e: PointerEvent) => {
+  const startDrag = (kind: 'move' | Edge) => (e: PointerEvent) => {
     if (!selected) return;
     e.preventDefault();
     (e.currentTarget as Element).setPointerCapture(e.pointerId);
     const r = selected.getBoundingClientRect();
-    setDrag(kind === 'move' ? { kind, el: selected, x: e.clientX, y: e.clientY } : { kind, el: selected, x: e.clientX, y: e.clientY, w: r.width, h: r.height });
+    setResult(null);
+    setDrag(kind === 'move' ? { kind, el: selected, x: e.clientX, y: e.clientY } : { kind: 'resize', edge: kind, el: selected, x: e.clientX, y: e.clientY, w: r.width, h: r.height });
   };
   const onDragMove = (e: PointerEvent) => {
     if (!drag) return;
     if (drag.kind === 'move') { setDrop(dropTarget(p, drag.el, e.clientX, e.clientY)); return; }
-    if (drag.kind !== 'height') p.set(drag.el, 'width', `${snapTo(drag.w + e.clientX - drag.x, base)}px`);
-    if (drag.kind !== 'width') p.set(drag.el, 'height', `${snapTo(drag.h + e.clientY - drag.y, base)}px`);
+    const dx = e.clientX - drag.x;
+    const dy = e.clientY - drag.y;
+    // Left and top handles grow the size too; where it grows on screen depends on the layout
+    if (drag.edge.includes('e')) p.set(drag.el, 'width', `${snapTo(drag.w + dx, base)}px`);
+    if (drag.edge.includes('w')) p.set(drag.el, 'width', `${snapTo(drag.w - dx, base)}px`);
+    if (drag.edge.includes('s')) p.set(drag.el, 'height', `${snapTo(drag.h + dy, base)}px`);
+    if (drag.edge.includes('n')) p.set(drag.el, 'height', `${snapTo(drag.h - dy, base)}px`);
     bump();
   };
   const endDrag = () => {
@@ -137,59 +184,164 @@ export function Layout(props: LayoutProps) {
     bump();
   };
 
-  // ---- Adding a note ---------------------------------------------------------------------------
-  const changes: LayoutChange[] = selected && scale ? p.changes(selected, scale) : [];
-  const [why, setWhy] = useState('');
-  const [priority, setPriority] = useState<FeedbackPriority>('medium');
-  const [busy, setBusy] = useState(false);
-  const addNote = async () => {
-    if (!selected || !changes.length) return;
-    setBusy(true);
-    try {
-      const { target, pageSource } = await describeTarget(selected, backend.resolveFrames ? { serverResolve: backend.resolveFrames } : {});
-      const summary = changes.map(layoutChangeText).join('; ');
-      const item = await backend.add({
-        page: { url: doc.location.href, title: doc.title, ...(pageSource ? { source: pageSource } : {}) },
-        target,
-        comment: why.trim() || `Layout: ${summary}`,
-        intent: 'change',
-        priority,
-        layout: { viewport: { width: win.innerWidth, height: win.innerHeight }, changes }
+  // ---- The plan: copy it as a prompt, or add it to Feedback notes; either puts the page back ---
+  const planned = scale ? p.changed(scale) : [];
+  const plannedCount = planned.reduce((n, el) => n + p.changes(el, scale!).length, 0);
+  const collect = async () => {
+    const elements: (LayoutPromptElement & { el: Element; target: Awaited<ReturnType<typeof describeTarget>>['target'] })[] = [];
+    let pageSource: string | undefined;
+    for (const el of planned) {
+      const { target, pageSource: ps } = await describeTarget(el, backend.resolveFrames ? { serverResolve: backend.resolveFrames } : {});
+      pageSource ??= ps;
+      elements.push({
+        el, target, element: target.element, selector: target.selector,
+        ...(target.text ? { text: target.text } : {}),
+        ...(target.components ? { components: target.components } : {}),
+        ...(target.source ? { source: target.source } : {}),
+        changes: p.changes(el, scale!)
       });
-      setNote({ ok: true, text: `Added ${item.ref}. Its marker shows in Feedback mode, and it is in the next prompt.` });
-      setWhy('');
+    }
+    return { elements, pageSource };
+  };
+  const finish = (text: string, prompt?: string) => {
+    p.reset();
+    setSelected(null);
+    setSelecting(true);
+    setNote('');
+    setResult({ ok: true, text, ...(prompt ? { prompt } : {}) });
+    bump();
+  };
+  const copyPrompt = async () => {
+    if (!planned.length) return;
+    setBusy('copy');
+    try {
+      const { elements, pageSource } = await collect();
+      const prompt = formatLayoutPrompt({ route: routeOf(doc.location.href), ...(pageSource ? { pageSource } : {}), viewport: { width: win.innerWidth, height: win.innerHeight }, ...(note.trim() ? { note } : {}), elements });
+      const copied = await copyToClipboard(doc, prompt);
+      finish(copied ? 'Copied. Paste it to your agent. The page is back as it is in your code.' : 'Copy it from below and paste it to your agent. The page is back as it is in your code.', prompt);
     } catch (err) {
-      setNote({ ok: false, text: err instanceof Error ? err.message : String(err) });
+      setResult({ ok: false, text: err instanceof Error ? err.message : String(err) });
     } finally {
-      setBusy(false);
+      setBusy(null);
+    }
+  };
+  const addToNotes = async () => {
+    if (!planned.length) return;
+    setBusy('notes');
+    try {
+      const { elements, pageSource } = await collect();
+      const refs: string[] = [];
+      for (const e of elements) {
+        const item = await backend.add({
+          page: { url: doc.location.href, title: doc.title, ...(pageSource ? { source: pageSource } : {}) },
+          target: e.target,
+          comment: note.trim() || `Layout: ${e.changes.map(layoutChangeText).join('; ')}`,
+          intent: 'change',
+          priority: 'medium',
+          layout: { viewport: { width: win.innerWidth, height: win.innerHeight }, changes: [...e.changes] }
+        });
+        refs.push(item.ref);
+      }
+      finish(`Added ${refs.join(', ')} to Feedback notes. They go in the next Copy prompt there. The page is back as it is in your code.`);
+    } catch (err) {
+      setResult({ ok: false, text: err instanceof Error ? err.message : String(err) });
+    } finally {
+      setBusy(null);
     }
   };
 
-  const plannedCount = scale ? p.changed(scale).length : 0;
+  // ---- Controls --------------------------------------------------------------------------------
+  const setValue = (el: Element, prop: LayoutProperty, value: string) => { setResult(null); p.set(el, prop, value); bump(); };
+  const lengthInput = (el: Element, prop: LayoutProperty, opts: { label?: string; group?: 'margin' | 'padding' } = {}) => {
+    const v = p.value(el, prop);
+    const token = tokenFor(v);
+    const apply = (value: string) => {
+      if (opts.group && linked[opts.group]) for (const s of SIDES) setValue(el, `${opts.group}-${s}` as LayoutProperty, value);
+      else setValue(el, prop, value);
+    };
+    const step = (d: number) => apply(`${snapTo(px(v) + d * base, base)}px`);
+    return (
+      <div class={opts.group ? 'side' : 'lrow'} data-prop={prop} key={prop}>
+        {opts.label && <span class="lname">{opts.label}</span>}
+        <button type="button" data-step="-" aria-label={`Smaller ${opts.label ?? prop}`} onClick={() => step(-1)}>−</button>
+        <input type="text" class="field" data-part={`value-${prop}`} value={isPx(v) ? String(Math.round(px(v) * 100) / 100) : v} title="A number is px; you can also type none, auto, 50%, 20rem"
+          onChange={e => { const t = typed((e.currentTarget as HTMLInputElement).value); if (t) apply(t); else bump(); }} />
+        <button type="button" data-step="+" aria-label={`Larger ${opts.label ?? prop}`} onClick={() => step(1)}>+</button>
+        {!opts.group && <span class="token dim" data-part={`token-${prop}`}>{token ?? (isPx(v) ? 'px' : '')}</span>}
+      </div>
+    );
+  };
+  const sides = (el: Element, group: 'margin' | 'padding') => (
+    <div class="sides" data-group={group}>
+      <div class="sides-head">
+        <span class="lname">{group === 'margin' ? 'Margin' : 'Padding'}</span>
+        <button type="button" class="link-toggle" data-action={`link-${group}`} aria-pressed={linked[group]} title="Change all four sides together"
+          onClick={() => setLinked(l => ({ ...l, [group]: !l[group] }))}>🔗 {linked[group] ? 'All sides' : 'Each side'}</button>
+      </div>
+      <div class="sides-grid">
+        {SIDES.map(s => (
+          <label class="side-cell"><span class="dim">{s}</span>{lengthInput(el, `${group}-${s}` as LayoutProperty, { group })}</label>
+        ))}
+      </div>
+    </div>
+  );
+  const selectRow = (el: Element, label: string, prop: LayoutProperty, options: readonly string[]) => {
+    const v = p.value(el, prop);
+    return (
+      <label class="lrow" data-prop={prop} key={prop}>
+        <span class="lname">{label}</span>
+        <select data-part={`value-${prop}`} value={v} onChange={e => setValue(el, prop, (e.currentTarget as HTMLSelectElement).value)}>
+          {(options.includes(v) ? options : [v, ...options]).map(o => <option value={o}>{o}</option>)}
+        </select>
+      </label>
+    );
+  };
+  const numberRow = (el: Element, label: string, prop: LayoutProperty) => {
+    const v = p.value(el, prop);
+    return (
+      <label class="lrow" data-prop={prop} key={prop}>
+        <span class="lname">{label}</span>
+        <button type="button" data-step="-" onClick={() => setValue(el, prop, String(Math.max(0, Number(v) - 1)))}>−</button>
+        <input type="number" class="field" data-part={`value-${prop}`} min={0} value={Number(v) || 0} onChange={e => setValue(el, prop, String(Math.max(0, Number((e.currentTarget as HTMLInputElement).value) || 0)))} />
+        <button type="button" data-step="+" onClick={() => setValue(el, prop, String(Number(v) + 1))}>+</button>
+      </label>
+    );
+  };
+
   const box = selected?.isConnected ? selected.getBoundingClientRect() : null;
   const hoverBox = selecting && hovered && !drag ? hovered.getBoundingClientRect() : null;
   const parent = selected?.parentElement ?? null;
-  const canPreviewMove = parent ? Boolean(reorderable(parent)) : false;
-  const isContainer = selected ? Boolean(reorderable(selected)) : false;
+  const showMove = parent ? p.previewOf(parent) : null;
+  const display = selected ? p.value(selected, 'display') : '';
+  const isFlex = /flex/.test(display);
+  const isGrid = /grid/.test(display);
+  const inFlexOrGrid = parent ? Boolean(reorderable(parent)) : false;
   const siblings = parent ? layoutChildren(parent).length : 0;
+  const changes = selected && scale ? p.changes(selected, scale) : [];
 
-  // A plain function (not a component), so a field keeps its focus while the panel re-renders
-  const row = (label: string, prop: LayoutProperty) => {
-    if (!selected) return null;
-    const v = p.value(selected, prop);
-    const token = tokenFor(v);
-    const set = (n: number) => { p.set(selected, prop, `${Math.max(0, Math.round(n * 100) / 100)}px`); bump(); };
-    return (
-      <div class="lrow" data-prop={prop} key={prop}>
-        <span class="lname">{label}</span>
-        <button type="button" data-step="-" aria-label={`Smaller ${label}`} onClick={() => set(snapTo(px(v) - base, base))}>−</button>
-        <input type="number" class="field" data-part={`value-${prop}`} value={Math.round(px(v) * 100) / 100} min={0}
-          onChange={e => set(Number((e.currentTarget as HTMLInputElement).value))} />
-        <span class="dim">px</span>
-        <button type="button" data-step="+" aria-label={`Larger ${label}`} onClick={() => set(snapTo(px(v) + base, base))}>+</button>
-        <span class="token dim" data-part={`token-${prop}`}>{token ?? ''}</span>
-      </div>
-    );
+  // The box model of the selection: margin (orange) outside, padding (green) inside the border
+  const boxModel = () => {
+    if (!selected || !box || drag) return null;
+    const cs = win.getComputedStyle(selected);
+    const m = SIDES.map(s => px(cs.getPropertyValue(`margin-${s}`)));
+    const pd = SIDES.map(s => px(cs.getPropertyValue(`padding-${s}`)));
+    const bw = SIDES.map(s => px(cs.getPropertyValue(`border-${s}-width`)));
+    const strips: { cls: string; l: number; t: number; w: number; h: number }[] = [];
+    const [mt, mr, mb, ml] = m as [number, number, number, number];
+    strips.push({ cls: 'margin', l: box.left - ml, t: box.top - mt, w: box.width + ml + mr, h: mt });
+    strips.push({ cls: 'margin', l: box.left - ml, t: box.bottom, w: box.width + ml + mr, h: mb });
+    strips.push({ cls: 'margin', l: box.left - ml, t: box.top, w: ml, h: box.height });
+    strips.push({ cls: 'margin', l: box.right, t: box.top, w: mr, h: box.height });
+    const [pt, pr, pb, pl] = pd as [number, number, number, number];
+    const [bt, br, bb, bl] = bw as [number, number, number, number];
+    const il = box.left + bl, it = box.top + bt, iw = box.width - bl - br, ih = box.height - bt - bb;
+    strips.push({ cls: 'pad', l: il, t: it, w: iw, h: pt });
+    strips.push({ cls: 'pad', l: il, t: it + ih - pb, w: iw, h: pb });
+    strips.push({ cls: 'pad', l: il, t: it + pt, w: pl, h: ih - pt - pb });
+    strips.push({ cls: 'pad', l: il + iw - pr, t: it + pt, w: pr, h: ih - pt - pb });
+    return strips.filter(s => s.w > 0 && s.h > 0).map(s => (
+      <div class={`boxmodel ${s.cls}`} data-part={`box-${s.cls}`} style={{ left: `${s.l}px`, top: `${s.t}px`, width: `${s.w}px`, height: `${s.h}px` }} />
+    ));
   };
 
   return (
@@ -201,17 +353,18 @@ export function Layout(props: LayoutProps) {
         <button type="button" data-action="undo" disabled={!p.canUndo} title="Undo (Ctrl+Z)" onClick={() => { p.undo(); bump(); }}>Undo</button>
         <button type="button" data-action="redo" disabled={!p.canRedo} title="Redo (Ctrl+Shift+Z)" onClick={() => { p.redo(); bump(); }}>Redo</button>
         <button type="button" data-action="reset" disabled={!plannedCount && !p.canUndo} title="Put the page back as it is in your code" onClick={() => { p.reset(); bump(); }}>Reset</button>
-        <span class="dim" data-part="planned">{plannedCount ? `${plannedCount} changed` : ''}</span>
-        <span class={`conn ${backend.kind}`} data-part="connection" title={backend.kind === 'project' ? 'Notes are saved in the project, where your agent reads them' : props.connectNote ?? ''}>
+        <button type="button" class="primary" data-action="copy-layout-prompt" disabled={!plannedCount || Boolean(busy)} title="Copy every planned change as one prompt for your agent; the page goes back as it was"
+          onClick={() => void copyPrompt()}>{busy === 'copy' ? <><ButtonSpinner />Copying…</> : `Copy prompt${plannedCount ? ` (${plannedCount})` : ''}`}</button>
+        <span class={`conn ${backend.kind}`} data-part="connection" title={backend.kind === 'project' ? 'Notes are saved in the project' : props.connectNote ?? ''}>
           {backend.kind === 'project' ? 'Project' : 'This browser'}
         </span>
         <button type="button" aria-label="Close Luci" data-action="close" onClick={props.onClose}>×</button>
       </div>
 
       {!scale && <div class="sub"><p class="loading"><ButtonSpinner />Reading the page's spacing scale…</p></div>}
-      {scale && selecting && !selected && (
+      {scale && selecting && !selected && !result && (
         <div class="sub" role="note" data-part="hint">
-          <p class="hint">Click an element to change its layout: drag its edges to resize, ⠿ to move it among its neighbors. Values snap to this page's {scale.base}px scale. Nothing changes in your code until your agent applies the note.</p>
+          <p class="hint">Click an element to change its layout: drag its handles to resize, ⠿ to move it among its neighbors. Values snap to this page's {scale.base}px scale. Nothing changes in your code: copy the prompt for your agent.</p>
         </div>
       )}
 
@@ -228,59 +381,134 @@ export function Layout(props: LayoutProps) {
         </>
       )}
 
+      {boxModel()}
       {box && selected && (
         <>
           <div class="sel" data-part="selection" style={{ left: `${box.left}px`, top: `${box.top}px`, width: `${box.width}px`, height: `${box.height}px` }} />
-          <div class="label" data-part="size-label" style={{ left: `${box.left}px`, top: `${Math.max(0, box.top - 24)}px` }}>
-            {nameWithComponent(selected)}  {Math.round(box.width)} × {Math.round(box.height)}{tokenFor(`${Math.round(box.width)}px`) ? ` · ${tokenFor(`${Math.round(box.width)}px`)}` : ''}
-          </div>
-          {siblings > 1 && (
-            <button type="button" class="handle h-move" data-handle="move" title="Drag to move it among its neighbors" style={{ left: `${box.left - 14}px`, top: `${box.top - 14}px` }}
-              onPointerDown={startDrag('move')} onPointerMove={onDragMove} onPointerUp={endDrag}>⠿</button>
-          )}
-          <span class="handle h-right" data-handle="width" title="Drag to change the width" style={{ left: `${box.right - 5}px`, top: `${box.top + box.height / 2 - 12}px` }}
-            onPointerDown={startDrag('width')} onPointerMove={onDragMove} onPointerUp={endDrag} />
-          <span class="handle h-bottom" data-handle="height" title="Drag to change the height" style={{ left: `${box.left + box.width / 2 - 12}px`, top: `${box.bottom - 5}px` }}
-            onPointerDown={startDrag('height')} onPointerMove={onDragMove} onPointerUp={endDrag} />
-          <span class="handle h-corner" data-handle="both" title="Drag to change both" style={{ left: `${box.right - 7}px`, top: `${box.bottom - 7}px` }}
-            onPointerDown={startDrag('both')} onPointerMove={onDragMove} onPointerUp={endDrag} />
+          {/* The grip and the label sit just above the element (below it when it is at the top of the
+              window), clear of the corner handles */}
+          {(() => {
+            const above = box.top >= 34;
+            const y = above ? box.top - 32 : box.bottom + 6;
+            return (
+              <>
+                {siblings > 1 && (
+                  <button type="button" class="handle h-move" data-handle="move" title={showMove ? 'Drag to move it among its neighbors' : 'Drag to plan a move (it cannot be shown here: the prompt says where it goes)'}
+                    style={{ left: `${Math.max(2, box.left)}px`, top: `${y}px` }}
+                    onPointerDown={startDrag('move')} onPointerMove={onDragMove} onPointerUp={endDrag}>⠿</button>
+                )}
+                <div class="label" data-part="size-label" style={{ left: `${Math.max(2, box.left) + (siblings > 1 ? 32 : 0)}px`, top: `${y + 2}px` }}>
+                  {nameWithComponent(selected)}  {Math.round(box.width)} × {Math.round(box.height)}{tokenFor(`${Math.round(box.width)}px`) ? ` · ${tokenFor(`${Math.round(box.width)}px`)}` : ''}
+                </div>
+              </>
+            );
+          })()}
+          {EDGES.map(edge => (
+            <span class={`handle h-${edge.length === 1 ? 'side' : 'corner'}`} data-handle={edge} title="Drag to resize" style={handleStyle(edge, box)}
+              onPointerDown={startDrag(edge)} onPointerMove={onDragMove} onPointerUp={endDrag} />
+          ))}
         </>
       )}
       {drop && <div class="drop-line" data-part="drop-line" style={{ left: `${drop.line.left}px`, top: `${drop.line.top}px`, width: `${drop.line.width}px`, height: `${drop.line.height}px` }} />}
 
-      {selected && scale && (
+      {scale && (selected || plannedCount > 0 || result) && (
         <div class="panel layout-panel" role="dialog" aria-label="Layout" data-part="inspector">
-          <h2>{nameWithComponent(selected)}</h2>
-          <div class="row">
-            <button type="button" data-action="select-parent" disabled={!parentOf(selected) || parentOf(selected) === doc.body} onClick={() => select(parentOf(selected))}>↑ Parent</button>
-            <button type="button" data-action="deselect" onClick={() => select(null)}>Pick another</button>
-          </div>
-          <div class="stack">
-            {row('Width', 'width')}
-            {row('Height', 'height')}
-            {isContainer && row('Gap', 'gap')}
-            {row('Padding', 'padding')}
-            {row('Margin top', 'margin-top')}
-            {row('Margin bottom', 'margin-bottom')}
-          </div>
-          {changes.some(c => c.op === 'move') && !canPreviewMove && (
-            <p class="hint" data-part="move-note">Its parent is not a flex or grid container, so the move is planned but not shown. The note tells the agent where it goes.</p>
+          {selected ? (
+            <>
+              <h2>{nameWithComponent(selected)}</h2>
+              <div class="row">
+                <button type="button" data-action="select-parent" disabled={!parentOf(selected) || parentOf(selected) === doc.body} onClick={() => select(parentOf(selected))}>↑ Parent</button>
+                <button type="button" data-action="deselect" onClick={() => select(null)}>Pick another</button>
+              </div>
+
+              <details open data-section="size">
+                <summary>Size</summary>
+                {lengthInput(selected, 'width', { label: 'Width' })}
+                {lengthInput(selected, 'height', { label: 'Height' })}
+                {lengthInput(selected, 'min-width', { label: 'Min width' })}
+                {lengthInput(selected, 'max-width', { label: 'Max width' })}
+                {lengthInput(selected, 'min-height', { label: 'Min height' })}
+                {lengthInput(selected, 'max-height', { label: 'Max height' })}
+              </details>
+
+              <details open data-section="spacing">
+                <summary>Spacing</summary>
+                {sides(selected, 'margin')}
+                {sides(selected, 'padding')}
+              </details>
+
+              <details open data-section="layout">
+                <summary>Layout of its children</summary>
+                {selectRow(selected, 'Display', 'display', DISPLAYS)}
+                {isFlex && selectRow(selected, 'Direction', 'flex-direction', DIRECTIONS)}
+                {isFlex && selectRow(selected, 'Wrap', 'flex-wrap', WRAPS)}
+                {isGrid && (
+                  <label class="lrow" data-prop="grid-template-columns">
+                    <span class="lname">Columns</span>
+                    <button type="button" data-step="-" onClick={() => { const n = Math.max(1, columnCount(p.value(selected, 'grid-template-columns')) - 1); setValue(selected, 'grid-template-columns', `repeat(${n}, minmax(0, 1fr))`); }}>−</button>
+                    <input type="number" class="field" data-part="value-columns" min={1} value={Math.max(1, columnCount(p.value(selected, 'grid-template-columns')))}
+                      onChange={e => setValue(selected, 'grid-template-columns', `repeat(${Math.max(1, Number((e.currentTarget as HTMLInputElement).value) || 1)}, minmax(0, 1fr))`)} />
+                    <button type="button" data-step="+" onClick={() => { const n = Math.max(1, columnCount(p.value(selected, 'grid-template-columns'))) + 1; setValue(selected, 'grid-template-columns', `repeat(${n}, minmax(0, 1fr))`); }}>+</button>
+                    <span class="dim">equal</span>
+                  </label>
+                )}
+                {(isFlex || isGrid) && selectRow(selected, 'Justify', 'justify-content', JUSTIFY)}
+                {(isFlex || isGrid) && selectRow(selected, 'Align', 'align-items', ALIGN)}
+                {(isFlex || isGrid) && lengthInput(selected, 'row-gap', { label: 'Row gap' })}
+                {(isFlex || isGrid) && lengthInput(selected, 'column-gap', { label: 'Column gap' })}
+                {!isFlex && !isGrid && <p class="dim">Choose flex or grid to arrange its children in a row, a column or a grid.</p>}
+              </details>
+
+              {inFlexOrGrid && (
+                <details open data-section="self">
+                  <summary>In its parent</summary>
+                  {selectRow(selected, 'Align self', 'align-self', ALIGN_SELF)}
+                  {numberRow(selected, 'Grow', 'flex-grow')}
+                  {numberRow(selected, 'Shrink', 'flex-shrink')}
+                </details>
+              )}
+
+              {changes.some(c => c.op === 'move') && !showMove && (
+                <p class="hint" data-part="move-note">This move cannot be shown here (its neighbors are not in a row, a column or a grid). It is in the prompt.</p>
+              )}
+              <div class="stack">
+                <span>Planned for this element</span>
+                {changes.length
+                  ? <ul class="thread" data-part="changes">{changes.map(c => <li>{layoutChangeText(c)}</li>)}</ul>
+                  : <p class="dim">Nothing yet: drag a handle, or change a value above.</p>}
+              </div>
+            </>
+          ) : result ? null : (
+            <>
+              <h2>Planned on this page</h2>
+              <ul class="thread" data-part="planned-elements">
+                {planned.map(el => (
+                  <li><button type="button" class="link-button" onClick={() => select(el)}>{nameWithComponent(el)}</button>: {p.changes(el, scale).map(layoutChangeText).join('; ')}</li>
+                ))}
+              </ul>
+            </>
           )}
-          <div class="stack">
-            <span>Planned for this element</span>
-            {changes.length
-              ? <ul class="thread" data-part="changes">{changes.map(c => <li>{layoutChangeText(c)}</li>)}</ul>
-              : <p class="dim">Nothing yet: drag a handle, or change a value above.</p>}
-          </div>
-          <textarea data-part="why" placeholder="Why, or what else (optional)" value={why} onInput={e => setWhy((e.currentTarget as HTMLTextAreaElement).value)} />
-          <div class="row">
-            <label>Priority <select data-part="priority" value={priority} onChange={e => setPriority((e.currentTarget as HTMLSelectElement).value as FeedbackPriority)}>
-              {FEEDBACK_PRIORITIES.map(v => <option value={v}>{v}</option>)}
-            </select></label>
-            <button type="button" class="primary" data-action="add-layout-note" disabled={!changes.length || busy} onClick={() => void addNote()}>{busy ? <><ButtonSpinner />Adding…</> : 'Add as note'}</button>
-          </div>
-          {note && <p class={note.ok ? 'dim' : 'error'} data-part="layout-added">{note.text}</p>}
-          <p class="dim">Planned at {win.innerWidth}px wide. The agent keeps other widths working.</p>
+
+          {result ? (
+            <div class="stack" data-part="layout-result">
+              <p class={result.ok ? 'hint' : 'error'} data-part="layout-added">{result.text}</p>
+              {result.prompt && <pre data-part="layout-prompt">{result.prompt}</pre>}
+              <div class="row"><button type="button" data-action="result-close" onClick={() => setResult(null)}>OK</button></div>
+            </div>
+          ) : plannedCount > 0 && (
+            <div class="stack plan-footer" data-part="plan">
+              <span>Your note for the agent <span class="dim">(optional, goes with the plan)</span></span>
+              <textarea data-part="layout-note" placeholder="Why, or what else should change" value={note} onInput={e => setNote((e.currentTarget as HTMLTextAreaElement).value)} />
+              <div class="row">
+                <button type="button" class="primary" data-action="copy-layout-prompt-panel" disabled={Boolean(busy)} onClick={() => void copyPrompt()}>
+                  {busy === 'copy' ? <><ButtonSpinner />Copying…</> : `Copy prompt (${plannedCount} change${plannedCount === 1 ? '' : 's'})`}
+                </button>
+                <button type="button" data-action="add-layout-notes" disabled={Boolean(busy)} title="Keep the plan as Feedback notes, to send with other notes in one prompt"
+                  onClick={() => void addToNotes()}>{busy === 'notes' ? <><ButtonSpinner />Adding…</> : 'Add to Feedback notes'}</button>
+              </div>
+              <p class="dim">Planned at {win.innerWidth}px wide. Copying puts the page back as it is in your code.</p>
+            </div>
+          )}
         </div>
       )}
     </div>

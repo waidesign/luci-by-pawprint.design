@@ -22,6 +22,7 @@ import {
 } from '@luci/format/feedback';
 import type { FeedbackBackend } from '../backend.js';
 import { reactInfo } from '../react.js';
+import { copyToClipboard } from './clipboard.js';
 import { describeTarget, nameOf, selectionElement } from '../target.js';
 
 export interface FeedbackSettings {
@@ -73,24 +74,6 @@ const popAt = (win: Window, x: number, y: number) => ({
   left: `${Math.max(12, Math.min(x, win.innerWidth - 352))}px`,
   top: `${Math.max(12, Math.min(y + 12, win.innerHeight - 320))}px`
 });
-
-/** Copy text: the clipboard API, or a selected textarea when the page does not allow it. */
-async function copyToClipboard(doc: Document, text: string): Promise<boolean> {
-  try {
-    await doc.defaultView!.navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    const ta = doc.createElement('textarea');
-    ta.value = text;
-    ta.setAttribute('data-luci-ui', '');
-    ta.style.cssText = 'position:fixed;left:-9999px';
-    doc.body.appendChild(ta);
-    ta.select();
-    const ok = doc.execCommand('copy');
-    ta.remove();
-    return ok;
-  }
-}
 
 /** The CSS that freezes a page for annotating one frame (FR31). */
 export const PAUSE_CSS = '*, *::before, *::after { animation-play-state: paused !important; transition: none !important; caret-color: transparent !important; }';

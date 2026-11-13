@@ -63,13 +63,28 @@ export const FEEDBACK_CSS = `${TOOLBAR_CSS}
 /* Layout mode */
 .sel { position: fixed; z-index: 2147483643; pointer-events: none; border: 2px solid var(--accent); box-shadow: 0 0 0 1px rgb(24 24 27 / 0.6); }
 .handle { position: fixed; z-index: 2147483646; display: block; background: var(--accent); border: 2px solid #18181b; border-radius: 4px; touch-action: none; }
-.h-right { width: 10px; height: 24px; cursor: ew-resize; }
-.h-bottom { width: 24px; height: 10px; cursor: ns-resize; }
-.h-corner { width: 14px; height: 14px; cursor: nwse-resize; }
+.h-side, .h-corner { padding: 0; }
+.boxmodel { position: fixed; z-index: 2147483642; pointer-events: none; }
+.boxmodel.margin { background: rgb(251 146 60 / 0.25); }
+.boxmodel.pad { background: rgb(74 222 128 / 0.22); }
+.layout-panel details { border-top: 1px solid var(--line); padding-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+.layout-panel summary { cursor: pointer; font-weight: 600; margin-bottom: 4px; }
+.layout-panel details > * + * { margin-top: 6px; }
+.layout-panel select { min-width: 140px; }
+.sides { display: flex; flex-direction: column; gap: 4px; }
+.sides-head { display: flex; justify-content: space-between; align-items: center; }
+.link-toggle { padding: 2px 8px; font-size: 12px; color: var(--muted); }
+.sides-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 10px; }
+.side-cell { display: grid; grid-template-columns: 44px 1fr; align-items: center; gap: 4px; color: var(--ink); }
+.side { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 2px; align-items: center; }
+.side button { padding: 2px 6px; }
+.side input { width: 100%; }
+.plan-footer { border-top: 1px solid var(--line); padding-top: 10px; }
 .h-move { width: 26px; height: 26px; padding: 0; display: inline-flex; align-items: center; justify-content: center; color: #18181b; font: 600 14px/1 system-ui; cursor: grab; }
 .h-move:hover { background: #c4b5fd; }
 .drop-line { position: fixed; z-index: 2147483646; pointer-events: none; background: #f472b6; border-radius: 2px; box-shadow: 0 0 0 2px rgb(244 114 182 / 0.3); }
-.lrow { display: grid; grid-template-columns: 96px auto 72px auto auto 1fr; gap: 6px; align-items: center; }
+.lrow { display: grid; grid-template-columns: 96px auto 84px auto 1fr; gap: 6px; align-items: center; color: var(--ink); }
+.lrow:has(select) { grid-template-columns: 96px 1fr; }
 .lrow button { padding: 2px 8px; }
 .lrow .token { font: 12px ui-monospace, monospace; }
 .layout-panel { max-height: min(80vh, 680px); overflow: auto; }

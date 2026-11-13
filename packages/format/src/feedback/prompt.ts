@@ -19,7 +19,11 @@ export const sourceText = (s: SourceLocation) => `${s.file}${s.line ? `:${s.line
 /** One planned layout change, as a step: "move it before `main > section:nth-of-type(3)` (section): 3rd of 4 -> 2nd". */
 export function layoutChangeText(c: LayoutChange): string {
   // Width and height are the size as rendered (border and padding included), as it was measured
-  if (c.op === 'set') return `${c.property}${c.property === 'width' || c.property === 'height' ? ' as rendered' : ''} ${c.from} → ${c.to}${c.token ? ` (${c.token})` : ''}`;
+  if (c.op === 'set') {
+    if (c.property === 'grid-template-columns') return `grid columns ${c.from} → ${c.to}`;
+    const rendered = /^(min-|max-)?(width|height)$/.test(c.property) && /px$/.test(c.to);
+    return `${c.property}${rendered ? ' as rendered' : ''} ${c.from} → ${c.to}${c.token ? ` (${c.token})` : ''}`;
+  }
   const ord = (n: number) => `${n}${n % 10 === 1 && n % 100 !== 11 ? 'st' : n % 10 === 2 && n % 100 !== 12 ? 'nd' : n % 10 === 3 && n % 100 !== 13 ? 'rd' : 'th'}`;
   const where = c.position === 'first' ? 'to the start of its parent'
     : c.position === 'last' ? 'to the end of its parent'

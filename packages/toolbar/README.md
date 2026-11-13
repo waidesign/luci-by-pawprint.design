@@ -34,12 +34,16 @@ The switch first in the bar, **Feedback · Layout · Capture**, is in the same p
 
 ## Layout
 
-Plan layout changes on the live page, then send them to your agent as notes with exact steps.
+Try layout changes on the live page, then copy them as one prompt for your agent.
 
-- **Select** an element (**↑ Parent** takes the one around it). Drag its right edge, bottom edge or corner to resize it, or drag **⠿** to move it among its neighbors; a pink line shows where it lands.
-- The panel sets width, height, gap (for flex and grid containers), padding and margins exactly, with − and + in steps of the page's spacing unit. Values snap to that scale and show the custom property that has the value (`--space-6`).
-- Changes show on the real page at once. In a flex or grid container a move really reorders; elsewhere it is planned and the note says where it goes. **Undo**, **Redo** (Ctrl+Z, Ctrl+Shift+Z) and **Reset** put things back; leaving Layout mode removes the preview. Luci never moves your app's DOM, so your app keeps working.
-- **Add as note** turns the element's changes into a note: the steps, the window width you planned at, and your "why". It gets a marker in Feedback mode and goes in the next prompt.
+- **Select** an element (**↑ Parent** takes the one around it). Drag any of its 8 handles (sides and corners) to resize it, or the **⠿** grip above it to move it among its neighbors; a pink line shows where it lands. Orange and green show its margin and padding.
+- **Size:** width, height, min and max width and height. These are sizes on screen, border and padding included. Type a number (px) or `none`, `auto`, `50%`, `20rem`.
+- **Spacing:** margin and padding for each side, with − and +; 🔗 changes all four sides together.
+- **Layout of its children:** display (block, flex, grid, inline…); for flex, direction and wrap; for grid, the number of equal columns; justify, align, row gap and column gap.
+- **In its parent** (when the parent is flex or grid): align self, grow, shrink.
+- Values snap to the page's spacing scale and show the custom property that has the value (`--space-6`).
+- Changes show on the real page at once. A move really reorders in a flex or grid container, and shifts into place in a top-to-bottom stack; when neither is possible, the prompt still says where it goes. **Undo**, **Redo** (Ctrl+Z, Ctrl+Shift+Z) and **Reset** put things back. Luci never moves your app's DOM, so your app keeps working.
+- **Copy prompt:** every planned change on the page, element by element, with your note, in one prompt to paste to your agent. The page then goes back as it is in your code. **Add to Feedback notes** keeps the plan as notes instead, to send with other notes in one multi-page prompt.
 
 ## Capture
 
