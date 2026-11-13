@@ -3,8 +3,9 @@
  * where it came from, then fixed sections that depend on scope and type. See
  * docs/format/capture.md. This module is browser-safe (no Node imports): the extension uses it.
  *
- * M4 defines the token captures (one text style, color or spacing value) and the three
- * page systems (typography, color, spacing). Component, section and collection follow in M5.
+ * Token captures (one text style, color or spacing value, or every spacing value of one element),
+ * the three page systems (typography, color, spacing), components, and the full-page reference.
+ * Section scope follows in v0.2.
  */
 import { z } from 'zod';
 
@@ -108,6 +109,21 @@ export const spacingTokenSchema = z.object({
   between: z.tuple([elementRefSchema, elementRefSchema]).optional()
 });
 
+/**
+ * Every spacing value one element sets (padding, margin, gap), in one token file: the Spacing tool's
+ * "All" choice. Same sections as a single spacing token; the Spacing table has a row per value.
+ */
+export const spacingSetSchema = z.object({
+  meta: tokenMeta('spacing'),
+  instructions: instructionsField,
+  values: z.array(z.object({
+    value: valueSchema,
+    kind: z.enum(['padding', 'margin', 'gap']),
+    property: z.string().min(1)
+  })).min(1),
+  usedBy: elementRefSchema
+});
+
 export const typographySystemSchema = z.object({
   meta: systemMeta('typography'),
   instructions: instructionsField,
@@ -146,7 +162,7 @@ export const COMPONENT_STATES = ['hover', 'focus', 'focus-visible', 'active', 'd
 /**
  * How a state was read: `forced` (the browser was told to apply it, via the debugger), `rules` (from
  * stylesheet rules for the state), `attribute` (by setting disabled for a moment), `manual` (the user
- * put the component in the state and pressed "Capture current state").
+ * put the component in the state and captured it with "Capture by hand").
  */
 export const STATE_METHODS = ['forced', 'rules', 'attribute', 'manual'] as const;
 
@@ -190,11 +206,27 @@ export const componentSchema = z.object({
 });
 export type ComponentCapture = z.infer<typeof componentSchema>;
 
-export const captureSchema = z.union([textTokenSchema, colorTokenSchema, spacingTokenSchema, typographySystemSchema, colorSystemSchema, spacingSystemSchema, componentSchema]);
+/**
+ * A full-page reference: the page's typography, color and spacing systems plus one entry per kind
+ * of component on it (with its variants and states), in one file. Each system is null when the page
+ * has none of it (no visible text, colors or spacing).
+ */
+export const pageSchema = z.object({
+  meta: metaSchema.extend({ scope: z.literal('page'), type: z.literal('page'), selector: z.undefined().optional() }),
+  instructions: instructionsField,
+  typography: typographySystemSchema.nullable(),
+  color: colorSystemSchema.nullable(),
+  spacing: spacingSystemSchema.nullable(),
+  components: z.array(componentSchema)
+});
+export type PageCapture = z.infer<typeof pageSchema>;
+
+export const captureSchema = z.union([textTokenSchema, colorTokenSchema, spacingTokenSchema, spacingSetSchema, typographySystemSchema, colorSystemSchema, spacingSystemSchema, componentSchema, pageSchema]);
 
 export type TextToken = z.infer<typeof textTokenSchema>;
 export type ColorToken = z.infer<typeof colorTokenSchema>;
 export type SpacingToken = z.infer<typeof spacingTokenSchema>;
+export type SpacingSet = z.infer<typeof spacingSetSchema>;
 export type TypographySystem = z.infer<typeof typographySystemSchema>;
 export type ColorSystem = z.infer<typeof colorSystemSchema>;
 export type SpacingSystem = z.infer<typeof spacingSystemSchema>;

@@ -2,7 +2,7 @@
  * The Spacing tool (FR15, FR16): padding, margin and gap of one element (authored), the distance
  * between two elements (measured), and the page's spacing system: scale, base unit, outliers.
  */
-import { pxValue, round, toCaptureName, type SpacingSystem, type SpacingToken } from '@luci/format/capture';
+import { pxValue, round, toCaptureName, type SpacingSet, type SpacingSystem, type SpacingToken } from '@luci/format/capture';
 import { tokenOf, type ElementSnapshot, type PageSnapshot, type Rect, type SnapshotProperty } from './model.js';
 import { elementName } from './naming.js';
 
@@ -118,6 +118,21 @@ export function spacingToken(snapshot: PageSnapshot, use: SpacingUse, options: {
     property: use.property,
     label: 'authored',
     usedBy: { element: elementName(use.el.tag, use.el.role), selector: use.el.selector }
+  };
+}
+
+/** Every spacing value one element sets, in one file (the Spacing tool's "All"). Null when it sets none. */
+export function spacingSet(snapshot: PageSnapshot, el: ElementSnapshot, options: { captured?: string } = {}): SpacingSet | null {
+  const uses = spacingUses(el);
+  if (!uses.length) return null;
+  return {
+    meta: { name: toCaptureName(`spacing-${el.tag}`), scope: 'token', type: 'spacing', source: snapshot.url, selector: el.selector, captured: options.captured ?? today(), method: 'measured' },
+    values: uses.map(u => ({
+      value: { computed: u.computed, ...(u.authored ? { authored: u.authored } : {}), ...(u.token ? { token: u.token } : {}) },
+      kind: u.kind,
+      property: u.property
+    })),
+    usedBy: { element: elementName(el.tag, el.role), selector: el.selector }
   };
 }
 

@@ -5,7 +5,7 @@
 import { z } from 'zod';
 import { parseFrontmatter } from '../skills/frontmatter.js';
 import { fail, ok, type ParseResult } from '../result.js';
-import { CAPTURE_EXTENSION, cleanSource, formatCapture, toCaptureName } from './format.js';
+import { CAPTURE_EXTENSION, cleanSource, deeperHeadings, formatCapture, toCaptureName } from './format.js';
 import { captureSchema, type Capture, type CaptureSettings } from './schema.js';
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -30,10 +30,11 @@ export const collectionSchema = z.object({
 export type Collection = z.infer<typeof collectionSchema>;
 
 /** Groups in export order. */
-export const COLLECTION_GROUPS = ['Components', 'Text', 'Colors', 'Spacing', 'Systems'] as const;
+export const COLLECTION_GROUPS = ['Components', 'Text', 'Colors', 'Spacing', 'Systems', 'Pages'] as const;
 export type CollectionGroup = (typeof COLLECTION_GROUPS)[number];
 
 export function groupOf(capture: Capture): CollectionGroup {
+  if (capture.meta.scope === 'page') return 'Pages';
   if (capture.meta.scope === 'component') return 'Components';
   if (capture.meta.scope === 'system') return 'Systems';
   return capture.meta.type === 'text' ? 'Text' : capture.meta.type === 'color' ? 'Colors' : 'Spacing';
@@ -43,7 +44,7 @@ export function groupOf(capture: Capture): CollectionGroup {
 function bodyOf(item: BasketItem, settings: CaptureSettings): string {
   const text = (item.edited ?? formatCapture(item.capture, settings)).replace(/\r\n/g, '\n');
   const body = text.replace(/^---\n[\s\S]*?\n---\n+/, '');
-  return body.replace(/^## /gm, '### ').trim();
+  return deeperHeadings(body).trim();
 }
 
 /** The basket as one file, by name: luci-basket.collection.design.md. */

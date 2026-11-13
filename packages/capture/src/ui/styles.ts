@@ -37,6 +37,8 @@ textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; 
 .swatch { position: fixed; z-index: 2147483647; pointer-events: none; display: flex; gap: 6px; align-items: center; padding: 4px 8px;
   background: var(--bg); border: 1px solid var(--line); border-radius: 6px; font: 12px ui-monospace, monospace; }
 .chip { width: 16px; height: 16px; border-radius: 4px; border: 1px solid rgb(255 255 255 / 0.4); }
+.state { display: inline-block; margin: 0 4px 4px 0; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); font-size: 12px; color: var(--ink); }
+.state.missing { color: var(--muted); border-style: dashed; }
 .highlight.locked { border-width: 2px; border-style: solid; background: rgb(167 139 250 / 0.2); box-shadow: 0 0 0 2px rgb(24 24 27 / 0.6); }
 .highlight { position: fixed; z-index: 2147483646; pointer-events: none; border: 2px solid var(--accent); background: rgb(167 139 250 / 0.12); border-radius: 2px; }
 .highlight.blocked { border-color: var(--blocked); background: rgb(120 120 120 / 0.35); }

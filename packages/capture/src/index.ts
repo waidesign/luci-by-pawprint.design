@@ -6,5 +6,6 @@ export * from './color.js';
 export * from './spacing.js';
 export * from './dom.js';
 export * from './component.js';
+export * from './page.js';
 export * from './states.js';
 export * from './ui/index.js';

@@ -8,7 +8,8 @@ import { componentCapture, componentParts, componentType } from '../component.js
 import { prepareTargets, readComputed, readDisabled, readStatesFromRules, statesFromForced, type ComputedMap, type ForcedReading, type StateTarget } from '../states.js';
 import { snapshotPage } from '../dom.js';
 import type { ElementSnapshot, PageSnapshot } from '../model.js';
-import { distanceToken, spacingSystem, spacingToken, spacingUses, type SpacingUse } from '../spacing.js';
+import { pageCapture, pageComponents } from '../page.js';
+import { distanceToken, spacingSet, spacingSystem, spacingToken, spacingUses, type SpacingUse } from '../spacing.js';
 import { textToken, typographySystem } from '../text.js';
 
 export const TOOLS = ['component', 'text', 'color', 'spacing'] as const;
@@ -53,6 +54,8 @@ export function textTarget(live: LiveSnapshot, entry: ElementSnapshot): ElementS
 
 /** Spacing values one element sets, for the Spacing tool to offer. */
 export const spacingChoices = (entry: ElementSnapshot): SpacingUse[] => spacingUses(entry);
+/** The Spacing choice that takes every value of the element (the default). */
+export const ALL_SPACING = -1;
 
 const CAPTURED = () => new Date().toISOString().slice(0, 10);
 
@@ -114,7 +117,7 @@ export async function readComponentStates(live: LiveSnapshot, entry: ElementSnap
 }
 
 /** "This one": one item from the picked element. */
-export function captureOne(tool: ToolId, live: LiveSnapshot, entry: ElementSnapshot, settings: CaptureSettings, choice = 0): Result {
+export function captureOne(tool: ToolId, live: LiveSnapshot, entry: ElementSnapshot, settings: CaptureSettings, choice = ALL_SPACING): Result {
   const options = { captured: CAPTURED() };
   if (tool === 'component') return captureComponent(live, entry, settings);
   if (tool === 'text') {
@@ -128,9 +131,38 @@ export function captureOne(tool: ToolId, live: LiveSnapshot, entry: ElementSnaps
     return token ? { ok: true, output: toOutput(token, settings) } : { ok: false, message: 'No color found here.' };
   }
   const uses = spacingChoices(entry);
-  const use = uses[choice];
-  if (!use) return { ok: false, message: 'This element sets no padding, margin or gap. Pick another, or drag between two elements to measure.' };
+  const none: Result = { ok: false, message: 'This element sets no padding, margin or gap. Pick another, or drag between two elements to measure.' };
+  // ALL_SPACING (the default): every value in one file; one value alone stays a single token
+  if (choice === ALL_SPACING && uses.length > 1) {
+    const set = spacingSet(live.snapshot, entry, options);
+    return set ? { ok: true, output: toOutput(set, settings) } : none;
+  }
+  const use = uses[Math.max(0, choice)];
+  if (!use) return none;
   return { ok: true, output: toOutput(spacingToken(live.snapshot, use, options), settings) };
+}
+
+/**
+ * The states of one component of a page file: from stylesheet rules, plus disabled for buttons and
+ * fields. Only the states found: a page file has no "capture by hand", so "not detected" is noise there.
+ */
+function ruleStates(live: LiveSnapshot, entry: ElementSnapshot): ComponentCapture['states'] {
+  const targets = stateTargets(live, entry);
+  const restore = prepareTargets(targets);
+  try {
+    const disabled = ['button', 'field'].includes(componentType(entry)) ? readDisabled(targets) : null;
+    return [...readStatesFromRules(targets), ...(disabled ? [disabled] : [])].filter(s => s.detected);
+  } finally {
+    restore();
+  }
+}
+
+/** "Whole page": one file with the page's systems and every kind of component on it. */
+export function capturePage(live: LiveSnapshot, settings: CaptureSettings, options: { captured?: string } = {}): Result {
+  const components = pageComponents(live.snapshot).map(entry => ({ entry, inside: insideOf(live, entry), states: ruleStates(live, entry) }));
+  const page = pageCapture(live.snapshot, components, { captured: options.captured ?? CAPTURED() });
+  if (!page.typography && !page.color && !page.spacing && !page.components.length) return { ok: false, message: 'This page has nothing visible to capture.' };
+  return { ok: true, output: toOutput(page, settings) };
 }
 
 /** The color of a pixel from the eyedropper. */

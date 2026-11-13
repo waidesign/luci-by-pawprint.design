@@ -20,6 +20,7 @@ import {
   parseCapture,
   pxValue,
   siteSlug,
+  spacingSetSchema,
   textTokenSchema,
   typographySystemSchema,
   type Capture,
@@ -68,6 +69,37 @@ describe('component and collection files: golden files are the spec (M5.1)', () 
       expect(parsed.value.groups).toEqual({ Components: ['Signup button'], Text: ['Shop heading'], Colors: ['Example accent'] });
     });
   }
+
+  it('example-com.page.pricing.design.md: the full-page reference (user request, 2026-11-13)', () => {
+    const file = 'example-com.page.pricing.design.md';
+    const sys = (k: string) => inputs[`example-com.system.${k}.design.md`]!.capture;
+    const page = {
+      meta: { name: 'pricing', scope: 'page', type: 'page', source: 'https://www.example.com/pricing', captured: '2026-11-12', method: 'measured' },
+      typography: sys('typography'), color: sys('color'), spacing: sys('spacing'),
+      components: [componentInputs['example-com.component.primary-button.design.md']!.capture, componentInputs['example-com.component.nav-link.design.md']!.capture]
+    } as unknown as Capture;
+    const golden = fs.readFileSync(path.join(dir, file), 'utf8').replace(/\r\n/g, '\n');
+    expect(captureFileName(page.meta)).toBe(file);
+    expect(formatCapture(page, {})).toBe(golden);
+    const parsed = parseCapture(golden);
+    expect(parsed.ok, parsed.ok ? '' : parsed.error).toBe(true);
+    if (parsed.ok) expect(Object.keys(parsed.value.sections)).toEqual(['Typography', 'Colors', 'Spacing', 'Components']);
+    // A page with none of a system says so; a page file is rejected without its sections
+    expect(formatCapture({ ...page, typography: null, components: [] } as Capture, {})).toContain('## Typography\n- The page has no visible text.');
+    expect(parseCapture(golden.replace('## Components', '## Parts')).ok).toBe(false);
+    // In a basket export it is its own group, its headings one level down
+    const collection = formatCollection({ name: 'one-page', captured: '2026-11-12', items: [{ id: '1', name: 'Pricing page', addedAt: '2026-11-12', capture: page }] }, {});
+    expect(parseCollection(collection).ok).toBe(true);
+    expect(collection).toContain('# Pages\n\n## Pricing page');
+    expect(collection).toContain('\n#### primary-button\n');
+    expect(collection).toContain('\n##### States\n');
+  });
+
+  it('the spec rejects a spacing set without values or with a distance', () => {
+    const set = inputs['example-com.token.spacing-ul.design.md']!.capture as unknown as { values: object[] };
+    expect(spacingSetSchema.safeParse({ ...set, values: [] }).success).toBe(false);
+    expect(spacingSetSchema.safeParse({ ...set, values: [{ value: { computed: '4px' }, kind: 'distance', property: 'x' }] }).success).toBe(false);
+  });
 
   it('the spec rejects a component without parts, an unknown state, and an empty basket', () => {
     const button = componentInputs['example-com.component.primary-button.design.md']!.capture as unknown as Record<string, unknown>;

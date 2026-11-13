@@ -12,9 +12,11 @@ import { manualState, type ComputedMap, type StateName } from '../states.js';
 import { elementName } from '../naming.js';
 import { elementAt, eligibilityOf, eventTarget, firstChildOf, hoverLabel, parentOf, scrollableAncestor } from './picker.js';
 import {
+  ALL_SPACING,
   TOOLS,
   TOOL_LABELS,
   captureComponent,
+  capturePage,
   captureDistance,
   readComponentStates,
   restingValues,
@@ -51,6 +53,20 @@ export interface ToolbarProps {
 }
 
 const STATE_ORDER: readonly StateName[] = ['hover', 'focus', 'focus-visible', 'active', 'disabled'];
+/** The "Capture by hand" choice that walks through every state Luci could not read. */
+const ALL_MISSING = 'all-missing';
+type ManualTarget = StateName | typeof ALL_MISSING;
+/** Disabled cannot be set by hand, so the guided walk skips it. */
+const missingStates = (states: ComponentCapture['states']): StateName[] => states.filter(s => !s.detected && s.state !== 'disabled').map(s => s.state);
+/** How to put a component in each state, shown during the countdown. */
+const STATE_HOW: Readonly<Record<StateName, string>> = {
+  hover: 'move the pointer onto it',
+  focus: 'click into it, or press Tab until it is focused',
+  'focus-visible': 'press Tab until it is focused',
+  active: 'press and hold the mouse button on it',
+  disabled: 'disable it'
+};
+const STATE_SECONDS = 3;
 
 interface Picked {
   el: Element;
@@ -74,7 +90,7 @@ export const OUTPUT_HINTS: Readonly<Record<ToolId, { one: string; system: string
   component: { one: 'this component: its parts, tokens and states', system: 'this component plus every variant of it on the page' },
   text: { one: 'this text style', system: 'every text style on the page, grouped into roles' },
   color: { one: 'this color and where it is used', system: 'every color on the page, grouped by role' },
-  spacing: { one: 'the spacing value you choose', system: 'the page\'s spacing scale, base unit and outliers' }
+  spacing: { one: 'every padding, margin and gap of this element, or the one value you choose', system: 'the page\'s spacing scale, base unit and outliers' }
 };
 const px = (v: string) => parseFloat(v) || 0;
 
@@ -96,7 +112,7 @@ export function Toolbar(props: ToolbarProps) {
   const [notice, setNotice] = useState<string | null>(null);
   const [picked, setPicked] = useState<Picked | null>(null);
   const [result, setResult] = useState<Result | null>(null);
-  const [choice, setChoice] = useState(0);
+  const [choice, setChoice] = useState(ALL_SPACING);
   const [settings, setSettings] = useState<CaptureSettings>(props.settings);
   const [copied, setCopied] = useState(false);
   const [dropperOpen, setDropperOpen] = useState(false);
@@ -144,8 +160,24 @@ export function Toolbar(props: ToolbarProps) {
   const [busy, setBusy] = useState<string | null>(null);
   const [stateNote, setStateNote] = useState<string | null>(null);
   const [componentCtx, setComponentCtx] = useState<{ live: LiveSnapshot; entry: ElementSnapshot; system: boolean; states: ComponentCapture['states']; rest: ComputedMap[] } | null>(null);
-  const [manualTarget, setManualTarget] = useState<StateName>('hover');
+  const [manualTarget, setManualTarget] = useState<ManualTarget>(ALL_MISSING);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [capturing, setCapturing] = useState<{ state: StateName; index: number; total: number } | null>(null);
+  // Bumped to cancel a running countdown (a new pick, the whole page, closing)
+  const captureRun = useRef(0);
+  // While states are captured by hand the user presses and clicks the component: until this time,
+  // clicks on the page do nothing (a link or submit button must not navigate away)
+  const guardUntil = useRef(0);
+  useLayoutEffect(() => {
+    const guard = (e: Event) => {
+      if (performance.now() > guardUntil.current || !eventTarget(e)) return;
+      if (e.type === 'click' || e.type === 'auxclick' || e.type === 'submit') e.preventDefault();
+      e.stopImmediatePropagation();
+    };
+    const types = ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click', 'auxclick', 'submit'] as const;
+    for (const t of types) win.addEventListener(t, guard, true);
+    return () => { for (const t of types) win.removeEventListener(t, guard, true); };
+  }, []);
 
   const produce = async (system: boolean) => {
     if (!picked || !tool) return;
@@ -161,37 +193,97 @@ export function Toolbar(props: ToolbarProps) {
       const { states, note } = await readComponentStates(picked.live, picked.entry, props.readForcedStates);
       setStateNote(note);
       setComponentCtx({ live: picked.live, entry: picked.entry, system, states, rest });
-      const first = states.find(s => !s.detected);
-      if (first) setManualTarget(first.state);
+      setManualTarget(missingStates(states).length ? ALL_MISSING : 'hover');
       show(captureComponent(picked.live, picked.entry, settings, { system, states }));
     } finally {
       setBusy(null);
     }
   };
 
+  /** Capture by hand: one state, or every missing one in turn, each after a short countdown. */
   const captureCurrentState = () => {
     if (!componentCtx) return;
-    // A countdown, so the user can move the pointer onto the component, focus or press it
-    let n = 3;
-    setCountdown(n);
-    const tick = () => {
-      n -= 1;
-      if (n > 0) { setCountdown(n); setTimeout(tick, 1000); return; }
-      setCountdown(null);
-      const targets = stateTargets(componentCtx.live, componentCtx.entry);
-      const captured = manualState(manualTarget, targets, componentCtx.rest);
-      const states = [...componentCtx.states.filter(s => s.state !== manualTarget), captured]
-        .sort((a, b) => STATE_ORDER.indexOf(a.state) - STATE_ORDER.indexOf(b.state));
-      setComponentCtx({ ...componentCtx, states });
-      show(captureComponent(componentCtx.live, componentCtx.entry, settingsRef.current, { system: componentCtx.system, states }));
+    const ctx = componentCtx;
+    const queue = manualTarget === ALL_MISSING ? missingStates(ctx.states) : [manualTarget];
+    if (!queue.length) return;
+    const run = ++captureRun.current;
+    const targets = stateTargets(ctx.live, ctx.entry);
+    let states = ctx.states;
+    const step = (i: number) => {
+      if (run !== captureRun.current) return;
+      if (i >= queue.length) {
+        setCountdown(null);
+        setCapturing(null);
+        // The release after "press and hold" comes a moment later
+        guardUntil.current = performance.now() + 1500;
+        setManualTarget(missingStates(states).length ? ALL_MISSING : 'hover');
+        return;
+      }
+      const state = queue[i]!;
+      let n = STATE_SECONDS;
+      setCapturing({ state, index: i + 1, total: queue.length });
+      setCountdown(n);
+      const tick = () => {
+        if (run !== captureRun.current) return;
+        guardUntil.current = performance.now() + 60_000;
+        n -= 1;
+        if (n > 0) { setCountdown(n); setTimeout(tick, 1000); return; }
+        const captured = manualState(state, targets, ctx.rest);
+        states = [...states.filter(s => s.state !== state), captured].sort((a, b) => STATE_ORDER.indexOf(a.state) - STATE_ORDER.indexOf(b.state));
+        setComponentCtx({ ...ctx, states });
+        show(captureComponent(ctx.live, ctx.entry, settingsRef.current, { system: ctx.system, states }));
+        step(i + 1);
+      };
+      guardUntil.current = performance.now() + 60_000;
+      setTimeout(tick, 1000);
     };
-    setTimeout(tick, 1000);
+    step(0);
+  };
+
+  const cancelCapture = () => {
+    captureRun.current++;
+    guardUntil.current = 0;
+    setCountdown(null);
+    setCapturing(null);
+  };
+
+  // "Whole page": the page's systems and every kind of component on it, in one file
+  const [pageBusy, setPageBusy] = useState(false);
+  const [wholePage, setWholePage] = useState(false);
+  const captureWholePage = () => {
+    cancelCapture();
+    setTool(null);
+    setPicking(false);
+    setPicked(null);
+    setResult(null);
+    setNotice(null);
+    setComponentCtx(null);
+    setStateNote(null);
+    setBasketOpen(false);
+    setPixelMode(false);
+    setPixelHover(null);
+    setInstructions('');
+    aim(null);
+    setWholePage(true);
+    setPageBusy(true);
+    // Let the "Reading the page" note paint before the work
+    setTimeout(() => {
+      try {
+        show(capturePage(liveSnapshot(doc), settingsRef.current));
+      } catch (err) {
+        show({ ok: false, message: `Luci could not read this page (${err instanceof Error ? err.message : String(err)}).` });
+      } finally {
+        setPageBusy(false);
+      }
+    }, 30);
   };
 
   const startPicking = (t: ToolId) => {
     // Focus leaves the tool button, so Enter picks instead of pressing the button again
     const active = (doc.querySelector('luci-toolbar')?.shadowRoot?.activeElement ?? null) as HTMLElement | null;
     active?.blur();
+    cancelCapture();
+    setWholePage(false);
     setTool(t);
     setPicking(true);
     setPicked(null);
@@ -223,7 +315,7 @@ export function Toolbar(props: ToolbarProps) {
     setPicked({ el, entry, live, eligibility: elig });
     setPicking(false);
     setNotice(null);
-    setChoice(0);
+    setChoice(ALL_SPACING);
     setResult(null);
   };
 
@@ -234,7 +326,7 @@ export function Toolbar(props: ToolbarProps) {
     const entry = entryFor(picked.live, el);
     if (!entry) return;
     setPicked({ ...picked, el, entry, eligibility: eligibilityOf(el) });
-    setChoice(0);
+    setChoice(ALL_SPACING);
   };
   const widerOf = (el: Element) => { const p = parentOf(el); return p && p !== doc.documentElement ? p : null; };
   const narrowerOf = (el: Element) => pickedTrail.current[pickedTrail.current.length - 1] ?? firstChildOf(el);
@@ -580,10 +672,15 @@ export function Toolbar(props: ToolbarProps) {
         {TOOLS.map(t => (
           <button type="button" aria-pressed={tool === t && (picking || dropperOpen || Boolean(picked) || Boolean(result))} data-tool={t} onClick={() => startPicking(t)}>{TOOL_LABELS[t]}</button>
         ))}
+        <button type="button" aria-pressed={wholePage && !basketOpen && (pageBusy || Boolean(result))} data-action="whole-page" title="One file for this whole page: its typography, colors, spacing and every kind of component" onClick={captureWholePage}>Whole page</button>
         <button type="button" aria-pressed={basketOpen} data-action="basket" onClick={() => (basketOpen ? setBasketOpen(false) : openBasket())}>Basket ({basket.length})</button>
         {props.onHelp && <button type="button" aria-label="How to use Luci" title="How to use Luci" data-action="help" onClick={props.onHelp}>?</button>}
         <button type="button" aria-label="Close Luci" data-action="close" onClick={props.onClose}>×</button>
       </div>
+
+      {pageBusy && !basketOpen && (
+        <div class="panel" role="status"><p class="hint" data-part="busy">Reading the whole page: text, colors, spacing and components…</p></div>
+      )}
 
       {basketOpen && (
         <div class="panel" role="dialog" aria-label="Basket" data-part="basket">
@@ -714,6 +811,7 @@ export function Toolbar(props: ToolbarProps) {
           {picked.eligibility.status === 'blocked' && <p class="error" data-part="notice">{picked.eligibility.reason} Make the selection wider or narrower.</p>}
           {tool === 'spacing' && picked.eligibility.status === 'allowed' && spacingChoices(picked.entry).length > 1 && (
             <div class="row">
+              <button type="button" aria-pressed={choice === ALL_SPACING} data-choice="all" onClick={() => setChoice(ALL_SPACING)}>All ({spacingChoices(picked.entry).length})</button>
               {spacingChoices(picked.entry).map((u, i) => (
                 <button type="button" aria-pressed={choice === i} data-choice={u.property} onClick={() => setChoice(i)}>{u.property} {u.computed}</button>
               ))}
@@ -755,16 +853,30 @@ export function Toolbar(props: ToolbarProps) {
               </div>
               {stateNote && <p class="hint" data-part="state-note">{stateNote}</p>}
               {componentCtx && result.output.capture.meta.scope === 'component' && (
-                <div class="row" data-part="manual-state">
-                  {countdown !== null ? (
-                    <p class="hint" data-part="countdown">Put the component in its {manualTarget} state now (hover, focus or press it). Capturing in {countdown}…</p>
+                <div class="stack" data-part="manual-state">
+                  <div data-part="states-summary">
+                    <span class="dim">States in this file: </span>
+                    {componentCtx.states.map(s => (
+                      <span class={s.detected ? 'state' : 'state missing'} data-state={s.state} title={s.detected ? 'In the file' : 'Not detected: it may change through JavaScript. Capture it by hand below.'}>
+                        {s.state} {s.detected ? '✓' : '– not detected'}
+                      </span>
+                    ))}
+                  </div>
+                  {countdown !== null && capturing ? (
+                    <div class="row">
+                      <p class="hint" data-part="countdown">
+                        {capturing.total > 1 ? `${capturing.index} of ${capturing.total}: ` : ''}Put the component in its <strong>{capturing.state}</strong> state now ({STATE_HOW[capturing.state]}). Capturing in {countdown}…
+                      </p>
+                      <button type="button" data-action="cancel-capture" onClick={cancelCapture}>Stop</button>
+                    </div>
                   ) : (
-                    <>
-                      <label>State <select data-setting="manual-state" value={manualTarget} onChange={e => setManualTarget((e.currentTarget as HTMLSelectElement).value as StateName)}>
-                        {(['hover', 'focus', 'focus-visible', 'active', 'disabled'] as const).map(s => <option value={s}>{s}</option>)}
+                    <div class="row">
+                      <label>Capture by hand <select data-setting="manual-state" value={manualTarget} onChange={e => setManualTarget((e.currentTarget as HTMLSelectElement).value as ManualTarget)}>
+                        {missingStates(componentCtx.states).length > 0 && <option value={ALL_MISSING}>All missing states ({missingStates(componentCtx.states).length})</option>}
+                        {STATE_ORDER.filter(s => s !== 'disabled').map(s => <option value={s}>{s}</option>)}
                       </select></label>
-                      <button type="button" data-action="capture-state" onClick={captureCurrentState}>Capture current state</button>
-                    </>
+                      <button type="button" data-action="capture-state" onClick={captureCurrentState}>{manualTarget === ALL_MISSING ? 'Capture them' : 'Capture this state'}</button>
+                    </div>
                   )}
                 </div>
               )}

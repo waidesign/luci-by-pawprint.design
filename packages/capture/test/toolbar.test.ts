@@ -154,9 +154,23 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
     expect(await label(page)).toContain('padding 24px');
     await page.keyboard.press('ArrowUp');
     await page.keyboard.press('Enter');
+    // "All" is the default: every value of the element in one file (user request)
+    expect(await page.locator('[data-choice="all"]').getAttribute('aria-pressed')).toBe('true');
+    await page.click('[data-output="one"]');
+    let md = await preview(page);
+    expect(md).toContain('| 16px | gap | row-gap | authored | `var(--space-4)` | `--space-4` |');
+    expect(md).toContain('| 16px | gap | column-gap | authored | `var(--space-4)` | `--space-4` |');
+    expect(md).toMatch(/## Where used\n- /);
+    // Or one value
+    await page.click('button[data-tool="spacing"]');
+    await page.hover('.card >> nth=0', { force: true, position: { x: 6, y: 6 } });
+    await page.keyboard.press('ArrowUp');
+    await page.keyboard.press('Enter');
     await page.click('[data-choice="column-gap"]');
     await page.click('[data-output="one"]');
-    expect(await preview(page)).toContain('| 16px | gap | column-gap | authored | `var(--space-4)` | `--space-4` |');
+    md = await preview(page);
+    expect(md).toContain('| 16px | gap | column-gap | authored | `var(--space-4)` | `--space-4` |');
+    expect(md).not.toContain('row-gap');
 
     await page.click('button[data-tool="spacing"]');
     const h1 = (await page.locator('h1').boundingBox())!;
@@ -165,7 +179,7 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
     await page.mouse.down();
     await page.mouse.move(lead.x + 40, lead.y + lead.height / 2, { steps: 5 });
     await page.mouse.up();
-    const md = await preview(page);
+    md = await preview(page);
     expect(md).toContain('| 24px | distance |  | measured |');
     expect(md).toContain('- From h1 (heading): `h1`');
   });
@@ -183,12 +197,37 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
     await page.click('#js-hover', { force: true });
     await page.click('[data-output="one"]');
     expect(await preview(page)).toContain('| hover | Not detected');
-    expect(await page.locator('select[data-setting="manual-state"]').inputValue()).toBe('hover');
+    // The panel says which states are in the file; "All missing states" is the default (user request)
+    expect(await page.locator('[data-part="states-summary"] [data-state="hover"]').innerText()).toContain('not detected');
+    expect(await page.locator('select[data-setting="manual-state"]').inputValue()).toBe('all-missing');
+    await page.selectOption('select[data-setting="manual-state"]', 'hover');
     await page.click('[data-action="capture-state"]');
     await page.hover('#js-hover', { force: true });
     await expect.poll(() => preview(page), { timeout: 6000 }).toContain('captured by hand');
     expect(await preview(page)).toContain('| hover | color #525252 → #da1e28 | captured by hand |');
     await page.mouse.move(10, 10);
+
+    // "All missing states" walks through each one in turn; Stop ends it
+    await page.click('button[data-tool="component"]');
+    await page.click('#js-hover', { force: true });
+    await page.click('[data-output="one"]');
+    await page.click('[data-action="capture-state"]');
+    expect(await page.locator('[data-part="countdown"]').innerText()).toMatch(/^1 of \d+: Put the component in its hover state now/);
+    await page.click('[data-action="cancel-capture"]');
+    expect(await page.locator('[data-part="countdown"]').count()).toBe(0);
+  });
+
+  it('Whole page: one file with the page\'s typography, colors, spacing and every kind of component (user request)', async () => {
+    await page.click('[data-action="whole-page"]');
+    await expect.poll(() => page.locator('[data-part="file-name"]').count()).toBe(1);
+    expect(await page.locator('[data-part="file-name"]').innerText()).toBe('127-0-0-1.page.css-variables.design.md');
+    const md = await preview(page);
+    expect(md).toContain('scope: page');
+    for (const h of ['## Typography', '### Roles', '## Colors', '## Spacing', '### Base unit', '## Components', '#### States']) expect(md).toContain(`\n${h}\n`);
+    expect(md).toContain('\n### primary-button\n');
+    expect(md).toContain('| hover | background-color #0f62fe → #0353e9 | stylesheet rules |');
+    expect(await page.locator('[data-action="whole-page"]').getAttribute('aria-pressed')).toBe('true');
+    expect(page.url()).toBe(`${server.origin}/css-variables/`);
   });
 
   it('instructions for the agent go into the file; the file can be edited; edits survive settings and reach the basket (user request)', async () => {

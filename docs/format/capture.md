@@ -4,17 +4,17 @@ Every capture is one Markdown file: YAML frontmatter that records where it came 
 
 The golden files in `packages/format/fixtures/capture/` are the reference for this spec, and the format tests check the formatter against them. Their inputs are in `inputs.json`; `node scripts/capture-goldens.mjs` rewrites them after a build. Review any change by eye before committing it.
 
-This page covers single tokens and page systems (M4), components and the basket export (M5). Section scope follows in v0.2.
+This page covers single tokens and page systems (M4), components and the basket export (M5), and the full-page reference. Section scope follows in v0.2.
 
 ## Frontmatter
 
 | Field | Required | Meaning |
 | --- | --- | --- |
 | `name` | yes | Lowercase slug, e.g. `text-heading-1` |
-| `scope` | yes | `token` or `system` (later `component`, `section`, `page`, `collection`) |
-| `type` | yes | For `token`: `text`, `color` or `spacing`. For `system`: `typography`, `color` or `spacing` |
+| `scope` | yes | `token`, `system`, `component` or `page` (`collection` for the basket export; `section` later) |
+| `type` | yes | For `token`: `text`, `color` or `spacing`. For `system`: `typography`, `color` or `spacing`. For `component`: what it is. For `page`: `page` |
 | `source` | yes | The page: origin and path only. The query and fragment are dropped, because they can carry personal data |
-| `selector` | tokens only | The picked element. System files have none |
+| `selector` | tokens and components | The picked element. System and page files have none |
 | `captured` | yes | `YYYY-MM-DD` |
 | `method` | yes | `measured` when read from the live DOM; `estimated` when guessed, such as a pixel picked from an image |
 | `extends` | no | Another capture file this one builds on |
@@ -50,7 +50,7 @@ One file per capture, flat: `<site>.<scope>.<name>.design.md`, where `<site>` is
 | --- | --- |
 | token, text | Text style (font-family, font-size, font-weight, line-height, letter-spacing, color, and font-style, text-transform or text-decoration when set); Where used |
 | token, color | Color (value, authored, token, role); Where used (element, property, selector), or a note that the pixel matched no element and is estimated |
-| token, spacing | Spacing (value, kind: padding, margin, gap or distance; property; label: `authored` when a CSS declaration sets it, `measured` when it comes from geometry); Where used, or From and To for a distance |
+| token, spacing | Spacing (value, kind: padding, margin, gap or distance; property; label: `authored` when a CSS declaration sets it, `measured` when it comes from geometry); Where used, or From and To for a distance. The Spacing tool's **All** (its default) writes every padding, margin and gap one element sets as rows of the same table, in one file named `spacing-<tag>` |
 | system, typography | Roles (role, family, size, weight, line height, letter spacing, color, uses, elements); Families; Scale |
 | system, color | Roles (background, text, border, accent; with uses and the properties that apply them); Tokens (color custom properties, including unused ones) |
 | system, spacing | Scale (values with uses and tokens); Base unit (the unit most uses are multiples of, and the share that fits); Outliers |
@@ -65,19 +65,32 @@ One file per capture, flat: `<site>.<scope>.<name>.design.md`, where `<site>` is
 | --- | --- |
 | Tokens | Each custom property the component uses: its resolved value and the properties it sets |
 | Anatomy | One line per part, the container first. Parts are named from tag, ARIA role and structure (`container`, `label`, `icon`...), never from class names. Each line lists the part's own styles, without browser defaults; tokens and authored values in brackets |
-| States | One row per state: `hover`, `focus`, `focus-visible`, `active`, `disabled`. Each change is `property before → after`. **Read from** says how: `browser, state forced` (the extension's debugger), `stylesheet rules`, `disabled attribute` (set for a moment), or `captured by hand`. A state that changes nothing readable says **Not detected**, because it may change through JavaScript; "Capture current state" records it by hand |
+| States | One row per state: `hover`, `focus`, `focus-visible`, `active`, `disabled`. Each change is `property before → after`. **Read from** says how: `browser, state forced` (the extension's debugger), `stylesheet rules`, `disabled attribute` (set for a moment), or `captured by hand`. A state that changes nothing readable says **Not detected**, because it may change through JavaScript; Luci's "Capture by hand" records it (every missing state in turn by default) |
 | Motion | Transitions (property, duration, easing, delay) and animations (name, duration, easing) |
 | Variants | Only in the whole-system output: similar elements on the page, grouped, with how each group differs from the picked one and an example selector |
+
+## Full-page reference (page)
+
+The toolbar's **Whole page** writes one file for the current page: `scope: page`, `type: page`, named from the page's path (`pricing`; `home` for `/`), so `example-com.page.pricing.design.md`. Sections:
+
+| Section | Content |
+| --- | --- |
+| Typography | The typography system: Roles, Families, Scale, one heading level down (`### Roles`) |
+| Colors | The color system: Roles, Tokens |
+| Spacing | The spacing system: Scale, Base unit, Outliers |
+| Components | One `### <name>` per kind of component on the page (button, link, field, navigation, header, footer, form, dialog, table, card, badge; at most 16): its type and an example selector, then its Tokens, Anatomy, States, Motion and Variants two heading levels down (`#### States`) |
+
+A system the page does not have (no visible text, colors or spacing) is a one-line note instead. In a page file, states come from stylesheet rules (and the disabled attribute), and only the states found are listed; a state done in JavaScript needs the component captured on its own.
 
 ## Basket export (collection)
 
 The basket holds picks from any pages and sites and exports them as one file, `<name>.collection.design.md`:
 
 - **Frontmatter:** `name`, `scope: collection`, `captured`, `items` (the count) and `sources` (every page, query and fragment dropped).
-- **Body:** one `# group` per kind, in this order: Components, Text, Colors, Spacing, Systems.
+- **Body:** one `# group` per kind, in this order: Components, Text, Colors, Spacing, Systems, Pages.
 - **Items:** under its group, each item is a `## <name>` section (the name you gave it in the basket), followed by:
   - its source, selector, type, method and date;
-  - the item's own sections, one heading level down (`### Tokens`...).
+  - the item's own sections, every heading one level down (`### Tokens`...).
 - **Order:** within a group, items from the same page stay together, in the order they were added.
 
 `parseCollection` checks the frontmatter and that the item sections add up to `items`.

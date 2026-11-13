@@ -37,6 +37,8 @@ interface SiteResult {
   baseUnit: number | null;
   shadowButton: { selector: string; accentToken: string | null } | null;
   component: { type: string; background: string | null; browserBackground: string; backgroundToken: string | null; hasMargin: boolean; labelSize: string | null; browserLabelSize: string; firstVariantCount: number; tokens: string[]; states: Record<string, string>; pageRestored: string };
+  page: { components: string[]; systems: boolean[]; restored: boolean } | null;
+  spacingSetRows: string[];
   selectorsResolve: Record<string, boolean>;
   files: { name: string; text: string; parses: boolean }[];
 }
@@ -108,7 +110,13 @@ async function runInPage(): Promise<SiteResult> {
     return text?.parentElement ?? root;
   })();
 
-  const captures = [textToken, colorToken, spacingToken, distance, L.typographySystem(snap, CAPTURED), system, L.spacingSystem(snap, CAPTURED), component];
+  // The Spacing tool's "All" and the full-page reference (user request, 2026-11-13)
+  const spacingSet = L.spacingSet(snap, gapEl, CAPTURED);
+  const pageResult = L.capturePage(L.liveSnapshot(), {}, CAPTURED);
+  const pageFile = pageResult.ok ? pageResult.output.capture : null;
+  const pageStyleAfter = resolve(compEntry.selector)!.getAttribute('style');
+
+  const captures = [textToken, colorToken, spacingToken, spacingSet, distance, L.typographySystem(snap, CAPTURED), system, L.spacingSystem(snap, CAPTURED), component, ...(pageFile ? [pageFile] : [])];
   return {
     eligibility: { image: elig(byId('logo')), hero: elig(byId('hero')), svg: elig(byId('icon')), body: elig(els.find(e => e.tag === 'body')!) },
     duplicateStyles: groups.length - keys.size,
@@ -133,6 +141,12 @@ async function runInPage(): Promise<SiteResult> {
         .map(s => [s.state, s.detected ? `${s.method}: ${s.changes.map(c => `${c.property}=${c.to.computed}`).join(', ')}` : 'not detected'])),
       pageRestored: JSON.stringify({ style: styleBefore === styleAfter ? 'same' : [styleBefore, styleAfter], markers: document.querySelectorAll('[data-luci-state]').length, ariaDisabled: document.querySelectorAll('[aria-disabled]').length })
     },
+    page: pageFile ? {
+      components: (pageFile.components as { meta: { name: string; type: string } }[]).map(c => `${c.meta.name}:${c.meta.type}`),
+      systems: [pageFile.typography, pageFile.color, pageFile.spacing].map(s => s !== null),
+      restored: styleBefore === pageStyleAfter && document.querySelectorAll('[data-luci-state]').length === 0
+    } : null,
+    spacingSetRows: (spacingSet?.values as { property: string }[] | undefined)?.map(v => v.property) ?? [],
     selectorsResolve: Object.fromEntries(captures.filter(c => c.meta.selector).map(c => [c.meta.name, resolve(c.meta.selector) !== null])),
     files: captures.map(c => {
       const text = L.formatCapture(c, { units: 'px', colors: 'hex' });
@@ -205,6 +219,14 @@ describe.each(SITES)('capture tools on the %s site (M4)', (site) => {
       // These sites set no state styles: nothing is guessed
       expect(s['hover']).toBe('not detected');
     }
+  });
+
+  it('Whole page: every system, the accent button among its components, the page left as it was; Spacing "All" lists every value (user request)', () => {
+    expect(result.page).not.toBeNull();
+    expect(result.page!.systems).toEqual([true, true, true]);
+    expect(result.page!.components.some(c => c.endsWith(':button'))).toBe(true);
+    expect(result.page!.restored).toBe(true);
+    expect(result.spacingSetRows).toContain('column-gap');
   });
 
   it('every file parses, its selector finds the element, and it matches the golden file', async () => {

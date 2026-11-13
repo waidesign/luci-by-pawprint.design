@@ -103,5 +103,18 @@
       "baseUnit": { "px": 4, "share": 0.95 },
       "outliers": [{ "value": { "computed": "10px" }, "count": 2 }, { "value": { "computed": "3px" }, "count": 1 }]
     }
+  },
+  "example-com.token.spacing-ul.design.md": {
+    "settings": { "units": "px" },
+    "capture": {
+      "meta": { "name": "spacing-ul", "scope": "token", "type": "spacing", "source": "https://www.example.com/pricing", "selector": "main ul.plans", "captured": "2026-11-12", "method": "measured" },
+      "values": [
+        { "value": { "computed": "24px", "authored": "var(--space-6)", "token": "--space-6" }, "kind": "padding", "property": "padding-top" },
+        { "value": { "computed": "24px", "authored": "var(--space-6)", "token": "--space-6" }, "kind": "padding", "property": "padding-bottom" },
+        { "value": { "computed": "16px", "authored": "var(--space-4)", "token": "--space-4" }, "kind": "gap", "property": "row-gap" },
+        { "value": { "computed": "24px", "authored": "clamp(1rem, 2vw, 2rem)" }, "kind": "gap", "property": "column-gap" }
+      ],
+      "usedBy": { "element": "ul (list)", "selector": "main ul.plans" }
+    }
   }
 }

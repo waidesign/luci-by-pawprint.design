@@ -16,6 +16,8 @@ import {
   type ColorToken,
   type ComponentCapture,
   type ElementRef,
+  type PageCapture,
+  type SpacingSet,
   type SpacingSystem,
   type SpacingToken,
   type TextStyle,
@@ -33,7 +35,8 @@ export const CAPTURE_SECTIONS: Readonly<Record<string, readonly string[]>> = {
   'token/spacing': ['Spacing', 'Where used'],
   'system/typography': ['Roles', 'Families', 'Scale'],
   'system/color': ['Roles', 'Tokens'],
-  'system/spacing': ['Scale', 'Base unit', 'Outliers']
+  'system/spacing': ['Scale', 'Base unit', 'Outliers'],
+  'page/page': ['Typography', 'Colors', 'Spacing', 'Components']
 };
 
 /** Every component file has these; "Variants" is added for the whole-system output. */
@@ -129,6 +132,14 @@ function spacingToken(c: SpacingToken, s: CaptureSettings): string[] {
   ];
 }
 
+function spacingSet(c: SpacingSet, s: CaptureSettings): string[] {
+  return [
+    '## Spacing',
+    table(['Value', 'Kind', 'Property', 'Label', 'Authored', 'Token'], c.values.map(v => [show(v.value, 'length', s), v.kind, v.property, 'authored', authored(v.value), code(v.value.token)])),
+    '', '## Where used', `- ${ref(c.usedBy)}`
+  ];
+}
+
 function typographySystem(c: TypographySystem, s: CaptureSettings): string[] {
   const roles = c.roles.map(r => [
     r.role, r.style.family.computed, show(r.style.size, 'length', s), r.style.weight.computed,
@@ -172,7 +183,7 @@ const styleText = (property: string, v: CapturedValue, s: CaptureSettings) =>
 
 const STATE_SOURCE: Readonly<Record<string, string>> = { forced: 'browser, state forced', rules: 'stylesheet rules', attribute: 'disabled attribute', manual: 'captured by hand' };
 
-function componentBody(c: ComponentCapture, s: CaptureSettings): string[] {
+function componentBody(c: ComponentCapture, s: CaptureSettings, noStates = '- Not read.'): string[] {
   const tokens = c.tokens.length
     ? table(['Token', 'Value', 'Used for'], c.tokens.map(t => [code(t.token), kindOf(t.usedFor[0] ?? '') === 'color' ? formatColor(t.value, s) : formatLength(t.value, s), t.usedFor.join(', ')]))
     : '- The component uses no custom properties.';
@@ -183,12 +194,12 @@ function componentBody(c: ComponentCapture, s: CaptureSettings): string[] {
   const states = c.states.length
     ? table(['State', 'Changes', 'Read from'], c.states.map(st => [
         st.state,
-        !st.detected ? 'Not detected: it may change through JavaScript. Use "Capture current state".'
+        !st.detected ? 'Not detected: it may change through JavaScript. Capture it by hand in Luci.'
           : st.changes.length ? st.changes.map(ch => `${ch.part && ch.part !== c.anatomy[0]!.part ? `${ch.part} ` : ''}${ch.property} ${show({ computed: ch.from }, kindOf(ch.property), s)} → ${show(ch.to, kindOf(ch.property), s)}${ch.to.token ? ` (${code(ch.to.token)})` : ''}`).join('; ')
           : 'No visible change',
         st.method ? STATE_SOURCE[st.method]! : ''
       ]))
-    : '- Not read.';
+    : noStates;
   const motion = c.motion.length
     ? c.motion.map(m => `- ${m.kind} ${m.target} ${m.duration} ${m.easing}${m.delay && m.delay !== '0s' ? `, delay ${m.delay}` : ''}`)
     : ['- None.'];
@@ -199,6 +210,29 @@ function componentBody(c: ComponentCapture, s: CaptureSettings): string[] {
       : '- No similar elements on this page.');
   }
   return out;
+}
+
+/** Headings `levels` deeper ("## Roles" -> "### Roles"), so a part can sit inside a larger file. */
+export const deeperHeadings = (text: string, levels = 1) => text.replace(/^#{2,5} /gm, h => `${'#'.repeat(levels)}${h}`);
+
+function pageBody(c: PageCapture, s: CaptureSettings): string[] {
+  const part = (lines: string[] | null, none: string) => (lines ? deeperHeadings(lines.join('\n')) : `- ${none}`);
+  const components = c.components.length
+    ? c.components.flatMap(k => [
+        '',
+        `### ${k.meta.name}`,
+        `- ${k.meta.type} · example: ${code(k.meta.selector)}${k.variants ? ` · ${k.variants.reduce((n, v) => n + v.count, 0)} on the page, ${k.variants.length} variant${k.variants.length === 1 ? '' : 's'}` : ''}`,
+        '',
+        deeperHeadings(componentBody(k, s, '- No state styles found in the stylesheets.').join('\n'), 2)
+      ])
+    : ['', '- No components found on this page.'];
+  return [
+    '## Typography', part(c.typography && typographySystem(c.typography, s), 'The page has no visible text.'),
+    '', '## Colors', part(c.color && colorSystem(c.color, s), 'The page has no visible colors.'),
+    '', '## Spacing', part(c.spacing && spacingSystem(c.spacing, s), 'The page sets no spacing.'),
+    '', '## Components', `- ${c.components.length} kind${c.components.length === 1 ? '' : 's'} of component on this page, each with its variants and the states its stylesheet rules give it. For a state done in JavaScript, capture that component on its own with Luci.`,
+    ...components
+  ];
 }
 
 export const INSTRUCTIONS_HEADING = '## Your instructions';
@@ -239,9 +273,10 @@ export function formatCapture(capture: Capture, settings: CaptureSettings = {}):
 function formatMeasured(c: Capture, settings: CaptureSettings): string {
   const key = `${c.meta.scope}/${c.meta.type}`;
   if (c.meta.scope === 'component') return `${frontmatter(c.meta)}\n\n${componentBody(c as ComponentCapture, settings).join('\n')}\n`;
-  const body = key === 'token/text' ? textToken(c as TextToken, settings)
+  const body = key === 'page/page' ? pageBody(c as PageCapture, settings)
+    : key === 'token/text' ? textToken(c as TextToken, settings)
     : key === 'token/color' ? colorToken(c as ColorToken, settings)
-    : key === 'token/spacing' ? spacingToken(c as SpacingToken, settings)
+    : key === 'token/spacing' ? ('values' in c ? spacingSet(c as SpacingSet, settings) : spacingToken(c as SpacingToken, settings))
     : key === 'system/typography' ? typographySystem(c as TypographySystem, settings)
     : key === 'system/color' ? colorSystem(c as ColorSystem, settings)
     : spacingSystem(c as SpacingSystem, settings);

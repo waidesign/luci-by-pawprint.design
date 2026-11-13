@@ -18,7 +18,7 @@ method: measured
 | State | Changes | Read from |
 | --- | --- | --- |
 | hover | text-decoration-line none → underline | stylesheet rules |
-| focus | Not detected: it may change through JavaScript. Use "Capture current state". |  |
+| focus | Not detected: it may change through JavaScript. Capture it by hand in Luci. |  |
 | active | No visible change | stylesheet rules |
 
 ## Motion
