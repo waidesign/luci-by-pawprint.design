@@ -23,6 +23,7 @@ button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); o
 .seg button { padding: 4px 12px; }
 .items { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; overflow: auto; }
 .items li { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; align-items: center; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; }
+.items textarea { grid-column: 1 / -1; font: 12px/1.4 system-ui, sans-serif; color: inherit; background: #27272a; border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; min-height: 34px; resize: vertical; }
 .items input { font: inherit; color: inherit; background: #27272a; border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; min-width: 0; }
 .items .meta { grid-column: 1; color: var(--muted); font-size: 12px; }
 .items .row { grid-column: 2; grid-row: 1 / span 2; }

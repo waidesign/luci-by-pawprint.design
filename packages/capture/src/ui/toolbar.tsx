@@ -5,7 +5,7 @@
  */
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { formatCapture, groupOf, withInstructions, type BasketItem, type CaptureSettings, type ComponentCapture } from '@luci/format/capture';
-import { addToBasket, exportBasket, exportItem, removeFromBasket, renameInBasket, sourceLabel, type BasketStore } from './basket.js';
+import { addToBasket, exportBasket, exportItem, noteInBasket, removeFromBasket, renameInBasket, sourceLabel, type BasketStore } from './basket.js';
 import type { Eligibility } from '../eligibility.js';
 import type { ElementSnapshot } from '../model.js';
 import { manualState, type ComputedMap, type StateName } from '../states.js';
@@ -762,6 +762,8 @@ export function Toolbar(props: ToolbarProps) {
                       <input type="text" aria-label="Name" data-item-name value={item.name}
                         onChange={e => saveBasket(renameInBasket(basket, item.id, (e.currentTarget as HTMLInputElement).value))} />
                       <span class="meta">{groupOf(item.capture)} · {sourceLabel(item)}</span>
+                      <textarea data-item-note aria-label={`Note for your agent about ${item.name}`} placeholder="Note for your agent (optional): what to use it for, what to change" value={item.capture.instructions ?? ''}
+                        onChange={e => saveBasket(noteInBasket(basket, item.id, (e.currentTarget as HTMLTextAreaElement).value))} />
                       <span class="row">
                         <button type="button" data-item-export onClick={() => setBasketExport({ title: item.name, item })}>Export</button>
                         <button type="button" data-item-remove aria-label={`Remove ${item.name}`} onClick={() => saveBasket(removeFromBasket(basket, item.id))}>Remove</button>

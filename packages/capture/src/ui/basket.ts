@@ -9,6 +9,7 @@ import {
   formatCapture,
   formatCollection,
   toCaptureName,
+  withInstructions,
   type BasketItem,
   type Capture,
   type CaptureSettings
@@ -47,7 +48,22 @@ export function renameInBasket(items: readonly BasketItem[], id: string, name: s
   return trimmed ? items.map(i => (i.id === id ? { ...i, name: trimmed } : i)) : [...items];
 }
 
-export const removeFromBasket = (items: readonly BasketItem[], id: string): BasketItem[] => items.filter(i => i.id !== id);
+/**
+ * An item's note for the agent (v0.2): the capture's "Your instructions", so the item's own file
+ * and the basket export both carry it, in that item's section. A hand-edited file gets it too;
+ * an empty note removes it.
+ */
+export function noteInBasket(items: readonly BasketItem[], id: string, note: string): BasketItem[] {
+  const text = note.trim();
+  return items.map(i => {
+    if (i.id !== id) return i;
+    const { instructions: _old, ...rest } = i.capture;
+    const capture = (text ? { ...rest, instructions: text } : rest) as Capture;
+    return { ...i, capture, ...(i.edited ? { edited: withInstructions(i.edited, text || undefined) } : {}) };
+  });
+}
+
+export const removeFromBasket =(items: readonly BasketItem[], id: string): BasketItem[] => items.filter(i => i.id !== id);
 
 /** The default name of a basket export, e.g. "basket-2026-11-13". */
 export const defaultBasketName = () => `basket-${today()}`;

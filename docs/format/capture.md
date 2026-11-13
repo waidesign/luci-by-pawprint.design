@@ -92,7 +92,7 @@ The basket holds picks from any pages and sites and exports them as one file, `<
 - **Body:** one `# group` per kind, in this order: Components, Text, Colors, Spacing, Systems, Pages.
 - **Items:** under its group, each item is a `## <name>` section (the name you gave it in the basket), followed by:
   - its source, selector, type, method and date;
-  - the item's own sections, every heading one level down (`### Tokens`...).
+  - the item's own sections, every heading one level down (`### Tokens`...). An item's note (v0.2: written in the basket, for any item from any site) is its `### Your instructions`, first in its section, so each note stays with the item it is about.
 - **Order:** within a group, items from the same page stay together, in the order they were added.
 
 `parseCollection` checks the frontmatter and that the item sections add up to `items`.

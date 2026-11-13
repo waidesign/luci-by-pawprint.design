@@ -7,7 +7,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Browser, Page } from 'playwright';
 import { parseCapture, parseCollection, type BasketItem } from '@luci/format/capture';
-import { addToBasket, exportBasket, exportItem, removeFromBasket, renameInBasket } from '../src/index.js';
+import { addToBasket, exportBasket, exportItem, noteInBasket, removeFromBasket, renameInBasket } from '../src/index.js';
 import { captureBundle, launch, serveSites } from './browser.js';
 
 const textCapture = (name: string, source: string) => ({
@@ -32,6 +32,28 @@ describe('basket logic', () => {
     const parsed = parseCollection(all.markdown);
     expect(parsed.ok && parsed.value.sources).toEqual(['https://a.example/', 'https://b.example/x']);
     expect(removeFromBasket(items, items[0]!.id).map(i => i.name)).toEqual(['Text body']);
+  });
+
+  it('a note per item (v0.2) is its "Your instructions": in its own file and in its section of the basket export', () => {
+    let items = addToBasket([], textCapture('text-heading-1', 'https://a.example/'));
+    items = addToBasket(items, textCapture('text-body', 'https://b.example/x'), '---\nname: text-body\nscope: token\ntype: text\nsource: https://b.example/x\ncaptured: 2026-11-13\nmethod: measured\n---\n\n## Text style\nedited by hand\n\n## Where used\n- h1\n');
+    items = noteInBasket(items, items[0]!.id, '  Use for every page title\n# not a heading ');
+    items = noteInBasket(items, items[1]!.id, 'Body copy, slightly larger');
+    expect(items[0]!.capture.instructions).toBe('Use for every page title\n# not a heading');
+    const one = exportItem(items[0]!, {}).markdown;
+    expect(one).toContain('## Your instructions\nUse for every page title\n\\# not a heading\n');
+    expect(parseCapture(one).ok).toBe(true);
+    // A hand-edited item keeps its edits and gets the note
+    expect(items[1]!.edited).toContain('## Your instructions\nBody copy, slightly larger\n\n## Text style\nedited by hand');
+    const all = exportBasket(items, {}, 'notes').markdown;
+    const [first, second] = all.split('## Text body');
+    expect(first).toContain('### Your instructions\nUse for every page title');
+    expect(second).toContain('### Your instructions\nBody copy, slightly larger');
+    expect(parseCollection(all).ok).toBe(true);
+    // An empty note removes it
+    items = noteInBasket(items, items[1]!.id, '   ');
+    expect(items[1]!.capture.instructions).toBeUndefined();
+    expect(items[1]!.edited).not.toContain('Your instructions');
   });
 });
 
@@ -87,6 +109,10 @@ describe('items from two sites export as one file (M5 Done when)', () => {
     await b.click('[data-action="basket"]');
     expect(await b.locator('[data-item]').count()).toBe(3);
     await b.locator('[data-item-name]').first().fill('Signup button');
+    // A note for the agent on one item, from another site (v0.2)
+    await b.locator('[data-item-note]').nth(2).fill('Use this purple for links in the docs');
+    await b.locator('[data-item-note]').nth(2).blur();
+    await expect.poll(() => stored[2]?.capture.instructions).toBe('Use this purple for links in the docs');
     await b.click('[data-action="export-all"]');
     const md = await b.locator('[data-part="preview"]').evaluate(el => ('value' in el ? (el as HTMLTextAreaElement).value : el.textContent) ?? '');
     const fileName = await b.locator('[data-part="file-name"]').innerText();
@@ -102,6 +128,7 @@ describe('items from two sites export as one file (M5 Done when)', () => {
     expect(parsed.value.groups).toEqual({ Components: ['Signup button'], Text: ['Text heading 1'], Colors: ['Color wc primary'] });
     expect(md).toContain('| hover | background-color #0f62fe → #0353e9 | stylesheet rules |');
     expect(md).toContain('`--wc-primary`');
+    expect(md.split('## Color wc primary')[1]).toContain('### Your instructions\nUse this purple for links in the docs');
 
     // One item on its own, and removing one
     await b.click('[data-action="basket-back"]');
