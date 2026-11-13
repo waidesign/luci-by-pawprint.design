@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { parseDecision, parseProposal } from '@luci/format';
-import { CodeMap, initProject, writeActiveTask } from '@luci/brain';
+import { CodeMap, DesignStore, FeedbackStore, initProject, writeActiveTask } from '@luci/brain';
 import { SkillRegistry } from '@luci/skills';
 import { TOOLS, handleTool, type ToolDeps } from '../src/index.js';
 
@@ -34,14 +34,16 @@ const initialized = async () => {
 
 // Ported from the prototype's mcp/server.js tool list (presets and agentation are dropped)
 describe('luci-mcp tools (B11)', () => {
-  it('serves the ported tools plus get_active_task and propose_memory', () => {
+  it('serves the ported tools plus get_active_task and propose_memory, and the feedback and capture tools (M6)', () => {
     const names = TOOLS.map(t => t.name).sort();
     expect(names).toEqual([
-      'add_skill_packs', 'analyze_project', 'get_active_task', 'get_global_brain', 'get_project_context', 'get_project_graph',
-      'get_project_skills', 'get_project_status', 'get_skill', 'initialize_project', 'intake_docs', 'list_skill_packs',
-      'list_skills', 'load_project_skills', 'load_skills', 'propose_memory', 'recommend_skills',
-      'remove_skill_packs', 'search_skills', 'select_project_skills', 'update_project_memory'
+      'acknowledge_feedback', 'add_skill_packs', 'analyze_project', 'ask_feedback_question', 'clear_feedback', 'dismiss_feedback',
+      'get_active_task', 'get_capture', 'get_feedback_prompt', 'get_global_brain', 'get_project_context', 'get_project_graph',
+      'get_project_skills', 'get_project_status', 'get_skill', 'initialize_project', 'intake_docs', 'list_captures', 'list_feedback',
+      'list_skill_packs', 'list_skills', 'load_project_skills', 'load_skills', 'propose_memory', 'recommend_skills',
+      'remove_skill_packs', 'resolve_feedback', 'search_skills', 'select_project_skills', 'update_project_memory'
     ]);
+    expect(TOOLS.find(t => t.name === 'clear_feedback')!.annotations.destructiveHint).toBe(true);
     const readOnly = TOOLS.filter(t => t.annotations.readOnlyHint).map(t => t.name);
     expect(readOnly).toContain('get_project_context');
     expect(readOnly).not.toContain('update_project_memory');
@@ -162,6 +164,71 @@ describe('luci-mcp tools (B11)', () => {
     expect((await call(dir, 'search_skills', {})).text).toContain('Invalid input for search_skills');
     expect((await call(dir, 'no_such_tool')).text).toContain('Unknown tool: no_such_tool');
     expect((await call(dir, 'add_skill_packs', { names: [] })).isError).toBe(true);
+  });
+});
+
+describe('feedback and captures over MCP (M6, FR30)', () => {
+  const target = { kind: 'element' as const, selector: 'main > button', element: 'button', text: 'Pay now', source: { file: 'src/pages/Checkout.jsx', line: 21 }, components: ['App', 'Checkout'] };
+  const add = (dir: string, route: string, comment: string) =>
+    new FeedbackStore(dir).add({ page: { url: `http://localhost:5173${route}` }, target, comment, intent: 'fix', priority: 'high' });
+
+  it('lists open items, gives the prompt (marking them sent), and records acknowledge, question, resolve and dismiss', async () => {
+    const dir = await initialized();
+    expect((await call(dir, 'list_feedback')).text).toContain('No open feedback');
+    add(dir, '/pricing', 'Label wraps');
+    add(dir, '/checkout', 'Disable while sending');
+    add(dir, '/pricing', 'Typo in heading');
+
+    const listed = JSON.parse((await call(dir, 'list_feedback')).text) as { id: string; page: string; status: string; source: string }[];
+    expect(listed.map(i => [i.id, i.page, i.status])).toEqual([['P1-A1', '/pricing', 'pending'], ['P1-A2', '/pricing', 'pending'], ['P2-A1', '/checkout', 'pending']]);
+    expect(listed[0]!.source).toBe('src/pages/Checkout.jsx:21');
+
+    const prompt = (await call(dir, 'get_feedback_prompt')).text;
+    expect(prompt).toMatch(/^# UI feedback: 2 pages, 3 items/);
+    expect(prompt).toContain('## Page 2 of 2: /checkout');
+    expect(new FeedbackStore(dir).list().map(i => i.status)).toEqual(['sent', 'sent', 'sent']);
+
+    expect((await call(dir, 'acknowledge_feedback', { ids: ['P1-A1', 'P9-A9'] })).text).toBe('Acknowledged P1-A1. Not found: P9-A9.');
+    expect((await call(dir, 'ask_feedback_question', { id: 'P1-A2', question: 'Which heading?' })).text).toBe('Asked about P1-A2.');
+    expect((await call(dir, 'resolve_feedback', { id: 'P1-A1', summary: 'Shortened the label' })).text).toBe('Resolved P1-A1.');
+    expect((await call(dir, 'dismiss_feedback', { id: 'P2-A1', reason: 'Already disabled' })).text).toBe('Dismissed P2-A1.');
+    const missing = await call(dir, 'resolve_feedback', { id: 'P7-A1', summary: 'x' });
+    expect(missing.isError).toBe(true);
+
+    const store = new FeedbackStore(dir);
+    expect(store.get('P1-A2')).toMatchObject({ status: 'question', thread: [{ from: 'agent', text: 'Which heading?' }] });
+    store.answer('P1-A2', 'The h1');
+    expect(JSON.parse((await call(dir, 'list_feedback')).text)).toEqual([expect.objectContaining({ id: 'P1-A2', status: 'acknowledged', thread: ['agent: Which heading?', 'person: The h1'] })]);
+    // The question and answer travel with the item in the next prompt
+    expect((await call(dir, 'get_feedback_prompt')).text).toContain('  you asked: "Which heading?"\n  answer: "The h1"');
+
+    expect((await call(dir, 'clear_feedback')).text).toBe('Removed 2 items: P1-A1, P2-A1.');
+    // Numbers on a page are not reused after clearing
+    expect(add(dir, '/pricing', 'Another').ref).toBe('P1-A3');
+  });
+
+  it('every tool says how to set up a project without .luci/, and writes nothing', async () => {
+    const dir = tempProject();
+    for (const name of ['list_feedback', 'get_feedback_prompt', 'list_captures']) {
+      const r = await call(dir, name);
+      expect(r.isError, name).toBe(true);
+      expect(r.text).toContain('luci init');
+    }
+    expect(fs.existsSync(path.join(dir, '.luci'))).toBe(false);
+  });
+
+  it('captures saved into .luci/design/ are listed and read; bad names and files are refused', async () => {
+    const dir = await initialized();
+    const golden = fs.readFileSync(fileURLToPath(new URL('../../format/fixtures/capture/example-com.component.card.design.md', import.meta.url)), 'utf8');
+    const store = new DesignStore(dir);
+    expect(store.save('example-com.component.card.design.md', golden)).toEqual({ path: '.luci/design/example-com.component.card.design.md', replaced: false });
+    expect(store.save('example-com.component.card.design.md', golden).replaced).toBe(true);
+    expect(() => store.save('../x.design.md', golden)).toThrow(/Not a capture file name/);
+    expect(() => store.save('example-com.component.x.design.md', '# not a capture')).toThrow(/not a capture file/);
+    const list = JSON.parse((await call(dir, 'list_captures')).text);
+    expect(list).toEqual([expect.objectContaining({ file: 'example-com.component.card.design.md', name: 'card', scope: 'component', type: 'card', captured: '2026-11-13' })]);
+    expect((await call(dir, 'get_capture', { file: 'example-com.component.card.design.md' })).text).toBe(golden.endsWith('\n') ? golden : `${golden}\n`);
+    expect((await call(dir, 'get_capture', { file: '../../package.json' })).isError).toBe(true);
   });
 });
 

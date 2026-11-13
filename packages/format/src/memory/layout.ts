@@ -35,7 +35,11 @@ export const MEMORY_FILES = {
   /** Library skills this project uses. */
   skillsLock: 'skills.lock.json',
   /** Generated list of the project's skills that agents read instead of full skills. */
-  skillCatalog: 'project-skills.md'
+  skillCatalog: 'project-skills.md',
+  /** Design captures saved from the toolbar (*.design.md). */
+  design: 'design',
+  /** Feedback items, one JSON file each. */
+  feedback: 'feedback'
 } as const;
 
 /** Markdown files every project gets from the templates. */
