@@ -26,6 +26,12 @@ button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); o
 .items input { font: inherit; color: inherit; background: #27272a; border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; min-width: 0; }
 .items .meta { grid-column: 1; color: var(--muted); font-size: 12px; }
 .items .row { grid-column: 2; grid-row: 1 / span 2; }
+.dim { color: var(--muted); font-size: 12px; font-weight: 400; margin: 0; }
+.pixel-layer { position: fixed; inset: 0; z-index: 2147483640; cursor: crosshair; background: transparent; }
+.swatch { position: fixed; z-index: 2147483647; pointer-events: none; display: flex; gap: 6px; align-items: center; padding: 4px 8px;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 6px; font: 12px ui-monospace, monospace; }
+.chip { width: 16px; height: 16px; border-radius: 4px; border: 1px solid rgb(255 255 255 / 0.4); }
+.highlight.locked { border-width: 2px; border-style: solid; background: rgb(167 139 250 / 0.2); box-shadow: 0 0 0 2px rgb(24 24 27 / 0.6); }
 .highlight { position: fixed; z-index: 2147483646; pointer-events: none; border: 2px solid var(--accent); background: rgb(167 139 250 / 0.12); border-radius: 2px; }
 .highlight.blocked { border-color: var(--blocked); background: rgb(120 120 120 / 0.35); }
 .label { position: fixed; z-index: 2147483647; pointer-events: none; max-width: 360px; padding: 3px 7px; border-radius: 5px;

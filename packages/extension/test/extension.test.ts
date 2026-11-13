@@ -62,7 +62,8 @@ describe.runIf(process.env['LUCI_EXTENSION_E2E'] === '1')('extension in Chromium
   /** What the icon click does: the background script runs toolbar.js in the tab. */
   const inject = (url: string) => worker.evaluate(async (pageUrl: string) => {
     const c = (globalThis as unknown as { chrome: { tabs: { query(q: object): Promise<{ id: number; url: string }[]> }; scripting: { executeScript(o: object): Promise<unknown> } } }).chrome;
-    const [tab] = await c.tabs.query({ url: pageUrl });
+    // The newest tab with this address: an earlier test's tab may still show the same page
+    const [tab] = (await c.tabs.query({ url: pageUrl })).sort((a, b) => b.id - a.id);
     await c.scripting.executeScript({ target: { tabId: tab!.id }, files: ['/toolbar.js'] });
   }, url);
 
@@ -96,6 +97,7 @@ describe.runIf(process.env['LUCI_EXTENSION_E2E'] === '1')('extension in Chromium
     await page.click('[data-output="one"]');
     expect(await page.locator('select[data-setting="units"]').inputValue()).toBe('rem');
     expect(await page.locator('[data-part="preview"]').textContent()).toContain('| font-size | 3rem |');
+    await page.close();
   });
 
   it('the basket lives in extension storage: an item added on one site is there on another (FR18)', async () => {
@@ -141,11 +143,29 @@ describe.runIf(process.env['LUCI_EXTENSION_E2E'] === '1')('extension in Chromium
     // The debugger is detached again: a second attach from the test succeeds
     const attached = await worker.evaluate(async (pageUrl: string) => {
       const c = (globalThis as unknown as { chrome: { tabs: { query(q: object): Promise<{ id: number }[]> }; debugger: { attach(t: object, v: string): Promise<void>; detach(t: object): Promise<void> } } }).chrome;
-      const [tab] = await c.tabs.query({ url: pageUrl });
+      const [tab] = (await c.tabs.query({ url: pageUrl })).sort((a, b) => b.id - a.id);
       await c.debugger.attach({ tabId: tab!.id }, '1.3');
       await c.debugger.detach({ tabId: tab!.id });
       return true;
     }, url);
     expect(attached).toBe(true);
+    await page.close();
+  });
+
+  it('Pixel mode reads colours from a screenshot of the tab; Luci\'s own panels are not picked (FR13)', async () => {
+    const page = await context.newPage();
+    page.setDefaultTimeout(10_000);
+    const url = `${server.origin}/css-variables/`;
+    await page.goto(url);
+    await inject(url);
+    await page.click('button[data-tool="color"]');
+    await page.click('[data-colour-mode="pixel"]');
+    await page.locator('[data-part="pixel-layer"]').waitFor();
+    const box = (await page.locator('.button').first().boundingBox())!;
+    await page.mouse.move(box.x + 6, box.y + box.height / 2);
+    await expect.poll(() => page.locator('[data-part="pixel-swatch"]').innerText()).toBe('#0f62fe');
+    await page.mouse.click(box.x + 6, box.y + box.height / 2);
+    expect(await page.locator('[data-part="preview"]').textContent()).toContain('`--color-primary`');
+    await page.close();
   });
 });

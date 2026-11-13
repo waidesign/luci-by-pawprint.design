@@ -88,7 +88,32 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
     await page.hover('.card p >> nth=0');
     await page.keyboard.press('ArrowUp');
     await page.keyboard.press('Enter');
-    expect(await page.locator('.panel h2').innerText()).toBe('li (listitem)');
+    expect(await page.locator('[data-part="selected-name"]').innerText()).toBe('li (listitem)');
+  });
+
+  it('after a click the selection stays: ↑ ↓ and the Wider / Narrower buttons change it, Enter takes "This one" (user feedback)', async () => {
+    await page.click('button[data-tool="text"]');
+    await page.click('.card p >> nth=0');
+    const name = () => page.locator('[data-part="selected-name"]').innerText();
+    expect(await name()).toBe('p (paragraph)');
+    expect(await page.locator('[data-part="selection"]').count()).toBe(1);
+    expect(await page.locator('[data-part="output-hints"]').innerText()).toContain('This one: this text style');
+    await page.keyboard.press('ArrowUp');
+    expect(await name()).toBe('li (listitem)');
+    await page.keyboard.press('ArrowDown');
+    expect(await name()).toBe('p (paragraph)');
+    await page.keyboard.press('Enter');
+    expect(await preview(page)).toContain('type: text');
+
+    // The same with the buttons
+    await page.click('button[data-tool="text"]');
+    await page.click('.card p >> nth=0');
+    await page.click('[data-action="widen"]');
+    expect(await name()).toBe('li (listitem)');
+    await page.click('[data-action="narrow"]');
+    expect(await name()).toBe('p (paragraph)');
+    await page.click('[data-output="one"]');
+    expect(await preview(page)).toContain('type: text');
   });
 
   it('the page itself redirects to the system output (FR4, FR12)', async () => {
@@ -97,7 +122,7 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
     await page.keyboard.press('ArrowUp');
     expect(await label(page)).toContain('This is the whole page');
     await page.keyboard.press('Enter');
-    expect(await page.locator('.panel h2').innerText()).toBe('body');
+    expect(await page.locator('[data-part="selected-name"]').innerText()).toBe('body');
     expect(await page.locator('[data-output="one"]').count()).toBe(0);
     await page.click('[data-output="system"]');
     const md = await preview(page);
@@ -190,7 +215,7 @@ describe('tool hints and the Colour tool\'s two ways to pick (user feedback, M4)
     await page.evaluate(() => { (window as unknown as { LuciCapture: { mountToolbar(): unknown } }).LuciCapture.mountToolbar(); });
     expect(await page.locator('[data-action="eyedropper"]').count()).toBe(0);
     await page.click('button[data-tool="text"]');
-    expect(await page.locator('[data-part="hint"]').innerText()).toContain('Click any text');
+    expect(await page.locator('[data-part="hint"]').innerText()).toContain('Hover any text');
     await page.click('button[data-tool="spacing"]');
     expect(await page.locator('[data-part="hint"]').innerText()).toContain('drag from one element to another');
     await page.click('button[data-tool="color"]');
@@ -198,7 +223,7 @@ describe('tool hints and the Colour tool\'s two ways to pick (user feedback, M4)
     expect(await page.locator('[data-colour-mode="element"]').getAttribute('aria-pressed')).toBe('true');
     // Without an eyedropper, Pixel stays visible but off, with the reason
     expect(await page.locator('[data-colour-mode="pixel"]').isDisabled()).toBe(true);
-    expect(await page.locator('[data-part="hint"]').innerText()).toContain('no eyedropper');
+    expect(await page.locator('[data-part="hint"]').innerText()).toContain('This browser cannot pick pixels.');
     // The hint goes away once something is picked
     await page.click('h1');
     expect(await page.locator('[data-part="tool-hint"]').count()).toBe(0);
@@ -228,6 +253,42 @@ describe('tool hints and the Colour tool\'s two ways to pick (user feedback, M4)
     await page.click('[data-colour-mode="pixel"]');
     expect(await page.locator('[data-colour-mode="element"]').getAttribute('aria-pressed')).toBe('true');
     expect(await page.locator('[data-part="hint"]').count()).toBe(1);
+    await context.close();
+  });
+});
+
+describe('Pixel mode from a screenshot (user feedback)', { timeout: 30_000 }, () => {
+  it('shows the colour under the pointer, ignores Luci\'s own bar, and picks on click', async () => {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
+    page.setDefaultTimeout(5000);
+    // The extension's screenshot, here from Playwright
+    await page.exposeFunction('luciScreenshot', async () => `data:image/png;base64,${(await page.screenshot()).toString('base64')}`);
+    await page.goto(`${server.origin}/css-variables/`);
+    await page.addScriptTag({ content: bundle });
+    await page.evaluate(() => {
+      const w = window as unknown as { LuciCapture: { mountToolbar(o: object): unknown }; luciScreenshot(): Promise<string> };
+      w.LuciCapture.mountToolbar({ captureScreen: () => w.luciScreenshot() });
+    });
+    await page.click('button[data-tool="color"]');
+    await page.click('[data-colour-mode="pixel"]');
+    await page.locator('[data-part="pixel-layer"]').waitFor();
+    expect(await page.locator('[data-colour-mode="pixel"]').getAttribute('aria-pressed')).toBe('true');
+    const button = (await page.locator('.button').first().boundingBox())!;
+    await page.mouse.move(button.x + 6, button.y + button.height / 2);
+    expect(await page.locator('[data-part="pixel-swatch"]').innerText()).toBe('#0f62fe');
+    // Over Luci's bar nothing is picked; back on the page, picking carries on
+    const bar = (await page.locator('[data-tool="text"]').boundingBox())!;
+    await page.mouse.move(bar.x + 5, bar.y + 5);
+    expect(await page.locator('[data-part="pixel-swatch"]').count()).toBe(0);
+    await page.mouse.move(button.x + 6, button.y + button.height / 2);
+    expect(await page.locator('[data-part="pixel-swatch"]').innerText()).toBe('#0f62fe');
+    await page.mouse.click(button.x + 6, button.y + button.height / 2);
+    const md = await preview(page);
+    expect(md).toContain('`--color-primary`');
+    expect(md).toContain('method: measured');
+    // The page did not follow the link under the pointer
+    expect(page.url()).toBe(`${server.origin}/css-variables/`);
     await context.close();
   });
 });

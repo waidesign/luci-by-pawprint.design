@@ -77,12 +77,12 @@ describe('items from two sites export as one file (M5 Done when)', () => {
     const a = await open(`${siteA.origin}/css-variables/`);
     await add(a, 'component', () => a.click('.button >> nth=0'));
     await add(a, 'text', () => a.click('h1'));
-    expect(await a.locator('[data-action="basket"]').innerText()).toBe('Basket (2)');
+    await expect.poll(() => a.locator('[data-action="basket"]').innerText()).toBe('Basket (2)');
     await a.context().close();
 
     const b = await open(`${siteB.origin}/web-components/`);
-    // The basket came along to the other site
-    expect(await b.locator('[data-action="basket"]').innerText()).toBe('Basket (2)');
+    // The basket came along to the other site (it loads from the store right after the toolbar opens)
+    await expect.poll(() => b.locator('[data-action="basket"]').innerText()).toBe('Basket (2)');
     await add(b, 'color', () => b.locator('plan-card').first().locator('button').click());
     await b.click('[data-action="basket"]');
     expect(await b.locator('[data-item]').count()).toBe(3);
@@ -116,4 +116,26 @@ describe('items from two sites export as one file (M5 Done when)', () => {
     expect(stored).toEqual([]);
     await b.context().close();
   }, 60_000);
+
+  it('adding before a slow store has loaded keeps the items already stored (regression)', async () => {
+    stored = [{ id: 'old', name: 'Kept item', addedAt: '2026-11-13', capture: textCapture('text-heading-1', 'https://a.example/') }];
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
+    page.setDefaultTimeout(5000);
+    await page.exposeFunction('luciBasketLoad', async () => { await new Promise(r => setTimeout(r, 1500)); return stored; });
+    await page.exposeFunction('luciBasketSave', (items: BasketItem[]) => { stored = items; });
+    await page.goto(`${siteA.origin}/css-variables/`);
+    await page.addScriptTag({ content: bundle });
+    await page.evaluate(() => {
+      const w = window as unknown as { LuciCapture: { mountToolbar(o: object): unknown }; luciBasketLoad(): Promise<unknown>; luciBasketSave(i: unknown): Promise<void> };
+      w.LuciCapture.mountToolbar({ basket: { load: () => w.luciBasketLoad(), save: (items: unknown) => w.luciBasketSave(items) } });
+    });
+    await page.click('button[data-tool="text"]');
+    await page.click('h1');
+    await page.click('[data-output="one"]');
+    await page.click('[data-action="add-to-basket"]');
+    await expect.poll(() => stored.map(i => i.name), { timeout: 5000 }).toEqual(['Kept item', 'Text heading 1']);
+    await context.close();
+    stored = [];
+  }, 30_000);
 });

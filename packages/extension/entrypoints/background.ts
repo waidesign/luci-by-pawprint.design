@@ -1,9 +1,11 @@
 import { browser } from 'wxt/browser';
 import { defineBackground } from 'wxt/utils/define-background';
-import { readStatesViaCdp, type ForcedReading } from '@luci/capture';
+import { readStatesViaCdp, type ForcedReading } from '@luci/capture/states';
 
 export const READ_STATES = 'luci:read-states';
+export const CAPTURE_SCREEN = 'luci:capture-screen';
 type ReadStatesReply = { ok: true; reading: ForcedReading } | { ok: false; error: string };
+type CaptureReply = { ok: true; dataUrl: string } | { ok: false; error: string };
 
 /**
  * Clicking Luci's icon puts the toolbar on the current tab (or takes it off again).
@@ -21,9 +23,16 @@ export default defineBackground(() => {
     }
   });
 
-  browser.runtime.onMessage.addListener((message: unknown, sender, sendResponse: (reply: ReadStatesReply) => void) => {
+  browser.runtime.onMessage.addListener((message: unknown, sender, sendResponse: (reply: ReadStatesReply | CaptureReply) => void) => {
     const m = message as { type?: string; count?: number };
     const tabId = sender.tab?.id;
+    // Pixel mode: a screenshot of the visible tab (allowed by activeTab, granted by the icon click)
+    if (m?.type === CAPTURE_SCREEN && sender.tab?.windowId !== undefined) {
+      browser.tabs.captureVisibleTab(sender.tab.windowId, { format: 'png' })
+        .then(dataUrl => sendResponse({ ok: true, dataUrl }))
+        .catch((err: unknown) => sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) }));
+      return true;
+    }
     if (m?.type !== READ_STATES || tabId === undefined || typeof m.count !== 'number') return false;
     void (async () => {
       const target = { tabId };

@@ -19,6 +19,8 @@ export interface MountOptions {
   readForcedStates?: ForcedStatesReader;
   /** Where the basket is kept. Default: in this page's memory only. */
   basket?: BasketStore;
+  /** A screenshot of the visible page (data URL) for Pixel mode; without it, the browser's eyedropper is used. */
+  captureScreen?: () => Promise<string>;
 }
 
 export interface ToolbarHandle {
@@ -55,6 +57,7 @@ export function mountToolbar(options: MountOptions = {}): ToolbarHandle {
     ...(options.onOutput ? { onOutput: options.onOutput } : {}),
     ...(options.readForcedStates ? { readForcedStates: options.readForcedStates } : {}),
     basket: options.basket ?? memoryBasketStore(),
+    ...(options.captureScreen ? { captureScreen: options.captureScreen } : {}),
     onClose: () => { destroy(); options.onClose?.(); },
     registerPixelInput: (pick: (hex: string) => void) => { pixelInput = pick; }
   }), mountPoint);

@@ -44,6 +44,8 @@ export interface ToolbarProps {
   readForcedStates?: ForcedStatesReader;
   /** Where the basket is kept (the extension: its storage, shared by every tab and site). */
   basket?: BasketStore;
+  /** A screenshot of the visible page as a data URL (the extension); Pixel mode reads colours from it. */
+  captureScreen?: () => Promise<string>;
 }
 
 const STATE_ORDER: readonly StateName[] = ['hover', 'focus', 'focus-visible', 'active', 'disabled'];
@@ -59,10 +61,18 @@ const DRAG_PX = 6;
 
 /** What to do with each tool, shown under the bar while it is picking. */
 export const TOOL_HINTS: Readonly<Record<ToolId, string>> = {
-  component: 'Click a component: a button, card, link, field or badge. ↑ widens the pick to the whole component.',
-  text: 'Click any text on the page: a heading, paragraph, link or label.',
-  color: 'Click an element to take its colour, or choose Pixel to pick any spot with the eyedropper.',
+  component: 'Hover a button, card, link or field, and click it.',
+  text: 'Hover any text (a heading, paragraph, link or label), and click it.',
+  color: 'Click an element to take its colour, or switch to Pixel to pick any spot on the page.',
   spacing: 'Click an element for its padding, margin or gap, or drag from one element to another to measure the distance.'
+};
+
+/** What each output gives, shown with the two buttons after a pick. */
+export const OUTPUT_HINTS: Readonly<Record<ToolId, { one: string; system: string }>> = {
+  component: { one: 'this component: its parts, tokens and states', system: 'this component plus every variant of it on the page' },
+  text: { one: 'this text style', system: 'every text style on the page, grouped into roles' },
+  color: { one: 'this colour and where it is used', system: 'every colour on the page, grouped by role' },
+  spacing: { one: 'the spacing value you choose', system: 'the page\'s spacing scale, base unit and outliers' }
 };
 const px = (v: string) => parseFloat(v) || 0;
 
@@ -88,6 +98,7 @@ export function Toolbar(props: ToolbarProps) {
   const [settings, setSettings] = useState<CaptureSettings>(props.settings);
   const [copied, setCopied] = useState(false);
   const [dropperOpen, setDropperOpen] = useState(false);
+  const [basketOpen, setBasketOpen] = useState(false);
   const [, setTick] = useState(0);
   const trail = useRef<Element[]>([]);
   const drag = useRef<{ el: Element; x: number; y: number } | null>(null);
@@ -187,6 +198,8 @@ export function Toolbar(props: ToolbarProps) {
     setStateNote(null);
     setCountdown(null);
     setBasketOpen(false);
+    setPixelMode(false);
+    setPixelHover(null);
     aim(null);
     lastPointer.current = null;
     trail.current = [];
@@ -201,12 +214,51 @@ export function Toolbar(props: ToolbarProps) {
     const live = liveSnapshot(doc);
     const entry = entryFor(live, el);
     if (!entry) return;
+    // Widening while hovering carries over, so ↓ can walk back down after the click
+    pickedTrail.current = [...trail.current];
     setPicked({ el, entry, live, eligibility: elig });
     setPicking(false);
     setNotice(null);
     setChoice(0);
     setResult(null);
   };
+
+  // After a click the selection stays, and ↑ ↓ (or the Wider / Narrower buttons) change it before an output is chosen
+  const pickedTrail = useRef<Element[]>([]);
+  const reselect = (el: Element) => {
+    if (!picked) return;
+    const entry = entryFor(picked.live, el);
+    if (!entry) return;
+    setPicked({ ...picked, el, entry, eligibility: eligibilityOf(el) });
+    setChoice(0);
+  };
+  const widerOf = (el: Element) => { const p = parentOf(el); return p && p !== doc.documentElement ? p : null; };
+  const narrowerOf = (el: Element) => pickedTrail.current[pickedTrail.current.length - 1] ?? firstChildOf(el);
+  const widen = () => {
+    if (!picked) return;
+    const p = widerOf(picked.el);
+    if (!p) return;
+    pickedTrail.current.push(picked.el);
+    reselect(p);
+  };
+  const narrow = () => {
+    if (!picked) return;
+    const c = pickedTrail.current.pop() ?? firstChildOf(picked.el);
+    if (c) reselect(c);
+  };
+  const choosing = !picking && !basketOpen && Boolean(picked) && !result && !busy;
+  useLayoutEffect(() => {
+    if (!choosing) return;
+    const onKey = (e: KeyboardEvent) => {
+      const focused = e.composedPath()[0];
+      if (focused instanceof HTMLElement && /^(INPUT|SELECT|TEXTAREA|BUTTON)$/.test(focused.tagName) && e.key === 'Enter') return;
+      if (e.key === 'ArrowUp') { e.preventDefault(); widen(); }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); narrow(); }
+      else if (e.key === 'Enter' && picked?.eligibility.status === 'allowed') { e.preventDefault(); void produce(false); }
+    };
+    doc.addEventListener('keydown', onKey, true);
+    return () => doc.removeEventListener('keydown', onKey, true);
+  }, [choosing, picked]);
 
   // The eyedropper colour can come from the shell or a test
   useEffect(() => {
@@ -358,20 +410,25 @@ export function Toolbar(props: ToolbarProps) {
 
   // The basket (FR18, FR19): kept by the shell's store, so it survives pages and sites
   const [basket, setBasket] = useState<BasketItem[]>([]);
-  const [basketOpen, setBasketOpen] = useState(false);
   const [basketExport, setBasketExport] = useState<{ title: string; item?: BasketItem } | null>(null);
   const [added, setAdded] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const store = props.basket;
-  useEffect(() => { if (store) void store.load().then(setBasket); }, [store]);
+  // Until the stored basket has loaded, changes start from the stored items, never from an empty list
+  const basketLoaded = useRef(false);
+  useEffect(() => {
+    if (store) void store.load().then(items => { basketLoaded.current = true; setBasket(items); });
+  }, [store]);
   const saveBasket = (next: BasketItem[]) => {
     setBasket(next);
     void store?.save(next);
   };
-  const addCurrent = () => {
+  const addCurrent = async () => {
     if (!output) return;
-    saveBasket(addToBasket(basket, output.capture));
     setAdded(true);
+    const current = basketLoaded.current || !store ? basket : await store.load();
+    basketLoaded.current = true;
+    saveBasket(addToBasket(current, output.capture));
   };
   const openBasket = () => {
     setPicking(false);
@@ -389,6 +446,91 @@ export function Toolbar(props: ToolbarProps) {
 
   const Dropper = (win as unknown as { EyeDropper?: new () => { open(): Promise<{ sRGBHex: string }> } }).EyeDropper;
   const hasDropper = Boolean(Dropper);
+
+  // Pixel mode: a screenshot of the page (taken with Luci hidden), read under the pointer. Unlike the
+  // browser's eyedropper it leaves Luci's own panels usable, and stays on until a pixel is picked.
+  const [pixelMode, setPixelMode] = useState(false);
+  const [pixelHover, setPixelHover] = useState<{ x: number; y: number; hex: string } | null>(null);
+  const shot = useRef<{ ctx: CanvasRenderingContext2D; scale: number } | null>(null);
+  const canPickPixels = Boolean(props.captureScreen) || hasDropper;
+  const takeShot = async () => {
+    if (!props.captureScreen) return;
+    const host = doc.querySelector('luci-toolbar') as HTMLElement | null;
+    if (host) host.style.visibility = 'hidden';
+    try {
+      // Let the browser paint the page without Luci before the screenshot
+      await Promise.race([
+        new Promise(r => win.requestAnimationFrame(() => win.requestAnimationFrame(r))),
+        new Promise(r => setTimeout(r, 120))
+      ]);
+      const img = new Image();
+      img.src = await props.captureScreen();
+      await img.decode();
+      const canvas = doc.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+      ctx.drawImage(img, 0, 0);
+      shot.current = { ctx, scale: img.naturalWidth / win.innerWidth };
+    } finally {
+      if (host) host.style.visibility = '';
+    }
+  };
+  const samplePixel = (x: number, y: number) => {
+    const s = shot.current;
+    if (!s) return null;
+    const [r, g, b] = s.ctx.getImageData(Math.floor(x * s.scale), Math.floor(y * s.scale), 1, 1).data;
+    const hex = `#${[r, g, b].map(n => (n ?? 0).toString(16).padStart(2, '0')).join('')}`;
+    return { x, y, hex };
+  };
+  const pickPixelAt = (x: number, y: number) => {
+    const p = samplePixel(x, y);
+    if (!p) return;
+    setPixelMode(false);
+    setPixelHover(null);
+    show(capturePixel(liveSnapshot(doc), p.hex, settingsRef.current));
+  };
+  const startPixel = async () => {
+    if (!props.captureScreen) { await pickPixel(); return; }
+    setPicking(false);
+    aim(null);
+    setPicked(null);
+    setResult(null);
+    setTool('color');
+    try {
+      await takeShot();
+      setPixelMode(true);
+    } catch (err) {
+      startPicking('color');
+      setNotice(`Luci could not read the screen (${err instanceof Error ? err.message : String(err)}). Click an element instead.`);
+    }
+  };
+  useLayoutEffect(() => {
+    if (!pixelMode) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.preventDefault();
+      setPixelMode(false);
+      setPixelHover(null);
+      startPicking('color');
+    };
+    // After scrolling, the screenshot is out of date: take a new one
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const onScroll = () => {
+      setPixelHover(null);
+      clearTimeout(timer);
+      timer = setTimeout(() => { void takeShot(); }, 200);
+    };
+    doc.addEventListener('keydown', onKey, true);
+    win.addEventListener('scroll', onScroll, true);
+    win.addEventListener('resize', onScroll);
+    return () => {
+      clearTimeout(timer);
+      doc.removeEventListener('keydown', onKey, true);
+      win.removeEventListener('scroll', onScroll, true);
+      win.removeEventListener('resize', onScroll);
+    };
+  }, [pixelMode]);
   const pickPixel = async () => {
     if (!Dropper) return;
     // While the eyedropper is open, the page picker steps aside
@@ -466,19 +608,47 @@ export function Toolbar(props: ToolbarProps) {
         </div>
       )}
 
-      {(picking || dropperOpen) && tool && (
+      {(picking || dropperOpen || pixelMode) && tool && (
         <div class="sub" data-part="tool-hint" role="note">
           {tool === 'color' && (
             <div class="seg" role="group" aria-label="Pick a colour from">
-              <button type="button" aria-pressed={!dropperOpen} data-colour-mode="element" onClick={() => startPicking('color')}>Element</button>
-              <button type="button" aria-pressed={dropperOpen} data-colour-mode="pixel" data-action="eyedropper" disabled={!hasDropper}
-                title={hasDropper ? 'Pick any spot on the screen with the eyedropper' : 'This browser has no eyedropper. Click an element instead.'} onClick={pickPixel}>Pixel</button>
+              <button type="button" aria-pressed={!dropperOpen && !pixelMode} data-colour-mode="element" onClick={() => { setPixelMode(false); startPicking('color'); }}>Element</button>
+              <button type="button" aria-pressed={dropperOpen || pixelMode} data-colour-mode="pixel" data-action="eyedropper" disabled={!canPickPixels}
+                title={canPickPixels ? 'Pick any spot on the page' : 'This browser cannot pick pixels. Click an element instead.'} onClick={() => void startPixel()}>Pixel</button>
             </div>
           )}
-          <p class="hint" data-part="hint">{TOOL_HINTS[tool]}{tool === 'color' && !hasDropper ? ' (This browser has no eyedropper.)' : ''}</p>
-          <p class="keys">↑ ↓ widen or narrow · Enter picks · Esc cancels</p>
+          <p class="hint" data-part="hint">
+            {pixelMode ? 'Hover the page to see the colour under the pointer, and click to pick it. Over Luci\'s own panels nothing is picked.'
+              : `${TOOL_HINTS[tool]}${tool === 'color' && !canPickPixels ? ' (This browser cannot pick pixels.)' : ''}`}
+          </p>
+          <p class="keys">{pixelMode ? 'Esc goes back to Element' : 'After clicking, you can make the selection wider or narrower · Esc cancels'}</p>
         </div>
       )}
+
+      {pixelMode && (
+        <>
+          {/* Covers the page while picking a pixel: the page gets no clicks, and Luci's panels stay above it */}
+          <div class="pixel-layer" data-part="pixel-layer"
+            onPointerMove={e => setPixelHover(samplePixel(e.clientX, e.clientY))}
+            onPointerLeave={() => setPixelHover(null)}
+            onClick={e => pickPixelAt(e.clientX, e.clientY)} />
+          {pixelHover && (
+            <div class="swatch" data-part="pixel-swatch" style={{ top: `${Math.min(pixelHover.y + 18, win.innerHeight - 40)}px`, left: `${Math.min(pixelHover.x + 18, win.innerWidth - 140)}px` }}>
+              <span class="chip" style={{ background: pixelHover.hex }} />{pixelHover.hex}
+            </div>
+          )}
+        </>
+      )}
+
+      {choosing && picked && !pixelMode && (() => {
+        const r = picked.el.getBoundingClientRect();
+        return (
+          <>
+            <div class={`highlight locked${picked.eligibility.status === 'blocked' ? ' blocked' : ''}`} data-part="selection" style={{ top: `${r.top}px`, left: `${r.left}px`, width: `${r.width}px`, height: `${r.height}px` }} />
+            <div class="label" style={{ top: `${Math.max(4, r.top - 28)}px`, left: `${Math.max(4, r.left)}px` }}>{hoverLabel(picked.el)}</div>
+          </>
+        );
+      })()}
 
       {hovered && rect && (
         <>
@@ -503,8 +673,14 @@ export function Toolbar(props: ToolbarProps) {
 
       {!picking && !basketOpen && picked && !result && tool && (
         <div class="panel" role="dialog" aria-label="Capture">
-          <h2>{elementName(picked.entry.tag, picked.entry.role)}</h2>
+          <h2>Selected: <span data-part="selected-name">{elementName(picked.entry.tag, picked.entry.role)}</span> <span class="dim">{Math.round(picked.el.getBoundingClientRect().width)} × {Math.round(picked.el.getBoundingClientRect().height)}</span></h2>
+          <div class="row">
+            <button type="button" data-action="widen" disabled={!widerOf(picked.el)} onClick={widen} title="Select the element around this one (↑)">↑ Wider</button>
+            <button type="button" data-action="narrow" disabled={!narrowerOf(picked.el)} onClick={narrow} title="Select the element inside this one (↓)">↓ Narrower</button>
+            <span class="dim">or the ↑ ↓ keys</span>
+          </div>
           {picked.eligibility.status === 'redirected' && <p class="hint">{picked.eligibility.reason}</p>}
+          {picked.eligibility.status === 'blocked' && <p class="error" data-part="notice">{picked.eligibility.reason} Make the selection wider or narrower.</p>}
           {tool === 'spacing' && picked.eligibility.status === 'allowed' && spacingChoices(picked.entry).length > 1 && (
             <div class="row">
               {spacingChoices(picked.entry).map((u, i) => (
@@ -513,13 +689,22 @@ export function Toolbar(props: ToolbarProps) {
             </div>
           )}
           {busy ? <p class="hint" data-part="busy">{busy}</p> : (
-            <div class="row">
-              {picked.eligibility.status === 'allowed' && (
-                <button type="button" class="primary" data-output="one" onClick={() => void produce(false)}>This one</button>
+            <>
+              <div class="row">
+                {picked.eligibility.status === 'allowed' && (
+                  <button type="button" class="primary" data-output="one" onClick={() => void produce(false)}>This one</button>
+                )}
+                {picked.eligibility.status !== 'blocked' && (
+                  <button type="button" class={picked.eligibility.status === 'allowed' ? '' : 'primary'} data-output="system" onClick={() => void produce(true)}>The whole system</button>
+                )}
+                <button type="button" onClick={() => startPicking(tool)}>Pick again</button>
+              </div>
+              {picked.eligibility.status !== 'blocked' && (
+                <p class="dim" data-part="output-hints">
+                  {picked.eligibility.status === 'allowed' && <>This one: {OUTPUT_HINTS[tool].one}. </>}The whole system: {OUTPUT_HINTS[tool].system}.
+                </p>
               )}
-              <button type="button" class={picked.eligibility.status === 'allowed' ? '' : 'primary'} data-output="system" onClick={() => void produce(true)}>The whole system</button>
-              <button type="button" onClick={() => startPicking(tool)}>Pick again</button>
-            </div>
+            </>
           )}
         </div>
       )}
@@ -556,7 +741,7 @@ export function Toolbar(props: ToolbarProps) {
               <div class="row">
                 <button type="button" class="primary" data-action="copy" onClick={copy}>{copied ? 'Copied' : 'Copy'}</button>
                 <button type="button" data-action="download" onClick={download}>Download .design.md</button>
-                <button type="button" data-action="add-to-basket" disabled={added} onClick={addCurrent}>{added ? 'Added to basket' : 'Add to basket'}</button>
+                <button type="button" data-action="add-to-basket" disabled={added} onClick={() => void addCurrent()}>{added ? 'Added to basket' : 'Add to basket'}</button>
                 {tool && <button type="button" onClick={() => startPicking(tool)}>Pick again</button>}
               </div>
             </>

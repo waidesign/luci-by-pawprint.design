@@ -20,6 +20,13 @@ export default defineUnlistedScript(async () => {
     settings: (stored[SETTINGS_KEY] as CaptureSettings | undefined) ?? {},
     onSettingsChange: (settings) => { void browser.storage.local.set({ [SETTINGS_KEY]: settings }); },
     onClose: () => { holder.__luciToolbar = undefined; },
+    // Pixel mode reads colours from a screenshot of this tab, taken by the background
+    captureScreen: async () => {
+      const reply = (await browser.runtime.sendMessage({ type: 'luci:capture-screen' })) as { ok: true; dataUrl: string } | { ok: false; error: string } | undefined;
+      if (!reply) throw new Error('no reply from the extension');
+      if (!reply.ok) throw new Error(reply.error);
+      return reply.dataUrl;
+    },
     // The basket lives in extension storage: every tab and site sees the same items, across restarts
     basket: {
       load: async () => {
