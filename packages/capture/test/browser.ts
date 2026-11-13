@@ -26,7 +26,8 @@ export function serveSites(host = '127.0.0.1'): Promise<{ origin: string; close:
   });
   return new Promise(resolve => server.listen(0, host, () => resolve({
     origin: `http://${host}:${(server.address() as AddressInfo).port}`,
-    close: () => new Promise<void>(done => server.close(() => done()))
+    // Browsers keep connections open; close them too, or close() waits for them forever
+    close: () => new Promise<void>(done => { server.closeAllConnections(); server.close(() => done()); })
   })));
 }
 
