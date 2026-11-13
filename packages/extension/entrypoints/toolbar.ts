@@ -8,24 +8,26 @@ const BASKET_KEY = 'basket';
 // The extension's isolated world keeps this between injections; the page can't see it
 const holder = globalThis as typeof globalThis & { __luciToolbar?: ToolbarHandle };
 
-/** What to tell the user when this toolbar has lost its extension (reloaded, updated or restarted). */
-export const DISCONNECTED = "Luci was updated or restarted, so this toolbar lost its connection. Reload this page, then click Luci's icon again.";
-const CONNECTION_LOST = /Receiving end does not exist|Extension context invalidated|message port closed/i;
+/** What to tell the user when this toolbar's extension is gone (reloaded or updated since it opened). */
+export const DISCONNECTED = "Luci was updated or reloaded since this toolbar opened. Reload this page, then click Luci's icon again.";
 
-/** Ask the background for something; a lost connection becomes a plain instruction. */
+/**
+ * Ask the background for something. Chrome's own error text is kept, so a problem can be diagnosed;
+ * only a toolbar whose extension is gone gets the plain instruction.
+ */
 async function ask<T>(message: Record<string, unknown>): Promise<T> {
   if (!browser.runtime?.id) throw new Error(DISCONNECTED);
-  let reply: { ok: true; value: T } | { ok: false; error: string } | undefined;
+  let raw: Record<string, unknown> | undefined;
   try {
-    const raw = (await browser.runtime.sendMessage(message)) as Record<string, unknown> | undefined;
-    reply = raw && raw['ok'] ? { ok: true, value: (raw['dataUrl'] ?? raw['reading']) as T } : raw ? { ok: false, error: String(raw['error']) } : undefined;
+    raw = (await browser.runtime.sendMessage(message)) as Record<string, unknown> | undefined;
   } catch (err) {
     const text = err instanceof Error ? err.message : String(err);
-    throw new Error(CONNECTION_LOST.test(text) ? DISCONNECTED : text);
+    console.warn(`Luci: the background did not answer "${String(message['type'])}": ${text}`);
+    throw new Error(/Extension context invalidated/i.test(text) ? DISCONNECTED : `Chrome said: "${text}"`);
   }
-  if (!reply) throw new Error(DISCONNECTED);
-  if (!reply.ok) throw new Error(reply.error);
-  return reply.value;
+  if (!raw) throw new Error(`Chrome said: no answer from Luci's background for "${String(message['type'])}".`);
+  if (!raw['ok']) throw new Error(String(raw['error']));
+  return (raw['dataUrl'] ?? raw['reading']) as T;
 }
 
 /** Injected when the user clicks Luci's icon: mount the toolbar, or close it when it is already open. */
@@ -54,7 +56,7 @@ export default defineUnlistedScript(async () => {
       save: async (items) => { await browser.storage.local.set({ [BASKET_KEY]: items }); }
     },
     // The "?" button opens the help page in a new tab
-    onHelp: () => { void ask<string>({ type: 'luci:open-help' }).catch(() => undefined); },
+    onHelp: () => { void ask<string>({ type: 'luci:open-help' }).catch((err: unknown) => { window.alert(`Luci could not open its help page. ${err instanceof Error ? err.message : String(err)}`); }); },
     // Exact component states: the background attaches the debugger just for this reading
     readForcedStates: (count) => ask<ForcedReading>({ type: 'luci:read-states', count })
   });

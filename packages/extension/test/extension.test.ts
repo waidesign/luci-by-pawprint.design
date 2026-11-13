@@ -16,10 +16,12 @@ import { serveSites } from '../../capture/test/browser.js';
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const WXT = fileURLToPath(new URL('../node_modules/wxt/bin/wxt.mjs', import.meta.url));
 
+/** Build into a test folder: .output/ is the copy you may have loaded in Chrome, and stays untouched. */
 function build(test: boolean): string {
-  const res = spawnSync(process.execPath, [WXT, 'build'], { cwd: ROOT, encoding: 'utf8', env: { ...process.env, LUCI_EXTENSION_TEST: test ? '1' : '0' } });
+  const outDir = test ? '.output-test' : '.output-check';
+  const res = spawnSync(process.execPath, [WXT, 'build'], { cwd: ROOT, encoding: 'utf8', env: { ...process.env, LUCI_EXTENSION_TEST: test ? '1' : '0', LUCI_EXTENSION_OUT_DIR: outDir } });
   if (res.status !== 0) throw new Error(`wxt build failed:\n${res.stdout}\n${res.stderr}`);
-  return path.join(ROOT, test ? '.output-test' : '.output', 'chrome-mv3');
+  return path.join(ROOT, outDir, 'chrome-mv3');
 }
 const manifest = (dir: string) => JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8')) as Record<string, unknown>;
 
@@ -68,7 +70,7 @@ describe.runIf(process.env['LUCI_EXTENSION_E2E'] === '1')('extension in Chromium
   /** Run a function with the extension's APIs, failing after 20 seconds instead of hanging. */
   async function api<A, R>(fn: (arg: A) => Promise<R>, arg: A): Promise<R> {
     let timer: ReturnType<typeof setTimeout> | undefined;
-    const timeout = new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('extension API call timed out after 20s')), 20_000); });
+    const timeout = new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('extension API call timed out after 10s')), 10_000); });
     try {
       return await Promise.race([ext.evaluate(fn as never, arg as never) as Promise<R>, timeout]);
     } finally {

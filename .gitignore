@@ -10,4 +10,5 @@ coverage/
 # Extension builds (WXT)
 .output/
 .output-test/
+.output-check/
 .wxt/

@@ -8,11 +8,14 @@ import { defineConfig } from 'wxt';
 // LUCI_EXTENSION_TEST=1 builds a test-only copy into .output-test/ that may also script 127.0.0.1 and
 // localhost (the local test sites, two origins), because a test can't click the icon to grant activeTab.
 const testBuild = process.env['LUCI_EXTENSION_TEST'] === '1';
+// Tests build into their own folders, never into .output/ (the copy you load in Chrome): rebuilding a
+// loaded extension's folder under it breaks it until it is reloaded
+const outDir = process.env['LUCI_EXTENSION_OUT_DIR'] ?? (testBuild ? '.output-test' : '.output');
 
 export default defineConfig({
   manifestVersion: 3,
   imports: false,
-  outDir: testBuild ? '.output-test' : '.output',
+  outDir,
   manifest: {
     name: 'Luci',
     description: 'Capture exact design context from any page for your AI coding agent. Everything stays on your machine.',

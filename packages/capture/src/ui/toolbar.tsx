@@ -503,8 +503,15 @@ export function Toolbar(props: ToolbarProps) {
       await takeShot();
       setPixelMode(true);
     } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      // Keep working: fall back to the browser's eyedropper, and say why
+      if (hasDropper) {
+        setStateNote(`Luci's own pixel picker is not available here (${reason}), so the browser's eyedropper was used instead.`);
+        await pickPixel();
+        return;
+      }
       startPicking('color');
-      setNotice(`Pixel mode could not start. ${err instanceof Error ? err.message : String(err)} Until then, click an element to take its color.`);
+      setNotice(`Pixel mode could not start: ${reason} Click an element to take its color.`);
     }
   };
   useLayoutEffect(() => {
