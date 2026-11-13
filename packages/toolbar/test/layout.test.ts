@@ -323,4 +323,102 @@ describe('Layout mode', { timeout: 120_000 }, () => {
     expect(agent).toContain('    - insert a new card grid after it, full width, 360px tall as rendered: "Customer logos"');
     await page.context().close();
   });
+
+  it('New page (step 3): rows of parts, split, resized, labeled, undone; copied as a page prompt and kept as a note', async () => {
+    new DesignStore(dir).save('example-com.component.card.design.md', fs.readFileSync(fileURLToPath(new URL('../../format/fixtures/capture/example-com.component.card.design.md', import.meta.url)), 'utf8'));
+    const page = await open('/pricing');
+    const unit = await base(page);
+    const block = (name: string) => page.locator(`[data-block="${name}"]`);
+    await page.click('[data-action="new-page"]');
+    await page.locator('[data-part="sketch"]').waitFor();
+    // The page plan's tools step aside while sketching
+    expect(await page.locator('luci-layout [data-action="insert"]').count()).toBe(0);
+    // A start: navigation, a section, a footer
+    expect(await page.locator('[data-row]').count()).toBe(3);
+    await page.fill('[data-part="wf-route"]', 'Enterprise plans');
+    expect(await page.locator('[data-part="wf-summary"] h2').innerText()).toBe('New page /enterprise-plans');
+
+    // Row 1 is the app's own Nav
+    await block('1a').click();
+    await page.click('[data-action="wf-choose"]');
+    await page.click('[data-part="wf-catalog"] [data-insert="component:Nav"]');
+    await expect.poll(() => page.locator('[data-part="wf-what"]').innerText()).toBe('Your component: Nav · src/components/Nav.jsx');
+
+    // Row 2 split in two: text on the left, an image slot on the right
+    await block('1a').click();
+    await page.locator('[data-block="2a"]').click();
+    await page.click('[data-action="wf-split"]');
+    expect(await page.locator('[data-part="wf-inspector"] h2').innerText()).toBe('Part 2b');
+    await page.click('[data-action="wf-choose"]');
+    await page.click('[data-part="wf-catalog"] [data-insert="block:image slot"]');
+    await page.fill('[data-part="wf-label"]', 'Team dashboard screenshot');
+    await page.press('[data-part="wf-label"]', 'Enter');
+    await block('2a').click();
+    await page.click('[data-action="wf-choose"]');
+    await page.click('[data-part="wf-catalog"] [data-insert="block:text"]');
+    await page.fill('[data-part="wf-label"]', 'Headline, pitch, Talk to sales');
+    await page.press('[data-part="wf-label"]', 'Enter');
+    // Undo and redo the label
+    await page.click('[data-action="wf-undo"]');
+    expect(await block('2a').innerText()).not.toContain('Headline');
+    await page.click('[data-action="wf-redo"]');
+    expect(await block('2a').innerText()).toContain('Headline');
+
+    // The line between them: the text gets 2/3 of the row
+    const a = (await block('2a').boundingBox())!;
+    const b = (await block('2b').boundingBox())!;
+    const line = await center(page, '[data-divider="2-1"]');
+    await drag(page, line, { x: a.x + (b.x + b.width - a.x) * (2 / 3), y: line.y });
+    expect(await block('2a').innerText()).toContain('2/3');
+    expect(await block('2b').innerText()).toContain('1/3');
+    // The row's bottom handle: taller, snapped
+    const before = (await page.locator('[data-row="2"]').boundingBox())!.height;
+    const handle = await center(page, '[data-row-handle="2"]');
+    await drag(page, handle, { x: handle.x, y: handle.y + 41 });
+    const after = (await page.locator('[data-row="2"]').boundingBox())!.height;
+    expect(after % unit).toBe(0);
+    expect(Math.abs(after - before - 41)).toBeLessThanOrEqual(unit);
+
+    // A new row below row 2, from a saved capture
+    await block('2a').click();
+    await page.click('[data-action="wf-row-below"]');
+    expect(await page.locator('[data-row]').count()).toBe(4);
+    await page.click('[data-action="wf-choose"]');
+    await page.click('[data-part="wf-catalog"] [data-insert="capture:example-com.component.card.design.md"]');
+    await page.fill('[data-part="wf-label"]', 'Customer quote');
+    await page.press('[data-part="wf-label"]', 'Enter');
+
+    // Copy the page prompt
+    await page.keyboard.press('Escape');
+    await page.fill('[data-part="wf-note"]', 'For teams of 50 and more');
+    await page.click('[data-action="wf-copy"]');
+    const prompt = await page.locator('[data-part="wf-prompt"]').innerText();
+    expect(prompt.split('\n')[0]).toBe('# New page: /enterprise-plans, 4 parts');
+    expect(prompt).toContain('over /pricing');
+    expect(prompt).toContain('Note: "For teams of 50 and more"');
+    expect(prompt).toMatch(/\n1\. Full width, about 64px tall: the `Nav` component \(src\/components\/Nav\.jsx; one is at `[^`]+`\)\n/);
+    expect(prompt).toMatch(/\n2\. A row of 2 side by side, about \d+px tall:\n   - 2a\. 2\/3 of the width: a new text: "Headline, pitch, Talk to sales"\n   - 2b\. 1\/3 of the width: a new image slot: "Team dashboard screenshot"\n/);
+    expect(prompt).toMatch(/\n3\. Full width, about 240px tall: a part like the saved capture "[^"]+" \(\.luci\/design\/example-com\.component\.card\.design\.md\): "Customer quote"\n/);
+    expect(prompt).toContain('\n4. Full width, about 160px tall: a new footer\n');
+    expect((await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, '\n').trimEnd()).toBe(prompt.trimEnd());
+
+    // Keep it as a Feedback note: the agent's prompt holds the sketch
+    await page.click('[data-action="wf-result-close"]');
+    await page.click('[data-action="wf-notes"]');
+    await page.locator('[data-part="wf-added"]').waitFor();
+    expect(await page.locator('[data-part="wf-added"]').innerText()).toMatch(/^Added P\d+-A\d+ to Feedback notes/);
+    const note = new FeedbackStore(dir).list().find(n => n.wireframe)!;
+    expect(note.wireframe!.route).toBe('/enterprise-plans');
+    expect(note.wireframe!.rows.map(r => r.blocks.map(x => x.span))).toEqual([[12], [8, 4], [12], [12]]);
+    const agent = (await handleTool('get_feedback_prompt', {}, { registry, cwd: dir })).content[0]!.text;
+    expect(agent).toContain('  new page /enterprise-plans, sketched in a 1280px wide window');
+    expect(agent).toContain('       - 2a. 2/3 of the width: a new text: "Headline, pitch, Talk to sales"');
+
+    // Back to the page: the app is as it was
+    await page.click('[data-action="wf-close"]');
+    expect(await page.locator('[data-part="sketch"]').count()).toBe(0);
+    await page.locator('luci-layout [data-action="insert"]').waitFor();
+    expect(await marked(page)).toBe(0);
+    await page.context().close();
+  });
 });

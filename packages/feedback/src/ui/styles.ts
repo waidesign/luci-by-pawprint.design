@@ -102,6 +102,27 @@ export const FEEDBACK_CSS = `${TOOLBAR_CSS}
 .cat-group h3 { margin: 0; font-size: 12px; font-weight: 600; }
 .cat-list { display: flex; flex-wrap: wrap; gap: 4px; }
 .cat-list button { padding: 4px 10px; }
+/* Layout mode, new page sketch: a full-window canvas over the app, below the bar and the panel */
+.wf { position: fixed; inset: 0; z-index: 2147483641; overflow: auto; background: #e4e4e7; color: #18181b; font: 13px/1.4 system-ui, sans-serif; }
+.wf-tools { position: sticky; top: 0; z-index: 1; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 64px 24px 10px;
+  background: var(--bg); color: var(--ink); border-bottom: 1px solid var(--line); }
+.wf-tools .dim { flex: 1 1 240px; }
+.wf-route { display: inline-flex; gap: 6px; align-items: center; font-weight: 600; }
+.wf-route .field { width: 200px; font: 13px ui-monospace, monospace; }
+.wf-page { display: flex; flex-direction: column; gap: 10px; padding: 20px 24px 120px 44px; }
+@media (min-width: 1000px) { .wf-page { margin-right: min(484px, 45vw); } }
+.wf-row { position: relative; box-sizing: border-box; display: flex; align-items: stretch; min-height: 48px; padding: 6px; background: #fff; border: 1px solid #d4d4d8; border-radius: 8px; }
+.wf-row-num { position: absolute; left: -26px; top: 6px; color: #52525b; font: 600 12px system-ui, sans-serif; }
+.wf-block { flex-basis: 0; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 4px; overflow: hidden;
+  border: 2px dashed #a1a1aa; border-radius: 6px; background: #fafafa; cursor: pointer; text-align: center; }
+.wf-block:hover { border-color: #71717a; }
+.wf-block[aria-selected="true"] { border: 2px solid #7c3aed; background: rgb(167 139 250 / 0.14); }
+.wf-block:focus-visible { outline: 2px solid #7c3aed; outline-offset: 2px; }
+.wf-share { color: #52525b; font: 11px ui-monospace, monospace; }
+.wf-divider { flex: none; width: 10px; cursor: ew-resize; border-radius: 4px; touch-action: none; }
+.wf-divider:hover { background: rgb(124 58 237 / 0.35); }
+.wf-row-handle { position: absolute; left: 50%; bottom: -7px; width: 44px; height: 12px; margin-left: -22px; box-sizing: border-box; background: var(--accent);
+  border: 2px solid #18181b; border-radius: 4px; cursor: ns-resize; touch-action: none; }
 .footer { border-top: 1px solid var(--line); padding-top: 10px; }
 .danger { border-top: 1px solid var(--line); padding-top: 10px; }
 `;

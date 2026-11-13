@@ -8,13 +8,15 @@
  */
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { ButtonSpinner, ModeSwitch, elementAt, isLuciUi, parentOf, scrollableAncestor, selectorFor, type ModeSwitchProps } from '@luci/capture';
-import { LAYOUT_BLOCKS, formatLayoutPrompt, layoutChangeText, routeOf, type LayoutPromptElement, type Part } from '@luci/format/feedback';
-import type { FeedbackBackend, SavedCapture } from '../backend.js';
-import { pageComponents, startSize, type PageComponent } from '../layout/catalog.js';
+import { formatLayoutPrompt, layoutChangeText, routeOf, type LayoutPromptElement, type Part } from '@luci/format/feedback';
+import type { FeedbackBackend } from '../backend.js';
+import { startSize } from '../layout/catalog.js';
 import { LayoutPreview, insertParent, layoutChildren, pageScale, reorderable, snapTo, type InsertPosition, type LayoutProperty, type PageScale, type PlannedInsert } from '../layout/preview.js';
 import { reactInfo } from '../react.js';
 import { describeTarget, nameOf } from '../target.js';
 import { copyToClipboard } from './clipboard.js';
+import { EMPTY_SOURCES, PartPicker, componentFile, loadSources, namedPart, partName, type Chosen, type PartSources } from './parts.js';
+import { Sketch } from './sketch.js';
 
 export interface LayoutProps {
   doc: Document;
@@ -34,9 +36,6 @@ type Drag =
   | { kind: 'move'; el: Element; x: number; y: number }
   | { kind: 'insert-resize'; edge: Edge; id: number; x: number; y: number; w: number; h: number; full: boolean }
   | { kind: 'insert-move'; id: number; x: number; y: number };
-
-/** What is being placed: the part, and for a component the one on the page it copies. */
-interface Placing { what: Part; example?: Element; captureType?: string }
 
 /** Where a new part would go for a point on the page, and what shows it. */
 interface PlaceTarget {
@@ -144,11 +143,12 @@ export function Layout(props: LayoutProps) {
   const [busy, setBusy] = useState<string | null>(null);
   // Step 2: inserting new parts
   const [catalog, setCatalog] = useState(false);
-  const [components, setComponents] = useState<PageComponent[]>([]);
-  const [captures, setCaptures] = useState<SavedCapture[] | 'loading' | 'error'>('loading');
-  const [placing, setPlacing] = useState<Placing | null>(null);
+  const [sources, setSources] = useState<PartSources>(EMPTY_SOURCES);
+  const [placing, setPlacing] = useState<Chosen | null>(null);
   const [placeHover, setPlaceHover] = useState<PlaceTarget | null>(null);
   const [insertSel, setInsertSel] = useState<number | null>(null);
+  // Step 3: sketching a new page (over the app; the plan for this page stays as it is)
+  const [sketching, setSketching] = useState(false);
   const [, setTick] = useState(0);
   const bump = () => setTick(t => t + 1);
 
@@ -171,7 +171,7 @@ export function Layout(props: LayoutProps) {
   useLayoutEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.composedPath()[0];
-      if (t instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+      if (sketching || (t instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
       if (e.key === 'Escape') {
         if (drag) setDrag(null);
         else if (placing || catalog) { setPlacing(null); setPlaceHover(null); setCatalog(false); }
@@ -192,7 +192,7 @@ export function Layout(props: LayoutProps) {
     };
     doc.addEventListener('keydown', onKey, true);
     return () => doc.removeEventListener('keydown', onKey, true);
-  }, [drag, selected, selecting, placing, catalog, insertSel]);
+  }, [drag, selected, selecting, placing, catalog, insertSel, sketching]);
 
   const p = preview.current;
   const base = scale?.base ?? 4;
@@ -220,36 +220,24 @@ export function Layout(props: LayoutProps) {
     if (catalog || placing) { setCatalog(false); setPlacing(null); setPlaceHover(null); return; }
     setResult(null);
     setInsertSel(null);
-    setComponents(pageComponents(doc));
+    loadSources(doc, backend, setSources);
     setCatalog(true);
-    if (backend.listCaptures) {
-      setCaptures('loading');
-      backend.listCaptures().then(files => setCaptures(files.filter(f => f.scope === 'component')), () => setCaptures('error'));
-    }
   };
-  const choose = (what: Part, example?: Element, captureType?: string) => {
+  const choose = (c: Chosen) => {
     setCatalog(false);
-    setPlacing({ what, ...(example ? { example } : {}), ...(captureType ? { captureType } : {}) });
+    setPlacing(c);
     setHovered(null);
   };
   const placeAt = (anchor: Element, position: InsertPosition) => {
     if (!placing) return;
     const parent = insertParent(anchor, position);
     if (!parent) return;
-    const { what, example, captureType } = placing;
-    const named: Part = what.kind === 'component' && example
-      ? { ...what, example: { selector: selectorFor(example, example.getRootNode() as Document | ShadowRoot), element: nameOf(example) } }
-      : what;
-    const id = p.insert({ what: named, anchor, position, ...startSize(what, p.axisOf(parent), base, example, captureType) });
+    const named = namedPart(placing);
+    const id = p.insert({ what: named, anchor, position, ...startSize(placing.what, p.axisOf(parent), base, placing.example, placing.captureType) });
     setPlacing(null);
     setPlaceHover(null);
     selectInsert(id);
-    // The component's file, from the one on the page (its source map may take a moment)
-    if (what.kind === 'component' && example) {
-      void describeTarget(example, backend.resolveFrames ? { serverResolve: backend.resolveFrames } : {}).then(({ target }) => {
-        if (target.source) { p.describeInsert(id, { ...named, file: target.source.file }); bump(); }
-      }).catch(() => { /* named without its file */ });
-    }
+    void componentFile(placing, backend).then(file => { if (file) { p.describeInsert(id, { ...named, file }); bump(); } });
   };
   const pickWheel = (e: WheelEvent) => {
     const box = scrollableAncestor(elementAt(doc, e.clientX, e.clientY), e.deltaX, e.deltaY);
@@ -447,7 +435,6 @@ export function Layout(props: LayoutProps) {
   // ---- Views for new parts --------------------------------------------------------------------
   const selIns = insertSel !== null ? p.getInsert(insertSel) : null;
   const insBox = selIns ? p.insertRect(selIns.id) : null;
-  const partName = (what: Part) => (what.kind === 'capture' ? `${what.name} (capture)` : what.name);
   /** Before, After, and Inside for a container. */
   const placeButtons = (anchor: Element, onPlace: (position: InsertPosition) => void, current?: InsertPosition) => (
     <div class="row" data-part="place-buttons">
@@ -462,43 +449,10 @@ export function Layout(props: LayoutProps) {
     <div class="stack" data-part="insert-catalog">
       <h2>Insert</h2>
       <p class="dim">Pick what to add, then click on the page where it goes.</p>
-      <div class="cat-group" data-group="components">
-        <h3>Your components <span class="dim">on this page</span></h3>
-        {components.length ? (
-          <div class="cat-list">
-            {components.map(c => (
-              <button type="button" data-insert={`component:${c.name}`} title={`Another ${c.name}, like the one on this page`} onClick={() => choose({ kind: 'component', name: c.name }, c.example)}>
-                {c.name}{c.count > 1 && <span class="dim"> ×{c.count}</span>}
-              </button>
-            ))}
-          </div>
-        ) : <p class="dim">None found here. Luci reads React components in a development build.</p>}
-      </div>
-      <div class="cat-group" data-group="captures">
-        <h3>Saved captures <span class="dim">.luci/design/</span></h3>
-        {!backend.listCaptures ? <p class="dim">Run <code>luci serve</code> in your project to use the captures saved there.</p>
-          : captures === 'loading' ? <p class="loading"><ButtonSpinner />Reading the project's captures…</p>
-          : captures === 'error' ? <p class="error">Could not read the project's captures. Is <code>luci serve</code> still running?</p>
-          : captures.length ? (
-            <div class="cat-list">
-              {captures.map(c => (
-                <button type="button" data-insert={`capture:${c.file}`} title={`${c.type} from ${c.source}`}
-                  onClick={() => choose({ kind: 'capture', name: c.name || c.file, file: `.luci/design/${c.file}` }, undefined, c.type)}>
-                  {c.name || c.file} <span class="dim">{c.type}</span>
-                </button>
-              ))}
-            </div>
-          ) : <p class="dim">None saved yet. In Capture mode, take a component and press Save to project.</p>}
-      </div>
-      <div class="cat-group" data-group="blocks">
-        <h3>Blocks</h3>
-        <div class="cat-list">
-          {LAYOUT_BLOCKS.map(b => <button type="button" data-insert={`block:${b}`} onClick={() => choose({ kind: 'block', name: b })}>{b}</button>)}
-        </div>
-      </div>
+      <PartPicker sources={sources} onChoose={choose} />
     </div>
   );
-  const placingView = (pl: Placing) => (
+  const placingView = (pl: Chosen) => (
     <div class="stack" data-part="placing">
       <h2>Place: {partName(pl.what)}</h2>
       <p class="hint">Click on the page where it goes: near an element's top or bottom edge puts it before or after; the middle of a section, card or list puts it inside, at the end. Esc to cancel.</p>
@@ -605,19 +559,31 @@ export function Layout(props: LayoutProps) {
       <div class="bar" role="toolbar" aria-label="Luci layout">
         <span class="brand">Luci</span>
         {props.modes && <ModeSwitch {...props.modes} />}
-        <button type="button" aria-pressed={selecting && !placing} data-action="select" title="Click an element to change its layout (Esc to stop)" onClick={() => { setPlacing(null); setCatalog(false); setSelecting(s => !s); setHovered(null); }}>Select</button>
-        <button type="button" aria-pressed={catalog || Boolean(placing)} data-action="insert" title="Add one of your components, a saved capture or a block, and place it on the page" onClick={openCatalog}>Insert</button>
-        <button type="button" data-action="undo" disabled={!p.canUndo} title="Undo (Ctrl+Z)" onClick={() => { p.undo(); bump(); }}>Undo</button>
-        <button type="button" data-action="redo" disabled={!p.canRedo} title="Redo (Ctrl+Shift+Z)" onClick={() => { p.redo(); bump(); }}>Redo</button>
-        <button type="button" data-action="reset" disabled={!plannedCount && !p.canUndo} title="Put the page back as it is in your code" onClick={() => { p.reset(); bump(); }}>Reset</button>
-        <button type="button" class="primary" data-action="copy-layout-prompt" disabled={!plannedCount || Boolean(busy)} title="Copy every planned change as one prompt for your agent; the page goes back as it was"
-          onClick={() => void copyPrompt()}>{busy === 'copy' ? <><ButtonSpinner />Copying…</> : `Copy prompt${plannedCount ? ` (${plannedCount})` : ''}`}</button>
+        {!sketching && (
+          <>
+            <button type="button" aria-pressed={selecting && !placing} data-action="select" title="Click an element to change its layout (Esc to stop)" onClick={() => { setPlacing(null); setCatalog(false); setSelecting(s => !s); setHovered(null); }}>Select</button>
+            <button type="button" aria-pressed={catalog || Boolean(placing)} data-action="insert" title="Add one of your components, a saved capture or a block, and place it on the page" onClick={openCatalog}>Insert</button>
+          </>
+        )}
+        <button type="button" aria-pressed={sketching} data-action="new-page" title="Sketch a new page: rows of your components, captures and blocks, copied as one prompt" disabled={!scale}
+          onClick={() => { setSketching(s => !s); setCatalog(false); setPlacing(null); setPlaceHover(null); setHovered(null); }}>New page</button>
+        {!sketching && (
+          <>
+            <button type="button" data-action="undo" disabled={!p.canUndo} title="Undo (Ctrl+Z)" onClick={() => { p.undo(); bump(); }}>Undo</button>
+            <button type="button" data-action="redo" disabled={!p.canRedo} title="Redo (Ctrl+Shift+Z)" onClick={() => { p.redo(); bump(); }}>Redo</button>
+            <button type="button" data-action="reset" disabled={!plannedCount && !p.canUndo} title="Put the page back as it is in your code" onClick={() => { p.reset(); bump(); }}>Reset</button>
+            <button type="button" class="primary" data-action="copy-layout-prompt" disabled={!plannedCount || Boolean(busy)} title="Copy every planned change as one prompt for your agent; the page goes back as it was"
+              onClick={() => void copyPrompt()}>{busy === 'copy' ? <><ButtonSpinner />Copying…</> : `Copy prompt${plannedCount ? ` (${plannedCount})` : ''}`}</button>
+          </>
+        )}
         <span class={`conn ${backend.kind}`} data-part="connection" title={backend.kind === 'project' ? 'Notes are saved in the project' : props.connectNote ?? ''}>
           {backend.kind === 'project' ? 'Project' : 'This browser'}
         </span>
         <button type="button" aria-label="Close Luci" data-action="close" onClick={props.onClose}>×</button>
       </div>
 
+      {sketching && scale && <Sketch doc={doc} backend={backend} base={scale.base} onClose={() => setSketching(false)} />}
+      {!sketching && <>
       {!scale && <div class="sub"><p class="loading"><ButtonSpinner />Reading the page's spacing scale…</p></div>}
       {scale && selecting && !selected && !result && !catalog && !placing && (
         <div class="sub" role="note" data-part="hint">
@@ -821,6 +787,7 @@ export function Layout(props: LayoutProps) {
           )}
         </div>
       )}
+      </>}
     </div>
   );
 }

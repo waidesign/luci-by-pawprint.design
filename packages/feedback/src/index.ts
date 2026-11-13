@@ -9,4 +9,5 @@ export { FEEDBACK_CSS } from './ui/styles.js';
 export * from './layout/preview.js';
 export * from './layout/catalog.js';
 export { Layout, type LayoutProps } from './ui/layout.js';
+export { Sketch, normalRoute, type SketchProps } from './ui/sketch.js';
 export { LAYOUT_TAG, mountLayout, type LayoutMountOptions } from './ui/mountLayout.js';
