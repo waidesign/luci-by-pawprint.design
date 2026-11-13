@@ -5,6 +5,7 @@ import { IMPORT_HELP, importCommand } from './commands/import.js';
 import { INTAKE_HELP, intakeCommand } from './commands/intake.js';
 import { MAP_HELP, mapCommand } from './commands/map.js';
 import { PACKS_HELP, packsCommand } from './commands/packs.js';
+import { SERVE_HELP, serveCommand } from './commands/serve.js';
 import { SKILLS_HELP, skillsCommand } from './commands/skills.js';
 import { TASK_HELP, taskCommand } from './commands/task.js';
 import { START_HELP, UPDATE_HELP, startCommand, updateCommand } from './commands/startUpdate.js';
@@ -29,6 +30,7 @@ const helpCommand: Command = async (_args, ctx) => {
   ctx.out(`  ${TASK_HELP}`);
   ctx.out(`  ${INTAKE_HELP}`);
   ctx.out(`  ${MAP_HELP}`);
+  ctx.out(`  ${SERVE_HELP}`);
   ctx.out(`  ${IMPORT_HELP}`);
   ctx.out('  version               Show the version');
   ctx.out('  help                  Show this help');
@@ -44,6 +46,7 @@ export const COMMANDS: Readonly<Record<string, Command>> = {
   task: taskCommand,
   intake: intakeCommand,
   map: mapCommand,
+  serve: serveCommand,
   import: importCommand,
   start: startCommand,
   update: updateCommand,

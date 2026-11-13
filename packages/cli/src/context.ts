@@ -7,6 +7,8 @@ export interface CliContext {
   isTTY: boolean;
   /** Ask a question and wait for one line. Defaults to reading stdin. */
   ask?: (question: string) => Promise<string>;
+  /** Stops a long-running command (serve); without it, Ctrl+C does. */
+  signal?: AbortSignal;
 }
 
 export type Command = (args: string[], ctx: CliContext) => Promise<number>;

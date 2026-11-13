@@ -21,6 +21,7 @@
   "dependencies": {
     "@luci/brain": "workspace:*",
     "@luci/format": "workspace:*",
-    "@luci/skills": "workspace:*"
+    "@luci/skills": "workspace:*",
+    "zod": "4.6.7"
   }
 }
