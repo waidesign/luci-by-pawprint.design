@@ -90,6 +90,13 @@ export function formatShadow(computed: string): string {
   return seen.length === all.length ? text : seen.length ? seen.join(', ') : 'none';
 }
 
+const URL_VALUE = /url\((?:[^()"']|"[^"]*"|'[^']*')*\)/gi;
+/**
+ * A value with every url(...) replaced by "<image>": files never carry an image's address (FR21).
+ * "linear-gradient(...), url("https://cdn/x.jpg")" -> "linear-gradient(...), <image>".
+ */
+export const withoutUrls = (value: string): string => value.replace(URL_VALUE, '<image>');
+
 /** A px number from a computed length ("16px" -> 16), or null. */
 export function pxValue(computed: string): number | null {
   const m = /^(-?\d*\.?\d+)px$/.exec(computed.trim());

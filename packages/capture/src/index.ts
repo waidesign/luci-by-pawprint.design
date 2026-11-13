@@ -8,4 +8,5 @@ export * from './dom.js';
 export * from './component.js';
 export * from './page.js';
 export * from './states.js';
+export * from './image.js';
 export * from './ui/index.js';

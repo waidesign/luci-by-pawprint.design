@@ -1,5 +1,5 @@
 /** Picker helpers (FR2, FR3, FR6): what is under the pointer, and moving to the parent or a child. */
-import { eligibility, type Eligibility } from '../eligibility.js';
+import { eligibility, isImageLike, type Eligibility } from '../eligibility.js';
 import { LUCI_UI_ATTRIBUTE } from '../dom.js';
 
 /** True when the node is part of Luci's own UI (the toolbar host or anything inside it). */
@@ -61,10 +61,29 @@ export function firstChildOf(el: Element): Element | null {
   return el.shadowRoot?.firstElementChild ?? el.firstElementChild;
 }
 
-/** Whether an element can be picked, using its computed background. */
-export function eligibilityOf(el: Element): Eligibility {
+const imageInput = (el: Element) => {
   const bg = el.ownerDocument.defaultView?.getComputedStyle(el).backgroundImage;
-  return eligibility({ tag: el.tagName, ...(bg ? { backgroundImage: bg } : {}) });
+  return { tag: el.tagName, ...(bg ? { backgroundImage: bg } : {}) };
+};
+
+/** Whether an element can be picked with a tool, using its computed background. */
+export function eligibilityOf(el: Element, tool?: string | null): Eligibility {
+  return eligibility(imageInput(el), { imageTool: tool === 'image' });
+}
+
+/**
+ * For the Image tool: the image at a point, even under a layer over it (a tint, a caption box, a
+ * link stretched across a card). The topmost image-like element there, else the element itself.
+ */
+export function imageAt(doc: Document, x: number, y: number): Element | null {
+  const top = elementAt(doc, x, y);
+  if (!top || isImageLike(imageInput(top))) return top;
+  // An svg's own shapes are part of the illustration
+  const svg = top.closest('svg');
+  if (svg && !isLuciUi(svg)) return svg;
+  const stack = (root: Document | ShadowRoot): Element[] => root.elementsFromPoint(x, y).flatMap(el =>
+    isLuciUi(el) ? [] : el.shadowRoot && el.shadowRoot !== root ? [...stack(el.shadowRoot), el] : [el]);
+  return stack(doc).find(el => isImageLike(imageInput(el))) ?? top;
 }
 
 /** "h1  640 × 56" for the hover label. */

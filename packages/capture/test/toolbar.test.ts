@@ -46,18 +46,18 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
       return { shadow: Boolean(host.shadowRoot), inSnapshot: snap.elements.some((e: { tag: string }) => e.tag === 'luci-toolbar') };
     });
     expect(info).toEqual({ shadow: true, inSnapshot: false });
-    expect(await page.locator('button[data-tool]').allInnerTexts()).toEqual(['Component', 'Text', 'Color', 'Spacing']);
+    expect(await page.locator('button[data-tool]').allInnerTexts()).toEqual(['Component', 'Text', 'Color', 'Spacing', 'Image']);
   });
 
-  it('hover shows tag and size; an image is greyed with the reason and cannot be picked (FR2, FR4)', async () => {
+  it('hover shows tag and size; outside the Image tool an image is greyed with the reason and cannot be picked (FR2, FR4)', async () => {
     await page.click('button[data-tool="text"]');
     await page.hover('h1', { force: true });
     expect(await label(page)).toMatch(/^h1 {2}\d+ × \d+/);
     await page.hover('#logo', { force: true });
-    expect(await label(page)).toContain('Images cannot be captured.');
+    expect(await label(page)).toContain('This is an image. Use the Image tool');
     expect(await page.locator('.highlight.blocked').count()).toBe(1);
     await page.click('#logo', { force: true });
-    expect(await page.locator('[data-part="notice"]').innerText()).toBe('Images cannot be captured.');
+    expect(await page.locator('[data-part="notice"]').innerText()).toBe('This is an image. Use the Image tool for how it is shown (size, crop, corners, effects).');
     expect(await page.locator('[data-output]').count()).toBe(0);
   });
 

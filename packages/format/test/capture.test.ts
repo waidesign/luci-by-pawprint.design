@@ -9,7 +9,10 @@ import {
   collectionSchema,
   componentSchema,
   formatCollection,
+  imageTokenSchema,
   parseCollection,
+  withoutUrls,
+  type ImageToken,
   withInstructions,
   type Collection,
   colorKey,
@@ -146,6 +149,51 @@ describe('your instructions for the agent (user request, 2026-11-13)', () => {
     const out = formatCollection({ ...basket, items });
     expect(out).toContain('### Color\nMy own note on this color.');
     expect(parseCollection(out).ok).toBe(true);
+  });
+});
+
+describe('images and reference screenshots (user request, 2026-11-13)', () => {
+  const image = inputs['example-com.token.image-img-16-9.design.md']!.capture as ImageToken;
+
+  it('an image file never carries an image address, even when one slips into its values (FR21)', () => {
+    expect(withoutUrls('linear-gradient(red, blue), url("https://cdn.example.com/a (1).jpg"), url(b.png)')).toBe('linear-gradient(red, blue), <image>, <image>');
+    const leaky = {
+      ...image,
+      treatment: [...image.treatment, { property: 'mask-image', value: { computed: 'url("https://cdn.example.com/mask.svg")', authored: "url('/mask.svg')" } }],
+      overlays: [{ on: '::after', background: 'url(https://cdn.example.com/noise.png)' }]
+    } as ImageToken;
+    const text = formatCapture(leaky);
+    expect(text).not.toMatch(/url\(|cdn\.example|mask\.svg|noise\.png/);
+    expect(text).toContain('| mask-image | <image> |');
+    expect(text).toContain('with the shadow, filter, mask and overlay listed above');
+  });
+
+  it('size follows the unit setting; an image with nothing set says so', () => {
+    expect(formatCapture(image, { units: 'rem' })).toContain('| img | 40 × 22.5rem | 16:9 | 3:2 |');
+    const bare = formatCapture({ ...image, treatment: [], overlays: [], sourceAspectRatio: undefined } as ImageToken);
+    expect(bare).toContain('- None: the image is shown as it is');
+    expect(bare).toContain('- Use your own image here, shown at 16:9. The original image');
+    expect(parseCapture(bare).ok).toBe(true);
+  });
+
+  it('a reference is a relative .png or .jpg path, never a web address or a way out of the folder', () => {
+    const withRef = (reference: string) => imageTokenSchema.safeParse({ ...image, meta: { ...image.meta, reference } }).success;
+    expect(withRef('example-com.token.image-img-16-9.png')).toBe(true);
+    expect(withRef('references/01-hero.jpg')).toBe(true);
+    for (const bad of ['https://example.com/a.png', '../a.png', '/a.png', 'a.gif', 'a b.png']) expect(withRef(bad), bad).toBe(false);
+  });
+
+  it('the basket groups images, and the .zip export names each screenshot beside its item', () => {
+    const basket = collectionInputs['two-sites.collection.design.md']!.collection;
+    const items = [...basket.items, { id: 'img1', name: 'Hero photo', addedAt: '2026-11-13', capture: image }];
+    const plain = formatCollection({ ...basket, items });
+    expect(plain).not.toContain('reference screenshot');
+    const zipped = formatCollection({ ...basket, items }, {}, { references: { img1: 'references/04-hero-photo.jpg' } });
+    expect(zipped).toContain('# Images\n\n## Hero photo\n');
+    expect(zipped).toContain('- reference screenshot: `references/04-hero-photo.jpg` (to look at only; the values above come from the page)');
+    const parsed = parseCollection(zipped);
+    expect(parsed.ok && parsed.value.groups['Images']).toEqual(['Hero photo']);
+    expect(parsed.ok && parsed.value.items).toBe(4);
   });
 });
 

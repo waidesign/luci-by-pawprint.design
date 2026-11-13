@@ -40,7 +40,7 @@ const roundTrips = (capture: Parameters<typeof formatCapture>[0]) => expect(pars
 describe('eligibility (FR4)', () => {
   it('blocks images, video and canvas with a reason; allows SVG and components; the body redirects', () => {
     for (const tag of ['img', 'picture', 'video', 'canvas']) expect(eligibility({ tag }).status, tag).toBe('blocked');
-    expect(eligibility({ tag: 'img' })).toMatchObject({ reason: 'Images cannot be captured.' });
+    expect(eligibility({ tag: 'img' })).toMatchObject({ reason: 'This is an image. Use the Image tool for how it is shown (size, crop, corners, effects).' });
     for (const tag of ['svg', 'button', 'my-card', 'section']) expect(eligibility({ tag }).status, tag).toBe('allowed');
     expect(eligibility({ tag: 'div', backgroundImage: 'url("hero.jpg")' }).status).toBe('blocked');
     expect(eligibility({ tag: 'div', backgroundImage: 'linear-gradient(red, blue)' }).status).toBe('allowed');

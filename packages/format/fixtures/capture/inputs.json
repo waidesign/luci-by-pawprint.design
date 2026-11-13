@@ -1,4 +1,26 @@
 {
+  "example-com.token.image-img-16-9.design.md": {
+    "settings": { "units": "both", "colors": "hex" },
+    "capture": {
+      "meta": { "name": "image-img-16-9", "scope": "token", "type": "image", "source": "https://www.example.com/pricing?ref=mail#plans", "selector": "main figure > img", "captured": "2026-11-13", "method": "measured", "reference": "example-com.token.image-img-16-9.png" },
+      "kind": "img",
+      "size": { "width": 640, "height": 360 },
+      "aspectRatio": "16:9",
+      "sourceAspectRatio": "3:2",
+      "treatment": [
+        { "property": "object-fit", "value": { "computed": "cover" } },
+        { "property": "object-position", "value": { "computed": "50% 30%" } },
+        { "property": "aspect-ratio", "value": { "computed": "16 / 9" } },
+        { "property": "box-shadow", "value": { "computed": "rgba(0, 0, 0, 0.2) 0px 8px 24px 0px", "authored": "var(--shadow-card)", "token": "--shadow-card" } },
+        { "property": "filter", "value": { "computed": "saturate(1.2)" } },
+        { "property": "border-radius", "value": { "computed": "12px", "authored": "var(--radius-lg)", "token": "--radius-lg" }, "on": "figure" }
+      ],
+      "overlays": [
+        { "on": "div over it", "background": "linear-gradient(to top, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0))" }
+      ],
+      "usedBy": { "element": "img", "selector": "main figure > img" }
+    }
+  },
   "example-com.token.text-heading-1.design.md": {
     "settings": { "units": "both", "colors": "hex" },
     "capture": {

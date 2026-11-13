@@ -53,10 +53,10 @@ function borderColorPart(value: string): string | undefined {
 }
 
 /** A property's declared value in one style block, from its longhand or its shorthand. */
-export function declared(style: CSSStyleDeclaration, prop: SnapshotProperty): { value: string; important: boolean } | null {
+export function declared(style: CSSStyleDeclaration, prop: string): { value: string; important: boolean } | null {
   const own = style.getPropertyValue(prop).trim();
   if (own) return { value: own, important: style.getPropertyPriority(prop) === 'important' };
-  const short = SHORTHANDS[prop];
+  const short = SHORTHANDS[prop as SnapshotProperty];
   if (!short) return null;
   const value = style.getPropertyValue(short[0]).trim();
   if (value) {
@@ -142,7 +142,7 @@ function matchRules(root: Document | ShadowRoot, state: { allReadable: boolean; 
 }
 
 /** The winning declared value of a property for an element: inline style, then the cascade. */
-function authoredValue(el: Element, prop: SnapshotProperty, matches: readonly Match[]): string | null {
+function authoredValue(el: Element, prop: string, matches: readonly Match[]): string | null {
   // !important first, then inline style, then specificity, then source order
   const candidates: { value: string; important: boolean; rank: number }[] = [];
   const inline = (el as HTMLElement).style ? declared((el as HTMLElement).style, prop) : null;
@@ -155,7 +155,35 @@ function authoredValue(el: Element, prop: SnapshotProperty, matches: readonly Ma
   return candidates[0]?.value ?? null;
 }
 
-const looksHashed = (id: string) => /\d{3,}|[a-z]+[A-Z0-9][a-zA-Z0-9]{4,}|_[a-z0-9]{5,}$/i.test(id) && /\d/.test(id);
+const CSS_WIDE = /^(inherit|initial|unset|revert|revert-layer)$/;
+
+/**
+ * What the site wrote for some properties of one element (any properties, not only the snapshot's):
+ * inline style, then the stylesheet rules of its own tree that match it at rest. Used by the Image
+ * tool, which reads a few properties of one element rather than the whole page.
+ */
+export function authoredFor(el: Element, props: readonly string[]): Record<string, string> {
+  const root = el.getRootNode() as Document | ShadowRoot;
+  const rules: CSSStyleRule[] = [];
+  collectRules(sheetsOf(root), rules, { allReadable: true });
+  const matches: Match[] = [];
+  rules.forEach((rule, order) => {
+    for (const part of rule.selectorText.split(/,(?![^(]*\))/).map(p => p.trim()).filter(Boolean)) {
+      if (STATEFUL.test(part)) continue;
+      let hit = false;
+      try { hit = el.matches(part); } catch { /* a selector this browser can't match */ }
+      if (hit) matches.push({ style: rule.style, specificity: specificity(part), order });
+    }
+  });
+  const out: Record<string, string> = {};
+  for (const p of props) {
+    const value = authoredValue(el, p, matches);
+    if (value && !CSS_WIDE.test(value)) out[p] = value;
+  }
+  return out;
+}
+
+const looksHashed =(id: string) => /\d{3,}|[a-z]+[A-Z0-9][a-zA-Z0-9]{4,}|_[a-z0-9]{5,}$/i.test(id) && /\d/.test(id);
 
 /** A selector that finds exactly this element in its tree, from tags and positions (not hashed classes). */
 export function selectorFor(el: Element, root: Document | ShadowRoot): string {

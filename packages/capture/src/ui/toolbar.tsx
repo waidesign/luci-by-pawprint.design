@@ -5,16 +5,19 @@
  */
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { formatCapture, groupOf, withInstructions, type BasketItem, type CaptureSettings, type ComponentCapture } from '@luci/format/capture';
-import { addToBasket, exportBasket, exportItem, removeFromBasket, renameInBasket, sourceLabel, type BasketStore } from './basket.js';
+import { addToBasket, exportBasket, exportBasketZip, exportItem, removeFromBasket, renameInBasket, sourceLabel, type BasketStore } from './basket.js';
 import type { Eligibility } from '../eligibility.js';
 import type { ElementSnapshot } from '../model.js';
 import { manualState, type ComputedMap, type StateName } from '../states.js';
 import { elementName } from '../naming.js';
-import { elementAt, eligibilityOf, eventTarget, firstChildOf, hoverLabel, parentOf, scrollableAncestor } from './picker.js';
+import { elementAt, eligibilityOf, eventTarget, firstChildOf, hoverLabel, imageAt, parentOf, scrollableAncestor } from './picker.js';
+import { cropScreenshot, referenceFileName, type ReferenceShot } from './screenshot.js';
+import { dataUrlBytes, dataUrlType } from './zip.js';
 import {
   ALL_SPACING,
   TOOLS,
   TOOL_LABELS,
+  hasSystem,
   captureComponent,
   capturePage,
   captureDistance,
@@ -46,7 +49,10 @@ export interface ToolbarProps {
   readForcedStates?: ForcedStatesReader;
   /** Where the basket is kept (the extension: its storage, shared by every tab and site). */
   basket?: BasketStore;
-  /** A screenshot of the visible page as a data URL (the extension); Pixel mode reads colors from it. */
+  /**
+   * A screenshot of the visible page as a data URL (the extension). Pixel mode reads colors from it,
+   * and a reference screenshot of the picked element is cropped from it.
+   */
   captureScreen?: () => Promise<string>;
   /** Opens a help page; the "?" button shows only when the shell has one. */
   onHelp?: () => void;
@@ -84,16 +90,24 @@ export const TOOL_HINTS: Readonly<Record<ToolId, string>> = {
   component: 'Hover a button, card, link or field, and click it.',
   text: 'Hover any text (a heading, paragraph, link or label), and click it.',
   color: 'Click an element to take its color, or switch to Pixel to pick any spot on the page.',
-  spacing: 'Click an element for its padding, margin or gap, or drag from one element to another to measure the distance.'
+  spacing: 'Click an element for its padding, margin or gap, or drag from one element to another to measure the distance.',
+  image: 'Hover a photo, video, canvas, illustration or an element with a background image, and click it. Luci records how it is shown, never the image itself.'
 };
 
-/** What each output gives, shown with the two buttons after a pick. */
-export const OUTPUT_HINTS: Readonly<Record<ToolId, { one: string; system: string }>> = {
+/** What each output gives, shown with the buttons after a pick. */
+export const OUTPUT_HINTS: Readonly<Record<ToolId, { one: string; system?: string }>> = {
   component: { one: 'this component: its parts, tokens and states', system: 'this component plus every variant of it on the page' },
   text: { one: 'this text style', system: 'every text style on the page, grouped into roles' },
   color: { one: 'this color and where it is used', system: 'every color on the page, grouped by role' },
-  spacing: { one: 'every padding, margin and gap of this element, or the one value you choose', system: 'the page\'s spacing scale, base unit and outliers' }
+  spacing: { one: 'every padding, margin and gap of this element, or the one value you choose', system: 'the page\'s spacing scale, base unit and outliers' },
+  image: { one: 'how this image is shown: size, shape, fit, corners, effects and overlays (no URL, no pixels)' }
 };
+
+/** Wait for the page to paint (two frames), or at most 120ms in a background tab. */
+const painted = (win: Window) => Promise.race([
+  new Promise(r => win.requestAnimationFrame(() => win.requestAnimationFrame(r))),
+  new Promise(r => setTimeout(r, 120))
+]);
 const px = (v: string) => parseFloat(v) || 0;
 
 function entryFor(live: LiveSnapshot, el: Element): ElementSnapshot | null {
@@ -149,6 +163,17 @@ export function Toolbar(props: ToolbarProps) {
     };
   }, []);
 
+  // The element the current file describes (for a reference screenshot), and that screenshot
+  const [subject, setSubject] = useState<Element | null>(null);
+  const [shot, setShot] = useState<ReferenceShot | null>(null);
+  const [shotBusy, setShotBusy] = useState(false);
+  const [shotError, setShotError] = useState<string | null>(null);
+  const newSubject = (el: Element | null) => {
+    setSubject(el);
+    setShot(null);
+    setShotError(null);
+  };
+
   const show = (r: Result) => {
     setResult(r);
     setCopied(false);
@@ -192,6 +217,8 @@ export function Toolbar(props: ToolbarProps) {
 
   const produce = async (system: boolean) => {
     if (!picked || !tool) return;
+    // A system file describes the page, not the picked element: no screenshot of it
+    newSubject(system && tool !== 'component' ? null : picked.el);
     if (tool !== 'component') {
       setComponentCtx(null);
       try {
@@ -283,6 +310,7 @@ export function Toolbar(props: ToolbarProps) {
     setPixelMode(false);
     setPixelHover(null);
     setInstructions('');
+    newSubject(null);
     aim(null);
     setWholePage(true);
     setPageBusy(true);
@@ -316,13 +344,14 @@ export function Toolbar(props: ToolbarProps) {
     setPixelMode(false);
     setPixelHover(null);
     setInstructions('');
+    newSubject(null);
     aim(null);
     lastPointer.current = null;
     trail.current = [];
   };
 
   const select = (el: Element) => {
-    const elig = eligibilityOf(el);
+    const elig = eligibilityOf(el, tool);
     if (elig.status === 'blocked') {
       setNotice(elig.reason);
       return;
@@ -345,7 +374,7 @@ export function Toolbar(props: ToolbarProps) {
     if (!picked) return;
     const entry = entryFor(picked.live, el);
     if (!entry) return;
-    setPicked({ ...picked, el, entry, eligibility: eligibilityOf(el) });
+    setPicked({ ...picked, el, entry, eligibility: eligibilityOf(el, tool) });
     setChoice(ALL_SPACING);
   };
   const widerOf = (el: Element) => { const p = parentOf(el); return p && p !== doc.documentElement ? p : null; };
@@ -383,25 +412,28 @@ export function Toolbar(props: ToolbarProps) {
       setTool('color');
       setPicking(false);
       setPicked(null);
+      newSubject(null);
       show(capturePixel(live, hex, settings));
     });
   });
 
   // While picking, a transparent layer above the page takes every pointer event (see the pick-layer
   // below), so the page never sees a press or click, however its links and buttons are wired.
-  // These handlers get the layer's pointer positions and find the page element under them.
+  // These handlers get the layer's pointer positions and find the page element under them. The
+  // Image tool looks through layers over an image (a tint, a stretched link) to the image itself.
+  const targetAt = (x: number, y: number) => (tool === 'image' ? imageAt(doc, x, y) : elementAt(doc, x, y));
   const pickMove = (x: number, y: number) => {
     // Chrome sends a move when the layout under a still pointer changes; only real moves re-aim the picker
     const last = lastPointer.current;
     if (last && last.x === x && last.y === y) return;
     lastPointer.current = { x, y };
-    const target = elementAt(doc, x, y);
+    const target = targetAt(x, y);
     if (!target) return;
     trail.current = [];
     aim(target);
   };
   const pickDown = (x: number, y: number) => {
-    const target = elementAt(doc, x, y);
+    const target = targetAt(x, y);
     if (target) drag.current = { el: target, x, y };
   };
   const pickWheel = (e: WheelEvent) => {
@@ -411,14 +443,14 @@ export function Toolbar(props: ToolbarProps) {
   };
   const pickUp = (x: number, y: number) => {
     {
-      const target = elementAt(doc, x, y);
+      const target = targetAt(x, y);
       const start = drag.current;
       drag.current = null;
       if (!target || !start || !tool) return;
       const moved = Math.hypot(x - start.x, y - start.y) > DRAG_PX;
       if (tool === 'spacing' && moved && target !== start.el) {
         // A drag between two elements measures the distance between them (FR15)
-        const blocked = [start.el, target].map(eligibilityOf).find(x => x.status !== 'allowed');
+        const blocked = [start.el, target].map(e => eligibilityOf(e, tool)).find(x => x.status !== 'allowed');
         if (blocked) { setNotice('reason' in blocked ? blocked.reason : null); return; }
         const live = liveSnapshot(doc);
         const a = entryFor(live, start.el);
@@ -461,7 +493,7 @@ export function Toolbar(props: ToolbarProps) {
     const onScroll = () => {
       const p = lastPointer.current;
       if (p && !trail.current.length) {
-        const target = elementAt(doc, p.x, p.y);
+        const target = tool === 'image' ? imageAt(doc, p.x, p.y) : elementAt(doc, p.x, p.y);
         if (target) aim(target);
       }
       setTick(t => t + 1);
@@ -494,7 +526,14 @@ export function Toolbar(props: ToolbarProps) {
   // by hand, and then copy, download and the basket use exactly the edited text
   const [instructions, setInstructions] = useState('');
   const [edited, setEdited] = useState<string | null>(null);
-  const captureWithInstructions = output ? ({ ...output.capture, ...(instructions.trim() ? { instructions: instructions.trim() } : {}) } as typeof output.capture) : null;
+  // With a reference screenshot, the file names it (the .png saved beside the file)
+  const captureWithInstructions = output
+    ? ({
+        ...output.capture,
+        ...(shot ? { meta: { ...output.capture.meta, reference: referenceFileName(output.fileName) } } : {}),
+        ...(instructions.trim() ? { instructions: instructions.trim() } : {})
+      } as typeof output.capture)
+    : null;
   const markdown = edited ?? (captureWithInstructions ? formatCapture(captureWithInstructions, settings) : '');
   const changeInstructions = (text: string) => {
     setInstructions(text);
@@ -518,8 +557,10 @@ export function Toolbar(props: ToolbarProps) {
     setCopied(true);
   };
 
-  const downloadText = (fileName: string, text: string) => {
-    const url = URL.createObjectURL(new Blob([text], { type: 'text/markdown' }));
+  const downloadText = (fileName: string, text: string) => downloadBlob(fileName, new Blob([text], { type: 'text/markdown' }));
+  const downloadDataUrl = (fileName: string, dataUrl: string) => downloadBlob(fileName, new Blob([dataUrlBytes(dataUrl) as BlobPart], { type: dataUrlType(dataUrl) }));
+  const downloadBlob = (fileName: string, blob: Blob) => {
+    const url = URL.createObjectURL(blob);
     const a = doc.createElement('a');
     a.href = url;
     a.download = fileName;
@@ -533,6 +574,49 @@ export function Toolbar(props: ToolbarProps) {
   const copy = () => copyText(markdown);
   const download = () => { if (output) downloadText(output.fileName, markdown); };
 
+  /**
+   * A screenshot of the visible page with Luci hidden: the shell takes it. The page is painted
+   * without Luci first; Luci comes back however the screenshot goes.
+   */
+  const screenWithoutLuci = async (): Promise<string> => {
+    const host = doc.querySelector('luci-toolbar') as HTMLElement | null;
+    if (host) host.style.visibility = 'hidden';
+    try {
+      await painted(win);
+      return await props.captureScreen!();
+    } finally {
+      if (host) host.style.visibility = '';
+    }
+  };
+
+  /** A reference screenshot of the subject (FR22): scrolled into view when needed, then scrolled back. */
+  const takeReference = async () => {
+    if (!props.captureScreen || !subject) return;
+    if (!subject.isConnected) { setShotError('The element is no longer on the page. Pick it again.'); return; }
+    setShotBusy(true);
+    setShotError(null);
+    const before = { x: win.scrollX, y: win.scrollY };
+    let scrolled = false;
+    try {
+      const view = { width: win.innerWidth, height: win.innerHeight };
+      let r = subject.getBoundingClientRect();
+      if (r.top < 0 || r.left < 0 || r.bottom > view.height || r.right > view.width) {
+        subject.scrollIntoView({ block: r.height > view.height ? 'start' : 'center', inline: 'nearest', behavior: 'instant' });
+        scrolled = true;
+        await painted(win);
+        r = subject.getBoundingClientRect();
+      }
+      const screen = await screenWithoutLuci();
+      setShot(await cropScreenshot(doc, screen, { left: r.left, top: r.top, width: r.width, height: r.height }, view));
+    } catch (err) {
+      setShotError(`Luci could not take the screenshot: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      if (scrolled) win.scrollTo({ left: before.x, top: before.y, behavior: 'instant' });
+      setShotBusy(false);
+    }
+  };
+  const downloadReference = () => { if (shot && output) downloadDataUrl(referenceFileName(output.fileName), shot.png); };
+
   // The basket (FR18, FR19): kept by the shell's store, so it survives pages and sites
   const [basket, setBasket] = useState<BasketItem[]>([]);
   const [basketExport, setBasketExport] = useState<{ title: string; item?: BasketItem } | null>(null);
@@ -544,16 +628,25 @@ export function Toolbar(props: ToolbarProps) {
   useEffect(() => {
     if (store) void store.load().then(items => { basketLoaded.current = true; setBasket(items); });
   }, [store]);
-  const saveBasket = (next: BasketItem[]) => {
+  // A store can refuse (the extension's storage is full): say so instead of losing items quietly
+  const [basketError, setBasketError] = useState<string | null>(null);
+  const saveBasket = async (next: BasketItem[]): Promise<boolean> => {
     setBasket(next);
-    void store?.save(next);
+    try {
+      await store?.save(next);
+      setBasketError(null);
+      return true;
+    } catch (err) {
+      setBasketError(`Luci could not save the basket (${err instanceof Error ? err.message : String(err)}). Export it, then remove some items.`);
+      return false;
+    }
   };
   const addCurrent = async () => {
     if (!output) return;
     setAdded(true);
     const current = basketLoaded.current || !store ? basket : await store.load();
     basketLoaded.current = true;
-    saveBasket(addToBasket(current, captureWithInstructions ?? output.capture, edited ?? undefined));
+    if (!(await saveBasket(addToBasket(current, captureWithInstructions ?? output.capture, edited ?? undefined, shot?.thumb)))) setAdded(false);
   };
   const openBasket = () => {
     setPicking(false);
@@ -565,9 +658,14 @@ export function Toolbar(props: ToolbarProps) {
     // The latest items, in case another tab added some
     if (store) void store.load().then(setBasket);
   };
-  const exported = basketExport
+  const exported: { fileName: string; markdown: string; reference?: { fileName: string; dataUrl: string } } | null = basketExport
     ? (basketExport.item ? exportItem(basketExport.item, settings) : basket.length ? exportBasket(basket, settings) : null)
     : null;
+  const shotsInBasket = basket.filter(i => i.screenshot).length;
+  const downloadZip = () => {
+    const z = exportBasketZip(basket, settings);
+    downloadBlob(z.fileName, new Blob([z.bytes as BlobPart], { type: 'application/zip' }));
+  };
 
   const Dropper = (win as unknown as { EyeDropper?: new () => { open(): Promise<{ sRGBHex: string }> } }).EyeDropper;
   const hasDropper = Boolean(Dropper);
@@ -576,33 +674,22 @@ export function Toolbar(props: ToolbarProps) {
   // browser's eyedropper it leaves Luci's own panels usable, and stays on until a pixel is picked.
   const [pixelMode, setPixelMode] = useState(false);
   const [pixelHover, setPixelHover] = useState<{ x: number; y: number; hex: string } | null>(null);
-  const shot = useRef<{ ctx: CanvasRenderingContext2D; scale: number } | null>(null);
+  const pixelShot = useRef<{ ctx: CanvasRenderingContext2D; scale: number } | null>(null);
   const canPickPixels = Boolean(props.captureScreen) || hasDropper;
   const takeShot = async () => {
     if (!props.captureScreen) return;
-    const host = doc.querySelector('luci-toolbar') as HTMLElement | null;
-    if (host) host.style.visibility = 'hidden';
-    try {
-      // Let the browser paint the page without Luci before the screenshot
-      await Promise.race([
-        new Promise(r => win.requestAnimationFrame(() => win.requestAnimationFrame(r))),
-        new Promise(r => setTimeout(r, 120))
-      ]);
-      const img = new Image();
-      img.src = await props.captureScreen();
-      await img.decode();
-      const canvas = doc.createElement('canvas');
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
-      ctx.drawImage(img, 0, 0);
-      shot.current = { ctx, scale: img.naturalWidth / win.innerWidth };
-    } finally {
-      if (host) host.style.visibility = '';
-    }
+    const img = new Image();
+    img.src = await screenWithoutLuci();
+    await img.decode();
+    const canvas = doc.createElement('canvas');
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+    ctx.drawImage(img, 0, 0);
+    pixelShot.current = { ctx, scale: img.naturalWidth / win.innerWidth };
   };
   const samplePixel = (x: number, y: number) => {
-    const s = shot.current;
+    const s = pixelShot.current;
     if (!s) return null;
     const [r, g, b] = s.ctx.getImageData(Math.floor(x * s.scale), Math.floor(y * s.scale), 1, 1).data;
     const hex = `#${[r, g, b].map(n => (n ?? 0).toString(16).padStart(2, '0')).join('')}`;
@@ -681,7 +768,7 @@ export function Toolbar(props: ToolbarProps) {
   };
 
   const hovered = picking ? candidate : null;
-  const hoverElig = hovered ? eligibilityOf(hovered) : null;
+  const hoverElig = hovered ? eligibilityOf(hovered, tool) : null;
   const rect = hovered?.getBoundingClientRect();
   const cs = hovered && tool === 'spacing' ? win.getComputedStyle(hovered) : null;
 
@@ -712,6 +799,14 @@ export function Toolbar(props: ToolbarProps) {
               <div class="row">
                 <button type="button" class="primary" data-action="copy" onClick={() => void copyText(exported.markdown)}>{copied ? 'Copied' : 'Copy'}</button>
                 <button type="button" data-action="download" onClick={() => downloadText(exported.fileName, exported.markdown)}>Download .design.md</button>
+                {exported.reference && (
+                  <button type="button" data-action="download-reference" onClick={() => downloadDataUrl(exported.reference!.fileName, exported.reference!.dataUrl)}>Download screenshot</button>
+                )}
+                {!basketExport.item && (
+                  <button type="button" data-action="download-zip" title="The file plus each item's reference screenshot, in one .zip" onClick={downloadZip}>
+                    Download .zip{shotsInBasket ? ` (with ${shotsInBasket} screenshot${shotsInBasket === 1 ? '' : 's'})` : ''}
+                  </button>
+                )}
                 <button type="button" data-action="basket-back" onClick={() => { setBasketExport(null); setCopied(false); }}>Back to the basket</button>
               </div>
             </>
@@ -725,20 +820,21 @@ export function Toolbar(props: ToolbarProps) {
                   {basket.map(item => (
                     <li data-item={item.id}>
                       <input type="text" aria-label="Name" data-item-name value={item.name}
-                        onChange={e => saveBasket(renameInBasket(basket, item.id, (e.currentTarget as HTMLInputElement).value))} />
-                      <span class="meta">{groupOf(item.capture)} · {sourceLabel(item)}</span>
+                        onChange={e => void saveBasket(renameInBasket(basket, item.id, (e.currentTarget as HTMLInputElement).value))} />
+                      <span class="meta">{groupOf(item.capture)} · {sourceLabel(item)}{item.screenshot ? ' · screenshot' : ''}</span>
                       <span class="row">
                         <button type="button" data-item-export onClick={() => setBasketExport({ title: item.name, item })}>Export</button>
-                        <button type="button" data-item-remove aria-label={`Remove ${item.name}`} onClick={() => saveBasket(removeFromBasket(basket, item.id))}>Remove</button>
+                        <button type="button" data-item-remove aria-label={`Remove ${item.name}`} onClick={() => void saveBasket(removeFromBasket(basket, item.id))}>Remove</button>
                       </span>
                     </li>
                   ))}
                 </ul>
               )}
+              {basketError && <p class="error" data-part="basket-error">{basketError}</p>}
               <div class="row">
                 <button type="button" class="primary" data-action="export-all" disabled={!basket.length} onClick={() => setBasketExport({ title: `All ${basket.length} items, one file` })}>Export all as one file</button>
                 {basket.length > 0 && (confirmClear
-                  ? <button type="button" data-action="clear-basket-confirm" onClick={() => { saveBasket([]); setConfirmClear(false); }}>Yes, empty the basket</button>
+                  ? <button type="button" data-action="clear-basket-confirm" onClick={() => { void saveBasket([]); setConfirmClear(false); }}>Yes, empty the basket</button>
                   : <button type="button" data-action="clear-basket" onClick={() => setConfirmClear(true)}>Empty basket</button>)}
               </div>
             </>
@@ -843,14 +939,14 @@ export function Toolbar(props: ToolbarProps) {
                 {picked.eligibility.status === 'allowed' && (
                   <button type="button" class="primary" data-output="one" onClick={() => void produce(false)}>This one</button>
                 )}
-                {picked.eligibility.status !== 'blocked' && (
+                {picked.eligibility.status !== 'blocked' && hasSystem(tool) && (
                   <button type="button" class={picked.eligibility.status === 'allowed' ? '' : 'primary'} data-output="system" onClick={() => void produce(true)}>The whole system</button>
                 )}
                 <button type="button" onClick={() => startPicking(tool)}>Pick again</button>
               </div>
               {picked.eligibility.status !== 'blocked' && (
                 <p class="dim" data-part="output-hints">
-                  {picked.eligibility.status === 'allowed' && <>This one: {OUTPUT_HINTS[tool].one}. </>}The whole system: {OUTPUT_HINTS[tool].system}.
+                  {picked.eligibility.status === 'allowed' && <>This one: {OUTPUT_HINTS[tool].one}. </>}{OUTPUT_HINTS[tool].system && <>The whole system: {OUTPUT_HINTS[tool].system}.</>}
                 </p>
               )}
             </>
@@ -906,6 +1002,29 @@ export function Toolbar(props: ToolbarProps) {
                   )}
                 </div>
               )}
+              {props.captureScreen && subject && (
+                <div class="stack" data-part="reference">
+                  {shot ? (
+                    <div class="row">
+                      <img class="thumb" data-part="reference-thumb" alt="Reference screenshot" src={shot.thumb.dataUrl}
+                        onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                      <span class="stack">
+                        <span class="dim">Reference screenshot, {shot.width} × {shot.height}px{shot.partial ? ': only the part that fits the window' : ''}. Save it beside the file; the file names it.</span>
+                        <span class="row">
+                          <button type="button" data-action="download-reference" onClick={downloadReference}>Download .png</button>
+                          <button type="button" data-action="remove-reference" onClick={() => setShot(null)}>Remove</button>
+                        </span>
+                      </span>
+                    </div>
+                  ) : (
+                    <div class="row">
+                      <button type="button" data-action="take-reference" disabled={shotBusy} onClick={() => void takeReference()}>{shotBusy ? 'Taking the screenshot…' : 'Add a reference screenshot'}</button>
+                      <span class="dim">A picture of the element to look at. The values come from the page.</span>
+                    </div>
+                  )}
+                  {shotError && <p class="error" data-part="reference-error">{shotError}</p>}
+                </div>
+              )}
               <label class="stack">
                 <span>Your instructions for the agent <span class="dim">(optional, saved in the file as written)</span></span>
                 <textarea data-part="instructions" rows={2} value={instructions}
@@ -929,6 +1048,7 @@ export function Toolbar(props: ToolbarProps) {
                 <button type="button" data-action="add-to-basket" disabled={added} onClick={() => void addCurrent()}>{added ? 'Added to basket' : 'Add to basket'}</button>
                 {tool && <button type="button" onClick={() => startPicking(tool)}>Pick again</button>}
               </div>
+              {basketError && <p class="error" data-part="basket-error">{basketError}</p>}
             </>
           ) : (
             <>

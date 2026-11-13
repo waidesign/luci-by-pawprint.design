@@ -17,6 +17,7 @@ import {
   type ColorToken,
   type ComponentCapture,
   type ElementRef,
+  type ImageToken,
   type PageCapture,
   type SpacingSet,
   type SpacingSystem,
@@ -25,7 +26,7 @@ import {
   type TextToken,
   type TypographySystem
 } from './schema.js';
-import { formatColor, formatLength, formatShadow, formatTransform } from './values.js';
+import { formatColor, formatLength, formatShadow, formatTransform, resolveSettings, round, withoutUrls } from './values.js';
 
 export const CAPTURE_EXTENSION = '.design.md';
 
@@ -34,6 +35,7 @@ export const CAPTURE_SECTIONS: Readonly<Record<string, readonly string[]>> = {
   'token/text': ['Text style', 'Where used'],
   'token/color': ['Color', 'Where used'],
   'token/spacing': ['Spacing', 'Where used'],
+  'token/image': ['Image', 'Treatment', 'Overlays', 'Use', 'Where used'],
   'system/typography': ['Roles', 'Families', 'Scale'],
   'system/color': ['Roles', 'Tokens'],
   'system/spacing': ['Scale', 'Base unit', 'Outliers'],
@@ -90,7 +92,7 @@ function frontmatter(meta: CaptureMeta, settings: CaptureSettings): string {
   const m = metaSchema.parse(meta);
   const rows: [string, string | undefined][] = [
     ['name', m.name], ['scope', m.scope], ['type', m.type], ['source', sourceText(m.source, settings)],
-    ['selector', m.selector], ['captured', m.captured], ['method', m.method], ['extends', m.extends]
+    ['selector', m.selector], ['captured', m.captured], ['method', m.method], ['extends', m.extends], ['reference', m.reference]
   ];
   return ['---', ...rows.filter(([, v]) => v !== undefined).map(([k, v]) => `${k}: ${yaml(v!)}`), '---'].join('\n');
 }
@@ -152,6 +154,56 @@ function spacingSet(c: SpacingSet, s: CaptureSettings): string[] {
   return [
     '## Spacing',
     table(['Value', 'Kind', 'Property', 'Label', 'Authored', 'Token'], c.values.map(v => [show(v.value, 'length', s), v.kind, v.property, 'authored', authored(v.value), code(v.value.token)])),
+    '', '## Where used', `- ${ref(c.usedBy)}`
+  ];
+}
+
+const IMAGE_KIND_LABEL: Readonly<Record<ImageToken['kind'], string>> = { img: 'img', video: 'video', canvas: 'canvas', svg: 'svg', background: 'background image' };
+const IMAGE_NOUN: Readonly<Record<ImageToken['kind'], string>> = { img: 'image', video: 'video', canvas: 'drawing', svg: 'illustration', background: 'image' };
+const EFFECT_NAMES: Readonly<Record<string, string>> = { 'box-shadow': 'shadow', filter: 'filter', opacity: 'opacity', 'mix-blend-mode': 'blend mode', 'mask-image': 'mask', 'clip-path': 'clip path' };
+const list = (words: readonly string[]) => (words.length < 2 ? words.join('') : `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}`);
+
+/** What the agent does with an image capture: its own picture, framed the same way. */
+function imageUse(c: ImageToken, s: CaptureSettings): string {
+  const get = (p: string) => c.treatment.find(t => t.property === p);
+  const parts = [`shown at ${c.aspectRatio}`];
+  const fit = get('object-fit') ?? get('background-size');
+  if (fit) parts.push(`${fit.property} ${fit.value.computed}`);
+  const position = get('object-position') ?? get('background-position');
+  if (position) parts.push(`${position.property} ${formatLength(position.value.computed, s)}`);
+  const radius = get('border-radius');
+  if (radius) parts.push(`${show(radius.value, 'length', s)} corners${radius.on ? ` (clipped by the ${radius.on} around it)` : ''}`);
+  const effects = Object.keys(EFFECT_NAMES).filter(p => get(p)).map(p => EFFECT_NAMES[p]!);
+  if (c.overlays.length) effects.push(c.overlays.length === 1 ? 'overlay' : 'overlays');
+  const noun = IMAGE_NOUN[c.kind];
+  return `- Use your own ${noun} here, ${parts.join(', ')}${effects.length ? `, with the ${list(effects)} listed above` : ''}. The original ${noun} is not in this file, only how it is shown.`;
+}
+
+/** "640 × 360px", "40 × 22.5rem" or "640 × 360px (40 × 22.5rem)", as the unit setting asks. */
+function sizeText(width: number, height: number, settings: CaptureSettings): string {
+  const s = resolveSettings(settings);
+  const px = `${round(width, 2)} × ${round(height, 2)}px`;
+  const rem = `${round(width / s.rootFontSize, 4)} × ${round(height / s.rootFontSize, 4)}rem`;
+  return s.units === 'px' ? px : s.units === 'rem' ? rem : `${px} (${rem})`;
+}
+
+function imageToken(c: ImageToken, s: CaptureSettings): string[] {
+  const clean = (v: CapturedValue): CapturedValue => ({ ...v, computed: withoutUrls(v.computed), ...(v.authored ? { authored: withoutUrls(v.authored) } : {}) });
+  const treatment = c.treatment.length
+    ? table(['Property', 'Value', 'Authored', 'Token', 'On'], c.treatment.map(t => {
+        const v = clean(t.value);
+        return [t.property, show(v, kindOf(t.property), s), authored(v), code(v.token), t.on ? `${t.on} around it` : ''];
+      }))
+    : '- None: the image is shown as it is, with no fit, corners or effects set.';
+  const overlays = c.overlays.length
+    ? c.overlays.map(o => `- ${o.on}: ${show({ computed: withoutUrls(o.background) }, 'length', s)}${o.opacity ? `, opacity ${o.opacity}` : ''}${o.blend ? `, blend ${o.blend}` : ''}`)
+    : ['- None.'];
+  return [
+    '## Image',
+    table(['Kind', 'Size', 'Aspect ratio', 'Source aspect ratio'], [[IMAGE_KIND_LABEL[c.kind], sizeText(c.size.width, c.size.height, s), c.aspectRatio, c.sourceAspectRatio ?? '']]),
+    '', '## Treatment', treatment,
+    '', '## Overlays', ...overlays,
+    '', '## Use', imageUse(c, s),
     '', '## Where used', `- ${ref(c.usedBy)}`
   ];
 }
@@ -318,6 +370,7 @@ function formatMeasured(c: Capture, settings: CaptureSettings): string {
     : key === 'token/text' ? textToken(c as TextToken, settings)
     : key === 'token/color' ? colorToken(c as ColorToken, settings)
     : key === 'token/spacing' ? ('values' in c ? spacingSet(c as SpacingSet, settings) : spacingToken(c as SpacingToken, settings))
+    : key === 'token/image' ? imageToken(c as ImageToken, settings)
     : key === 'system/typography' ? typographySystem(c as TypographySystem, settings)
     : key === 'system/color' ? colorSystem(c as ColorSystem, settings)
     : spacingSystem(c as SpacingSystem, settings);

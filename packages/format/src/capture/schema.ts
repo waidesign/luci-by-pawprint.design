@@ -10,7 +10,7 @@
 import { z } from 'zod';
 
 export const CAPTURE_SCOPES = ['token', 'system', 'component', 'section', 'page', 'collection'] as const;
-export const TOKEN_TYPES = ['text', 'color', 'spacing'] as const;
+export const TOKEN_TYPES = ['text', 'color', 'spacing', 'image'] as const;
 export const SYSTEM_TYPES = ['typography', 'color', 'spacing'] as const;
 /** `measured` for values read from the live DOM; `estimated` for values guessed (a pixel on an image). */
 export const CAPTURE_METHODS = ['measured', 'estimated'] as const;
@@ -39,6 +39,9 @@ export const valueSchema = z.object({
   token: z.string().regex(/^--[\w-]+$/, 'a CSS custom property, e.g. --space-4').optional()
 });
 export type CapturedValue = z.infer<typeof valueSchema>;
+
+/** One CSS property as captured. */
+export const styleEntrySchema = z.object({ property: z.string().min(1), value: valueSchema });
 
 /** Where something is used. `element` is named from tag and role, never from class names. */
 export const elementRefSchema = z.object({
@@ -76,7 +79,15 @@ export const metaSchema = z.object({
   selector: z.string().min(1).optional(),
   captured: isoDate,
   method: z.enum(CAPTURE_METHODS),
-  extends: z.string().min(1).optional()
+  extends: z.string().min(1).optional(),
+  /**
+   * A reference screenshot of the picked element, saved beside the file (a relative path, e.g.
+   * "example-com.token.image-img-16-9.png"). For looking at only: values come from the page.
+   */
+  reference: z.string()
+    .regex(/^[\w.-]+(\/[\w.-]+)*\.(png|jpg)$/, 'a relative .png or .jpg path')
+    .refine(p => !p.split('/').some(part => part === '..' || part === '.'), 'a path inside the capture\'s folder')
+    .optional()
 });
 export type CaptureMeta = z.infer<typeof metaSchema>;
 
@@ -128,6 +139,34 @@ export const spacingSetSchema = z.object({
   usedBy: elementRefSchema
 });
 
+/**
+ * How a picture is shown (the Image tool): kind, rendered size and shape, the CSS that frames it
+ * (fit, position, corners, shadow, filters) and the layers over it. Never the image itself, its
+ * URL or its pixels (FR21): the agent uses its own image with the same treatment.
+ */
+export const IMAGE_KINDS = ['img', 'video', 'canvas', 'svg', 'background'] as const;
+export const imageTokenSchema = z.object({
+  meta: tokenMeta('image'),
+  instructions: instructionsField,
+  kind: z.enum(IMAGE_KINDS),
+  /** Rendered size in CSS px. */
+  size: z.object({ width: z.number().nonnegative(), height: z.number().nonnegative() }),
+  /** The rendered shape, "16:9" or "1.85:1". */
+  aspectRatio: z.string().min(1),
+  /** The shape of the file itself, when known and different (a 3:2 photo cropped to 16:9). */
+  sourceAspectRatio: z.string().min(1).optional(),
+  /** Properties that frame the image; `on` names an element around it that applies one (a wrapper that clips the corners). */
+  treatment: z.array(styleEntrySchema.extend({ on: z.string().min(1).optional() })),
+  /** Layers painted over it (a gradient on ::after, a tinted div), with image URLs removed. */
+  overlays: z.array(z.object({
+    on: z.string().min(1),
+    background: z.string().min(1),
+    opacity: z.string().min(1).optional(),
+    blend: z.string().min(1).optional()
+  })),
+  usedBy: elementRefSchema
+});
+
 export const typographySystemSchema = z.object({
   meta: systemMeta('typography'),
   instructions: instructionsField,
@@ -172,9 +211,6 @@ export const COMPONENT_STATES = ['hover', 'focus', 'focus-visible', 'active', 'd
  * means none in the stylesheets (it may still change through JavaScript).
  */
 export const STATE_METHODS = ['forced', 'rules', 'attribute', 'pointer', 'manual'] as const;
-
-/** One property of a part, as captured. */
-export const styleEntrySchema = z.object({ property: z.string().min(1), value: valueSchema });
 
 export const componentSchema = z.object({
   meta: metaSchema.extend({ scope: z.literal('component'), type: slug, selector: z.string().min(1) }),
@@ -239,12 +275,13 @@ export const pageSchema = z.object({
 });
 export type PageCapture = z.infer<typeof pageSchema>;
 
-export const captureSchema = z.union([textTokenSchema, colorTokenSchema, spacingTokenSchema, spacingSetSchema, typographySystemSchema, colorSystemSchema, spacingSystemSchema, componentSchema, pageSchema]);
+export const captureSchema = z.union([textTokenSchema, colorTokenSchema, spacingTokenSchema, spacingSetSchema, imageTokenSchema, typographySystemSchema, colorSystemSchema, spacingSystemSchema, componentSchema, pageSchema]);
 
 export type TextToken = z.infer<typeof textTokenSchema>;
 export type ColorToken = z.infer<typeof colorTokenSchema>;
 export type SpacingToken = z.infer<typeof spacingTokenSchema>;
 export type SpacingSet = z.infer<typeof spacingSetSchema>;
+export type ImageToken = z.infer<typeof imageTokenSchema>;
 export type TypographySystem = z.infer<typeof typographySystemSchema>;
 export type ColorSystem = z.infer<typeof colorSystemSchema>;
 export type SpacingSystem = z.infer<typeof spacingSystemSchema>;

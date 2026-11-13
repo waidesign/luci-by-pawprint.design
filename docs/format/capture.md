@@ -4,7 +4,7 @@ Every capture is one Markdown file: YAML frontmatter that records where it came 
 
 The golden files in `packages/format/fixtures/capture/` are the reference for this spec, and the format tests check the formatter against them. Their inputs are in `inputs.json`; `node scripts/capture-goldens.mjs` rewrites them after a build. Review any change by eye before committing it.
 
-This page covers single tokens and page systems (M4), components and the basket export (M5), and the full-page reference. Section scope follows in v0.2.
+This page covers single tokens and page systems (M4), components and the basket export (M5), the full-page reference, and images and reference screenshots. Section scope follows in v0.2.
 
 ## Frontmatter
 
@@ -18,6 +18,7 @@ This page covers single tokens and page systems (M4), components and the basket 
 | `captured` | yes | `YYYY-MM-DD` |
 | `method` | yes | `measured` when read from the live DOM; `estimated` when guessed, such as a pixel picked from an image |
 | `extends` | no | Another capture file this one builds on |
+| `reference` | no | A reference screenshot of the picked element saved beside the file, by relative path (`example-com.token.image-img-16-9.png`): a `.png` or `.jpg` inside the file's folder, never a web address. It is for looking at only; every value in the file comes from the page |
 
 Values are plain YAML scalars when they read back unchanged, and JSON-quoted otherwise (selectors with `#`, quotes or `: `).
 
@@ -38,7 +39,7 @@ The user can also edit a capture file by hand in the toolbar. An edited file is 
 
 ## Structure only
 
-Files describe structure, never content: no page text, no image URLs. Elements are named from their tag and role, such as `h1 (heading)` or `ul (list)`, never from class names, which are often hashed.
+Files describe structure, never content: no page text, no image URLs. Any `url(...)` in a value is written `<image>`. Elements are named from their tag and role, such as `h1 (heading)` or `ul (list)`, never from class names, which are often hashed.
 
 ## File names
 
@@ -51,6 +52,7 @@ One file per capture, flat: `<site>.<scope>.<name>.design.md`, where `<site>` is
 | token, text | Text style (font-family, font-size, font-weight, line-height, letter-spacing, color, and font-style, text-transform or text-decoration when set); Where used |
 | token, color | Color (value, authored, token, role); Where used (element, property, selector), or a note that the pixel matched no element and is estimated |
 | token, spacing | Spacing (value, kind: padding, margin, gap or distance; property; label: `authored` when a CSS declaration sets it, `measured` when it comes from geometry); Where used, or From and To for a distance. The Spacing tool's **All** (its default) writes every padding, margin and gap one element sets as rows of the same table, in one file named `spacing-<tag>` |
+| token, image | Image (kind: `img`, `video`, `canvas`, `svg` or `background image`; rendered size; aspect ratio such as `16:9`, or `2.4:1` when it is not a common one; and the file's own aspect ratio when the image is cropped to another shape); Treatment (object-fit, object-position, aspect-ratio, background-size, -position, -repeat and -image, border-radius, box-shadow, filter, opacity, mix-blend-mode, mask-image, clip-path: only those set, with Authored, Token and **On** when an element around the image applies it, such as a wrapper that clips the corners); Overlays (layers painted over it: its own `::before`/`::after`, those of a wrapper, or a positioned element without text covering it); Use (one line for the agent: use your own image, framed the same way); Where used. The Image tool writes these, named `image-<kind>-<ratio>` |
 | system, typography | Roles (role, family, size, weight, line height, letter spacing, color, uses, elements); Families; Scale |
 | system, color | Roles (background, text, border, accent; with uses and the properties that apply them); Tokens (color custom properties on `:root`, including unused ones; a property whose name has characters other than letters, digits, `-` and `_`, such as Webflow's deleted variables, is left out) |
 | system, spacing | Scale (values with uses and tokens); Base unit (the unit most uses are multiples of, and the share that fits); Outliers |
@@ -87,10 +89,13 @@ A system the page does not have (no visible text, colors or spacing) is a one-li
 The basket holds picks from any pages and sites and exports them as one file, `<name>.collection.design.md`:
 
 - **Frontmatter:** `name`, `scope: collection`, `captured`, `items` (the count) and `sources` (every page, query and fragment dropped).
-- **Body:** one `# group` per kind, in this order: Components, Text, Colors, Spacing, Systems, Pages.
+- **Body:** one `# group` per kind, in this order: Components, Text, Colors, Spacing, Images, Systems, Pages.
 - **Items:** under its group, each item is a `## <name>` section (the name you gave it in the basket), followed by:
   - its source, selector, type, method and date;
+  - in the .zip export only, its reference screenshot's path (`references/01-hero-photo.jpg`);
   - the item's own sections, every heading one level down (`### Tokens`...).
 - **Order:** within a group, items from the same page stay together, in the order they were added.
 
 `parseCollection` checks the frontmatter and that the item sections add up to `items`.
+
+**Download .zip** gives one archive: the collection file at the top, and each item's reference screenshot in `references/`, numbered by its place in the basket. The basket keeps a small copy of each screenshot (a JPEG of at most 640px a side), so the extension's storage does not fill up; the full-size PNG is the one downloaded beside a single file. Files are stored uncompressed (the pictures are compressed already).
