@@ -88,7 +88,7 @@ describe('items from two sites export as one file (M5 Done when)', () => {
     expect(await b.locator('[data-item]').count()).toBe(3);
     await b.locator('[data-item-name]').first().fill('Signup button');
     await b.click('[data-action="export-all"]');
-    const md = (await b.locator('[data-part="preview"]').textContent()) ?? '';
+    const md = await b.locator('[data-part="preview"]').evaluate(el => ('value' in el ? (el as HTMLTextAreaElement).value : el.textContent) ?? '');
     const fileName = await b.locator('[data-part="file-name"]').innerText();
     expect(fileName).toMatch(/^basket-\d{4}-\d{2}-\d{2}\.collection\.design\.md$/);
     const [download] = await Promise.all([b.waitForEvent('download'), b.click('[data-action="download"]')]);

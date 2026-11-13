@@ -10,6 +10,7 @@ import {
   componentSchema,
   formatCollection,
   parseCollection,
+  withInstructions,
   type Collection,
   colorKey,
   formatCapture,
@@ -76,6 +77,38 @@ describe('component and collection files: golden files are the spec (M5.1)', () 
     expect(collectionSchema.safeParse({ ...basket, items: [] }).success).toBe(false);
     expect(parseCollection('---\nscope: collection\nitems: 2\n---\n\n# Text\n\n## One\n').ok).toBe(false);
     expect(parseCapture('---\nname: x\nscope: component\ntype: button\nsource: https://a.b/\nselector: a\ncaptured: 2026-11-12\nmethod: measured\n---\n\n## Tokens\n').ok).toBe(false);
+  });
+});
+
+describe('your instructions for the agent (user request, 2026-11-13)', () => {
+  const base = inputs['example-com.token.color-primary.design.md']!.capture;
+
+  it('are written word for word as the first section, and a "#" line cannot become a heading', () => {
+    const text = formatCapture({ ...base, instructions: 'Use this as our primary color.\n## not a heading\nKeep the hover darker.' } as Capture);
+    const body = text.split('---\n')[2]!.trimStart();
+    expect(body.startsWith('## Your instructions\nUse this as our primary color.\n\\## not a heading\nKeep the hover darker.\n\n## Color')).toBe(true);
+    const parsed = parseCapture(text);
+    expect(parsed.ok && Object.keys(parsed.value.sections)).toEqual(['Your instructions', 'Color', 'Where used']);
+    // Without instructions the file is exactly the measured one
+    expect(formatCapture(base)).toBe(fs.readFileSync(path.join(dir, 'example-com.token.color-primary.design.md'), 'utf8').replace(/\r\n/g, '\n'));
+  });
+
+  it('can be set, replaced or removed in a file edited by hand, keeping the edits', () => {
+    const edited = formatCapture(base).replace('| accent |', '| brand accent |');
+    const once = withInstructions(edited, 'First version');
+    expect(once).toContain('## Your instructions\nFirst version\n\n## Color');
+    const twice = withInstructions(once, 'Second version');
+    expect(twice).not.toContain('First version');
+    expect(twice).toContain('| brand accent |');
+    expect(withInstructions(twice, '')).toBe(edited);
+  });
+
+  it('a basket export uses an item\'s edited text', () => {
+    const basket = collectionInputs['two-sites.collection.design.md']!.collection;
+    const items = basket.items.map((item, i) => (i === 2 ? { ...item, edited: '---\nname: x\n---\n\n## Color\nMy own note on this color.\n' } : item));
+    const out = formatCollection({ ...basket, items });
+    expect(out).toContain('### Color\nMy own note on this color.');
+    expect(parseCollection(out).ok).toBe(true);
   });
 });
 

@@ -4,7 +4,7 @@
  * Rendered by mount.ts inside a shadow root.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import { formatCapture, groupOf, type BasketItem, type CaptureSettings, type ComponentCapture } from '@luci/format/capture';
+import { formatCapture, groupOf, withInstructions, type BasketItem, type CaptureSettings, type ComponentCapture } from '@luci/format/capture';
 import { addToBasket, exportBasket, exportItem, removeFromBasket, renameInBasket, sourceLabel, type BasketStore } from './basket.js';
 import type { Eligibility } from '../eligibility.js';
 import type { ElementSnapshot } from '../model.js';
@@ -136,6 +136,7 @@ export function Toolbar(props: ToolbarProps) {
     setCopied(false);
     setAdded(false);
     setBasketOpen(false);
+    setEdited(null);
     if (r.ok) props.onOutput?.(r.output);
   };
 
@@ -202,6 +203,7 @@ export function Toolbar(props: ToolbarProps) {
     setBasketOpen(false);
     setPixelMode(false);
     setPixelHover(null);
+    setInstructions('');
     aim(null);
     lastPointer.current = null;
     trail.current = [];
@@ -377,7 +379,17 @@ export function Toolbar(props: ToolbarProps) {
   };
 
   const output = result?.ok ? result.output : null;
-  const markdown = output ? formatCapture(output.capture, settings) : '';
+  // The user's instructions for their agent go into the file word for word; the file can also be edited
+  // by hand, and then copy, download and the basket use exactly the edited text
+  const [instructions, setInstructions] = useState('');
+  const [edited, setEdited] = useState<string | null>(null);
+  const captureWithInstructions = output ? ({ ...output.capture, ...(instructions.trim() ? { instructions: instructions.trim() } : {}) } as typeof output.capture) : null;
+  const markdown = edited ?? (captureWithInstructions ? formatCapture(captureWithInstructions, settings) : '');
+  const changeInstructions = (text: string) => {
+    setInstructions(text);
+    // Edited text keeps the edits; only its instructions section follows the box
+    if (edited !== null) setEdited(withInstructions(edited, text));
+  };
 
   const copyText = async (text: string) => {
     try {
@@ -430,7 +442,7 @@ export function Toolbar(props: ToolbarProps) {
     setAdded(true);
     const current = basketLoaded.current || !store ? basket : await store.load();
     basketLoaded.current = true;
-    saveBasket(addToBasket(current, output.capture));
+    saveBasket(addToBasket(current, captureWithInstructions ?? output.capture, edited ?? undefined));
   };
   const openBasket = () => {
     setPicking(false);
@@ -747,7 +759,23 @@ export function Toolbar(props: ToolbarProps) {
                   )}
                 </div>
               )}
-              <pre data-part="preview">{markdown}</pre>
+              <label class="stack">
+                <span>Your instructions for the agent <span class="dim">(optional, saved in the file as written)</span></span>
+                <textarea data-part="instructions" rows={2} value={instructions}
+                  placeholder="e.g. Use this as our primary button, but with our brand blue #1d4ed8 and a 12px radius."
+                  onInput={e => changeInstructions((e.currentTarget as HTMLTextAreaElement).value)} />
+              </label>
+              <span class="row">
+                <span class="dim">The file below can be edited.</span>
+                {edited !== null && (
+                  <>
+                    <span class="dim" data-part="edited-note">Edited by hand: the unit and color settings no longer change it.</span>
+                    <button type="button" data-action="undo-edits" onClick={() => setEdited(null)}>Undo my edits</button>
+                  </>
+                )}
+              </span>
+              <textarea class="preview" data-part="preview" spellcheck={false} value={markdown}
+                onInput={e => setEdited((e.currentTarget as HTMLTextAreaElement).value)} />
               <div class="row">
                 <button type="button" class="primary" data-action="copy" onClick={copy}>{copied ? 'Copied' : 'Copy'}</button>
                 <button type="button" data-action="download" onClick={download}>Download .design.md</button>

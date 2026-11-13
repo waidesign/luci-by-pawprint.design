@@ -56,6 +56,12 @@ export const textStyleSchema = z.object({
 });
 export type TextStyle = z.infer<typeof textStyleSchema>;
 
+/**
+ * The user's own instructions for their coding agent (how to use or change this capture), written in
+ * the toolbar. Kept word for word in the file as "## Your instructions"; Luci never writes them.
+ */
+export const instructionsField = z.string().trim().min(1).max(4000).optional();
+
 export const metaSchema = z.object({
   name: slug,
   scope: z.enum(CAPTURE_SCOPES),
@@ -74,12 +80,14 @@ const systemMeta = (type: (typeof SYSTEM_TYPES)[number]) => metaSchema.extend({ 
 
 export const textTokenSchema = z.object({
   meta: tokenMeta('text'),
+  instructions: instructionsField,
   style: textStyleSchema,
   usedBy: elementRefSchema
 });
 
 export const colorTokenSchema = z.object({
   meta: tokenMeta('color'),
+  instructions: instructionsField,
   value: valueSchema,
   role: z.enum(COLOR_ROLES).optional(),
   /** Each place the color is applied. Empty for a pixel that matched no element color. */
@@ -89,6 +97,7 @@ export const colorTokenSchema = z.object({
 export const SPACING_KINDS = ['padding', 'margin', 'gap', 'distance'] as const;
 export const spacingTokenSchema = z.object({
   meta: tokenMeta('spacing'),
+  instructions: instructionsField,
   value: valueSchema,
   kind: z.enum(SPACING_KINDS),
   /** The CSS property, e.g. padding-left or column-gap; for a distance, absent. */
@@ -101,6 +110,7 @@ export const spacingTokenSchema = z.object({
 
 export const typographySystemSchema = z.object({
   meta: systemMeta('typography'),
+  instructions: instructionsField,
   roles: z.array(z.object({
     role: slug,
     style: textStyleSchema,
@@ -113,6 +123,7 @@ export const typographySystemSchema = z.object({
 
 export const colorSystemSchema = z.object({
   meta: systemMeta('color'),
+  instructions: instructionsField,
   roles: z.array(z.object({
     role: z.enum(COLOR_ROLES),
     value: valueSchema,
@@ -124,6 +135,7 @@ export const colorSystemSchema = z.object({
 
 export const spacingSystemSchema = z.object({
   meta: systemMeta('spacing'),
+  instructions: instructionsField,
   scale: z.array(z.object({ value: valueSchema, count: z.number().int().positive() })).min(1),
   /** The unit most values are multiples of. `share` is the fraction of uses that fit it. */
   baseUnit: z.object({ px: z.number().positive(), share: z.number().min(0).max(1) }).nullable(),
@@ -143,6 +155,7 @@ export const styleEntrySchema = z.object({ property: z.string().min(1), value: v
 
 export const componentSchema = z.object({
   meta: metaSchema.extend({ scope: z.literal('component'), type: slug, selector: z.string().min(1) }),
+  instructions: instructionsField,
   /** Custom properties the component uses, with resolved values. */
   tokens: z.array(z.object({ token: z.string().regex(/^--[\w-]+$/), value: z.string().min(1), usedFor: z.array(z.string().min(1)) })),
   /** The parts, named from tag, role and structure (never classes). The first is the container. */

@@ -37,8 +37,9 @@ export const displayName = (capture: Capture) => {
   return words.charAt(0).toUpperCase() + words.slice(1);
 };
 
-export function addToBasket(items: readonly BasketItem[], capture: Capture): BasketItem[] {
-  return [...items, { id: newId(), name: displayName(capture), addedAt: today(), capture }];
+/** Add a capture; `edited` is the file as the user changed it by hand, when they did. */
+export function addToBasket(items: readonly BasketItem[], capture: Capture, edited?: string): BasketItem[] {
+  return [...items, { id: newId(), name: displayName(capture), addedAt: today(), capture, ...(edited ? { edited } : {}) }];
 }
 
 export function renameInBasket(items: readonly BasketItem[], id: string, name: string): BasketItem[] {
@@ -60,7 +61,7 @@ export function exportBasket(items: readonly BasketItem[], settings: CaptureSett
 /** One item on its own; its file and name follow the name it has in the basket. */
 export function exportItem(item: BasketItem, settings: CaptureSettings): { fileName: string; markdown: string } {
   const capture = { ...item.capture, meta: { ...item.capture.meta, name: toCaptureName(item.name) } } as Capture;
-  return { fileName: captureFileName(capture.meta), markdown: formatCapture(capture, settings) };
+  return { fileName: captureFileName(capture.meta), markdown: item.edited ?? formatCapture(capture, settings) };
 }
 
 /** Where an item came from, for the basket list: "example.com/pricing". */

@@ -30,7 +30,7 @@ async function open(site: string): Promise<Page> {
   await page.evaluate(() => { (window as any).toolbar = (window as any).LuciCapture.mountToolbar(); });
   return page;
 }
-const preview = async (page: Page) => (await page.locator('[data-part="preview"]').textContent()) ?? '';
+const preview = async (page: Page) => await page.locator('[data-part="preview"]').evaluate(el => ('value' in el ? (el as HTMLTextAreaElement).value : el.textContent) ?? '');
 const label = (page: Page) => page.locator('[data-part="hover-label"]').innerText();
 
 describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
@@ -188,6 +188,46 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
     await expect.poll(() => preview(page), { timeout: 6000 }).toContain('captured by hand');
     expect(await preview(page)).toContain('| hover | color #525252 → #da1e28 | captured by hand |');
     await page.mouse.move(10, 10);
+  });
+
+  it('instructions for the agent go into the file; the file can be edited; edits survive settings and reach the basket (user request)', async () => {
+    // A page shortcut on "s", as many sites have: typing in Luci's boxes must not trigger it
+    await page.evaluate(() => { (window as unknown as { pageKeys: number }).pageKeys = 0; document.addEventListener('keydown', () => { (window as unknown as { pageKeys: number }).pageKeys++; }); });
+    await page.click('button[data-tool="color"]');
+    await page.click('.button >> nth=0');
+    await page.click('[data-output="one"]');
+    await page.locator('[data-part="instructions"]').fill('Use this as our primary color, but slightly darker.');
+    let md = await preview(page);
+    expect(md).toMatch(/---\n\n## Your instructions\nUse this as our primary color, but slightly darker\.\n\n## Color/);
+    await page.locator('[data-part="instructions"]').press('s');
+    expect(await page.evaluate(() => (window as unknown as { pageKeys: number }).pageKeys)).toBe(0);
+
+    // Edit the file by hand
+    await page.locator('[data-part="preview"]').fill(md.replace('| accent |', '| brand accent |'));
+    expect(await page.locator('[data-part="edited-note"]').count()).toBe(1);
+    // Settings no longer change edited text; the instructions box still updates its own section
+    await page.selectOption('select[data-setting="colors"]', 'rgb');
+    expect(await preview(page)).toContain('| #0f62fe |');
+    await page.locator('[data-part="instructions"]').fill('Use this as our primary color.');
+    md = await preview(page);
+    expect(md).toContain('## Your instructions\nUse this as our primary color.\n\n## Color');
+    expect(md).toContain('| brand accent |');
+
+    await page.click('[data-action="add-to-basket"]');
+    await page.click('[data-action="basket"]');
+    await page.locator('[data-item-export]').last().click();
+    expect(await preview(page)).toContain('| brand accent |');
+    await page.click('[data-action="basket-back"]');
+    await page.click('[data-action="basket"]');
+
+    // Undo goes back to the generated file, with the current settings
+    await page.click('button[data-tool="color"]');
+    await page.click('.button >> nth=0');
+    await page.click('[data-output="one"]');
+    await page.locator('[data-part="preview"]').fill('anything');
+    await page.click('[data-action="undo-edits"]');
+    expect(await preview(page)).toContain('| rgb(15, 98, 254) |');
+    await page.selectOption('select[data-setting="colors"]', 'hex');
   });
 
   it('download saves a .design.md with the shown name; copy puts the text on the clipboard (FR20)', async () => {

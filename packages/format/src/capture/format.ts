@@ -201,9 +201,42 @@ function componentBody(c: ComponentCapture, s: CaptureSettings): string[] {
   return out;
 }
 
+export const INSTRUCTIONS_HEADING = '## Your instructions';
+
+/** The user's text as a section body: word for word, but a line starting with "#" cannot become a heading. */
+const instructionsText = (text: string) => text.trim().replace(/\r\n/g, '\n').split('\n').map(l => (/^\s*#/.test(l) ? `\\${l.trimStart()}` : l)).join('\n');
+
+/**
+ * Put the user's instructions into a capture file's text (e.g. one edited by hand): replace the
+ * "## Your instructions" section, or add it right after the frontmatter. Empty text removes it.
+ */
+export function withInstructions(markdown: string, text: string | undefined): string {
+  const lines = markdown.replace(/\r\n/g, '\n').split('\n');
+  const start = lines.findIndex(l => l.trim() === INSTRUCTIONS_HEADING);
+  if (start !== -1) {
+    let end = lines.findIndex((l, i) => i > start && l.startsWith('## '));
+    if (end === -1) end = lines.length;
+    lines.splice(start, end - start);
+  }
+  const block = text && text.trim() ? [INSTRUCTIONS_HEADING, instructionsText(text), ''] : [];
+  if (block.length) {
+    // After the frontmatter (and its blank line), before the first section
+    const fmEnd = lines[0] === '---' ? lines.indexOf('---', 1) : -1;
+    let at = fmEnd === -1 ? 0 : fmEnd + 1;
+    while (lines[at] === '') at++;
+    lines.splice(at, 0, ...block);
+  }
+  return `${lines.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd()}\n`;
+}
+
 /** The file text for a capture. Throws when the capture does not match its schema. */
 export function formatCapture(capture: Capture, settings: CaptureSettings = {}): string {
   const c = captureSchema.parse(capture);
+  return c.instructions ? withInstructions(formatMeasured(c, settings), c.instructions) : formatMeasured(c, settings);
+}
+
+/** The measured part of a capture file, without the user's instructions. */
+function formatMeasured(c: Capture, settings: CaptureSettings): string {
   const key = `${c.meta.scope}/${c.meta.type}`;
   if (c.meta.scope === 'component') return `${frontmatter(c.meta)}\n\n${componentBody(c as ComponentCapture, settings).join('\n')}\n`;
   const body = key === 'token/text' ? textToken(c as TextToken, settings)

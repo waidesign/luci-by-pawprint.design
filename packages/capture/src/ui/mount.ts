@@ -45,6 +45,13 @@ export function mountToolbar(options: MountOptions = {}): ToolbarHandle {
   doc.documentElement.appendChild(host);
   // Open so tests and assistive tools can see inside; styles stay isolated either way
   const root = host.attachShadow({ mode: 'open' });
+  // Typing in Luci's own fields must not reach the page (sites react to keys like "/" or "s")
+  for (const type of ['keydown', 'keyup', 'keypress'] as const) {
+    root.addEventListener(type, (e) => {
+      const t = e.composedPath()[0];
+      if (t instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) e.stopPropagation();
+    });
+  }
   const style = doc.createElement('style');
   style.textContent = TOOLBAR_CSS;
   root.appendChild(style);

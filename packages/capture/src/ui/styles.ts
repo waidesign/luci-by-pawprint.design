@@ -26,6 +26,11 @@ button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); o
 .items input { font: inherit; color: inherit; background: #27272a; border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; min-width: 0; }
 .items .meta { grid-column: 1; color: var(--muted); font-size: 12px; }
 .items .row { grid-column: 2; grid-row: 1 / span 2; }
+.stack { display: flex; flex-direction: column; align-items: stretch; gap: 4px; color: var(--ink); }
+textarea { font: 12px/1.5 ui-monospace, monospace; color: inherit; background: #09090b; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; resize: vertical; }
+textarea[data-part="instructions"] { font: 13px/1.4 system-ui, sans-serif; background: #27272a; }
+textarea.preview { min-height: 160px; flex: 1; white-space: pre; overflow: auto; }
+textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .dim { color: var(--muted); font-size: 12px; font-weight: 400; margin: 0; }
 .pixel-layer { position: fixed; inset: 0; z-index: 2147483640; cursor: crosshair; background: transparent; }
 .swatch { position: fixed; z-index: 2147483647; pointer-events: none; display: flex; gap: 6px; align-items: center; padding: 4px 8px;

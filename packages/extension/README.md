@@ -21,6 +21,8 @@ The capture toolbar on any site, for Chrome (Manifest V3, built with WXT).
 - **Hints:** while a tool is picking, a strip under the bar says what to click and which keys work.
 - **Color extras:** the strip has two ways to pick: **Element** (click an element) or **Pixel** (any spot on the page). In Pixel mode, hover the page to see the color under the pointer and click to pick; over Luci's own bar and panels nothing is picked, and picking carries on when you move back onto the page. Esc goes back to Element. A pixel that matches a color on the page resolves to its token; otherwise it is marked estimated.
 - **Basket:** after any capture, **Add to basket**. **Basket (n)** in the bar lists everything you collected, on any page or site, until you empty it. Rename an item by editing its name, **Export** one item, **Remove** it, or **Export all as one file**: one `.collection.design.md` grouped by kind, each item with its source page.
+- **Your instructions for the agent:** under every capture, a box for how you want the agent to use or change it ("use this as our primary button, but with our brand blue"). It is saved in the file word for word, as the first section.
+- **Edit the file:** the preview can be edited. Copy, Download and Add to basket use exactly what you see; **Undo my edits** goes back to the generated file.
 - **Preview:** the units (px, rem, both) and color format (hex, rgb, hsl, oklch) settings change the preview at once and are remembered. **Copy** or **Download .design.md**.
 
 ## Permissions

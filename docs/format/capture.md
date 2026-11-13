@@ -30,6 +30,12 @@ Two settings change how values are written; the authored value is always kept be
 - **Units:** `px` (default), `rem`, or `both` (`16px (1rem)`). rem uses the page's root font size. Keywords such as `normal` are left as they are.
 - **Colors:** `hex` (default; 8 digits with alpha), `rgb`, `hsl` or `oklch`. A fully transparent color is written `transparent`.
 
+## Your instructions
+
+Any capture can carry the user's own instructions for their coding agent, typed in the toolbar ("use this as our primary button, but with our brand blue"). They are written word for word as the first section, `## Your instructions`, right after the frontmatter; a line starting with `#` is escaped so it cannot become a heading. Luci never writes or changes this text, and no AI is involved: the agent that reads the file applies it.
+
+The user can also edit a capture file by hand in the toolbar. An edited file is kept as edited (the unit and color settings no longer apply to it), and a basket item keeps its edited text; exports use it.
+
 ## Structure only
 
 Files describe structure, never content: no page text, no image URLs. Elements are named from their tag and role, such as `h1 (heading)` or `ul (list)`, never from class names, which are often hashed.

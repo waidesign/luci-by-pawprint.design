@@ -16,7 +16,9 @@ export const basketItemSchema = z.object({
   /** The name shown in the basket and used as the item's heading; the user can rename it. */
   name: z.string().trim().min(1),
   addedAt: isoDate,
-  capture: captureSchema
+  capture: captureSchema,
+  /** The file as the user edited it by hand in the toolbar; exports use it instead of the generated text. */
+  edited: z.string().min(1).optional()
 });
 export type BasketItem = z.infer<typeof basketItemSchema>;
 
@@ -37,9 +39,9 @@ export function groupOf(capture: Capture): CollectionGroup {
   return capture.meta.type === 'text' ? 'Text' : capture.meta.type === 'color' ? 'Colors' : 'Spacing';
 }
 
-/** A capture's body with its frontmatter removed and its headings one level down (## -> ###). */
-function bodyOf(capture: Capture, settings: CaptureSettings): string {
-  const text = formatCapture(capture, settings);
+/** An item's body (the hand-edited text when there is one) without frontmatter, headings one level down. */
+function bodyOf(item: BasketItem, settings: CaptureSettings): string {
+  const text = (item.edited ?? formatCapture(item.capture, settings)).replace(/\r\n/g, '\n');
   const body = text.replace(/^---\n[\s\S]*?\n---\n+/, '');
   return body.replace(/^## /gm, '### ').trim();
 }
@@ -76,7 +78,7 @@ export function formatCollection(collection: Collection, settings: CaptureSettin
         ...(m.selector ? [`- selector: \`${m.selector.replace(/`/g, "'")}\``] : []),
         `- type: ${m.scope} ${m.type} · method: ${m.method} · captured: ${m.captured}`,
         '',
-        bodyOf(item.capture, settings),
+        bodyOf(item, settings),
         ''
       );
     }

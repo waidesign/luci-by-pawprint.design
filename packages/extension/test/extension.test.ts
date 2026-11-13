@@ -110,7 +110,7 @@ describe.runIf(process.env['LUCI_EXTENSION_E2E'] === '1')('extension in Chromium
     await page.click('button[data-tool="text"]');
     await page.click('h1');
     await page.click('[data-output="one"]');
-    expect(await page.locator('[data-part="preview"]').textContent()).toContain('| font-size | 48px | `clamp(2rem, 2rem + 2vw, 3rem)` |  |');
+    expect(await page.locator('[data-part="preview"]').evaluate(el => ('value' in el ? (el as HTMLTextAreaElement).value : el.textContent) ?? '')).toContain('| font-size | 48px | `clamp(2rem, 2rem + 2vw, 3rem)` |  |');
     await page.selectOption('select[data-setting="units"]', 'rem');
     await expect.poll(() => api(async () => {
       const c = (globalThis as unknown as { chrome: Chrome }).chrome;
@@ -130,7 +130,7 @@ describe.runIf(process.env['LUCI_EXTENSION_E2E'] === '1')('extension in Chromium
     await page.click('h1');
     await page.click('[data-output="one"]');
     expect(await page.locator('select[data-setting="units"]').inputValue()).toBe('rem');
-    expect(await page.locator('[data-part="preview"]').textContent()).toContain('| font-size | 3rem |');
+    expect(await page.locator('[data-part="preview"]').evaluate(el => ('value' in el ? (el as HTMLTextAreaElement).value : el.textContent) ?? '')).toContain('| font-size | 3rem |');
     await page.close();
   });
 
@@ -171,7 +171,7 @@ describe.runIf(process.env['LUCI_EXTENSION_E2E'] === '1')('extension in Chromium
     await page.click('button[data-tool="component"]');
     await page.click('.button >> nth=0');
     await page.click('[data-output="one"]');
-    const md = (await page.locator('[data-part="preview"]').textContent()) ?? '';
+    const md = await page.locator('[data-part="preview"]').evaluate(el => ('value' in el ? (el as HTMLTextAreaElement).value : el.textContent) ?? '');
     expect(md).toMatch(/\| hover \| background-color #0f62fe → #0353e9 \| browser, state forced \|/);
     expect(md).toContain('| disabled | opacity 1 → 0.5; cursor pointer → not-allowed | disabled attribute |');
     // The debugger is detached again: a second attach from the test succeeds
@@ -199,7 +199,7 @@ describe.runIf(process.env['LUCI_EXTENSION_E2E'] === '1')('extension in Chromium
     await page.mouse.move(box.x + 6, box.y + box.height / 2);
     await expect.poll(() => page.locator('[data-part="pixel-swatch"]').innerText()).toBe('#0f62fe');
     await page.mouse.click(box.x + 6, box.y + box.height / 2);
-    expect(await page.locator('[data-part="preview"]').textContent()).toContain('`--color-primary`');
+    expect(await page.locator('[data-part="preview"]').evaluate(el => ('value' in el ? (el as HTMLTextAreaElement).value : el.textContent) ?? '')).toContain('`--color-primary`');
     await page.close();
   });
 });
