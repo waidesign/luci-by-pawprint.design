@@ -148,26 +148,9 @@ export class FeedbackStore {
     return keys.map(k => this.update(k, i => (i.status === 'pending' ? { ...i, status: 'sent', sentAt: at } : { ...i, sentAt: at })));
   }
 
-  acknowledge(key: string): FeedbackItem {
-    return this.update(key, i => ({ ...i, status: 'acknowledged' }));
-  }
-
-  /** The agent asks; the item waits for the person's answer. */
-  ask(key: string, question: string): FeedbackItem {
-    return this.update(key, i => ({ ...i, status: 'question', thread: [...i.thread, { from: 'agent', text: question, at: now() }] }));
-  }
-
-  /** The person answers; the item goes back to the agent. */
-  answer(key: string, text: string): FeedbackItem {
-    return this.update(key, i => ({ ...i, status: 'acknowledged', thread: [...i.thread, { from: 'person', text, at: now() }] }));
-  }
-
-  resolve(key: string, summary: string): FeedbackItem {
-    return this.update(key, i => ({ ...i, status: 'resolved', resolution: summary }));
-  }
-
-  dismiss(key: string, reason: string): FeedbackItem {
-    return this.update(key, i => ({ ...i, status: 'dismissed', resolution: reason }));
+  /** The person marks a note done (after checking the agent's work). */
+  markDone(key: string): FeedbackItem {
+    return this.update(key, i => ({ ...i, status: 'resolved' }));
   }
 
   /** Put an item back to pending (the person reopens it). */

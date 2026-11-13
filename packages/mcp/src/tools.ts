@@ -380,9 +380,10 @@ export const TOOLS: readonly LuciTool[] = [
     {}, { ...WRITE, idempotentHint: true },
     (_args, deps) => json(new MemoryEngine(brainOptions(deps)).getGlobalBrain())),
 
-  // Feedback (FR30): notes the person pinned on their running app with Luci's dev toolbar
+  // Feedback (FR30, changed 13 Nov 2026 at the user's request: read only; the person marks notes done
+  // in the toolbar, no agent writes them)
   tool('list_feedback',
-    `UI feedback the person pinned on their running app with Luci's dev toolbar (${PRODUCT.projectDir}/${MEMORY_FILES.feedback}/). By default the open items (pending, sent, acknowledged, or waiting for an answer to your question), grouped by page, each with its ID (P2-A3), comment, intent, priority, selector, text, source file and components. Reads only; get_feedback_prompt gives the same items as one prompt to work through.`,
+    `UI feedback notes the person left on their running app with Luci's dev toolbar (${PRODUCT.projectDir}/${MEMORY_FILES.feedback}/). By default the ones not done yet, each with its ID (P2-A3), comment, intent, priority, selector, text, source file, components and any layout steps. Reads only: the person marks notes done themselves.`,
     {
       status: z.enum(['open', 'all', ...FEEDBACK_STATUSES]).optional().describe('Which items: "open" (default), "all", or one status'),
       projectPath
@@ -397,49 +398,17 @@ export const TOOLS: readonly LuciTool[] = [
     }),
 
   tool('get_feedback_prompt',
-    `The open UI feedback as one page-grouped prompt: every item with its ID, grouped by page with route and source file, and how to report when done. Marks pending items as sent (so the person's toolbar shows they reached you). Work through every page; report every ID.`,
+    `The UI feedback notes not done yet as one page-grouped prompt: every note with its ID, grouped by page with route and source file, and how to report when done. Work through every page and report every ID in your answer; the person checks your work and marks notes done in their toolbar. Reads only.`,
     {
       detail: z.enum(DETAIL_LEVELS).optional().describe('compact: selector and text; standard (default): + source file and components; detailed: + computed styles'),
       projectPath
-    }, WRITE,
+    }, READ,
     (args, deps) => {
       const store = new FeedbackStore(target(args, deps));
       if (!store.available) return notInitialized(store.projectDir);
       const items = store.open();
       if (!items.length) return text('No open feedback. The person can add some with the dev toolbar.');
-      const prompt = formatFeedbackPrompt(items, { detail: args.detail ?? 'standard' });
-      store.markSent(items.map(i => i.id));
-      return text(prompt);
-    }),
-
-  tool('acknowledge_feedback',
-    'Tell the person you are working on these feedback items: their markers on the page show it. Use the IDs from the prompt (P2-A3).',
-    { ids: z.array(z.string().min(1)).min(1).describe('Item IDs, e.g. ["P1-A1", "P1-A2"]'), projectPath }, { ...WRITE, idempotentHint: true },
-    (args, deps) => feedbackChange(args, deps, args.ids, (store, id) => store.acknowledge(id), 'Acknowledged')),
-
-  tool('ask_feedback_question',
-    'Ask the person a question about one feedback item when it is unclear. The marker on their page shows the question and they answer there; list_feedback shows the answer in the item\'s thread. Carry on with the other items meanwhile.',
-    { id: z.string().min(1).describe('Item ID, e.g. P2-A3'), question: z.string().trim().min(1), projectPath }, WRITE,
-    (args, deps) => feedbackChange(args, deps, [args.id], (store, id) => store.ask(id, args.question), 'Asked about')),
-
-  tool('resolve_feedback',
-    'Mark one feedback item as done, with a one-line summary of what you changed (the person sees it on the page).',
-    { id: z.string().min(1).describe('Item ID, e.g. P2-A3'), summary: z.string().trim().min(1).describe('What you changed, in one line'), projectPath }, WRITE,
-    (args, deps) => feedbackChange(args, deps, [args.id], (store, id) => store.resolve(id, args.summary), 'Resolved')),
-
-  tool('dismiss_feedback',
-    'Mark one feedback item as not done, with the reason (the person sees it on the page). Use it for items you will not or cannot do; ask_feedback_question when you need more information instead.',
-    { id: z.string().min(1).describe('Item ID, e.g. P2-A3'), reason: z.string().trim().min(1), projectPath }, WRITE,
-    (args, deps) => feedbackChange(args, deps, [args.id], (store, id) => store.dismiss(id, args.reason), 'Dismissed')),
-
-  tool('clear_feedback',
-    'Remove finished feedback items (resolved and dismissed) from the project. Only when the person asks; "all" removes open items too and needs their explicit agreement.',
-    { which: z.enum(['done', 'all']).optional().describe('"done" (default) or "all"'), projectPath }, { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
-    (args, deps) => {
-      const store = new FeedbackStore(target(args, deps));
-      if (!store.available) return notInitialized(store.projectDir);
-      const gone = store.clear(args.which ?? 'done');
-      return text(gone.length ? `Removed ${gone.length} item${gone.length === 1 ? '' : 's'}: ${gone.join(', ')}.` : 'Nothing to remove.');
+      return text(formatFeedbackPrompt(items, { detail: args.detail ?? 'standard' }));
     }),
 
   // Design captures saved from the toolbar into the project
@@ -484,20 +453,6 @@ function feedbackBrief(i: FeedbackItem) {
     ...(i.thread.length ? { thread: i.thread.map(m => `${m.from}: ${m.text}`) } : {}),
     ...(i.resolution ? { resolution: i.resolution } : {})
   };
-}
-
-/** Apply one change to several items; unknown IDs are reported, the rest still change. */
-function feedbackChange(args: { projectPath?: string | undefined }, deps: ToolDeps, ids: readonly string[], change: (store: FeedbackStore, id: string) => FeedbackItem, verb: string): ToolResult {
-  const store = new FeedbackStore(target(args, deps));
-  if (!store.available) return notInitialized(store.projectDir);
-  const done: string[] = [];
-  const missing: string[] = [];
-  for (const id of ids) {
-    if (!store.get(id)) { missing.push(id); continue; }
-    done.push(change(store, id).ref);
-  }
-  if (!done.length) return error(`No feedback item ${missing.join(', ')}. list_feedback shows the IDs.`);
-  return text(`${verb} ${done.join(', ')}.${missing.length ? ` Not found: ${missing.join(', ')}.` : ''}`);
 }
 
 const BY_NAME = new Map(TOOLS.map(t => [t.name, t]));

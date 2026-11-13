@@ -4,7 +4,7 @@ Feedback is what a person pins on elements of their running app for an agent to 
 
 ## Items
 
-One file per item, `.luci/feedback/<id>.json`. Two programs write them (`luci serve` for the toolbar, `luci-mcp` for the agent), so each item is its own file and every write replaces the file in one step.
+One file per item, `.luci/feedback/<id>.json`. `luci serve` writes them for the toolbar; `luci-mcp` only reads them (the agent never changes a note). Each item is its own file and every write replaces the file in one step.
 
 | Field | Content |
 | --- | --- |
@@ -15,10 +15,10 @@ One file per item, `.luci/feedback/<id>.json`. Two programs write them (`luci se
 | `comment` | What the person wrote |
 | `intent` | `fix`, `change`, `question` or `approve` |
 | `priority` | `high`, `medium` or `low` |
-| `status` | `pending`, `sent` (in a copied prompt, FR29), `acknowledged` (an agent is on it), `question` (the agent asked; see `thread`), `resolved` or `dismissed` (FR30) |
+| `status` | Set by the person: `pending` (new), `sent` (copied in a prompt, FR29) or `resolved` (marked done). `acknowledged`, `question` and `dismissed` are from the earlier agent sync (removed 13 Nov 2026) and are still read, as copied, copied and done |
 | `createdAt`, `updatedAt`, `sentAt` | ISO times in UTC |
-| `thread` | Messages between the agent and the person: `from` (`agent` or `person`), `text`, `at` |
-| `resolution` | What the agent did (resolved) or why not (dismissed) |
+| `thread` | From the earlier agent sync, on older notes only: questions and answers (`from`, `text`, `at`) |
+| `resolution` | From the earlier agent sync, on older notes only: what the agent said it did |
 | `layout` | Optional, from Layout mode: `viewport` (the window's `width` and `height` it was planned at) and `changes`, each either `{ op: "move", position: "before" \| "after" \| "first" \| "last", sibling: { selector, element }, from, to, of }` (its place among its siblings, 1-based) or `{ op: "set", property, from, to, token }`. Properties: `width`, `height` (the size as rendered, border and padding included), `gap`, `row-gap`, `column-gap`, `padding`, `margin-top`, `margin-bottom`. `token` names the page's custom property with that value |
 
 ## The prompt
@@ -39,14 +39,13 @@ Apply every item below, on all 3 pages. Do not stop after the first page.
 Report every item ID as done, skipped or blocked, grouped by page,
 and name the route to open to verify it.
 End with the number of items done out of 6.
-If Luci's MCP tools are connected, also call resolve_feedback ...
 ```
 
 - **Header:** the number of pages and items. With more than one page, the agent is told not to stop after the first.
 - **Pages:** `## Page i of N: <route>  (<page source>)`, in page-number order. When a prompt leaves out a page (all its items done), the IDs keep the session's page number and the heading says so: `(item IDs start with P3)`.
-- **Items:** `- [ref] intent, priority: "comment"` (a multi-line comment is joined with ` / `), then `selector:`, `selected text:` for a text selection, `text:` (or `element:` when it has no text). Questions and answers so far follow as `you asked:` and `answer:`.
+- **Items:** `- [ref] intent, priority: "comment"` (a multi-line comment is joined with ` / `), then `selector:`, `selected text:` for a text selection, `text:` (or `element:` when it has no text). On older notes, questions and answers from the earlier agent sync follow as `you asked:` and `answer:`.
 - **Layout notes:** after the element lines, `layout, planned in a 1280px wide window (keep it working at other widths):` and one step per change, such as `move it before \`nav > a:nth-of-type(1)\` (a): 3rd of 3 → 1st` or `padding 16px → 24px (--space-6)`.
 - **Detail level:** `compact` stops there; `standard` (the default) adds `source:` and `components:`; `detailed` adds `styles:`.
-- **When done:** the report request (FR28) with the item count, and the MCP tools to use when connected.
+- **When done:** the report request (FR28) with the item count. The person reads the report, checks the work and marks notes done in the toolbar.
 
-Copying a prompt marks its items `sent`; the next copy leaves sent items out unless the person asks to include them (FR29).
+Copying a prompt marks its items `sent` (copied); the next copy holds the new notes, or every note not done when there are none new (FR29). Reading the prompt over MCP changes nothing.

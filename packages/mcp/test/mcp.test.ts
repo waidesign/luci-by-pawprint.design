@@ -37,13 +37,12 @@ describe('luci-mcp tools (B11)', () => {
   it('serves the ported tools plus get_active_task and propose_memory, and the feedback and capture tools (M6)', () => {
     const names = TOOLS.map(t => t.name).sort();
     expect(names).toEqual([
-      'acknowledge_feedback', 'add_skill_packs', 'analyze_project', 'ask_feedback_question', 'clear_feedback', 'dismiss_feedback',
+      'add_skill_packs', 'analyze_project',
       'get_active_task', 'get_capture', 'get_feedback_prompt', 'get_global_brain', 'get_project_context', 'get_project_graph',
       'get_project_skills', 'get_project_status', 'get_skill', 'initialize_project', 'intake_docs', 'list_captures', 'list_feedback',
       'list_skill_packs', 'list_skills', 'load_project_skills', 'load_skills', 'propose_memory', 'recommend_skills',
-      'remove_skill_packs', 'resolve_feedback', 'search_skills', 'select_project_skills', 'update_project_memory'
+      'remove_skill_packs', 'search_skills', 'select_project_skills', 'update_project_memory'
     ]);
-    expect(TOOLS.find(t => t.name === 'clear_feedback')!.annotations.destructiveHint).toBe(true);
     const readOnly = TOOLS.filter(t => t.annotations.readOnlyHint).map(t => t.name);
     expect(readOnly).toContain('get_project_context');
     expect(readOnly).not.toContain('update_project_memory');
@@ -172,7 +171,7 @@ describe('feedback and captures over MCP (M6, FR30)', () => {
   const add = (dir: string, route: string, comment: string) =>
     new FeedbackStore(dir).add({ page: { url: `http://localhost:5173${route}` }, target, comment, intent: 'fix', priority: 'high' });
 
-  it('lists open items, gives the prompt (marking them sent), and records acknowledge, question, resolve and dismiss', async () => {
+  it('reads only: lists the notes not done and gives the prompt, changing nothing (user request, 2026-11-13)', async () => {
     const dir = await initialized();
     expect((await call(dir, 'list_feedback')).text).toContain('No open feedback');
     add(dir, '/pricing', 'Label wraps');
@@ -183,28 +182,21 @@ describe('feedback and captures over MCP (M6, FR30)', () => {
     expect(listed.map(i => [i.id, i.page, i.status])).toEqual([['P1-A1', '/pricing', 'pending'], ['P1-A2', '/pricing', 'pending'], ['P2-A1', '/checkout', 'pending']]);
     expect(listed[0]!.source).toBe('src/pages/Checkout.jsx:21');
 
+    const before = fs.readdirSync(path.join(dir, '.luci', 'feedback')).map(f => fs.readFileSync(path.join(dir, '.luci', 'feedback', f), 'utf8'));
     const prompt = (await call(dir, 'get_feedback_prompt')).text;
     expect(prompt).toMatch(/^# UI feedback: 2 pages, 3 items/);
     expect(prompt).toContain('## Page 2 of 2: /checkout');
-    expect(new FeedbackStore(dir).list().map(i => i.status)).toEqual(['sent', 'sent', 'sent']);
+    expect(prompt).not.toContain('resolve_feedback');
+    // Nothing was written: statuses stay as the person left them
+    expect(fs.readdirSync(path.join(dir, '.luci', 'feedback')).map(f => fs.readFileSync(path.join(dir, '.luci', 'feedback', f), 'utf8'))).toEqual(before);
+    for (const name of ['list_feedback', 'get_feedback_prompt']) expect(TOOLS.find(t => t.name === name)!.annotations.readOnlyHint, name).toBe(true);
+    for (const gone of ['acknowledge_feedback', 'ask_feedback_question', 'resolve_feedback', 'dismiss_feedback', 'clear_feedback']) {
+      expect((await call(dir, gone, { id: 'P1-A1' })).isError, gone).toBe(true);
+    }
 
-    expect((await call(dir, 'acknowledge_feedback', { ids: ['P1-A1', 'P9-A9'] })).text).toBe('Acknowledged P1-A1. Not found: P9-A9.');
-    expect((await call(dir, 'ask_feedback_question', { id: 'P1-A2', question: 'Which heading?' })).text).toBe('Asked about P1-A2.');
-    expect((await call(dir, 'resolve_feedback', { id: 'P1-A1', summary: 'Shortened the label' })).text).toBe('Resolved P1-A1.');
-    expect((await call(dir, 'dismiss_feedback', { id: 'P2-A1', reason: 'Already disabled' })).text).toBe('Dismissed P2-A1.');
-    const missing = await call(dir, 'resolve_feedback', { id: 'P7-A1', summary: 'x' });
-    expect(missing.isError).toBe(true);
-
-    const store = new FeedbackStore(dir);
-    expect(store.get('P1-A2')).toMatchObject({ status: 'question', thread: [{ from: 'agent', text: 'Which heading?' }] });
-    store.answer('P1-A2', 'The h1');
-    expect(JSON.parse((await call(dir, 'list_feedback')).text)).toEqual([expect.objectContaining({ id: 'P1-A2', status: 'acknowledged', thread: ['agent: Which heading?', 'person: The h1'] })]);
-    // The question and answer travel with the item in the next prompt
-    expect((await call(dir, 'get_feedback_prompt')).text).toContain('  you asked: "Which heading?"\n  answer: "The h1"');
-
-    expect((await call(dir, 'clear_feedback')).text).toBe('Removed 2 items: P1-A1, P2-A1.');
-    // Numbers on a page are not reused after clearing
-    expect(add(dir, '/pricing', 'Another').ref).toBe('P1-A3');
+    // The person marks one done in the toolbar: it leaves the open list
+    new FeedbackStore(dir).markDone('P1-A1');
+    expect(JSON.parse((await call(dir, 'list_feedback')).text).map((i: { id: string }) => i.id)).toEqual(['P1-A2', 'P2-A1']);
   });
 
   it('every tool says how to set up a project without .luci/, and writes nothing', async () => {

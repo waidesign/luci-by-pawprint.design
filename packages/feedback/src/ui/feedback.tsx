@@ -45,16 +45,18 @@ export interface FeedbackProps {
   /** Look for `luci serve` again (the badge becomes a button); resolves null when connected, else why not. */
   onConnect?: () => Promise<string | null>;
   onClose: () => void;
-  /** How often to look for the agent's changes (project only). Default 2000ms. */
-  pollMs?: number;
 }
 
-export const STATUS_TEXT: Readonly<Record<FeedbackItem['status'], string>> = {
-  pending: 'Not sent yet', sent: 'Sent to the agent', acknowledged: 'The agent is on it', question: 'The agent asked a question',
-  resolved: 'Done', dismissed: 'Not done'
-};
-const STATUS_MARK: Readonly<Record<FeedbackItem['status'], string>> = { pending: '', sent: '', acknowledged: '…', question: '?', resolved: '✓', dismissed: '–' };
+/**
+ * Three statuses, all set by the person (changed 13 Nov 2026: no agent sync): new, copied in a
+ * prompt, done. Statuses from the earlier agent sync read as copied or done.
+ */
+type Shown = 'new' | 'copied' | 'done';
+export const shownStatus = (s: FeedbackItem['status']): Shown => (s === 'pending' ? 'new' : s === 'resolved' || s === 'dismissed' ? 'done' : 'copied');
+export const STATUS_TEXT: Readonly<Record<Shown, string>> = { new: 'New', copied: 'Copied', done: 'Done' };
+const STATUS_MARK: Readonly<Record<Shown, string>> = { new: '', copied: '', done: '✓' };
 const isOpen = (i: FeedbackItem) => OPEN_STATUSES.includes(i.status);
+const isCopied = (i: FeedbackItem) => shownStatus(i.status) === 'copied';
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
 interface Draft {
@@ -139,12 +141,13 @@ export function Feedback(props: FeedbackProps) {
     }
   };
 
-  // Notes load at start; in the project, the agent's changes show up within a poll
+  // Notes load at start, and again when the person comes back to the tab (another tab may have added some)
   useEffect(() => {
     void reload();
-    if (backend.kind !== 'project') return;
-    const timer = setInterval(() => void reload(), props.pollMs ?? 2000);
-    return () => clearInterval(timer);
+    const onVisible = () => { if (doc.visibilityState === 'visible') void reload(); };
+    doc.addEventListener('visibilitychange', onVisible);
+    win.addEventListener('focus', onVisible);
+    return () => { doc.removeEventListener('visibilitychange', onVisible); win.removeEventListener('focus', onVisible); };
   }, [backend]);
 
   // Single-page apps change routes without a page load: follow the address, and keep markers on their elements
@@ -370,10 +373,10 @@ export function Feedback(props: FeedbackProps) {
         if (!pos) return null;
         const n = parseRef(item.ref)?.n;
         return (
-          <button type="button" class={`marker ${item.status}${pos.lost ? ' lost' : ''}`} data-marker={item.ref} data-status={item.status}
-            title={`${item.ref}: ${STATUS_TEXT[item.status]}`} style={{ left: `${pos.x}px`, top: `${pos.y}px` }}
+          <button type="button" class={`marker ${shownStatus(item.status)}${pos.lost ? ' lost' : ''}`} data-marker={item.ref} data-status={shownStatus(item.status)}
+            title={`${item.ref}: ${STATUS_TEXT[shownStatus(item.status)]}`} style={{ left: `${pos.x}px`, top: `${pos.y}px` }}
             onClick={() => { setOpenRef(r => (r === item.ref ? null : item.ref)); setDraft(null); }}>
-            {n}{STATUS_MARK[item.status]}
+            {n}{STATUS_MARK[shownStatus(item.status)]}
           </button>
         );
       })}
@@ -466,12 +469,12 @@ function NoteForm(props: { initial?: NoteFields; submitLabel: string; onSubmit: 
   );
 }
 
-/** One note: what it says, its status and thread; edit it (text, intent, priority), answer, reopen, delete. */
+/** One note: what it says and its status; mark it done or reopen it, edit it (text, intent, priority), delete it. */
 function NoteDetails(props: { item: FeedbackItem; backend: FeedbackBackend; act: Act; onClose?: () => void; inList?: boolean }) {
   const { item, backend, act } = props;
-  const [answer, setAnswer] = useState('');
   const [editing, setEditing] = useState(false);
-  const done = item.status === 'resolved' || item.status === 'dismissed';
+  const shown = shownStatus(item.status);
+  const done = shown === 'done';
   if (editing) {
     return (
       <div class="stack" data-part="edit-note">
@@ -485,7 +488,7 @@ function NoteDetails(props: { item: FeedbackItem; backend: FeedbackBackend; act:
   return (
     <div class="stack details">
       {/* In the list, the row above already shows the ref, status and text */}
-      {!props.inList && <h3>{item.ref} <span class={`status ${item.status}`} data-part="status">{STATUS_TEXT[item.status]}</span></h3>}
+      {!props.inList && <h3>{item.ref} <span class={`status ${shown}`} data-part="status">{STATUS_TEXT[shown]}</span></h3>}
       {!props.inList && <p class="meta" data-part="note-meta">{item.intent} · {item.priority} priority · {item.target.element}</p>}
       {!props.inList && <p data-part="comment-text" class="comment">{item.comment}</p>}
       <p class="meta" data-part="note-source">
@@ -493,21 +496,18 @@ function NoteDetails(props: { item: FeedbackItem; backend: FeedbackBackend; act:
         {item.target.components?.length ? ` · ${item.target.components.slice(-3).join(' › ')}` : ''}
       </p>
       {item.target.selectedText && <p class="quote">“{item.target.selectedText}”</p>}
-      {item.resolution && <p class="dim" data-part="resolution">{item.status === 'resolved' ? 'Done: ' : 'Not done: '}{item.resolution}</p>}
+      {/* From the earlier agent sync, on older notes */}
+      {item.resolution && <p class="dim" data-part="resolution">Agent's note: {item.resolution}</p>}
       {item.thread.length > 0 && (
         <ul class="thread" data-part="thread">
           {item.thread.map(m => <li class={m.from}>{m.from === 'agent' ? 'Agent: ' : 'You: '}{m.text}</li>)}
         </ul>
       )}
-      {item.status === 'question' && (
-        <div class="stack">
-          <textarea data-part="answer" placeholder="Your answer" value={answer} onInput={e => setAnswer((e.currentTarget as HTMLTextAreaElement).value)} />
-          <div class="row"><button type="button" class="primary" data-action="answer" disabled={!answer.trim()} onClick={() => void act(() => backend.change(item.ref, { action: 'answer', text: answer.trim() }))}>Answer</button></div>
-        </div>
-      )}
       <div class="row">
+        {done
+          ? <button type="button" data-action="reopen" onClick={() => void act(() => backend.change(item.ref, { action: 'reopen' }))}>Reopen</button>
+          : <button type="button" class="primary" data-action="mark-done" title="You checked the agent's work: this note is done" onClick={() => void act(() => backend.change(item.ref, { action: 'done' }))}>Mark done</button>}
         <button type="button" data-action="edit" onClick={() => setEditing(true)}>Edit</button>
-        {done && <button type="button" data-action="reopen" onClick={() => void act(() => backend.change(item.ref, { action: 'reopen' }))}>Reopen</button>}
         <button type="button" data-action="delete" onClick={() => void act(async () => { await backend.remove(item.ref); props.onClose?.(); })}>Delete</button>
         {props.onClose && <button type="button" data-action="close-item" onClick={props.onClose}>Close</button>}
       </div>
@@ -517,7 +517,7 @@ function NoteDetails(props: { item: FeedbackItem; backend: FeedbackBackend; act:
 
 type Tab = 'open' | 'done' | 'all';
 
-/** Notes, page by page: tabs for not done / done / all; a row per note; open one to read, edit or answer it. */
+/** Notes, page by page: tabs for not done / done / all; a row per note; open one to mark it done, edit or delete it. */
 function NotesPanel(props: {
   items: FeedbackItem[]; route: string; backend: FeedbackBackend; act: Act; scope: ReturnType<typeof copyScope>;
   onCopy: () => void; onShow: (ref: string) => void; webhook: { send: () => void; note: string | null } | null;
@@ -526,6 +526,7 @@ function NotesPanel(props: {
   const [expanded, setExpanded] = useState<string | null>(null);
   const done = props.items.filter(i => !isOpen(i));
   const open = props.items.filter(isOpen);
+  const copied = props.items.filter(isCopied);
   const shown = tab === 'open' ? open : tab === 'done' ? done : props.items;
   const pages = new Map<number, FeedbackItem[]>();
   for (const i of shown) {
@@ -551,10 +552,10 @@ function NotesPanel(props: {
               {list.map(i => (
                 <li data-item={i.ref} class={expanded === i.ref ? 'expanded' : ''}>
                   <button type="button" class="row-main" data-item-open aria-expanded={expanded === i.ref} onClick={() => setExpanded(e => (e === i.ref ? null : i.ref))}>
-                    <span class={`dot marker-like ${i.status}`} aria-hidden="true">{parseRef(i.ref)?.n}{STATUS_MARK[i.status]}</span>
+                    <span class={`dot marker-like ${shownStatus(i.status)}`} aria-hidden="true">{parseRef(i.ref)?.n}{STATUS_MARK[shownStatus(i.status)]}</span>
                     <span class="body">
                       <span class="comment">{i.comment}</span>
-                      <span class="meta">{i.ref} · {i.intent} · {i.priority} · <span class={`status ${i.status}`}>{STATUS_TEXT[i.status]}</span></span>
+                      <span class="meta">{i.ref} · {i.intent} · {i.priority}{i.layout ? ' · layout' : ''} · <span class={`status ${shownStatus(i.status)}`}>{STATUS_TEXT[shownStatus(i.status)]}</span></span>
                     </span>
                   </button>
                   {expanded === i.ref && (
@@ -574,7 +575,9 @@ function NotesPanel(props: {
       <div class="row footer">
         <button type="button" class="primary" data-action="copy-prompt-panel" disabled={!props.scope.count} onClick={props.onCopy}>Copy prompt{props.scope.count ? ` (${props.scope.label})` : ''}</button>
         {props.webhook && <button type="button" data-action="send-webhook" disabled={!props.scope.count} onClick={props.webhook.send}>Send to webhook</button>}
-        <button type="button" data-action="clear-done" disabled={!done.length} title="Delete the notes that are done or not done" onClick={() => void props.act(() => props.backend.clear('done'))}>Clear done ({done.length})</button>
+        <button type="button" data-action="mark-copied-done" disabled={!copied.length} title="You checked the agent's work on every copied note"
+          onClick={() => void props.act(async () => { for (const i of copied) await props.backend.change(i.ref, { action: 'done' }); })}>Mark all copied as done ({copied.length})</button>
+        <button type="button" data-action="clear-done" disabled={!done.length} title="Delete the notes that are done" onClick={() => void props.act(() => props.backend.clear('done'))}>Clear done ({done.length})</button>
       </div>
       {props.webhook?.note && <p class="dim" data-part="webhook-note">{props.webhook.note}</p>}
     </>

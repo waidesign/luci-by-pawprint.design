@@ -38,7 +38,6 @@ export interface DevToolbarOptions {
   storage?: KeyValue;
   /** The mode to open in (default: the last one used in this tab, else Feedback). */
   mode?: Mode;
-  pollMs?: number;
 }
 
 export interface DevToolbarHandle {
@@ -168,8 +167,7 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
         settings: readJson<FeedbackSettings>(storage, KEYS.feedback, DEFAULT_FEEDBACK_SETTINGS),
         onSettingsChange: s => storage.setItem(KEYS.feedback, JSON.stringify(s)),
         modes: modeSwitch(),
-        onClose: () => { current = null; showLauncher(); },
-        ...(options.pollMs ? { pollMs: options.pollMs } : {})
+        onClose: () => { current = null; showLauncher(); }
       });
     } else if (mode === 'layout') {
       current = mountLayout({

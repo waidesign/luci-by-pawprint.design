@@ -210,7 +210,7 @@ Version 0.1 covers all four modules: 56 requirements, 49 of them must-have (P0).
 | FR27 | **Page-grouped prompt.** The prompt opens with the count of pages and items, groups items by page with route and source file, and gives each item a stable ID such as `P2-A3`. | P0 |
 | FR28 | **Completion report.** The prompt ends by asking the agent to report the status of every item ID, page by page, and name the route to open to verify it. | P0 |
 | FR29 | **Sent state.** Copied items are marked as sent, so the next copy does not repeat them unless asked. | P0 |
-| FR30 | **Agent sync over MCP.** The agent can list pending items, acknowledge, ask a question, resolve with a summary and clear; each marker shows its status on the page. | P0 |
+| FR30 | **Agent sync over MCP.** The agent can list pending items, acknowledge, ask a question, resolve with a summary and clear; each marker shows its status on the page. (Changed 13 Nov 2026 at the user's request: the person stays in control. Notes are New, Copied or Done, and only the person marks them done; over MCP the agent can only read them, with `list_feedback` and `get_feedback_prompt`.) | P0 |
 | FR31 | **Pause animations and webhook send.** Freeze the page to annotate a frame; send annotations to a configured webhook. | P1 |
 | FR32 | **Layout mode.** Plan layout changes on the live page and send them as notes: step 1 resizes existing elements, moves them among their siblings, and sets gap, padding and margins, snapped to the page's spacing scale with its token named, previewed on the real page with undo, redo and reset (React's DOM is never moved). Each note carries exact steps and the window width it was planned at. Later steps: insert the project's own components, saved captures or blocks; wireframe a new page. (Added 13 Nov 2026, after Agentation's Layout mode.) | P1 |
 
@@ -497,8 +497,8 @@ Luci's Feedback module matches these fourteen Agentation features, taken from [i
 | Output includes CSS selector, source file path, React component tree and computed styles | M6 |
 | Settings for marker colour and output detail | M6 |
 | Clear all annotations | M6 |
-| Agent reads pending annotations over MCP | M6 |
-| Agent acknowledges, asks a question, resolves with a summary, or dismisses | M6 |
+| Agent reads pending annotations over MCP | M6 (read only) |
+| Agent acknowledges, asks a question, resolves with a summary, or dismisses | Dropped 13 Nov 2026 at the user's request: the person marks notes done |
 | Pause animations to annotate one frame | M6, lower priority |
 | Send annotations to a webhook | M6, lower priority |
 | Watch mode, where the agent waits for new annotations | v0.2 |

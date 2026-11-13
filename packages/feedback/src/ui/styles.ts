@@ -10,11 +10,8 @@ export const FEEDBACK_CSS = `${TOOLBAR_CSS}
   display: inline-flex; align-items: center; justify-content: center; gap: 2px; border-radius: 999px; border: 2px solid var(--marker);
   background: var(--marker); color: #18181b; font: 600 11px/1 system-ui, sans-serif; cursor: pointer; box-shadow: 0 2px 8px rgb(0 0 0 / 0.35); }
 .marker:hover { filter: brightness(1.1); background: var(--marker); }
-.marker.sent { background: #18181b; color: var(--marker); }
-.marker.acknowledged { background: #18181b; color: #60a5fa; border-color: #60a5fa; }
-.marker.question { background: #f59e0b; border-color: #f59e0b; }
-.marker.resolved { background: #4ade80; border-color: #4ade80; }
-.marker.dismissed { background: #52525b; border-color: #52525b; color: #e4e4e7; }
+.marker.copied { background: #18181b; color: var(--marker); }
+.marker.done { background: #4ade80; border-color: #4ade80; }
 .marker.lost { opacity: 0.6; border-style: dashed; }
 .pop { position: fixed; z-index: 2147483647; width: min(340px, calc(100vw - 24px)); display: flex; flex-direction: column; gap: 8px; padding: 10px 12px;
   background: var(--bg); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 40px rgb(0 0 0 / 0.45); }
@@ -25,10 +22,8 @@ export const FEEDBACK_CSS = `${TOOLBAR_CSS}
 .thread li { padding: 4px 8px; border-radius: 6px; background: #27272a; }
 .thread li.agent { background: #3b2f63; }
 .status { display: inline-block; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); font-size: 12px; }
-.status.question { border-color: #f59e0b; color: #fbbf24; }
-.status.resolved { border-color: #4ade80; color: #86efac; }
-.status.acknowledged { border-color: #60a5fa; color: #93c5fd; }
-.status.dismissed { color: var(--muted); }
+.status.new { border-color: var(--marker); }
+.status.done { border-color: #4ade80; color: #86efac; }
 .chip-add { position: fixed; z-index: 2147483647; }
 .swatches { display: flex; gap: 6px; }
 .swatches button { width: 24px; height: 24px; padding: 0; border-radius: 50%; border: 2px solid transparent; }
@@ -56,11 +51,8 @@ export const FEEDBACK_CSS = `${TOOLBAR_CSS}
 .meta { color: var(--muted); font-size: 12px; margin: 0; }
 .dot { flex: none; min-width: 22px; height: 22px; padding: 0 5px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px;
   border: 2px solid var(--marker); background: var(--marker); color: #18181b; font: 600 11px/1 system-ui, sans-serif; }
-.dot.sent { background: transparent; color: var(--marker); }
-.dot.acknowledged { background: transparent; color: #60a5fa; border-color: #60a5fa; }
-.dot.question { background: #f59e0b; border-color: #f59e0b; }
-.dot.resolved { background: #4ade80; border-color: #4ade80; }
-.dot.dismissed { background: #52525b; border-color: #52525b; color: #e4e4e7; }
+.dot.copied { background: transparent; color: var(--marker); }
+.dot.done { background: #4ade80; border-color: #4ade80; }
 .row-details { display: flex; flex-direction: column; gap: 8px; padding: 0 10px 10px 42px; }
 .details h3 { display: flex; gap: 8px; align-items: center; }
 .details .comment { margin: 0; }

@@ -49,6 +49,7 @@ function itemLines(item: FeedbackItem, detail: DetailLevel): string[] {
     lines.push(`  styles: ${Object.entries(t.styles).map(([k, v]) => `${k} ${v}`).join('; ')}`);
   }
   if (item.thread.length) {
+    // From the earlier agent sync: older notes may still hold a question and its answer
     for (const m of item.thread) lines.push(`  ${m.from === 'agent' ? 'you asked' : 'answer'}: ${quote(m.text)}`);
   }
   return lines;
@@ -86,8 +87,7 @@ export function formatFeedbackPrompt(items: readonly FeedbackItem[], options: Pr
     '## When done',
     `Report every item ID as done, skipped or blocked, grouped by page,`,
     `and name the route to open to verify it.`,
-    `End with the number of items done out of ${total}.`,
-    `If Luci's MCP tools are connected, also call resolve_feedback for each item you did (with a one-line summary), dismiss_feedback for each you did not (with the reason), and ask_feedback_question when something is unclear.`
+    `End with the number of items done out of ${total}.`
   );
   return `${out.join('\n')}\n`;
 }

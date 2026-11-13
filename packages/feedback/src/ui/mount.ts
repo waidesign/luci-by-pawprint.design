@@ -16,7 +16,6 @@ export interface FeedbackMountOptions {
   modes?: ModeSwitchProps;
   onConnect?: () => Promise<string | null>;
   onClose?: () => void;
-  pollMs?: number;
 }
 
 export interface FeedbackHandle {
@@ -58,7 +57,6 @@ export function mountFeedback(options: FeedbackMountOptions): FeedbackHandle {
     ...(options.onSettingsChange ? { onSettingsChange: options.onSettingsChange } : {}),
     ...(options.modes ? { modes: options.modes } : {}),
     ...(options.onConnect ? { onConnect: options.onConnect } : {}),
-    ...(options.pollMs ? { pollMs: options.pollMs } : {}),
     onClose: () => { destroy(); options.onClose?.(); }
   }), mountPoint);
   return { host, destroy };

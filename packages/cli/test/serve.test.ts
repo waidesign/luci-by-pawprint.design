@@ -69,10 +69,11 @@ describe('luci serve: the bridge (M6.3)', () => {
     expect((await request(bridge, 'POST', '/feedback/prompt', { body: {} })).json()).toEqual({ prompt: null, refs: [] });
     expect((await request(bridge, 'POST', '/feedback/prompt', { body: { includeSent: true } })).json().refs).toHaveLength(3);
 
-    // The agent asks (as luci-mcp would); the person answers from the page
-    new FeedbackStore(dir).ask('P1-A2', 'Which heading?');
-    const answered = await request(bridge, 'PATCH', '/feedback/P1-A2', { body: { action: 'answer', text: 'The h1' } });
-    expect(answered.json().item).toMatchObject({ status: 'acknowledged', thread: [{ from: 'agent' }, { from: 'person', text: 'The h1' }] });
+    // The person marks a note done (after checking the agent's work), and can reopen it
+    expect((await request(bridge, 'PATCH', '/feedback/P1-A2', { body: { action: 'done' } })).json().item.status).toBe('resolved');
+    expect((await request(bridge, 'PATCH', '/feedback/P1-A2', { body: { action: 'reopen' } })).json().item.status).toBe('pending');
+    // The old agent actions are gone
+    expect((await request(bridge, 'PATCH', '/feedback/P1-A2', { body: { action: 'answer', text: 'x' } })).status).toBe(400);
     expect((await request(bridge, 'PATCH', '/feedback/P1-A1', { body: { action: 'edit', priority: 'low' } })).json().item.priority).toBe('low');
     expect((await request(bridge, 'DELETE', '/feedback/P2-A1')).json()).toEqual({ removed: ['P2-A1'] });
     expect((await request(bridge, 'DELETE', '/feedback/P2-A1')).status).toBe(404);

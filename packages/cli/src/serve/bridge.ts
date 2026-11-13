@@ -71,9 +71,8 @@ const newItemSchema = z.object({
 });
 const patchSchema = z.union([
   z.object({ action: z.literal('edit'), comment: z.string().trim().min(1).optional(), intent: z.enum(FEEDBACK_INTENTS).optional(), priority: z.enum(FEEDBACK_PRIORITIES).optional() }),
-  z.object({ action: z.literal('answer'), text: z.string().trim().min(1) }),
-  z.object({ action: z.literal('reopen') }),
-  z.object({ action: z.literal('resolve'), summary: z.string().trim().min(1) })
+  z.object({ action: z.literal('done') }),
+  z.object({ action: z.literal('reopen') })
 ]);
 const promptSchema = z.object({ detail: z.enum(DETAIL_LEVELS).optional(), includeSent: z.boolean().optional(), refs: z.array(z.string()).optional() });
 const clearSchema = z.object({ which: z.enum(['done', 'all']) });
@@ -191,9 +190,8 @@ export function startBridge(options: BridgeOptions): Promise<Bridge> {
       const one = /^\/feedback\/(P\d+-A\d+)$/.exec(route)?.[1];
       if (one && req.method === 'PATCH') {
         const body = parse(patchSchema, await readBody(req));
-        const item = body.action === 'answer' ? feedback.answer(one, body.text)
+        const item = body.action === 'done' ? feedback.markDone(one)
           : body.action === 'reopen' ? feedback.reopen(one)
-          : body.action === 'resolve' ? feedback.resolve(one, body.summary)
           : feedback.edit(one, { ...(body.comment ? { comment: body.comment } : {}), ...(body.intent ? { intent: body.intent } : {}), ...(body.priority ? { priority: body.priority } : {}) });
         send(200, { item });
         return;

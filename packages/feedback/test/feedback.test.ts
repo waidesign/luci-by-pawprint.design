@@ -148,14 +148,14 @@ describe('where items are kept (FR26, FR29)', () => {
     expect((await b.prompt({ includeSent: true })).refs).toHaveLength(3);
     await b.add(item('http://localhost:5173/pricing', 'Four'));
     expect((await b.prompt({})).refs).toEqual(['P1-A3']);
-    expect((await b.change('P1-A1', { action: 'resolve', summary: 'Done' })).status).toBe('resolved');
+    expect((await b.change('P1-A1', { action: 'done' })).status).toBe('resolved');
     expect(await b.clear('done')).toEqual(['P1-A1']);
     // Survives a "reload": a new backend on the same storage
     const again = browserBackend({ getItem: k => map.get(k) ?? null, setItem: (k, v) => { map.set(k, v); } });
     expect((await again.list()).map(i => i.ref)).toEqual(['P1-A2', 'P1-A3', 'P2-A1']);
   });
 
-  it('the project, through luci serve: the agent sees the same items', async () => {
+  it('the project, through luci serve: the same items the agent can read', async () => {
     const dir = tempProject({ 'package.json': JSON.stringify({ name: 'shop' }) });
     await initProject(dir, { registry: new SkillRegistry({ user: false }) });
     const bridge = await startBridge({ projectDir: dir, port: 0 });
@@ -165,9 +165,8 @@ describe('where items are kept (FR26, FR29)', () => {
       expect(b.kind).toBe('project');
       await b.add(item('http://localhost:5173/pricing', 'One'));
       expect(new FeedbackStore(dir).list().map(i => i.comment)).toEqual(['One']);
-      new FeedbackStore(dir).ask('P1-A1', 'Which one?');
-      expect((await b.list())[0]).toMatchObject({ status: 'question', thread: [{ from: 'agent', text: 'Which one?' }] });
-      expect((await b.change('P1-A1', { action: 'answer', text: 'The first' })).status).toBe('acknowledged');
+      expect((await b.change('P1-A1', { action: 'done' })).status).toBe('resolved');
+      expect(new FeedbackStore(dir).get('P1-A1')!.status).toBe('resolved');
       await expect(b.change('P9-A9', { action: 'reopen' })).rejects.toThrow(/No feedback item P9-A9/);
     } finally {
       await bridge.close();

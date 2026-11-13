@@ -44,4 +44,3 @@ Apply every item below, on all 3 pages. Do not stop after the first page.
 Report every item ID as done, skipped or blocked, grouped by page,
 and name the route to open to verify it.
 End with the number of items done out of 6.
-If Luci's MCP tools are connected, also call resolve_feedback for each item you did (with a one-line summary), dismiss_feedback for each you did not (with the reason), and ask_feedback_question when something is unclear.

@@ -31,9 +31,9 @@ export interface NewItem {
 
 export type ItemChange =
   | { action: 'edit'; comment?: string; intent?: FeedbackIntent; priority?: FeedbackPriority }
-  | { action: 'answer'; text: string }
-  | { action: 'reopen' }
-  | { action: 'resolve'; summary: string };
+  /** The person marks it done (after checking the agent's work). */
+  | { action: 'done' }
+  | { action: 'reopen' };
 
 export interface PromptRequest {
   detail?: DetailLevel;
@@ -171,9 +171,8 @@ export function browserBackend(storage: KeyValue, key = 'luci.feedback'): Feedba
       return item;
     },
     change: async (ref, change) => update(ref, i => {
-      if (change.action === 'answer') return { ...i, status: 'acknowledged', thread: [...i.thread, { from: 'person', text: change.text, at: now() }] };
+      if (change.action === 'done') return { ...i, status: 'resolved' };
       if (change.action === 'reopen') { const { resolution: _r, ...rest } = i; return { ...rest, status: 'pending' }; }
-      if (change.action === 'resolve') return { ...i, status: 'resolved', resolution: change.summary };
       return { ...i, ...(change.comment ? { comment: change.comment } : {}), ...(change.intent ? { intent: change.intent } : {}), ...(change.priority ? { priority: change.priority } : {}) };
     }),
     remove: async (ref) => save(load().filter(i => i.ref !== ref)),

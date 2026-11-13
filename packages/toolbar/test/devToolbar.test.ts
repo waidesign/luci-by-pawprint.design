@@ -1,9 +1,9 @@
-﻿/// <reference lib="dom" />
+/// <reference lib="dom" />
 /**
  * The dev toolbar in a real React 19 app (M6.5), driven like a person would: annotate elements and
  * text, see markers, copy the prompt, switch to Capture and save into the project. The last test is
- * M6's "Done when", automated: notes on three pages reach the agent's MCP tools as one prompt, and
- * the agent's answers show on the page.
+ * M6's "Done when", automated: notes on three pages become one prompt (the same one the agent can
+ * read over MCP), and the person marks them done after checking the work.
  */
 import fs from 'node:fs';
 import http from 'node:http';
@@ -88,7 +88,7 @@ describe('dev toolbar without luci serve (this browser only)', { timeout: 60_000
     expect(await page.locator('[data-part="hover-label"]').innerText()).toBe('button · PlanCard');
     await annotate(page, '.plan:nth-of-type(2) button', 'Label wraps on mobile', { priority: 'high' });
     const marker = page.locator('[data-marker="P1-A1"]');
-    expect(await marker.getAttribute('data-status')).toBe('pending');
+    expect(await marker.getAttribute('data-status')).toBe('new');
     // The marker sits on the button's top-right corner
     const [m, b] = await Promise.all([marker.boundingBox(), page.locator('.plan:nth-of-type(2) button').boundingBox()]);
     expect(Math.abs(m!.x + m!.width / 2 - (b!.x + b!.width))).toBeLessThan(2);
@@ -136,7 +136,7 @@ describe('dev toolbar without luci serve (this browser only)', { timeout: 60_000
     // The system clipboard may change line endings (Windows); the text is the same
     expect((await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, '\n').trimEnd()).toBe(prompt.trimEnd());
     expect(prompt).toContain('[P1-A1] change, low: "Label wraps on mobile"');
-    expect(await page.locator('[data-marker="P1-A1"]').getAttribute('data-status')).toBe('sent');
+    expect(await page.locator('[data-marker="P1-A1"]').getAttribute('data-status')).toBe('copied');
     // Copy prompt stays available: with nothing new, it copies every note not done (user request, 2026-11-13)
     expect(await page.locator('[data-action="copy-prompt"]').isDisabled()).toBe(false);
     expect(await page.locator('[data-action="copy-prompt"]').innerText()).toBe('Copy prompt (all 2)');
@@ -191,7 +191,7 @@ describe('webhook (FR31)', { timeout: 60_000 }, () => {
       expect(received).toHaveLength(1);
       expect(received[0]!.prompt).toMatch(/^# UI feedback: 1 page, 1 item/);
       expect(received[0]!.items.map(i => i.ref)).toEqual(['P1-A1']);
-      expect(await page.locator('[data-marker="P1-A1"]').getAttribute('data-status')).toBe('sent');
+      expect(await page.locator('[data-marker="P1-A1"]').getAttribute('data-status')).toBe('copied');
     } finally {
       await ctx.close();
       await new Promise<void>(r => { hook.closeAllConnections(); hook.close(() => r()); });
@@ -263,7 +263,7 @@ describe('dev toolbar with luci serve (M6 Done when, automated)', { timeout: 90_
   }, 60_000);
   afterAll(async () => { await bridge?.close(); });
 
-  it('notes on three pages reach the agent as one prompt; its answers show on the markers', async () => {
+  it('notes on three pages become one prompt; the person marks them done', async () => {
     const ctx = await context(bridge.url);
     const page = await open(ctx, '/');
     expect(await page.locator('[data-part="connection"]').innerText()).toBe('Project');
@@ -287,51 +287,48 @@ describe('dev toolbar with luci serve (M6 Done when, automated)', { timeout: 90_
     expect(store.get('P3-A1')!.page.source).toBe('src/pages/Checkout.jsx');
     expect(store.get('P3-A1')!.target.source).toEqual({ file: 'src/components/FieldError.jsx', line: 2, column: 10 });
 
-    // The agent gets one prompt: 3 pages, 6 IDs, the report request (FR27, FR28)
-    const prompt = await mcp('get_feedback_prompt');
+    // The person copies one prompt for the agent: 3 pages, 6 IDs, the report request (FR27, FR28)
+    await page.click('[data-action="copy-prompt"]');
+    const prompt = await page.locator('[data-part="prompt"]').innerText();
     expect(prompt.split('\n')[0]).toBe('# UI feedback: 3 pages, 6 items');
     expect(prompt).toContain('Do not stop after the first page.');
     expect([...prompt.matchAll(/^## Page (\d) of 3: (\S+)/gm)].map(m => m[2])).toEqual(['/', '/pricing', '/checkout']);
     expect(refsIn(prompt)).toEqual(['P1-A1', 'P1-A2', 'P2-A1', 'P2-A2', 'P3-A1', 'P3-A2']);
     expect(prompt).toContain('End with the number of items done out of 6.');
-    // The page shows they were sent
-    await page.waitForFunction(() => document.querySelector('luci-feedback')!.shadowRoot!.querySelector('[data-marker="P3-A1"]')?.getAttribute('data-status') === 'sent');
+    expect(prompt).not.toContain('resolve_feedback');
+    // The agent can read the same prompt (read only)
+    expect((await mcp('get_feedback_prompt')).trimEnd()).toBe(prompt.trimEnd());
+    expect(await page.locator('[data-marker="P3-A1"]').getAttribute('data-status')).toBe('copied');
+    await page.click('[data-action="prompt-back"]');
 
-    // The agent works through them (FR30): acknowledge, ask, resolve, dismiss
-    expect(await mcp('acknowledge_feedback', { ids: ['P1-A1', 'P1-A2', 'P2-A1', 'P2-A2', 'P3-A1', 'P3-A2'] })).toContain('Acknowledged P1-A1, P1-A2');
-    expect(await mcp('ask_feedback_question', { id: 'P3-A2', question: 'Show a spinner too?' })).toBe('Asked about P3-A2.');
-    expect(await mcp('resolve_feedback', { id: 'P3-A1', summary: 'Error text is now #da1e28' })).toBe('Resolved P3-A1.');
-    for (const id of ['P1-A1', 'P1-A2', 'P2-A1', 'P2-A2']) await mcp('resolve_feedback', { id, summary: 'Done' });
-
-    // The markers on this page follow within a poll; the person answers the question on the page
-    const status = (ref: string) => page.locator(`[data-marker="${ref}"]`).getAttribute('data-status');
-    await page.waitForFunction(() => document.querySelector('luci-feedback')!.shadowRoot!.querySelector('[data-marker="P3-A2"]')?.getAttribute('data-status') === 'question', undefined, { timeout: 6000 });
-    expect(await status('P3-A1')).toBe('resolved');
-    expect(await page.locator('[data-marker="P3-A2"]').innerText()).toBe('2?');
-    await page.click('[data-marker="P3-A2"]');
-    expect(await page.locator('[data-part="thread"]').innerText()).toContain('Agent: Show a spinner too?');
-    await page.fill('[data-part="answer"]', 'Yes, a small one');
-    await page.click('[data-action="answer"]');
-    await page.waitForFunction(() => document.querySelector('luci-feedback')!.shadowRoot!.querySelector('[data-marker="P3-A2"]')?.getAttribute('data-status') === 'acknowledged');
-    const remaining = JSON.parse(await mcp('list_feedback'));
-    expect(remaining).toEqual([expect.objectContaining({ id: 'P3-A2', thread: ['agent: Show a spinner too?', 'person: Yes, a small one'] })]);
-    await mcp('resolve_feedback', { id: 'P3-A2', summary: 'Disabled with a spinner' });
-    await page.click('[data-action="close-item"]');
-
-    // The person sees every note done, page by page: "Not done" is empty, "Done" has all six
+    // After checking the agent's work, the person marks notes done: one on the page, the rest at once
     await page.click('[data-action="items"]');
-    await page.locator('[data-tab="open"]:text-is("Not done (0)")').waitFor({ timeout: 6000 });
+    await page.click('[data-marker="P3-A1"]');
+    await page.click('[data-part="item"] [data-action="mark-done"]');
+    await page.locator('[data-marker="P3-A1"][data-status="done"]').waitFor();
+    expect(await page.locator('[data-marker="P3-A1"]').innerText()).toBe('1✓');
+    await page.click('[data-action="close-item"]');
+    await page.click('[data-action="items"]');
+    expect(await page.locator('[data-action="mark-copied-done"]').innerText()).toBe('Mark all copied as done (5)');
+    await page.click('[data-action="mark-copied-done"]');
+
+    // Every note done, page by page: "Not done" is empty, "Done" has all six
+    await page.locator('[data-tab="open"]:text-is("Not done (0)")').waitFor();
     expect(await page.locator('[data-item]').count()).toBe(0);
     await page.click('[data-tab="done"]');
     expect(await page.locator('[data-page]').count()).toBe(3);
-    expect(await page.locator('[data-item]').count()).toBe(6);
     expect(await page.locator('[data-item] .status').allInnerTexts()).toEqual(Array(6).fill('Done'));
-    // A row opens to show the note, with the agent's summary
-    await page.click('[data-item="P3-A1"] [data-item-open]');
-    expect(await page.locator('[data-item="P3-A1"] [data-part="resolution"]').innerText()).toBe('Done: Error text is now #da1e28');
+    expect(JSON.parse(await mcp('list_feedback', { status: 'resolved' }))).toHaveLength(6);
+    // A done note can be reopened from its row
+    await page.click('[data-item="P2-A1"] [data-item-open]');
+    await page.click('[data-item="P2-A1"] [data-action="reopen"]');
+    await page.locator('[data-tab="open"]:text-is("Not done (1)")').waitFor();
+    await page.click('[data-tab="done"]');
     await page.click('[data-action="clear-done"]');
-    await page.waitForFunction(() => !document.querySelector('luci-feedback')!.shadowRoot!.querySelector('[data-item]'));
-    expect(new FeedbackStore(dir).list()).toEqual([]);
+    await page.locator('[data-tab="done"]:text-is("Done (0)")').waitFor();
+    // Only the reopened note is left
+    expect(new FeedbackStore(dir).list().map(i => [i.ref, i.status])).toEqual([['P2-A1', 'pending']]);
+    new FeedbackStore(dir).clear('all');
     await ctx.close();
   });
 

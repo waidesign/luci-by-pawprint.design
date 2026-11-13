@@ -11,11 +11,14 @@ import { z } from 'zod';
 export const FEEDBACK_INTENTS = ['fix', 'change', 'question', 'approve'] as const;
 export const FEEDBACK_PRIORITIES = ['high', 'medium', 'low'] as const;
 /**
- * Where an item is: `pending` (not given to an agent yet), `sent` (in a copied prompt),
- * `acknowledged` (an agent is on it), `question` (the agent asked something; see the thread),
- * `resolved` (done, with a summary) or `dismissed` (not done, with the reason).
+ * Where a note is, set by the person (changed 13 Nov 2026: no agent writes statuses any more):
+ * `pending` (new), `sent` (copied in a prompt) or `resolved` (the person marked it done).
+ * `acknowledged`, `question` and `dismissed` come from the earlier agent sync and are still read
+ * (as copied, copied and done) so older notes keep working.
  */
 export const FEEDBACK_STATUSES = ['pending', 'sent', 'acknowledged', 'question', 'resolved', 'dismissed'] as const;
+/** The statuses Luci sets now. */
+export const PERSON_STATUSES = ['pending', 'sent', 'resolved'] as const;
 /** How much the prompt says about each element: selector and text; + source and components; + styles. */
 export const DETAIL_LEVELS = ['compact', 'standard', 'detailed'] as const;
 
