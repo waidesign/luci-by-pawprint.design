@@ -10,6 +10,10 @@
     --font-sans: "Segoe UI", Roboto, sans-serif; --font-mono: "Cascadia Code", monospace;
     --color-bg: #ffffff; --color-surface: #f4f4f4; --color-text: #161616; --color-muted: #525252; --color-border: #e0e0e0; --color-primary: #0f62fe;
     --color-unused: #da1e28;
+    /* A shadow list as lattice.com writes it: the color library crashed on it (user report 2026-11-13) */
+    --shadow-image: drop-shadow(0 0px 1px rgb(0 31 31 / 24%)) drop-shadow(0 2px 2px rgb(0 31 31 / 2%)) drop-shadow(0 4px 4px rgb(0 31 31 / 2%));
+    /* A deleted Webflow variable, named as lattice.com has them: the format cannot hold the name */
+    --color--sand-100\<deleted\|variable-203dfcdb\>: #f4f1ec;
     --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-6: 24px; --space-8: 32px; --space-12: 48px;
     --text-sm: 14px; --text-md: 16px; --text-2xl: 32px;
   }

@@ -2,19 +2,25 @@
  * The Color tool (FR13, FR14): one color (from an element or the eyedropper), and the page's
  * color system. Every color a visible element uses appears, each with a role.
  */
-import { converter, parse } from 'culori';
-import { colorKey, isTransparent, toCaptureName, type ColorRole, type ColorSystem, type ColorToken } from '@luci/format/capture';
+import { converter } from 'culori';
+import { colorKey, isTransparent, parseColor, toCaptureName, type ColorRole, type ColorSystem, type ColorToken } from '@luci/format/capture';
 import { tokenOf, type ElementSnapshot, type PageSnapshot, type SnapshotProperty } from './model.js';
 import { elementName } from './naming.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
 const toOklch = converter('oklch');
 
+/**
+ * Custom property names the format holds. Others are left out of the token list: e.g. Webflow's
+ * deleted variables, "--color--sand-100<deleted|variable-203dfcdb-...>" (lattice.com, 2026-11-13).
+ */
+const TOKEN_NAME = /^--[\w-]+$/;
+
 /** Colors with at least this much chroma (OKLCH) are accents; the rest are neutrals. */
 export const ACCENT_CHROMA = 0.06;
 
 export function isChromatic(computed: string): boolean {
-  const c = parse(computed);
+  const c = parseColor(computed);
   return Boolean(c && (toOklch(c).c ?? 0) >= ACCENT_CHROMA);
 }
 
@@ -84,7 +90,7 @@ export function colorSystem(snapshot: PageSnapshot, options: { captured?: string
   const tokenUses = new Map<string, number>();
   for (const u of uses) if (u.token) tokenUses.set(u.token, (tokenUses.get(u.token) ?? 0) + 1);
   const tokens = Object.entries(snapshot.customProperties)
-    .filter(([, v]) => colorKey(v) !== null && !/^-?\d/.test(v.trim()))
+    .filter(([token, v]) => TOKEN_NAME.test(token) && colorKey(v) !== null && !/^-?\d/.test(v.trim()))
     .map(([token, value]) => ({ token, value: value.trim(), count: tokenUses.get(token) ?? 0 }))
     .sort((a, b) => a.token.localeCompare(b.token));
 

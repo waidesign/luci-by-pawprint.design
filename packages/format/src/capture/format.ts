@@ -245,7 +245,10 @@ function pageBody(c: PageCapture, s: CaptureSettings): string[] {
     '', '## Colors', part(c.color && colorSystem(c.color, s), 'The page has no visible colors.'),
     '', '## Spacing', part(c.spacing && spacingSystem(c.spacing, s), 'The page sets no spacing.'),
     '', '## Components', `- ${c.components.length} kind${c.components.length === 1 ? '' : 's'} of component on this page, each with its variants and the states its stylesheet rules give it. For a state done in JavaScript, capture that component on its own with Luci.`,
-    ...components
+    ...components,
+    ...(c.skipped?.length
+      ? ['', '## Left out', '- Luci could not read these parts of the page, so they are not in this file:', ...c.skipped.map(x => `- ${x.part}: ${x.reason}`)]
+      : [])
   ];
 }
 

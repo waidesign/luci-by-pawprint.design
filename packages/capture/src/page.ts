@@ -2,7 +2,7 @@
  * The full-page reference: the page's typography, color and spacing systems, plus one entry per kind
  * of component on it (buttons, links, fields, cards...), each with its variants and states.
  */
-import { toCaptureName, type ComponentCapture, type PageCapture } from '@luci/format/capture';
+import { colorSystemSchema, componentSchema, spacingSystemSchema, toCaptureName, typographySystemSchema, type ComponentCapture, type PageCapture } from '@luci/format/capture';
 import { colorSystem } from './color.js';
 import { componentCapture, componentType } from './component.js';
 import type { ElementSnapshot, PageSnapshot } from './model.js';
@@ -56,21 +56,50 @@ export interface PageComponentInput {
   states: ComponentCapture['states'];
 }
 
-/** The full-page reference from a snapshot and the components found on it (with their states). */
-export function pageCapture(snap: PageSnapshot, components: readonly PageComponentInput[], options: { captured?: string } = {}): PageCapture {
+export type SkippedPart = NonNullable<PageCapture['skipped']>[number];
+
+/** A short reason: a format check's first problem ("color.tokens.34.token: ..."), or the error's message. */
+const reasonOf = (err: unknown): string => {
+  const issues = (err as { issues?: { path: PropertyKey[]; message: string }[] }).issues;
+  const text = issues?.length ? `${issues[0]!.path.map(String).join('.')}: ${issues[0]!.message}` : err instanceof Error ? err.message : String(err);
+  return text.replace(/\s+/g, ' ').slice(0, 200);
+};
+
+/**
+ * The full-page reference from a snapshot and the components found on it (with their states).
+ * A part that cannot be read (one odd value on a real site) is left out and listed, never the whole file.
+ */
+export function pageCapture(snap: PageSnapshot, components: readonly PageComponentInput[], options: { captured?: string; skipped?: readonly SkippedPart[] } = {}): PageCapture {
   const captured = options.captured ?? today();
+  const skipped: SkippedPart[] = [...(options.skipped ?? [])];
   const used = new Map<string, number>();
-  const entries = components.map(({ entry, inside, states }) => {
-    const c = componentCapture(snap, entry, inside, { captured, system: true, states });
-    const n = (used.get(c.meta.name) ?? 0) + 1;
-    used.set(c.meta.name, n);
-    return n > 1 ? { ...c, meta: { ...c.meta, name: `${c.meta.name}-${n}` } } : c;
+  const entries = components.flatMap(({ entry, inside, states }) => {
+    try {
+      // Checked against the format here, so one part that does not fit is left out, not the whole file
+      const c = componentSchema.parse(componentCapture(snap, entry, inside, { captured, system: true, states }));
+      const n = (used.get(c.meta.name) ?? 0) + 1;
+      used.set(c.meta.name, n);
+      return [n > 1 ? { ...c, meta: { ...c.meta, name: `${c.meta.name}-${n}` } } : c];
+    } catch (err) {
+      skipped.push({ part: `component ${entry.selector}`, reason: reasonOf(err) });
+      return [];
+    }
   });
+  const system = <T>(part: string, read: () => T | null, schema: { parse(v: unknown): T }): T | null => {
+    try {
+      const value = read();
+      return value === null ? null : schema.parse(value);
+    } catch (err) {
+      skipped.push({ part, reason: reasonOf(err) });
+      return null;
+    }
+  };
   return {
     meta: { name: pageName(snap.url), scope: 'page', type: 'page', source: snap.url, captured, method: 'measured' },
-    typography: typographySystem(snap, { captured }),
-    color: colorSystem(snap, { captured }),
-    spacing: spacingSystem(snap, { captured }),
-    components: entries
+    typography: system('typography', () => typographySystem(snap, { captured }), typographySystemSchema),
+    color: system('colors', () => colorSystem(snap, { captured }), colorSystemSchema),
+    spacing: system('spacing', () => spacingSystem(snap, { captured }), spacingSystemSchema),
+    components: entries,
+    ...(skipped.length ? { skipped } : {})
   };
 }

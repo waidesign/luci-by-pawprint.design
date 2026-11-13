@@ -231,6 +231,12 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
     for (const h of ['## Typography', '### Roles', '## Colors', '## Spacing', '### Base unit', '## Components', '#### States']) expect(md).toContain(`\n${h}\n`);
     expect(md).toContain('\n### primary-button\n');
     expect(md).toContain('| hover | background-color #0f62fe → #0353e9 | stylesheet rules |');
+    // lattice.com (2026-11-13): a drop-shadow list and a deleted Webflow variable on :root no longer break it
+    const rootNames = await page.evaluate(() => Object.keys((window as unknown as { LuciCapture: { snapshotPage(): { customProperties: object } } }).LuciCapture.snapshotPage().customProperties));
+    expect(rootNames.some(n => n.includes('deleted'))).toBe(true);
+    expect(rootNames).toContain('--shadow-image');
+    expect(md).not.toContain('deleted');
+    expect(md).not.toContain('## Left out');
     expect(await page.locator('[data-action="whole-page"]').getAttribute('aria-pressed')).toBe('true');
     expect(page.url()).toBe(`${server.origin}/css-variables/`);
   });

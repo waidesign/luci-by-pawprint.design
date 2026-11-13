@@ -179,14 +179,30 @@ export function Toolbar(props: ToolbarProps) {
     return () => { for (const t of types) win.removeEventListener(t, guard, true); };
   }, []);
 
+  /** An unexpected error: said in the panel, and logged in full to the page's console for a bug report. */
+  const failed = (err: unknown) => {
+    console.error('Luci:', err);
+    // A format check lists its problems as JSON: say the first one only
+    const issue = (err as { issues?: { path: PropertyKey[]; message: string }[] }).issues?.[0];
+    const reason = issue ? `${issue.path.map(String).join('.')}: ${issue.message}` : err instanceof Error ? err.message : String(err);
+    show({ ok: false, message: `Luci could not read this page (${reason.slice(0, 200)}). The details are in the browser console (F12).` });
+  };
+
   const produce = async (system: boolean) => {
     if (!picked || !tool) return;
     if (tool !== 'component') {
       setComponentCtx(null);
-      show(system ? captureSystem(tool, picked.live, settings, picked.entry) : captureOne(tool, picked.live, picked.entry, settings, choice));
+      try {
+        show(system ? captureSystem(tool, picked.live, settings, picked.entry) : captureOne(tool, picked.live, picked.entry, settings, choice));
+      } catch (err) {
+        failed(err);
+      }
       return;
     }
-    if (system && (picked.entry.tag === 'body' || picked.entry.tag === 'html')) { show(captureSystem(tool, picked.live, settings, picked.entry)); return; }
+    if (system && (picked.entry.tag === 'body' || picked.entry.tag === 'html')) {
+      try { show(captureSystem(tool, picked.live, settings, picked.entry)); } catch (err) { failed(err); }
+      return;
+    }
     setBusy('Reading states…');
     try {
       const rest = restingValues(stateTargets(picked.live, picked.entry));
@@ -195,6 +211,8 @@ export function Toolbar(props: ToolbarProps) {
       setComponentCtx({ live: picked.live, entry: picked.entry, system, states, rest });
       setManualTarget(missingStates(states).length ? ALL_MISSING : 'hover');
       show(captureComponent(picked.live, picked.entry, settings, { system, states }));
+    } catch (err) {
+      failed(err);
     } finally {
       setBusy(null);
     }
@@ -271,7 +289,7 @@ export function Toolbar(props: ToolbarProps) {
       try {
         show(capturePage(liveSnapshot(doc), settingsRef.current));
       } catch (err) {
-        show({ ok: false, message: `Luci could not read this page (${err instanceof Error ? err.message : String(err)}).` });
+        failed(err);
       } finally {
         setPageBusy(false);
       }

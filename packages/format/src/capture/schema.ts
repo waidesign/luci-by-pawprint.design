@@ -221,7 +221,9 @@ export const pageSchema = z.object({
   typography: typographySystemSchema.nullable(),
   color: colorSystemSchema.nullable(),
   spacing: spacingSystemSchema.nullable(),
-  components: z.array(componentSchema)
+  components: z.array(componentSchema),
+  /** Parts Luci could not read on this page (a system, or one component by its selector), left out with the reason. */
+  skipped: z.array(z.object({ part: z.string().min(1), reason: z.string().min(1) })).optional()
 });
 export type PageCapture = z.infer<typeof pageSchema>;
 

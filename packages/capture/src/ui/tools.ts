@@ -8,7 +8,7 @@ import { componentCapture, componentParts, componentType } from '../component.js
 import { prepareTargets, readComputed, readDisabled, readStatesFromRules, statesFromForced, type ComputedMap, type ForcedReading, type StateTarget } from '../states.js';
 import { snapshotPage } from '../dom.js';
 import type { ElementSnapshot, PageSnapshot } from '../model.js';
-import { pageCapture, pageComponents } from '../page.js';
+import { pageCapture, pageComponents, type SkippedPart } from '../page.js';
 import { distanceToken, spacingSet, spacingSystem, spacingToken, spacingUses, type SpacingUse } from '../spacing.js';
 import { textToken, typographySystem } from '../text.js';
 
@@ -159,8 +159,15 @@ function ruleStates(live: LiveSnapshot, entry: ElementSnapshot): ComponentCaptur
 
 /** "Whole page": one file with the page's systems and every kind of component on it. */
 export function capturePage(live: LiveSnapshot, settings: CaptureSettings, options: { captured?: string } = {}): Result {
-  const components = pageComponents(live.snapshot).map(entry => ({ entry, inside: insideOf(live, entry), states: ruleStates(live, entry) }));
-  const page = pageCapture(live.snapshot, components, { captured: options.captured ?? CAPTURED() });
+  const skipped: SkippedPart[] = [];
+  const components = pageComponents(live.snapshot).map(entry => {
+    let states: ComponentCapture['states'] = [];
+    try { states = ruleStates(live, entry); } catch (err) {
+      skipped.push({ part: `states of ${entry.selector}`, reason: (err instanceof Error ? err.message : String(err)).slice(0, 200) });
+    }
+    return { entry, inside: insideOf(live, entry), states };
+  });
+  const page = pageCapture(live.snapshot, components, { captured: options.captured ?? CAPTURED(), skipped });
   if (!page.typography && !page.color && !page.spacing && !page.components.length) return { ok: false, message: 'This page has nothing visible to capture.' };
   return { ok: true, output: toOutput(page, settings) };
 }

@@ -13,9 +13,9 @@
  * While states are read, transitions on the targets are switched off with an inline style, so
  * values are final rather than the first frame of a transition. Everything is restored at once.
  */
-import { formatRgb, parse } from 'culori';
+import { formatRgb } from 'culori';
 import type { ComponentCapture } from '@luci/format/capture';
-import { colorKey } from '@luci/format/capture';
+import { colorKey, parseColor } from '@luci/format/capture';
 import { specificity } from './dom.js';
 
 export type StateName = ComponentCapture['states'][number]['state'];
@@ -183,7 +183,7 @@ export function readStatesFromRules(targets: readonly StateTarget[]): ComponentS
 /** Colors in the browser's own form ("rgb(3, 83, 233)"), so rule values compare and read like computed ones. */
 function browserForm(prop: string, value: string): string {
   if (!/color$/.test(prop)) return value;
-  const c = parse(value);
+  const c = parseColor(value);
   return c ? formatRgb(c) : value;
 }
 

@@ -1,5 +1,5 @@
 /** Writing captured values with the user's unit and color settings. Pure and browser-safe. */
-import { formatHex, formatHex8, formatHsl, formatRgb, oklch, parse } from 'culori';
+import { formatHex, formatHex8, formatHsl, formatRgb, oklch, parse, type Color } from 'culori';
 import { captureSettingsSchema, type CaptureSettings } from './schema.js';
 
 export type ResolvedSettings = { units: 'px' | 'rem' | 'both'; colors: 'hex' | 'rgb' | 'hsl' | 'oklch'; rootFontSize: number };
@@ -33,16 +33,29 @@ export function pxValue(computed: string): number | null {
   return m ? Number(m[1]) : null;
 }
 
+/**
+ * A color, or undefined when the text is not one. culori's parse can throw instead of returning
+ * undefined on some non-color values (lattice.com's "drop-shadow(0 0px 1px rgb(0 31 31 / 24%)) ..."
+ * custom properties), so every color read goes through here.
+ */
+export function parseColor(text: string): Color | undefined {
+  try {
+    return parse(text.trim());
+  } catch {
+    return undefined;
+  }
+}
+
 /** True for a fully transparent color. */
 export function isTransparent(computed: string): boolean {
-  const c = parse(computed.trim());
+  const c = parseColor(computed);
   return computed.trim() === 'transparent' || (c !== undefined && (c.alpha ?? 1) === 0);
 }
 
 /** A color as the settings ask. Unknown values (currentcolor, gradients) are returned unchanged. */
 export function formatColor(computed: string, settings: CaptureSettings = {}): string {
   const s = resolveSettings(settings);
-  const c = parse(computed.trim());
+  const c = parseColor(computed);
   if (!c) return computed.trim();
   if ((c.alpha ?? 1) === 0) return 'transparent';
   switch (s.colors) {
@@ -62,7 +75,7 @@ export function formatColor(computed: string, settings: CaptureSettings = {}): s
 
 /** One key per color, the same for "rgb(15, 98, 254)" and "#0f62fe": for grouping and matching. */
 export function colorKey(computed: string): string | null {
-  const c = parse(computed.trim());
+  const c = parseColor(computed);
   if (!c) return null;
   return (c.alpha ?? 1) < 1 ? formatHex8(c) : formatHex(c);
 }

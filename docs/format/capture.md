@@ -52,7 +52,7 @@ One file per capture, flat: `<site>.<scope>.<name>.design.md`, where `<site>` is
 | token, color | Color (value, authored, token, role); Where used (element, property, selector), or a note that the pixel matched no element and is estimated |
 | token, spacing | Spacing (value, kind: padding, margin, gap or distance; property; label: `authored` when a CSS declaration sets it, `measured` when it comes from geometry); Where used, or From and To for a distance. The Spacing tool's **All** (its default) writes every padding, margin and gap one element sets as rows of the same table, in one file named `spacing-<tag>` |
 | system, typography | Roles (role, family, size, weight, line height, letter spacing, color, uses, elements); Families; Scale |
-| system, color | Roles (background, text, border, accent; with uses and the properties that apply them); Tokens (color custom properties, including unused ones) |
+| system, color | Roles (background, text, border, accent; with uses and the properties that apply them); Tokens (color custom properties on `:root`, including unused ones; a property whose name has characters other than letters, digits, `-` and `_`, such as Webflow's deleted variables, is left out) |
 | system, spacing | Scale (values with uses and tokens); Base unit (the unit most uses are multiples of, and the share that fits); Outliers |
 
 `parseCapture` checks a file's frontmatter and that every section its scope and type need is present.
@@ -80,7 +80,7 @@ The toolbar's **Whole page** writes one file for the current page: `scope: page`
 | Spacing | The spacing system: Scale, Base unit, Outliers |
 | Components | One `### <name>` per kind of component on the page (button, link, field, navigation, header, footer, form, dialog, table, card, badge; at most 16): its type and an example selector, then its Tokens, Anatomy, States, Motion and Variants two heading levels down (`#### States`) |
 
-A system the page does not have (no visible text, colors or spacing) is a one-line note instead. In a page file, states come from stylesheet rules (and the disabled attribute), and only the states found are listed; a state done in JavaScript needs the component captured on its own.
+A system the page does not have (no visible text, colors or spacing) is a one-line note instead. A part Luci cannot read on a real site (a system, or one component) is left out rather than failing the file, and an optional last section, **Left out**, lists each such part with the reason. In a page file, states come from stylesheet rules (and the disabled attribute), and only the states found are listed; a state done in JavaScript needs the component captured on its own.
 
 ## Basket export (collection)
 

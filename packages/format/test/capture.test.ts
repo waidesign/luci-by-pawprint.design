@@ -18,6 +18,7 @@ import {
   formatLength,
   isTransparent,
   parseCapture,
+  parseColor,
   pxValue,
   siteName,
   siteSlug,
@@ -174,6 +175,27 @@ describe('capture values and settings', () => {
     expect(siteSlug('https://www.Example.co.uk/x')).toBe('example-co-uk');
     expect(siteSlug('file:///C:/site/index.html')).toBe('local');
     expect(cleanSource('file:///C:/site/index.html?x=1')).toBe('file:///C:/site/index.html');
+  });
+
+  it('a value the color library cannot read is "not a color", never a crash (lattice.com, 2026-11-13)', () => {
+    const shadow = 'drop-shadow(0 0px 1px rgb(0 31 31 / 24%)) drop-shadow(0 2px 2px rgb(0 31 31 / 2%))';
+    expect(parseColor(shadow)).toBeUndefined();
+    expect(colorKey(shadow)).toBeNull();
+    expect(isTransparent(shadow)).toBe(false);
+    expect(formatColor(shadow, { colors: 'oklch' })).toBe(shadow);
+    expect(colorKey(' rgb(0 31 31 / 24%) ')).toBe('#001f1f3d');
+  });
+
+  it('a page file lists the parts Luci could not read under "Left out", and still parses', () => {
+    const sys = (k: string) => inputs[`example-com.system.${k}.design.md`]!.capture;
+    const page = {
+      meta: { name: 'pricing', scope: 'page', type: 'page', source: 'https://www.example.com/pricing', captured: '2026-11-12', method: 'measured' },
+      typography: sys('typography'), color: null, spacing: sys('spacing'), components: [],
+      skipped: [{ part: 'colors', reason: 'Cannot read properties of undefined' }]
+    } as unknown as Capture;
+    const text = formatCapture(page, {});
+    expect(text).toContain('\n## Left out\n- Luci could not read these parts of the page, so they are not in this file:\n- colors: Cannot read properties of undefined\n');
+    expect(parseCapture(text).ok).toBe(true);
   });
 
   it('the "site" source setting writes only the site name, and such a file still parses (user request)', () => {
