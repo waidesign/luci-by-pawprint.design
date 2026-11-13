@@ -247,7 +247,7 @@ export function snapshotPage(doc: Document = document, options: SnapshotOptions 
     return defaults.get(tag)!;
   };
 
-  const walkTree = (root: Document | ShadowRoot, hostSelector: string | null) => {
+  const walkTree = (root: Document | ShadowRoot, hostSelector: string | null, host: ElementSnapshot | null = null) => {
     const matches = matchRules(root, state);
     const visit = (el: Element, parent: ElementSnapshot | null, parentVisible: boolean) => {
       const tag = el.tagName.toLowerCase();
@@ -284,6 +284,7 @@ export function snapshotPage(doc: Document = document, options: SnapshotOptions 
         visible,
         hasText: ownText(el),
         inShadow: hostSelector !== null,
+        ...(parent ?? host ? { parent: (parent ?? host)!.id } : {}),
         styles,
         authored,
         ...(Object.keys(browserDefault).length ? { browserDefault } : {}),
@@ -294,7 +295,7 @@ export function snapshotPage(doc: Document = document, options: SnapshotOptions 
       // Children can show outside a zero-size box, and can override visibility; not past display:none or opacity 0
       const childrenCanShow = parentVisible && cs.display !== 'none' && Number(cs.opacity) > 0;
       for (const child of Array.from(el.children)) visit(child, snapshot, childrenCanShow);
-      if (options.shadow !== false && el.shadowRoot) walkTree(el.shadowRoot, snapshot.selector);
+      if (options.shadow !== false && el.shadowRoot) walkTree(el.shadowRoot, snapshot.selector, snapshot);
     };
     const top = root instanceof Document ? root.documentElement : null;
     if (top) visit(top, null, true);

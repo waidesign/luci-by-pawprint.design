@@ -9,6 +9,7 @@ import {
   captureSchema,
   metaSchema,
   siteNameSchema,
+  type Accessibility,
   type Capture,
   type CaptureMeta,
   type CaptureSettings,
@@ -127,7 +128,43 @@ function textToken(c: TextToken, s: CaptureSettings): string[] {
     const v = c.style[key];
     return v ? [[prop, show(v, kind, s), authored(v), code(v.token)]] : [];
   });
-  return ['## Text style', table(['Property', 'Value', 'Authored', 'Token'], rows), '', '## Where used', `- ${ref(c.usedBy)}`];
+  const out = ['## Text style', table(['Property', 'Value', 'Authored', 'Token'], rows), '', '## Where used', `- ${ref(c.usedBy)}`];
+  if (c.accessibility) out.push('', ...accessibilitySection(c.accessibility, s));
+  return out;
+}
+
+export const ACCESSIBILITY_NOTE = '- Measured on this page against WCAG 2.2. Check again wherever the colors, sizes or focus styles differ.';
+
+/** The ratios a text needs: AA and AAA, lower for large text. */
+const NEEDS = { normal: [4.5, 7], large: [3, 4.5] } as const;
+
+/** Accessibility notes as one table: contrast per text part, target size, focus visible. */
+export function accessibilitySection(a: Accessibility, s: CaptureSettings): string[] {
+  const rows: string[][] = [];
+  for (const c of a.contrast) {
+    const [aa, aaa] = NEEDS[c.large ? 'large' : 'normal'];
+    const result = c.level === 'AAA' ? 'AAA'
+      : c.level === 'AA' ? `AA (AAA needs ${aaa}:1)`
+      : `Fails (AA needs ${aa}:1)`;
+    rows.push([
+      'Text contrast', c.part ?? '',
+      `${round(c.ratio, 2)}:1, ${formatColor(c.text, s)} on ${formatColor(c.background, s)}, ${c.large ? 'large' : 'normal'} text`,
+      `${result}${c.estimated ? '. Estimated: the background is an image, a gradient or see-through' : ''}`
+    ]);
+  }
+  if (a.target) {
+    const t = a.target;
+    rows.push(['Target size', 'container', sizeText(t.width, t.height, s),
+      t.level === 'AAA' ? 'AAA (at least 44 × 44px)' : t.level === 'AA' ? 'AA (at least 24 × 24px; AAA needs 44 × 44px)' : 'Fails (AA needs 24 × 24px, unless it is a link inside a sentence)']);
+  }
+  if (a.focus) {
+    const f = a.focus;
+    rows.push(['Focus visible', 'container',
+      f.visible ? `${f.by.join(', ')} change${f.state ? ` on ${f.state}` : ''}` : f.visible === false ? 'nothing changes when it has focus' : 'not read: only stylesheet rules were checked',
+      f.visible ? 'Yes' : f.visible === false ? 'No: add a visible focus style' : 'Unknown: capture the component on its own in Luci to check']);
+  }
+  if (!rows.length) return ['## Accessibility', '- Nothing to check: no text, and nothing to click or focus.'];
+  return ['## Accessibility', table(['Check', 'Part', 'Measured', 'Result'], rows), '', ACCESSIBILITY_NOTE];
 }
 
 function colorToken(c: ColorToken, s: CaptureSettings): string[] {
@@ -293,6 +330,7 @@ function componentBody(c: ComponentCapture, s: CaptureSettings, noStates = '- No
   const out = ['## Tokens', tokens, '', '## Anatomy', ...anatomy];
   if (c.images?.length) out.push('', '## Images', ...imagesSection(c.images, s));
   out.push('', '## States', states, '', '## Motion', ...motion);
+  if (c.accessibility) out.push('', ...accessibilitySection(c.accessibility, s));
   if (c.variants) {
     out.push('', '## Variants', c.variants.length
       ? table(['Variant', 'Uses', 'Differences from this one', 'Example'], c.variants.map(v => [v.name, String(v.count), v.differences.length ? v.differences.map(d => styleText(d.property, d.value, s)).join(', ') : 'same styles', code(v.selector)]))

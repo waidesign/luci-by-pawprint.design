@@ -29,3 +29,12 @@ method: measured
 
 ## Motion
 - transition background-color 150ms ease-out
+
+## Accessibility
+| Check | Part | Measured | Result |
+| --- | --- | --- | --- |
+| Text contrast | label | 5:1, #ffffff on #0f62fe, normal text | AA (AAA needs 7:1) |
+| Target size | container | 132 × 48px | AAA (at least 44 × 44px) |
+| Focus visible | container | outline change on focus-visible | Yes |
+
+- Measured on this page against WCAG 2.2. Check again wherever the colors, sizes or focus styles differ.

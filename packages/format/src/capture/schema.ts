@@ -5,7 +5,7 @@
  *
  * Token captures (one text style, color or spacing value, or every spacing value of one element),
  * the three page systems (typography, color, spacing), components, and the full-page reference.
- * Section scope follows in v0.2.
+ * v0.2 adds accessibility notes to components and text; section scope follows.
  */
 import { z } from 'zod';
 
@@ -83,11 +83,49 @@ export type CaptureMeta = z.infer<typeof metaSchema>;
 const tokenMeta = (type: (typeof TOKEN_TYPES)[number]) => metaSchema.extend({ scope: z.literal('token'), type: z.literal(type) });
 const systemMeta = (type: (typeof SYSTEM_TYPES)[number]) => metaSchema.extend({ scope: z.literal('system'), type: z.literal(type), selector: z.undefined().optional() });
 
+/** WCAG 2.2 levels a check meets: AAA, AA, or neither. */
+export const WCAG_LEVELS = ['AAA', 'AA', 'fail'] as const;
+export type WcagLevel = (typeof WCAG_LEVELS)[number];
+
+/**
+ * Accessibility notes (v0.2), computed from the capture: text contrast against the color behind it,
+ * target size for something you click, and whether focus shows. Each is what Luci measured on the
+ * page; `estimated` marks a contrast whose background is a picture, a gradient or see-through.
+ */
+export const accessibilitySchema = z.object({
+  contrast: z.array(z.object({
+    /** The part with the text; absent for a text capture or the container. */
+    part: slug.optional(),
+    /** Text and background colors as the browser resolved them (the background after layering). */
+    text: z.string().min(1),
+    background: z.string().min(1),
+    /** Rounded down to two decimals, so a pass is never claimed for 4.499. */
+    ratio: z.number().min(1).max(21),
+    /** Large text (24px, or 18.66px bold): the lower ratios apply. */
+    large: z.boolean(),
+    level: z.enum(WCAG_LEVELS),
+    estimated: z.boolean().optional()
+  })),
+  /** Something you click: its size against 24 by 24px (AA, 2.5.8) and 44 by 44px (AAA, 2.5.5). */
+  target: z.object({ width: z.number().nonnegative(), height: z.number().nonnegative(), level: z.enum(WCAG_LEVELS) }).optional(),
+  /**
+   * Something you can focus: whether its focus (or focus-visible) state changes how it looks, and
+   * the properties that change. `visible` null: Luci could not tell (states read from stylesheets only).
+   */
+  focus: z.object({
+    visible: z.boolean().nullable(),
+    state: z.enum(['focus-visible', 'focus']).optional(),
+    by: z.array(z.string().min(1))
+  }).optional()
+});
+export type Accessibility = z.infer<typeof accessibilitySchema>;
+
 export const textTokenSchema = z.object({
   meta: tokenMeta('text'),
   instructions: instructionsField,
   style: textStyleSchema,
-  usedBy: elementRefSchema
+  usedBy: elementRefSchema,
+  accessibility: accessibilitySchema.optional()
 });
 
 export const colorTokenSchema = z.object({
@@ -244,6 +282,8 @@ export const componentSchema = z.object({
   })),
   /** The image slots inside the component (its own background photo included), framed as the site shows them. */
   images: z.array(componentImageSchema).optional(),
+  /** Accessibility notes computed from the capture (v0.2). */
+  accessibility: accessibilitySchema.optional(),
   /** "The whole system": similar elements on the page, grouped by how they differ from this one. */
   variants: z.array(z.object({
     name: slug,

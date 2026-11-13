@@ -33,3 +33,11 @@ method: measured
 ## Motion
 - transition box-shadow 0.2s ease
 - image: transition transform 0.4s ease-out
+
+## Accessibility
+| Check | Part | Measured | Result |
+| --- | --- | --- | --- |
+| Text contrast | title | 14.81:1, #ffffff on #282828, large text | AAA. Estimated: the background is an image, a gradient or see-through |
+| Text contrast | meta | 4.56:1, #6f6f6f on #f4f4f4, normal text | AA (AAA needs 7:1) |
+
+- Measured on this page against WCAG 2.2. Check again wherever the colors, sizes or focus styles differ.

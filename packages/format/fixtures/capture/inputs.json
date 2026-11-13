@@ -11,7 +11,8 @@
         "letterSpacing": { "computed": "-0.96px", "authored": "-0.02em" },
         "color": { "computed": "rgb(22, 22, 22)", "authored": "var(--color-text)", "token": "--color-text" }
       },
-      "usedBy": { "element": "h1 (heading)", "selector": "main h1" }
+      "usedBy": { "element": "h1 (heading)", "selector": "main h1" },
+      "accessibility": { "contrast": [{ "text": "rgb(22, 22, 22)", "background": "rgb(255, 255, 255)", "ratio": 18.09, "large": true, "level": "AAA" }] }
     }
   },
   "example-com.token.color-primary.design.md": {

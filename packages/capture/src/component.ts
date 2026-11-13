@@ -4,6 +4,7 @@
  * states.ts. Works on the page snapshot only, so it is the same in both toolbar shells.
  */
 import { colorKey, isTransparent, round, toCaptureName, withoutUrls, type CapturedValue, type ComponentCapture, type ComponentImage } from '@luci/format/capture';
+import { componentAccessibility } from './a11y.js';
 import { isChromatic } from './color.js';
 import { imageSlot, type ImageReading } from './image.js';
 import { tokenOf, valueOf, type ElementSnapshot, type PageSnapshot, type SnapshotProperty } from './model.js';
@@ -342,6 +343,7 @@ export function componentCapture(
     ...(images.length ? { images } : {}),
     states,
     motion,
+    accessibility: componentAccessibility(snap, el, componentParts(snap, el, inside), states),
     ...(options.system ? { variants: variantsOf(snap, el, name) } : {})
   };
 }

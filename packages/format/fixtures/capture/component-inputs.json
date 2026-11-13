@@ -38,7 +38,12 @@
           { "property": "cursor", "from": "pointer", "to": { "computed": "not-allowed" } }
         ] }
       ],
-      "motion": [{ "kind": "transition", "target": "background-color", "duration": "150ms", "easing": "ease-out", "delay": "0s" }]
+      "motion": [{ "kind": "transition", "target": "background-color", "duration": "150ms", "easing": "ease-out", "delay": "0s" }],
+      "accessibility": {
+        "contrast": [{ "part": "label", "text": "rgb(255, 255, 255)", "background": "rgb(15, 98, 254)", "ratio": 5, "large": false, "level": "AA" }],
+        "target": { "width": 132, "height": 48, "level": "AAA" },
+        "focus": { "visible": true, "state": "focus-visible", "by": ["outline"] }
+      }
     }
   },
   "example-com.component.card.design.md": {
@@ -89,7 +94,13 @@
       "motion": [
         { "kind": "transition", "target": "box-shadow", "duration": "0.2s", "easing": "ease" },
         { "part": "image", "kind": "transition", "target": "transform", "duration": "0.4s", "easing": "ease-out" }
-      ]
+      ],
+      "accessibility": {
+        "contrast": [
+          { "part": "title", "text": "rgb(255, 255, 255)", "background": "rgb(40, 40, 40)", "ratio": 14.81, "large": true, "level": "AAA", "estimated": true },
+          { "part": "meta", "text": "rgb(111, 111, 111)", "background": "rgb(244, 244, 244)", "ratio": 4.56, "large": false, "level": "AA" }
+        ]
+      }
     }
   },
   "example-com.component.nav-link.design.md": {

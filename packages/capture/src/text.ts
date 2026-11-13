@@ -3,6 +3,7 @@
  * text style appears once, grouped into a role named from the elements that use it.
  */
 import { colorKey, pxValue, type TextStyle, type TextToken, type TypographySystem } from '@luci/format/capture';
+import { contrastOf } from './a11y.js';
 import { valueOf, type ElementSnapshot, type PageSnapshot } from './model.js';
 import { elementName } from './naming.js';
 
@@ -146,9 +147,11 @@ export function typographySystem(snapshot: PageSnapshot, options: { captured?: s
 export function textToken(snapshot: PageSnapshot, el: ElementSnapshot, options: { captured?: string } = {}): TextToken {
   const group = textGroups(snapshot).find(g => g.elements.some(e => e.id === el.id));
   const role = group?.role ?? el.tag;
+  const contrast = contrastOf(snapshot, el);
   return {
     meta: { name: `text-${role}`, scope: 'token', type: 'text', source: snapshot.url, selector: el.selector, captured: options.captured ?? today(), method: 'measured' },
     style: textStyleOf(el),
-    usedBy: { element: elementName(el.tag, el.role), selector: el.selector }
+    usedBy: { element: elementName(el.tag, el.role), selector: el.selector },
+    accessibility: { contrast: contrast ? [contrast] : [] }
   };
 }

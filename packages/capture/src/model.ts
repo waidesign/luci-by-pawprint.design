@@ -48,6 +48,8 @@ export interface ElementSnapshot {
   hasText: boolean;
   /** Inside a shadow root. */
   inShadow: boolean;
+  /** The id of the element around it (a shadow root's host for its top elements); absent for the root. */
+  parent?: number;
   styles: Partial<Record<SnapshotProperty, string>>;
   /** What the site wrote, for properties where it is known and differs: "var(--space-4)", "clamp(...)". */
   authored: Partial<Record<SnapshotProperty, string>>;

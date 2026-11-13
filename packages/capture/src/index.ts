@@ -9,4 +9,5 @@ export * from './component.js';
 export * from './page.js';
 export * from './states.js';
 export * from './image.js';
+export * from './a11y.js';
 export * from './ui/index.js';
