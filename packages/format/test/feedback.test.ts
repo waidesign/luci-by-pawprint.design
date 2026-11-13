@@ -86,6 +86,9 @@ describe('inserted parts and new pages (Layout mode steps 2 and 3)', () => {
     expect(layoutChangeText({ op: 'insert', what: { kind: 'component', name: 'PlanCard' }, position: 'after', width: '100%' })).toBe('insert a `PlanCard` after it, full width');
     expect(partText({ kind: 'component', name: 'Nav', example: { selector: 'nav', element: 'nav' } }, true)).toBe('the `Nav` component (one is at `nav`)');
     expect(shareText(6, 12)).toBe('1/2 of the width');
+    // A handle resize says which side moved
+    expect(layoutChangeText({ op: 'set', property: 'width', from: '720px', to: '1108px', grow: 'left' })).toBe('width as rendered 720px → 1108px, growing to the left (its right edge stays where it is)');
+    expect(layoutChangeText({ op: 'set', property: 'height', from: '400px', to: '360px', grow: 'up' })).toBe('height as rendered 400px → 360px, shrinking from the top (its bottom edge stays where it is)');
     expect(shareText(3, 3)).toBe('full width');
   });
 

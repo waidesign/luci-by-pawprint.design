@@ -23,7 +23,11 @@ export function layoutChangeText(c: LayoutChange): string {
   if (c.op === 'set') {
     if (c.property === 'grid-template-columns') return `grid columns ${c.from} → ${c.to}`;
     const rendered = /^(min-|max-)?(width|height)$/.test(c.property) && /px$/.test(c.to);
-    return `${c.property}${rendered ? ' as rendered' : ''} ${c.from} → ${c.to}${c.token ? ` (${c.token})` : ''}`;
+    const kept = { left: 'right', right: 'left', up: 'bottom', down: 'top' } as const;
+    const side = { left: 'the left', right: 'the right', up: 'the top', down: 'the bottom' } as const;
+    const toward = { left: 'to the left', right: 'to the right', up: 'upward', down: 'downward' } as const;
+    const grow = c.grow ? `, ${parseFloat(c.to) < parseFloat(c.from) ? `shrinking from ${side[c.grow]}` : `growing ${toward[c.grow]}`} (its ${kept[c.grow]} edge stays where it is)` : '';
+    return `${c.property}${rendered ? ' as rendered' : ''} ${c.from} → ${c.to}${c.token ? ` (${c.token})` : ''}${grow}`;
   }
   if (c.op === 'insert') {
     const where = { before: 'before it', after: 'after it', start: 'inside it, at the start', end: 'inside it, at the end' }[c.position];

@@ -114,6 +114,9 @@ describe('Layout mode', { timeout: 120_000 }, () => {
     expect(prompt).toContain('- move it before `nav > a:nth-of-type(1)` (a): 3rd of 3 → 1st');
     expect((await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, '\n').trimEnd()).toBe(prompt.trimEnd());
     expect(await page.locator('[data-part="layout-added"]').innerText()).toContain('The page is back');
+    // And why: Layout mode previews, the code has not changed yet
+    expect(await page.locator('[data-part="why-reset"]').innerText()).toContain('nothing in your code has changed yet');
+    expect(await page.locator('[data-part="reset-note"]').innerText()).toContain('Your planned changes are not lost');
     expect(await marked(page)).toBe(0);
     expect(await css(page, 'nav', 'column-gap')).toBe('12px');
     // Nothing went into the notes
@@ -151,12 +154,33 @@ describe('Layout mode', { timeout: 120_000 }, () => {
     expect(await page.locator('[data-part="move-note"]').count()).toBe(0);
 
     // The left handle widens it too, snapped to the scale
-    const before = (await page.locator('.plan:nth-of-type(2)').boundingBox())!.width;
+    const card = () => page.locator('.plan:nth-of-type(2)').boundingBox().then(b => b!);
+    const was = await card();
+    const before = was.width;
     const left = await center(page, '[data-handle="w"]');
     await drag(page, left, { x: left.x + 61, y: left.y });
-    const after = (await page.locator('.plan:nth-of-type(2)').boundingBox())!.width;
+    const now = await card();
+    const after = now.width;
     expect(after % unit).toBe(0);
     expect(Math.abs(after - (before - 61))).toBeLessThanOrEqual(unit);
+    // It changes on the side that was dragged: the right edge stays, the left edge follows the handle
+    expect(Math.abs(now.x + now.width - (was.x + was.width))).toBeLessThan(1);
+    expect(Math.abs(now.x - (was.x + 61))).toBeLessThanOrEqual(unit);
+    expect(await page.locator('[data-part="changes"]').innerText()).toMatch(/width as rendered [\d.]+px → \d+px, shrinking from the left \(its right edge stays where it is\)/);
+    // Dragged back past where it was, it grows to the left
+    const left2 = await center(page, '[data-handle="w"]');
+    await drag(page, left2, { x: left2.x - 81, y: left2.y });
+    const grown = await card();
+    expect(grown.width).toBeGreaterThan(before);
+    expect(grown.x).toBeLessThan(was.x);
+    expect(Math.abs(grown.x + grown.width - (was.x + was.width))).toBeLessThan(1);
+    expect(await page.locator('[data-part="changes"]').innerText()).toContain(', growing to the left (its right edge stays where it is)');
+    // The right handle: the left edge stays where it now is
+    const right = await center(page, '[data-handle="e"]');
+    await drag(page, right, { x: right.x - 40, y: right.y });
+    const r2 = await card();
+    expect(Math.abs(r2.x - grown.x)).toBeLessThan(1);
+    expect(r2.width).toBeLessThan(grown.width);
 
     // Padding: one side, then all four together
     await page.click('[data-prop="padding-left"] [data-step="+"]');
@@ -206,6 +230,33 @@ describe('Layout mode', { timeout: 120_000 }, () => {
     await page.click('luci-layout [data-mode="feedback"]');
     await page.locator('[data-action="annotate"]').waitFor();
     expect(await page.evaluate(() => ({ marked: document.querySelectorAll('[data-luci-layout]').length, sheets: document.querySelectorAll('style[data-part="layout-preview"]').length }))).toEqual({ marked: 0, sheets: 0 });
+    await page.context().close();
+  });
+
+  it('a centered box grows only on the dragged side, left or right (CSS alone would grow it on both)', async () => {
+    const page = await open('/pricing');
+    await page.addStyleTag({ content: '.plan { width: 400px; margin-left: auto; margin-right: auto; }' });
+    await page.click('.plan:nth-of-type(1) h2', { force: true });
+    await page.click('[data-action="select-parent"]');
+    const card = () => page.locator('.plan:nth-of-type(1)').boundingBox().then(b => b!);
+    const was = await card();
+    const left = await center(page, '[data-handle="w"]');
+    await drag(page, left, { x: left.x - 40, y: left.y });
+    const a = await card();
+    expect(a.width).toBeGreaterThan(was.width + 30);
+    expect(Math.abs(a.x + a.width - (was.x + was.width))).toBeLessThan(1);
+    const right = await center(page, '[data-handle="e"]');
+    await drag(page, right, { x: right.x + 40, y: right.y });
+    const b = await card();
+    expect(Math.abs(b.x - a.x)).toBeLessThan(1);
+    expect(b.x + b.width).toBeGreaterThan(a.x + a.width + 30);
+    // The top handle: the bottom edge stays
+    const top = await center(page, '[data-handle="n"]');
+    await drag(page, top, { x: top.x, y: top.y - 30 });
+    const c = await card();
+    expect(c.height).toBeGreaterThan(b.height + 20);
+    expect(Math.abs(c.y + c.height - (b.y + b.height))).toBeLessThan(1);
+    expect(await page.locator('[data-part="changes"]').innerText()).toContain(', growing upward (its bottom edge stays where it is)');
     await page.context().close();
   });
 

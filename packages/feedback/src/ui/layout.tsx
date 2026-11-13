@@ -34,7 +34,7 @@ const CURSOR: Readonly<Record<Edge, string>> = { n: 'ns-resize', s: 'ns-resize',
 type Drag =
   | { kind: 'resize'; edge: Edge; el: Element; x: number; y: number; w: number; h: number }
   | { kind: 'move'; el: Element; x: number; y: number }
-  | { kind: 'insert-resize'; edge: Edge; id: number; x: number; y: number; w: number; h: number; full: boolean }
+  | { kind: 'insert-resize'; edge: Edge; id: number; x: number; y: number; w: number; h: number; full: boolean; nudge: { x: number; y: number }; axis: 'x' | 'y' }
   | { kind: 'insert-move'; id: number; x: number; y: number };
 
 /** Where a new part would go for a point on the page, and what shows it. */
@@ -139,7 +139,7 @@ export function Layout(props: LayoutProps) {
   const [drop, setDrop] = useState<ReturnType<typeof dropTarget>>(null);
   const [linked, setLinked] = useState<{ margin: boolean; padding: boolean }>({ margin: false, padding: false });
   const [note, setNote] = useState('');
-  const [result, setResult] = useState<{ prompt?: string; text: string; ok: boolean } | null>(null);
+  const [result, setResult] = useState<{ prompt?: string; text: string; ok: boolean; why?: boolean } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   // Step 2: inserting new parts
   const [catalog, setCatalog] = useState(false);
@@ -251,6 +251,11 @@ export function Layout(props: LayoutProps) {
     (e.currentTarget as Element).setPointerCapture(e.pointerId);
     const r = selected.getBoundingClientRect();
     setResult(null);
+    // The box grows on the side that is dragged: the left handle keeps the right edge, and so on
+    if (kind !== 'move') {
+      if (/[ew]/.test(kind)) p.keepEdge(selected, 'x', kind.includes('w') ? 'end' : 'start');
+      if (/[ns]/.test(kind)) p.keepEdge(selected, 'y', kind.includes('n') ? 'end' : 'start');
+    }
     setDrag(kind === 'move' ? { kind, el: selected, x: e.clientX, y: e.clientY } : { kind: 'resize', edge: kind, el: selected, x: e.clientX, y: e.clientY, w: r.width, h: r.height });
   };
   const startInsertDrag = (kind: 'move' | Edge) => (e: PointerEvent) => {
@@ -260,7 +265,7 @@ export function Layout(props: LayoutProps) {
     e.preventDefault();
     (e.currentTarget as Element).setPointerCapture(e.pointerId);
     setResult(null);
-    setDrag(kind === 'move' ? { kind: 'insert-move', id: ins.id, x: e.clientX, y: e.clientY } : { kind: 'insert-resize', edge: kind, id: ins.id, x: e.clientX, y: e.clientY, w: r.width, h: r.height, full: ins.width === '100%' });
+    setDrag(kind === 'move' ? { kind: 'insert-move', id: ins.id, x: e.clientX, y: e.clientY } : { kind: 'insert-resize', edge: kind, id: ins.id, x: e.clientX, y: e.clientY, w: r.width, h: r.height, full: ins.width === '100%', nudge: ins.nudge ?? { x: 0, y: 0 }, axis: p.axisOf(insertParent(ins.anchor, ins.position) ?? ins.anchor) });
   };
   const onDragMove = (e: PointerEvent) => {
     if (!drag) return;
@@ -277,7 +282,11 @@ export function Layout(props: LayoutProps) {
       const sideways = /[ew]/.test(drag.edge);
       const width = sideways ? `${Math.max(base, snapTo(drag.w + (drag.edge.includes('e') ? dx : -dx), base))}px` : drag.full ? '100%' : `${snapTo(drag.w, base)}px`;
       const height = /[ns]/.test(drag.edge) ? `${Math.max(base, snapTo(drag.h + (drag.edge.includes('s') ? dy : -dy), base))}px` : `${snapTo(drag.h, base)}px`;
-      p.updateInsert(drag.id, { width, height });
+      // Across the parent's axis it grows on the dragged side (the neighbors make room along it)
+      const nudge = { ...drag.nudge };
+      if (drag.axis === 'y' && drag.edge.includes('w')) nudge.x = drag.nudge.x - (parseFloat(width) - drag.w);
+      if (drag.axis === 'x' && drag.edge.includes('n')) nudge.y = drag.nudge.y - (parseFloat(height) - drag.h);
+      p.updateInsert(drag.id, { width, height, ...(nudge.x || nudge.y ? { nudge } : {}) });
       bump();
       return;
     }
@@ -325,6 +334,7 @@ export function Layout(props: LayoutProps) {
     }
     return { elements, pageSource };
   };
+  /** Why the page goes back after a copy: Layout mode previews, the code has not changed yet. */
   const finish = (text: string, prompt?: string) => {
     p.reset();
     setSelected(null);
@@ -332,7 +342,7 @@ export function Layout(props: LayoutProps) {
     setPlacing(null);
     setSelecting(true);
     setNote('');
-    setResult({ ok: true, text, ...(prompt ? { prompt } : {}) });
+    setResult({ ok: true, why: true, text, ...(prompt ? { prompt } : {}) });
     bump();
   };
   const copyPrompt = async () => {
@@ -585,6 +595,11 @@ export function Layout(props: LayoutProps) {
       {sketching && scale && <Sketch doc={doc} backend={backend} base={scale.base} onClose={() => setSketching(false)} />}
       {!sketching && <>
       {!scale && <div class="sub"><p class="loading"><ButtonSpinner />Reading the page's spacing scale…</p></div>}
+      {result?.why && (
+        <div class="sub" role="status" data-part="reset-note">
+          <p class="hint">Preview cleared: the page shows your code again. Your planned changes are not lost: they are in the {result.prompt ? 'copied prompt' : 'Feedback notes'}.</p>
+        </div>
+      )}
       {scale && selecting && !selected && !result && !catalog && !placing && (
         <div class="sub" role="note" data-part="hint">
           <p class="hint">Click an element to change its layout: drag its handles to resize, ⠿ to move it among its neighbors. Insert adds your components, saved captures or blocks. Values snap to this page's {scale.base}px scale. Nothing changes in your code: copy the prompt for your agent.</p>
@@ -768,6 +783,11 @@ export function Layout(props: LayoutProps) {
           {catalog || placing ? null : result ? (
             <div class="stack" data-part="layout-result">
               <p class={result.ok ? 'hint' : 'error'} data-part="layout-added">{result.text}</p>
+              {result.why && (
+                <p class="why" data-part="why-reset">
+                  <strong>Why did the page go back?</strong> Layout mode only previews: nothing in your code has changed yet. Your changes are in the {result.prompt ? 'prompt' : 'notes'}, and they show for real once your agent edits the code. Reload the page after that to check them.
+                </p>
+              )}
               {result.prompt && <pre data-part="layout-prompt">{result.prompt}</pre>}
               <div class="row"><button type="button" data-action="result-close" onClick={() => setResult(null)}>OK</button></div>
             </div>

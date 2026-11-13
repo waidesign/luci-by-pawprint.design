@@ -129,6 +129,8 @@ export interface PlannedInsert {
   width: string;
   height: string;
   label?: string;
+  /** Moved across its parent's axis by a handle (the left handle keeps the right edge), px. */
+  nudge?: { x: number; y: number };
 }
 type InsertState = Omit<PlannedInsert, 'id'>;
 
@@ -160,6 +162,12 @@ export class LayoutPreview {
   /** New parts, by id, in the order they were added. */
   private readonly added = new Map<number, InsertState>();
   private readonly placements = new Map<number, Placement>();
+  /**
+   * Edges kept in place while a handle resizes (the left handle keeps the right edge): where the
+   * edge was, relative to the parent's box, when the drag started. CSS grows a box toward its
+   * end side whatever sets the width, so the preview shifts it back to grow where it was dragged.
+   */
+  private readonly kept = new Map<Element, { x?: { keep: 'start' | 'end'; at: number }; y?: { keep: 'start' | 'end'; at: number } }>();
   private nextInsert = 1;
   private done: Step[] = [];
   private undone: Step[] = [];
@@ -197,7 +205,7 @@ export class LayoutPreview {
     }
     this.style.textContent = rules.join('\n');
     this.placements.clear();
-    if (!shifted.length && !this.added.size) return;
+    if (!shifted.length && !this.added.size && !this.kept.size) return;
     // Shifts are measured on the page as laid out (sizes, spacing and orders already planned) and
     // kept per element, so a move and an insert under the same parent add up
     const shift = new Map<Element, { x: number; y: number }>();
@@ -210,6 +218,15 @@ export class LayoutPreview {
       const s = shift.get(el);
       return s ? new DOMRect(r.left + s.x, r.top + s.y, r.width, r.height) : r;
     };
+    // A box resized by a handle grows on the side that was dragged: shift it so the other edge stays
+    for (const [el, k] of this.kept) {
+      if (!el.isConnected || !el.parentElement) continue;
+      const r = el.getBoundingClientRect();
+      const pr = el.parentElement.getBoundingClientRect();
+      const dx = k.x ? k.x.at - (k.x.keep === 'start' ? r.left - pr.left : r.right - pr.left) : 0;
+      const dy = k.y ? k.y.at - (k.y.keep === 'start' ? r.top - pr.top : r.bottom - pr.top) : 0;
+      if (Math.abs(dx) >= 0.5 || Math.abs(dy) >= 0.5) addShift(el, Math.abs(dx) >= 0.5 ? dx : 0, Math.abs(dy) >= 0.5 ? dy : 0);
+    }
     // A top-to-bottom stack: shift each child into its new place with `translate` (which leaves the
     // site's own transform alone)
     for (const { original, current } of shifted) {
@@ -306,6 +323,19 @@ export class LayoutPreview {
     return grown;
   }
 
+  /**
+   * Before a handle drag: keep this edge where it is on screen while the size changes ("end" keeps
+   * the right or bottom edge, for the left or top handle). Measured as the element shows now.
+   */
+  keepEdge(el: Element, axis: 'x' | 'y', keep: 'start' | 'end'): void {
+    const parent = el.parentElement;
+    if (!parent) return;
+    const r = el.getBoundingClientRect();
+    const pr = parent.getBoundingClientRect();
+    const at = axis === 'x' ? (keep === 'start' ? r.left : r.right) - pr.left : (keep === 'start' ? r.top : r.bottom) - pr.top;
+    this.kept.set(el, { ...this.kept.get(el), [axis]: { keep, at } });
+  }
+
   /** Measure again (the window changed size). */
   refresh(): void {
     this.render();
@@ -372,7 +402,8 @@ export class LayoutPreview {
     const p = this.placements.get(id);
     if (!p?.parent.isConnected) return null;
     const r = p.parent.getBoundingClientRect();
-    return new DOMRect(r.left + p.dx, r.top + p.dy, p.width, p.height);
+    const n = this.added.get(id)?.nudge;
+    return new DOMRect(r.left + p.dx + (n?.x ?? 0), r.top + p.dy + (n?.y ?? 0), p.width, p.height);
   }
 
   /** The axis a new part lays along under this parent: a row (flex row, grid) or top to bottom. */
@@ -482,6 +513,7 @@ export class LayoutPreview {
     this.original.clear();
     this.moved.clear();
     this.added.clear();
+    this.kept.clear();
     this.done = [];
     this.undone = [];
     for (const el of this.ids.keys()) el.removeAttribute(LAYOUT_ATTRIBUTE);
@@ -523,7 +555,11 @@ export class LayoutPreview {
       const from = orig?.get(prop) ?? currentValue(el, prop);
       if (from === to) continue;
       const token = scale.tokens.get(parseFloat(to));
-      out.push({ op: 'set', property: prop, from, to, ...(token ? { token } : {}) });
+      // Which side it grew on, when a handle kept the other edge in place
+      const k = this.kept.get(el);
+      const side = prop === 'width' && k?.x ? (k.x.keep === 'end' ? 'left' : 'right')
+        : prop === 'height' && k?.y ? (k.y.keep === 'end' ? 'up' : 'down') : undefined;
+      out.push({ op: 'set', property: prop, from, to, ...(token ? { token } : {}), ...(side ? { grow: side } : {}) });
     }
     // New parts placed next to it or inside it
     for (const ins of this.added.values()) {

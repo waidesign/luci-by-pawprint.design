@@ -99,7 +99,12 @@ export const layoutChangeSchema = z.discriminatedUnion('op', [
     property: z.enum(LAYOUT_PROPERTIES),
     from: z.string().min(1),
     to: z.string().min(1),
-    token: z.string().regex(/^--[\w-]+$/).optional()
+    token: z.string().regex(/^--[\w-]+$/).optional(),
+    /**
+     * Width or height changed with a handle: the side it grew or shrank on, the other edge staying
+     * where it was on screen (added 13 Nov 2026). "left" for the left handle, "up" for the top one.
+     */
+    grow: z.enum(['left', 'right', 'up', 'down']).optional()
   }),
   z.object({
     op: z.literal('insert'),

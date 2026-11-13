@@ -123,6 +123,7 @@ export const FEEDBACK_CSS = `${TOOLBAR_CSS}
 .wf-divider:hover { background: rgb(124 58 237 / 0.35); }
 .wf-row-handle { position: absolute; left: 50%; bottom: -7px; width: 44px; height: 12px; margin-left: -22px; box-sizing: border-box; background: var(--accent);
   border: 2px solid #18181b; border-radius: 4px; cursor: ns-resize; touch-action: none; }
+.why { margin: 0; padding: 8px 10px; border-left: 3px solid var(--accent); border-radius: 4px; background: #27272a; color: var(--ink); }
 .footer { border-top: 1px solid var(--line); padding-top: 10px; }
 .danger { border-top: 1px solid var(--line); padding-top: 10px; }
 `;
