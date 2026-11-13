@@ -4,15 +4,21 @@
  * Rendered by mount.ts inside a shadow root.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import { formatCapture, type CaptureSettings } from '@luci/format/capture';
+import { formatCapture, type CaptureSettings, type ComponentCapture } from '@luci/format/capture';
 import type { Eligibility } from '../eligibility.js';
 import type { ElementSnapshot } from '../model.js';
+import { manualState, type ComputedMap, type StateName } from '../states.js';
 import { elementName } from '../naming.js';
 import { eligibilityOf, eventTarget, firstChildOf, hoverLabel, parentOf } from './picker.js';
 import {
   TOOLS,
   TOOL_LABELS,
+  captureComponent,
   captureDistance,
+  readComponentStates,
+  restingValues,
+  stateTargets,
+  type ForcedStatesReader,
   captureOne,
   capturePixel,
   captureSystem,
@@ -33,7 +39,11 @@ export interface ToolbarProps {
   onClose: () => void;
   /** Lets the shell (or a test) feed an eyedropper colour in. */
   registerPixelInput?: (pick: (hex: string) => void) => void;
+  /** Exact states through the browser's debugger (the extension); without it, states come from stylesheet rules. */
+  readForcedStates?: ForcedStatesReader;
 }
+
+const STATE_ORDER: readonly StateName[] = ['hover', 'focus', 'focus-visible', 'active', 'disabled'];
 
 interface Picked {
   el: Element;
@@ -111,6 +121,54 @@ export function Toolbar(props: ToolbarProps) {
     if (r.ok) props.onOutput?.(r.output);
   };
 
+  // The Component tool reads states before showing its file; a state can also be captured by hand after
+  const [busy, setBusy] = useState<string | null>(null);
+  const [stateNote, setStateNote] = useState<string | null>(null);
+  const [componentCtx, setComponentCtx] = useState<{ live: LiveSnapshot; entry: ElementSnapshot; system: boolean; states: ComponentCapture['states']; rest: ComputedMap[] } | null>(null);
+  const [manualTarget, setManualTarget] = useState<StateName>('hover');
+  const [countdown, setCountdown] = useState<number | null>(null);
+
+  const produce = async (system: boolean) => {
+    if (!picked || !tool) return;
+    if (tool !== 'component') {
+      setComponentCtx(null);
+      show(system ? captureSystem(tool, picked.live, settings, picked.entry) : captureOne(tool, picked.live, picked.entry, settings, choice));
+      return;
+    }
+    if (system && (picked.entry.tag === 'body' || picked.entry.tag === 'html')) { show(captureSystem(tool, picked.live, settings, picked.entry)); return; }
+    setBusy('Reading states…');
+    try {
+      const rest = restingValues(stateTargets(picked.live, picked.entry));
+      const { states, note } = await readComponentStates(picked.live, picked.entry, props.readForcedStates);
+      setStateNote(note);
+      setComponentCtx({ live: picked.live, entry: picked.entry, system, states, rest });
+      const first = states.find(s => !s.detected);
+      if (first) setManualTarget(first.state);
+      show(captureComponent(picked.live, picked.entry, settings, { system, states }));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const captureCurrentState = () => {
+    if (!componentCtx) return;
+    // A countdown, so the user can move the pointer onto the component, focus or press it
+    let n = 3;
+    setCountdown(n);
+    const tick = () => {
+      n -= 1;
+      if (n > 0) { setCountdown(n); setTimeout(tick, 1000); return; }
+      setCountdown(null);
+      const targets = stateTargets(componentCtx.live, componentCtx.entry);
+      const captured = manualState(manualTarget, targets, componentCtx.rest);
+      const states = [...componentCtx.states.filter(s => s.state !== manualTarget), captured]
+        .sort((a, b) => STATE_ORDER.indexOf(a.state) - STATE_ORDER.indexOf(b.state));
+      setComponentCtx({ ...componentCtx, states });
+      show(captureComponent(componentCtx.live, componentCtx.entry, settingsRef.current, { system: componentCtx.system, states }));
+    };
+    setTimeout(tick, 1000);
+  };
+
   const startPicking = (t: ToolId) => {
     // Focus leaves the tool button, so Enter picks instead of pressing the button again
     const active = (doc.querySelector('luci-toolbar')?.shadowRoot?.activeElement ?? null) as HTMLElement | null;
@@ -120,6 +178,9 @@ export function Toolbar(props: ToolbarProps) {
     setPicked(null);
     setResult(null);
     setNotice(null);
+    setComponentCtx(null);
+    setStateNote(null);
+    setCountdown(null);
     aim(null);
     lastPointer.current = null;
     trail.current = [];
@@ -367,13 +428,15 @@ export function Toolbar(props: ToolbarProps) {
               ))}
             </div>
           )}
-          <div class="row">
-            {picked.eligibility.status === 'allowed' && (
-              <button type="button" class="primary" data-output="one" onClick={() => show(captureOne(tool, picked.live, picked.entry, settings, choice))}>This one</button>
-            )}
-            <button type="button" class={picked.eligibility.status === 'allowed' ? '' : 'primary'} data-output="system" onClick={() => show(captureSystem(tool, picked.live, settings, picked.entry))}>The whole system</button>
-            <button type="button" onClick={() => startPicking(tool)}>Pick again</button>
-          </div>
+          {busy ? <p class="hint" data-part="busy">{busy}</p> : (
+            <div class="row">
+              {picked.eligibility.status === 'allowed' && (
+                <button type="button" class="primary" data-output="one" onClick={() => void produce(false)}>This one</button>
+              )}
+              <button type="button" class={picked.eligibility.status === 'allowed' ? '' : 'primary'} data-output="system" onClick={() => void produce(true)}>The whole system</button>
+              <button type="button" onClick={() => startPicking(tool)}>Pick again</button>
+            </div>
+          )}
         </div>
       )}
 
@@ -390,6 +453,21 @@ export function Toolbar(props: ToolbarProps) {
                   <option value="hex">hex</option><option value="rgb">rgb</option><option value="hsl">hsl</option><option value="oklch">oklch</option>
                 </select></label>
               </div>
+              {stateNote && <p class="hint" data-part="state-note">{stateNote}</p>}
+              {componentCtx && result.output.capture.meta.scope === 'component' && (
+                <div class="row" data-part="manual-state">
+                  {countdown !== null ? (
+                    <p class="hint" data-part="countdown">Put the component in its {manualTarget} state now (hover, focus or press it). Capturing in {countdown}…</p>
+                  ) : (
+                    <>
+                      <label>State <select data-setting="manual-state" value={manualTarget} onChange={e => setManualTarget((e.currentTarget as HTMLSelectElement).value as StateName)}>
+                        {(['hover', 'focus', 'focus-visible', 'active', 'disabled'] as const).map(s => <option value={s}>{s}</option>)}
+                      </select></label>
+                      <button type="button" data-action="capture-state" onClick={captureCurrentState}>Capture current state</button>
+                    </>
+                  )}
+                </div>
+              )}
               <pre data-part="preview">{markdown}</pre>
               <div class="row">
                 <button type="button" class="primary" data-action="copy" onClick={copy}>{copied ? 'Copied' : 'Copy'}</button>

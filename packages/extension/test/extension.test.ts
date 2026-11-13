@@ -24,11 +24,11 @@ function build(test: boolean): string {
 const manifest = (dir: string) => JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8')) as Record<string, unknown>;
 
 describe('extension build (M4.6)', { timeout: 120_000 }, () => {
-  it('production asks only for activeTab, scripting and storage, and runs on no page by itself', () => {
+  it('production asks only for activeTab, scripting, storage and debugger, and runs on no page by itself', () => {
     const m = manifest(build(false));
     expect(m['manifest_version']).toBe(3);
     expect(m['name']).toBe('Luci');
-    expect(m['permissions']).toEqual(['activeTab', 'scripting', 'storage']);
+    expect(m['permissions']).toEqual(['activeTab', 'scripting', 'storage', 'debugger']);
     expect(m['host_permissions']).toBeUndefined();
     expect(m['content_scripts']).toBeUndefined();
     expect(m['background']).toEqual({ service_worker: 'background.js' });
@@ -96,5 +96,28 @@ describe.runIf(process.env['LUCI_EXTENSION_E2E'] === '1')('extension in Chromium
     await page.click('[data-output="one"]');
     expect(await page.locator('select[data-setting="units"]').inputValue()).toBe('rem');
     expect(await page.locator('[data-part="preview"]').textContent()).toContain('| font-size | 3rem |');
+  });
+
+  it('a component capture reads exact states through the debugger, then detaches it (FR8)', async () => {
+    const page = await context.newPage();
+    page.setDefaultTimeout(10_000);
+    const url = `${server.origin}/css-variables/`;
+    await page.goto(url);
+    await inject(url);
+    await page.click('button[data-tool="component"]');
+    await page.click('.button >> nth=0');
+    await page.click('[data-output="one"]');
+    const md = (await page.locator('[data-part="preview"]').textContent()) ?? '';
+    expect(md).toMatch(/\| hover \| background-color #0f62fe → #0353e9 \| browser, state forced \|/);
+    expect(md).toContain('| disabled | opacity 1 → 0.5; cursor pointer → not-allowed | disabled attribute |');
+    // The debugger is detached again: a second attach from the test succeeds
+    const attached = await worker.evaluate(async (pageUrl: string) => {
+      const c = (globalThis as unknown as { chrome: { tabs: { query(q: object): Promise<{ id: number }[]> }; debugger: { attach(t: object, v: string): Promise<void>; detach(t: object): Promise<void> } } }).chrome;
+      const [tab] = await c.tabs.query({ url: pageUrl });
+      await c.debugger.attach({ tabId: tab!.id }, '1.3');
+      await c.debugger.detach({ tabId: tab!.id });
+      return true;
+    }, url);
+    expect(attached).toBe(true);
   });
 });

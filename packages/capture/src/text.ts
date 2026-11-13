@@ -48,6 +48,10 @@ function category(el: ElementSnapshot): { category: Category; level?: number } {
   return { category: 'body' };
 }
 
+const RANK: Readonly<Record<Category, number>> = { heading: 0, body: 1, label: 2, caption: 3, code: 4, link: 5 };
+/** How strongly a tag names a text style, for ties: lower wins. */
+const tagRank = (tag: string) => RANK[category({ tag, role: null } as ElementSnapshot).category];
+
 export interface TextGroup {
   key: string;
   role: string;
@@ -69,7 +73,8 @@ export function textGroups(snapshot: PageSnapshot): TextGroup[] {
   const groups = [...byKey.entries()].map(([key, elements]) => {
     const tagCount = new Map<string, number>();
     for (const e of elements) tagCount.set(e.tag, (tagCount.get(e.tag) ?? 0) + 1);
-    const tags = [...tagCount.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([t]) => t);
+    // Most used first; on a tie, headings and body text win over labels, captions, code and links
+    const tags = [...tagCount.entries()].sort((a, b) => b[1] - a[1] || tagRank(a[0]) - tagRank(b[0]) || a[0].localeCompare(b[0])).map(([t]) => t);
     // The colour shown with a style is the one most of its elements use
     const colors = new Map<string, { el: ElementSnapshot; n: number }>();
     for (const e of elements) {

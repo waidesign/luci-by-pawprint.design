@@ -36,13 +36,13 @@ interface SiteResult {
   accent: { key: string; token: string | null } | null;
   baseUnit: number | null;
   shadowButton: { selector: string; accentToken: string | null } | null;
-  component: { type: string; background: string | null; browserBackground: string; backgroundToken: string | null; hasMargin: boolean; labelSize: string | null; browserLabelSize: string; firstVariantCount: number; tokens: string[] };
+  component: { type: string; background: string | null; browserBackground: string; backgroundToken: string | null; hasMargin: boolean; labelSize: string | null; browserLabelSize: string; firstVariantCount: number; tokens: string[]; states: Record<string, string>; pageRestored: string };
   selectorsResolve: Record<string, boolean>;
   files: { name: string; text: string; parses: boolean }[];
 }
 
 /** Everything the test checks, computed inside the page. */
-function runInPage(): SiteResult {
+async function runInPage(): Promise<SiteResult> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const L = (window as any).LuciCapture;
   const CAPTURED = { captured: '2026-11-12' };
@@ -92,7 +92,11 @@ function runInPage(): SiteResult {
   // The Component tool on the accent button, with its variants on the page
   const liveSnap = L.liveSnapshot();
   const compEntry = liveSnap.snapshot.elements.find((e: { selector: string }) => e.selector === accentUse?.el.selector);
-  const component = L.componentCapture(liveSnap.snapshot, compEntry, L.insideOf(liveSnap, compEntry), { ...CAPTURED, system: true });
+  // States from stylesheet rules (the reader every shell has) and the disabled attribute
+  const styleBefore = resolve(compEntry.selector)!.getAttribute('style');
+  const { states } = await L.readComponentStates(liveSnap, compEntry);
+  const styleAfter = resolve(compEntry.selector)!.getAttribute('style');
+  const component = L.componentCapture(liveSnap.snapshot, compEntry, L.insideOf(liveSnap, compEntry), { ...CAPTURED, system: true, states });
   const compLive = getComputedStyle(resolve(component.meta.selector)!);
   const containerStyles = component.anatomy[0].styles as { property: string; value: { computed: string; token?: string } }[];
   const label = (component.anatomy as { part: string; styles: { property: string; value: { computed: string } }[] }[]).find(p => p.part === 'label');
@@ -124,7 +128,10 @@ function runInPage(): SiteResult {
       labelSize: label?.styles.find(s => s.property === 'font-size')?.value.computed ?? null,
       browserLabelSize: getComputedStyle(labelEl).fontSize,
       firstVariantCount: component.variants?.[0]?.count ?? 0,
-      tokens: (component.tokens as { token: string }[]).map(t => t.token)
+      tokens: (component.tokens as { token: string }[]).map(t => t.token),
+      states: Object.fromEntries((states as { state: string; detected: boolean; method?: string; changes: { property: string; to: { computed: string } }[] }[])
+        .map(s => [s.state, s.detected ? `${s.method}: ${s.changes.map(c => `${c.property}=${c.to.computed}`).join(', ')}` : 'not detected'])),
+      pageRestored: JSON.stringify({ style: styleBefore === styleAfter ? 'same' : [styleBefore, styleAfter], markers: document.querySelectorAll('[data-luci-state]').length, ariaDisabled: document.querySelectorAll('[aria-disabled]').length })
     },
     selectorsResolve: Object.fromEntries(captures.filter(c => c.meta.selector).map(c => [c.meta.name, resolve(c.meta.selector) !== null])),
     files: captures.map(c => {
@@ -176,6 +183,28 @@ describe.each(SITES)('capture tools on the %s site (M4)', (site) => {
       expect(c.tokens).toEqual(expect.arrayContaining(['--color-primary', '--space-3', '--space-6', '--text-sm']));
     }
     if (site === 'web-components') expect(c.tokens).toContain('--wc-primary');
+  });
+
+  it('States from stylesheet rules and the disabled attribute; the page is left as it was (FR8)', () => {
+    const s = result.component.states;
+    expect(result.component.pageRestored).toBe(JSON.stringify({ style: 'same', markers: 0, ariaDisabled: 0 }));
+    if (site === 'css-variables') {
+      expect(s).toEqual({
+        // Values in the browser's form: rgb(3, 83, 233) is #0353e9
+        hover: 'rules: background-color=rgb(3, 83, 233)',
+        focus: 'not detected',
+        'focus-visible': 'rules: outline=rgb(15, 98, 254) solid 2px, outline-offset=2px',
+        active: 'rules: background-color=rgb(0, 45, 156)',
+        disabled: 'attribute: opacity=0.5, cursor=not-allowed'
+      });
+    } else if (site === 'web-components') {
+      // A real <button> inside a shadow root: rules from its adopted sheet, disabled through the attribute
+      expect(s['hover']).toBe('rules: background-color=rgb(109, 40, 217)');
+      expect(s['disabled']).toBe('attribute: opacity=0.5, cursor=not-allowed');
+    } else {
+      // These sites set no state styles: nothing is guessed
+      expect(s['hover']).toBe('not detected');
+    }
   });
 
   it('every file parses, its selector finds the element, and it matches the golden file', async () => {

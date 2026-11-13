@@ -25,7 +25,12 @@
   .card { padding: var(--space-6); border: 1px solid var(--color-border); }
   .card h2 { margin: 0; font-size: var(--text-2xl); line-height: 40px; font-weight: 600; }
   .card p { margin: var(--space-2) 0 0; font-size: var(--text-sm); line-height: 20px; color: var(--color-muted); }
-  .button { display: inline-block; margin-top: var(--space-6); padding: var(--space-3) var(--space-6); background-color: var(--color-primary); color: var(--color-bg); font-size: var(--text-sm); line-height: 20px; font-weight: 600; text-decoration: none; }
+  .button { display: inline-block; margin-top: var(--space-6); padding: var(--space-3) var(--space-6); background-color: var(--color-primary); color: var(--color-bg); font-size: var(--text-sm); line-height: 20px; font-weight: 600; text-decoration: none; transition: background-color 150ms ease-out; }
+  .button:hover { background-color: #0353e9; }
+  .button:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+  .button:active { background-color: #002d9c; }
+  .button[aria-disabled="true"] { opacity: 0.5; cursor: not-allowed; }
+  .help { font-size: 12px; line-height: 16px; color: var(--color-muted); }
   .fine { margin: var(--space-6) 0 0; font-size: 12px; line-height: 16px; color: var(--color-muted); }
   code { font-family: var(--font-mono); font-size: 12px; }
   footer { padding: var(--space-8); background-color: var(--color-surface); }
@@ -46,6 +51,12 @@
     <p class="fine"><img id="logo" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACwAAAAAAQABAAACAkQBADs=" width="16" height="16" alt=""> Prices in <code>EUR</code>.</p>
     <svg id="icon" width="24" height="24" viewBox="0 0 24 24"><path d="M4 12h16" stroke="#0f62fe" stroke-width="2" fill="none"/></svg>
   </main>
-  <footer><small>Example kitchen</small></footer>
+  <footer><small>Example kitchen</small> <a id="js-hover" class="help" href="/help">Help</a></footer>
+  <script>
+    // A hover done in JavaScript, not CSS: no stylesheet rule and no forced state can show it
+    const help = document.getElementById('js-hover');
+    help.addEventListener('mouseenter', () => { help.style.color = '#da1e28'; });
+    help.addEventListener('mouseleave', () => { help.style.color = ''; });
+  </script>
 </body>
 </html>

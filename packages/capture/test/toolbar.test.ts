@@ -144,6 +144,27 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
     expect(md).toContain('- From h1 (heading): `h1`');
   });
 
+  it('Component: states from stylesheet rules without the debugger; a JavaScript hover can be captured by hand (FR8)', async () => {
+    await page.click('button[data-tool="component"]');
+    await page.click('.button >> nth=0');
+    await page.click('[data-output="one"]');
+    const md = await preview(page);
+    expect(md).toContain('scope: component');
+    expect(md).toContain('| hover | background-color #0f62fe → #0353e9 | stylesheet rules |');
+    expect(md).toContain('| disabled | opacity 1 → 0.5; cursor pointer → not-allowed | disabled attribute |');
+
+    await page.click('button[data-tool="component"]');
+    await page.click('#js-hover');
+    await page.click('[data-output="one"]');
+    expect(await preview(page)).toContain('| hover | Not detected');
+    expect(await page.locator('select[data-setting="manual-state"]').inputValue()).toBe('hover');
+    await page.click('[data-action="capture-state"]');
+    await page.hover('#js-hover');
+    await expect.poll(() => preview(page), { timeout: 6000 }).toContain('captured by hand');
+    expect(await preview(page)).toContain('| hover | color #525252 → #da1e28 | captured by hand |');
+    await page.mouse.move(10, 10);
+  });
+
   it('download saves a .design.md with the shown name; copy puts the text on the clipboard (FR20)', async () => {
     await page.click('button[data-tool="spacing"]');
     await page.click('header');

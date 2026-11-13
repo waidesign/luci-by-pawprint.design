@@ -120,9 +120,9 @@ export const MAX_PARTS = 10;
  * The parts of a component: the container, then the elements inside it that carry text, an
  * icon, an image or a field. Each part's styles are its own (text style for text parts).
  */
-export function anatomyOf(snap: PageSnapshot, container: ElementSnapshot, inside: (el: ElementSnapshot) => number | null): ComponentCapture['anatomy'] {
-  const parts: ComponentCapture['anatomy'] = [{ part: 'container', element: elementName(container.tag, container.role), styles: boxStyles(snap, container) }];
-  if (container.hasText) parts.push({ part: 'label', element: 'text', styles: textStyles(container) });
+/** The component's parts with the snapshot entry behind each: the container first (as "container"). */
+export function componentParts(snap: PageSnapshot, container: ElementSnapshot, inside: (el: ElementSnapshot) => number | null): { part: string; el: ElementSnapshot }[] {
+  const parts: { part: string; el: ElementSnapshot }[] = [{ part: 'container', el: container }];
   const used = new Map<string, number>();
   for (const el of snap.elements) {
     if (parts.length >= MAX_PARTS) break;
@@ -133,11 +133,22 @@ export function anatomyOf(snap: PageSnapshot, container: ElementSnapshot, inside
     if (!el.hasText && !isIcon && name !== 'field' && name !== 'action') continue;
     const n = (used.get(name) ?? (name === 'label' && container.hasText ? 1 : 0)) + 1;
     used.set(name, n);
+    parts.push({ part: n > 1 ? `${name}-${n}` : name, el });
+  }
+  return parts;
+}
+
+export function anatomyOf(snap: PageSnapshot, container: ElementSnapshot, inside: (el: ElementSnapshot) => number | null): ComponentCapture['anatomy'] {
+  const parts: ComponentCapture['anatomy'] = [{ part: 'container', element: elementName(container.tag, container.role), styles: boxStyles(snap, container) }];
+  if (container.hasText) parts.push({ part: 'label', element: 'text', styles: textStyles(container) });
+  for (const { part, el } of componentParts(snap, container, inside).slice(1)) {
+    const name = part.replace(/-\d+$/, '');
+    const isIcon = name === 'icon' || name === 'image';
     const styles = isIcon
       ? [{ property: 'width', value: { computed: `${round(el.rect.width)}px` } }, { property: 'height', value: { computed: `${round(el.rect.height)}px` } },
         ...(['fill', 'color'] as const).filter(p => el.styles[p] && el.styles[p] !== 'none' && el.tag !== 'img').slice(0, 1).map(p => ({ property: p, value: valueOf(el, p) }))]
       : [...textStyles(el), ...boxStyles(snap, el).filter(s => s.property !== 'display')];
-    parts.push({ part: n > 1 ? `${name}-${n}` : name, element: elementName(el.tag, el.role), styles });
+    parts.push({ part, element: elementName(el.tag, el.role), styles });
   }
   return parts;
 }

@@ -43,6 +43,8 @@
       h2 { margin: 0; font-size: 24px; line-height: 32px; font-weight: 600; color: var(--wc-text); }
       .note { margin: calc(var(--wc-space)) 0 0; font-size: 14px; line-height: 20px; color: var(--wc-muted); }
       button { margin-top: 24px; padding: calc(var(--wc-space) * 2) calc(var(--wc-space) * 3); border: 0; background-color: var(--wc-primary); color: #ffffff; font: 600 14px/20px system-ui, sans-serif; }
+      button:hover { background-color: #6d28d9; }
+      button:disabled { opacity: 0.5; cursor: not-allowed; }
     `);
     customElements.define('plan-card', class extends HTMLElement {
       connectedCallback() {

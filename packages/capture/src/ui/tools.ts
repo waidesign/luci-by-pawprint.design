@@ -4,7 +4,8 @@
  */
 import { captureFileName, formatCapture, type Capture, type CaptureSettings, type ComponentCapture } from '@luci/format/capture';
 import { colorToken, colorUses, colorSystem } from '../color.js';
-import { componentCapture } from '../component.js';
+import { componentCapture, componentParts, componentType } from '../component.js';
+import { prepareTargets, readComputed, readDisabled, readStatesFromRules, statesFromForced, type ComputedMap, type ForcedReading, type StateTarget } from '../states.js';
 import { snapshotPage } from '../dom.js';
 import type { ElementSnapshot, PageSnapshot } from '../model.js';
 import { distanceToken, spacingSystem, spacingToken, spacingUses, type SpacingUse } from '../spacing.js';
@@ -71,6 +72,45 @@ export function insideOf(live: LiveSnapshot, container: ElementSnapshot): (el: E
 /** A component capture from a pick; `system` adds the page's variants. States are read separately (states.ts). */
 export function captureComponent(live: LiveSnapshot, entry: ElementSnapshot, settings: CaptureSettings, options: { system?: boolean; states?: ComponentCapture['states'] } = {}): Result {
   return { ok: true, output: toOutput(componentCapture(live.snapshot, entry, insideOf(live, entry), { captured: CAPTURED(), ...options }), settings) };
+}
+
+/** Reads states through the debugger; the extension provides it (it sends the commands from its background). */
+export type ForcedStatesReader = (targetCount: number) => Promise<ForcedReading>;
+
+/** The elements a component's states are read on: the container and its parts. */
+export function stateTargets(live: LiveSnapshot, entry: ElementSnapshot): StateTarget[] {
+  return componentParts(live.snapshot, entry, insideOf(live, entry)).map(p => ({ part: p.part, el: live.nodes[p.el.id]! }));
+}
+
+/** The resting values of the targets, for comparing a state captured by hand later. */
+export const restingValues = (targets: readonly StateTarget[]): ComputedMap[] => targets.map(t => readComputed(t.el));
+
+/**
+ * A component's states (FR8): through the debugger when the shell has it (exact), otherwise from
+ * stylesheet rules; disabled for buttons and fields by setting the attribute for a moment. The page
+ * is left exactly as it was.
+ */
+export async function readComponentStates(live: LiveSnapshot, entry: ElementSnapshot, readForced?: ForcedStatesReader): Promise<{ states: ComponentCapture['states']; note: string | null }> {
+  const targets = stateTargets(live, entry);
+  const restore = prepareTargets(targets);
+  try {
+    let pseudo: ComponentCapture['states'];
+    let note: string | null = null;
+    if (readForced) {
+      try {
+        pseudo = statesFromForced(targets, await readForced(targets.length));
+      } catch (err) {
+        pseudo = readStatesFromRules(targets);
+        note = `The browser's debugger was not available (${err instanceof Error ? err.message : String(err)}), so states were read from stylesheet rules.`;
+      }
+    } else {
+      pseudo = readStatesFromRules(targets);
+    }
+    const disabled = ['button', 'field'].includes(componentType(entry)) ? readDisabled(targets) : null;
+    return { states: [...pseudo, ...(disabled ? [disabled] : [])], note };
+  } finally {
+    restore();
+  }
 }
 
 /** "This one": one item from the picked element. */
