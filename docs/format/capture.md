@@ -13,7 +13,7 @@ This page covers single tokens and page systems (M4), components and the basket 
 | `name` | yes | Lowercase slug, e.g. `text-heading-1` |
 | `scope` | yes | `token`, `system`, `component` or `page` (`collection` for the basket export; `section` later) |
 | `type` | yes | For `token`: `text`, `color` or `spacing`. For `system`: `typography`, `color` or `spacing`. For `component`: what it is. For `page`: `page` |
-| `source` | yes | The page: origin and path only. The query and fragment are dropped, because they can carry personal data |
+| `source` | yes | The page: origin and path only. The query and fragment are dropped, because they can carry personal data. With the **Source** setting `site`, only the site's name (`lattice.com`: the host without `www.`, with the port for a local server); a page without a host keeps its address |
 | `selector` | tokens and components | The picked element. System and page files have none |
 | `captured` | yes | `YYYY-MM-DD` |
 | `method` | yes | `measured` when read from the live DOM; `estimated` when guessed, such as a pixel picked from an image |
@@ -25,7 +25,7 @@ Values are plain YAML scalars when they read back unchanged, and JSON-quoted oth
 
 Every value records what the browser computed, plus what the site authored when it says more (`var(--space-4)`, `clamp(2rem, 5vw, 3rem)`, `1.15`), plus the custom property it resolves through. Tables show them in `Value`, `Authored` and `Token` columns.
 
-Two settings change how values are written; the authored value is always kept beside them:
+Two settings change how values are written (a third, **Source**, is described under Frontmatter); the authored value is always kept beside them:
 
 - **Units:** `px` (default), `rem`, or `both` (`16px (1rem)`). rem uses the page's root font size. Keywords such as `normal` are left as they are.
 - **Colors:** `hex` (default; 8 digits with alpha), `rgb`, `hsl` or `oklch`. A fully transparent color is written `transparent`.

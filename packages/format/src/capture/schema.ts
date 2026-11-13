@@ -17,6 +17,10 @@ export const CAPTURE_METHODS = ['measured', 'estimated'] as const;
 export const COLOR_ROLES = ['background', 'text', 'border', 'accent'] as const;
 export const UNIT_SETTINGS = ['px', 'rem', 'both'] as const;
 export const COLOR_SETTINGS = ['hex', 'rgb', 'hsl', 'oklch'] as const;
+/** How the source is written: the page (origin and path) or only the site's name ("lattice.com"). */
+export const SOURCE_SETTINGS = ['page', 'site'] as const;
+/** A site's name as the "site" source setting writes it: host without "www.", with a port when there is one. */
+export const siteNameSchema = z.string().regex(/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*(:\d+)?$/i, 'a site name, e.g. example.com');
 
 export type CaptureScope = (typeof CAPTURE_SCOPES)[number];
 export type ColorRole = (typeof COLOR_ROLES)[number];
@@ -236,6 +240,8 @@ export type Capture = z.infer<typeof captureSchema>;
 export const captureSettingsSchema = z.object({
   units: z.enum(UNIT_SETTINGS).default('px'),
   colors: z.enum(COLOR_SETTINGS).default('hex'),
+  /** `page` writes the page's address (origin and path); `site` only the site's name. */
+  source: z.enum(SOURCE_SETTINGS).default('page'),
   /** The page's root font size in px, for rem conversion. */
   rootFontSize: z.number().positive().default(16)
 });

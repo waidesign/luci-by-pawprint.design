@@ -8,6 +8,7 @@ import { fail, ok, type ParseResult } from '../result.js';
 import {
   captureSchema,
   metaSchema,
+  siteNameSchema,
   type Capture,
   type CaptureMeta,
   type CaptureSettings,
@@ -45,8 +46,21 @@ export const COMPONENT_SECTIONS: readonly string[] = ['Tokens', 'Anatomy', 'Stat
 /** "https://www.example.com/pricing?x=1#top" -> "https://www.example.com/pricing". */
 export function cleanSource(url: string): string {
   const u = new URL(url);
-  return `${u.origin}${u.pathname}`;
+  // A file: URL has no origin ("null"): keep its scheme and path
+  return u.origin === 'null' ? `${u.protocol}//${u.host}${u.pathname}` : `${u.origin}${u.pathname}`;
 }
+
+/** "https://www.lattice.com/pricing?x=1" -> "lattice.com" (with the port for a local server). */
+export function siteName(url: string): string {
+  try { return new URL(url).host.replace(/^www\./, '').toLowerCase(); } catch { return ''; }
+}
+
+/**
+ * The source as a file writes it: the page (origin and path) by default, or only the site's name
+ * with the "site" setting. A page without a host (a local file) keeps its address.
+ */
+export const sourceText = (url: string, settings: CaptureSettings = {}) =>
+  (settings.source === 'site' && siteName(url) ? siteName(url) : cleanSource(url));
 
 /** "https://www.example.com/x" -> "example-com"; a local file -> "local". */
 export function siteSlug(url: string): string {
@@ -72,10 +86,10 @@ const yaml = (value: string) =>
     ? value
     : JSON.stringify(value);
 
-function frontmatter(meta: CaptureMeta): string {
+function frontmatter(meta: CaptureMeta, settings: CaptureSettings): string {
   const m = metaSchema.parse(meta);
   const rows: [string, string | undefined][] = [
-    ['name', m.name], ['scope', m.scope], ['type', m.type], ['source', cleanSource(m.source)],
+    ['name', m.name], ['scope', m.scope], ['type', m.type], ['source', sourceText(m.source, settings)],
     ['selector', m.selector], ['captured', m.captured], ['method', m.method], ['extends', m.extends]
   ];
   return ['---', ...rows.filter(([, v]) => v !== undefined).map(([k, v]) => `${k}: ${yaml(v!)}`), '---'].join('\n');
@@ -272,7 +286,7 @@ export function formatCapture(capture: Capture, settings: CaptureSettings = {}):
 /** The measured part of a capture file, without the user's instructions. */
 function formatMeasured(c: Capture, settings: CaptureSettings): string {
   const key = `${c.meta.scope}/${c.meta.type}`;
-  if (c.meta.scope === 'component') return `${frontmatter(c.meta)}\n\n${componentBody(c as ComponentCapture, settings).join('\n')}\n`;
+  if (c.meta.scope === 'component') return `${frontmatter(c.meta, settings)}\n\n${componentBody(c as ComponentCapture, settings).join('\n')}\n`;
   const body = key === 'page/page' ? pageBody(c as PageCapture, settings)
     : key === 'token/text' ? textToken(c as TextToken, settings)
     : key === 'token/color' ? colorToken(c as ColorToken, settings)
@@ -280,7 +294,7 @@ function formatMeasured(c: Capture, settings: CaptureSettings): string {
     : key === 'system/typography' ? typographySystem(c as TypographySystem, settings)
     : key === 'system/color' ? colorSystem(c as ColorSystem, settings)
     : spacingSystem(c as SpacingSystem, settings);
-  return `${frontmatter(c.meta)}\n\n${body.join('\n')}\n`;
+  return `${frontmatter(c.meta, settings)}\n\n${body.join('\n')}\n`;
 }
 
 export interface ParsedCapture {
@@ -293,7 +307,8 @@ export interface ParsedCapture {
 export function parseCapture(text: string): ParseResult<ParsedCapture> {
   const fm = parseFrontmatter(text);
   if (!fm.hasFrontmatter) return fail('capture file has no frontmatter');
-  const meta = metaSchema.safeParse(fm.data);
+  // A file written with the "site" source setting names only the site
+  const meta = metaSchema.extend({ source: z.union([z.url(), siteNameSchema]) }).safeParse(fm.data);
   if (!meta.success) return fail(`capture frontmatter is not valid:\n${z.prettifyError(meta.error)}`);
   const sections: Record<string, string> = {};
   let current: string | null = null;

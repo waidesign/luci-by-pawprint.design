@@ -19,7 +19,9 @@ import {
   isTransparent,
   parseCapture,
   pxValue,
+  siteName,
   siteSlug,
+  sourceText,
   spacingSetSchema,
   textTokenSchema,
   typographySystemSchema,
@@ -171,6 +173,31 @@ describe('capture values and settings', () => {
     expect(cleanSource('https://shop.example.com/a/b?token=secret#x')).toBe('https://shop.example.com/a/b');
     expect(siteSlug('https://www.Example.co.uk/x')).toBe('example-co-uk');
     expect(siteSlug('file:///C:/site/index.html')).toBe('local');
+    expect(cleanSource('file:///C:/site/index.html?x=1')).toBe('file:///C:/site/index.html');
+  });
+
+  it('the "site" source setting writes only the site name, and such a file still parses (user request)', () => {
+    expect(siteName('https://www.Lattice.com/pricing?x=1#y')).toBe('lattice.com');
+    expect(siteName('http://127.0.0.1:5173/a')).toBe('127.0.0.1:5173');
+    expect(sourceText('https://lattice.com/', { source: 'site' })).toBe('lattice.com');
+    expect(sourceText('https://lattice.com/a?b', {})).toBe('https://lattice.com/a');
+    expect(sourceText('file:///C:/site/index.html', { source: 'site' })).toBe('file:///C:/site/index.html');
+
+    const { capture } = inputs['example-com.token.color-primary.design.md']!;
+    const text = formatCapture(capture, { source: 'site' });
+    expect(text).toContain('\nsource: example.com\n');
+    expect(text).not.toContain('/pricing');
+    const parsed = parseCapture(text);
+    expect(parsed.ok, parsed.ok ? '' : parsed.error).toBe(true);
+    // The file name still comes from the site, and the default is unchanged
+    expect(formatCapture(capture, {})).toContain('\nsource: https://example.com/pricing\n');
+
+    const collection = collectionInputs['two-sites.collection.design.md']!.collection;
+    const exported = formatCollection(collection, { source: 'site' });
+    expect(exported).toContain('sources: ["example.com", "shop.example.org"]');
+    expect(exported).toContain('\n- source: shop.example.org\n');
+    expect(exported).not.toMatch(/https?:\/\//);
+    expect(parseCollection(exported).ok).toBe(true);
   });
 
   it('selectors that YAML would misread are quoted and read back the same', () => {

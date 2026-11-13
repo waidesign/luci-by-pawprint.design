@@ -72,6 +72,11 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
     await page.selectOption('select[data-setting="units"]', 'rem');
     expect(await preview(page)).toContain('| font-size | 3rem |');
     await page.selectOption('select[data-setting="units"]', 'px');
+    // Source: the page address by default, or only the site name (user request)
+    expect(md).toContain(`\nsource: ${server.origin}/css-variables/\n`);
+    await page.selectOption('select[data-setting="source"]', 'site');
+    expect(await preview(page)).toContain(`\nsource: ${new URL(server.origin).host}\n`);
+    await page.selectOption('select[data-setting="source"]', 'page');
   });
 
   it('arrow keys widen to the parent and narrow back; Enter picks; Esc cancels (FR2, FR3)', async () => {

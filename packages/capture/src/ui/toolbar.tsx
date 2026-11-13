@@ -850,6 +850,9 @@ export function Toolbar(props: ToolbarProps) {
                 <label>Colors <select data-setting="colors" value={settings.colors ?? 'hex'} onChange={e => changeSettings({ ...settings, colors: (e.currentTarget as HTMLSelectElement).value as 'hex' })}>
                   <option value="hex">hex</option><option value="rgb">rgb</option><option value="hsl">hsl</option><option value="oklch">oklch</option>
                 </select></label>
+                <label title="What the file's source line says: the page's address, or only the site's name">Source <select data-setting="source" value={settings.source ?? 'page'} onChange={e => changeSettings({ ...settings, source: (e.currentTarget as HTMLSelectElement).value as 'page' })}>
+                  <option value="page">page address</option><option value="site">site name only</option>
+                </select></label>
               </div>
               {stateNote && <p class="hint" data-part="state-note">{stateNote}</p>}
               {componentCtx && result.output.capture.meta.scope === 'component' && (

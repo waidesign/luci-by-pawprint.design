@@ -5,7 +5,7 @@
 import { z } from 'zod';
 import { parseFrontmatter } from '../skills/frontmatter.js';
 import { fail, ok, type ParseResult } from '../result.js';
-import { CAPTURE_EXTENSION, cleanSource, deeperHeadings, formatCapture, toCaptureName } from './format.js';
+import { CAPTURE_EXTENSION, cleanSource, deeperHeadings, formatCapture, sourceText, toCaptureName } from './format.js';
 import { captureSchema, type Capture, type CaptureSettings } from './schema.js';
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -53,7 +53,7 @@ export const collectionFileName = (name: string) => `${toCaptureName(name)}.coll
 /** The basket export. Throws when the collection does not match its schema. */
 export function formatCollection(collection: Collection, settings: CaptureSettings = {}): string {
   const c = collectionSchema.parse(collection);
-  const sources = [...new Set(c.items.map(i => cleanSource(i.capture.meta.source)))];
+  const sources = [...new Set(c.items.map(i => sourceText(i.capture.meta.source, settings)))];
   const lines = [
     '---',
     `name: ${c.name}`,
@@ -75,7 +75,7 @@ export function formatCollection(collection: Collection, settings: CaptureSettin
       const m = item.capture.meta;
       lines.push(
         `## ${item.name}`,
-        `- source: ${cleanSource(m.source)}`,
+        `- source: ${sourceText(m.source, settings)}`,
         ...(m.selector ? [`- selector: \`${m.selector.replace(/`/g, "'")}\``] : []),
         `- type: ${m.scope} ${m.type} · method: ${m.method} · captured: ${m.captured}`,
         '',
