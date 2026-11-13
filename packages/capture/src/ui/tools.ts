@@ -13,7 +13,7 @@ import { textToken, typographySystem } from '../text.js';
 
 export const TOOLS = ['component', 'text', 'color', 'spacing'] as const;
 export type ToolId = (typeof TOOLS)[number];
-export const TOOL_LABELS: Readonly<Record<ToolId, string>> = { component: 'Component', text: 'Text', color: 'Colour', spacing: 'Spacing' };
+export const TOOL_LABELS: Readonly<Record<ToolId, string>> = { component: 'Component', text: 'Text', color: 'Color', spacing: 'Spacing' };
 
 export interface Output {
   capture: Capture;
@@ -123,9 +123,9 @@ export function captureOne(tool: ToolId, live: LiveSnapshot, entry: ElementSnaps
     return { ok: true, output: toOutput(textToken(live.snapshot, target, options), settings) };
   }
   if (tool === 'color') {
-    if (!colorUses(entry).length) return { ok: false, message: 'This element applies no colour of its own. Pick another, or use "Pick a pixel".' };
+    if (!colorUses(entry).length) return { ok: false, message: 'This element applies no color of its own. Pick another, or use "Pick a pixel".' };
     const token = colorToken(live.snapshot, { element: entry }, options);
-    return token ? { ok: true, output: toOutput(token, settings) } : { ok: false, message: 'No colour found here.' };
+    return token ? { ok: true, output: toOutput(token, settings) } : { ok: false, message: 'No color found here.' };
   }
   const uses = spacingChoices(entry);
   const use = uses[choice];
@@ -133,10 +133,10 @@ export function captureOne(tool: ToolId, live: LiveSnapshot, entry: ElementSnaps
   return { ok: true, output: toOutput(spacingToken(live.snapshot, use, options), settings) };
 }
 
-/** The colour of a pixel from the eyedropper. */
+/** The color of a pixel from the eyedropper. */
 export function capturePixel(live: LiveSnapshot, hex: string, settings: CaptureSettings): Result {
   const token = colorToken(live.snapshot, { pixel: hex }, { captured: CAPTURED() });
-  return token ? { ok: true, output: toOutput(token, settings) } : { ok: false, message: `Not a colour: ${hex}` };
+  return token ? { ok: true, output: toOutput(token, settings) } : { ok: false, message: `Not a color: ${hex}` };
 }
 
 /** The distance between two elements (a Spacing drag). */
@@ -144,7 +144,7 @@ export function captureDistance(live: LiveSnapshot, a: ElementSnapshot, b: Eleme
   return { ok: true, output: toOutput(distanceToken(live.snapshot, a, b, { captured: CAPTURED() }), settings) };
 }
 
-/** "The whole system": the page's typography, colours or spacing; for a component, its variants on the page. */
+/** "The whole system": the page's typography, colors or spacing; for a component, its variants on the page. */
 export function captureSystem(tool: ToolId, live: LiveSnapshot, settings: CaptureSettings, entry?: ElementSnapshot): Result {
   const options = { captured: CAPTURED() };
   if (tool === 'component') {
@@ -152,6 +152,6 @@ export function captureSystem(tool: ToolId, live: LiveSnapshot, settings: Captur
     return captureComponent(live, entry, settings, { system: true });
   }
   const system = tool === 'text' ? typographySystem(live.snapshot, options) : tool === 'color' ? colorSystem(live.snapshot, options) : spacingSystem(live.snapshot, options);
-  if (!system) return { ok: false, message: `This page has no ${tool === 'text' ? 'visible text' : tool === 'color' ? 'visible colours' : 'spacing'} to capture.` };
+  if (!system) return { ok: false, message: `This page has no ${tool === 'text' ? 'visible text' : tool === 'color' ? 'visible colors' : 'spacing'} to capture.` };
   return { ok: true, output: toOutput(system, settings) };
 }

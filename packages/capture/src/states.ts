@@ -48,10 +48,10 @@ export function readComputed(el: Element): ComputedMap {
 
 const same = (prop: string, a: string, b: string) => (/color$/.test(prop) && colorKey(a) && colorKey(b) ? colorKey(a) === colorKey(b) : a === b);
 
-/** What a state changes on one part, as "property: before -> after". Outline and border colours are combined. */
+/** What a state changes on one part, as "property: before -> after". Outline and border colors are combined. */
 export function diffComputed(part: string, rest: ComputedMap, now: ComputedMap, authored: Record<string, string> = {}): ComponentState['changes'] {
   // Changes nobody can see are left out: an outline that stays "none", a border side with no width
-  // (their colours follow the text colour by default, so they "change" with it)
+  // (their colors follow the text color by default, so they "change" with it)
   const invisible = (p: string) => {
     if (/^outline-/.test(p) && p !== 'outline-offset') return rest['outline-style'] === 'none' && now['outline-style'] === 'none';
     const side = /^border-(\w+)-color$/.exec(p)?.[1];
@@ -180,7 +180,7 @@ export function readStatesFromRules(targets: readonly StateTarget[]): ComponentS
   });
 }
 
-/** Colours in the browser's own form ("rgb(3, 83, 233)"), so rule values compare and read like computed ones. */
+/** Colors in the browser's own form ("rgb(3, 83, 233)"), so rule values compare and read like computed ones. */
 function browserForm(prop: string, value: string): string {
   if (!/color$/.test(prop)) return value;
   const c = parse(value);

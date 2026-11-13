@@ -3,8 +3,8 @@
  * where it came from, then fixed sections that depend on scope and type. See
  * docs/format/capture.md. This module is browser-safe (no Node imports): the extension uses it.
  *
- * M4 defines the token captures (one text style, colour or spacing value) and the three
- * page systems (typography, colour, spacing). Component, section and collection follow in M5.
+ * M4 defines the token captures (one text style, color or spacing value) and the three
+ * page systems (typography, color, spacing). Component, section and collection follow in M5.
  */
 import { z } from 'zod';
 
@@ -82,7 +82,7 @@ export const colorTokenSchema = z.object({
   meta: tokenMeta('color'),
   value: valueSchema,
   role: z.enum(COLOR_ROLES).optional(),
-  /** Each place the colour is applied. Empty for a pixel that matched no element colour. */
+  /** Each place the color is applied. Empty for a pixel that matched no element color. */
   usedFor: z.array(elementRefSchema.extend({ property: z.string().min(1) }))
 });
 

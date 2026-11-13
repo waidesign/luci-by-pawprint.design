@@ -7,10 +7,10 @@ captured: 2026-11-12
 method: estimated
 ---
 
-## Colour
+## Color
 | Value | Authored | Token | Role |
 | --- | --- | --- | --- |
 | oklch(72.8% 0.138 89.73) |  |  |  |
 
 ## Where used
-- No element on the page uses this colour: it was picked from a pixel, so the value is estimated.
+- No element on the page uses this color: it was picked from a pixel, so the value is estimated.

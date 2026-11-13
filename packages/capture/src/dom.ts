@@ -47,7 +47,7 @@ function sideOf(parts: readonly string[], index: number, isGap: boolean): string
 const BORDER_STYLES = /^(none|hidden|dotted|dashed|solid|double|groove|ridge|inset|outset)$/;
 const LENGTH = /^-?\d*\.?\d+[a-z%]*$|^(thin|medium|thick)$|^calc\(/;
 
-/** The colour part of a border shorthand ("1px solid var(--line)" -> "var(--line)"). */
+/** The color part of a border shorthand ("1px solid var(--line)" -> "var(--line)"). */
 function borderColorPart(value: string): string | undefined {
   return topLevelParts(value).find(p => !BORDER_STYLES.test(p) && !LENGTH.test(p));
 }
@@ -63,7 +63,7 @@ export function declared(style: CSSStyleDeclaration, prop: SnapshotProperty): { 
     const side = sideOf(topLevelParts(value), short[1], short[0] === 'gap');
     return side ? { value: side, important: style.getPropertyPriority(short[0]) === 'important' } : null;
   }
-  // A border colour can also come from "border-top: 1px solid x" or "border: 1px solid x"
+  // A border color can also come from "border-top: 1px solid x" or "border: 1px solid x"
   const side = /^border-(top|right|bottom|left)-color$/.exec(prop)?.[1];
   if (side) {
     for (const shorthand of [`border-${side}`, 'border']) {

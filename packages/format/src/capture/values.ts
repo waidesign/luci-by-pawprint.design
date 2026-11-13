@@ -1,4 +1,4 @@
-/** Writing captured values with the user's unit and colour settings. Pure and browser-safe. */
+/** Writing captured values with the user's unit and color settings. Pure and browser-safe. */
 import { formatHex, formatHex8, formatHsl, formatRgb, oklch, parse } from 'culori';
 import { captureSettingsSchema, type CaptureSettings } from './schema.js';
 
@@ -33,13 +33,13 @@ export function pxValue(computed: string): number | null {
   return m ? Number(m[1]) : null;
 }
 
-/** True for a fully transparent colour. */
+/** True for a fully transparent color. */
 export function isTransparent(computed: string): boolean {
   const c = parse(computed.trim());
   return computed.trim() === 'transparent' || (c !== undefined && (c.alpha ?? 1) === 0);
 }
 
-/** A colour as the settings ask. Unknown values (currentcolor, gradients) are returned unchanged. */
+/** A color as the settings ask. Unknown values (currentcolor, gradients) are returned unchanged. */
 export function formatColor(computed: string, settings: CaptureSettings = {}): string {
   const s = resolveSettings(settings);
   const c = parse(computed.trim());
@@ -60,7 +60,7 @@ export function formatColor(computed: string, settings: CaptureSettings = {}): s
   }
 }
 
-/** One key per colour, the same for "rgb(15, 98, 254)" and "#0f62fe": for grouping and matching. */
+/** One key per color, the same for "rgb(15, 98, 254)" and "#0f62fe": for grouping and matching. */
 export function colorKey(computed: string): string | null {
   const c = parse(computed.trim());
   if (!c) return null;

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Luci: how to capture</title>
+<style>
+  :root { color-scheme: light dark; --ink: #18181b; --muted: #52525b; --bg: #ffffff; --line: #e4e4e7; --accent: #6d28d9; }
+  @media (prefers-color-scheme: dark) { :root { --ink: #f4f4f5; --muted: #a1a1aa; --bg: #18181b; --line: #3f3f46; --accent: #a78bfa; } }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 720px; margin: 0 auto; padding: 40px 16px 64px; }
+  h1 { font-size: 28px; line-height: 1.25; margin: 0 0 8px; }
+  h2 { font-size: 18px; margin: 32px 0 8px; }
+  p, li { color: var(--muted); }
+  strong, kbd { color: var(--ink); }
+  kbd { font: 13px ui-monospace, monospace; padding: 1px 6px; border: 1px solid var(--line); border-radius: 4px; }
+  ol, ul { padding-left: 20px; }
+  .lead { font-size: 18px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Capturing design with Luci</h1>
+  <p class="lead">Luci turns what you pick on a live page into a design.md file your AI coding agent can use. Everything stays on your machine.</p>
+
+  <h2>Three steps</h2>
+  <ol>
+    <li><strong>Pick a tool and click.</strong> Hover the page: the label shows the element's tag and size. Click what you want.</li>
+    <li><strong>Adjust the selection.</strong> The element stays selected. <strong>↑ Wider</strong> selects the element around it, <strong>↓ Narrower</strong> the one inside it. The <kbd>↑</kbd> <kbd>↓</kbd> keys do the same.</li>
+    <li><strong>Choose an output.</strong> <strong>This one</strong> captures the item; <strong>The whole system</strong> captures everything like it on the page. Then copy the file, download it, or add it to the basket.</li>
+  </ol>
+
+  <h2>The tools</h2>
+  <ul>
+    <li><strong>Component:</strong> a button, card, link or field: its parts, tokens, motion and states (hover, focus, active, disabled). The whole system adds its variants on the page.</li>
+    <li><strong>Text:</strong> a text style. The whole system lists every text style on the page, grouped into roles.</li>
+    <li><strong>Color:</strong> click an element for its color, or switch to <strong>Pixel</strong> and hover the page to see the color under the pointer, then click. Luci's own panels are never picked.</li>
+    <li><strong>Spacing:</strong> hover to see padding and margin, click for a value, or drag from one element to another to measure the distance between them.</li>
+  </ul>
+
+  <h2>States done in JavaScript</h2>
+  <p>Luci reads hover, focus and active states exactly. While it does, Chrome shows a "debugging this browser" bar for a moment. If a state only changes through JavaScript, it shows <strong>Not detected</strong>: choose it under <strong>State</strong>, press <strong>Capture current state</strong>, then hover, focus or press the component during the 3-second countdown.</p>
+
+  <h2>The basket</h2>
+  <p>Press <strong>Add to basket</strong> after any capture. <strong>Basket</strong> in the bar keeps your picks across pages and sites until you empty it. Rename items, remove them, export one, or <strong>Export all as one file</strong>.</p>
+
+  <h2>Keys</h2>
+  <ul>
+    <li><kbd>↑</kbd> <kbd>↓</kbd> widen or narrow the selection, while hovering or after clicking</li>
+    <li><kbd>Enter</kbd> picks, and after clicking takes <strong>This one</strong></li>
+    <li><kbd>Esc</kbd> cancels, or closes the panel</li>
+  </ul>
+
+  <h2>Good to know</h2>
+  <ul>
+    <li>Images, video and canvas can't be captured; they are greyed out with the reason.</li>
+    <li>Chrome's own pages and the Web Store can't be captured by any extension.</li>
+    <li>After you update or reload Luci, reload the page and click Luci's icon again.</li>
+  </ul>
+</main>
+</body>
+</html>

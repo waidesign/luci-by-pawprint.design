@@ -4,6 +4,7 @@ import { readStatesViaCdp, type ForcedReading } from '@luci/capture/states';
 
 export const READ_STATES = 'luci:read-states';
 export const CAPTURE_SCREEN = 'luci:capture-screen';
+export const OPEN_HELP = 'luci:open-help';
 type ReadStatesReply = { ok: true; reading: ForcedReading } | { ok: false; error: string };
 type CaptureReply = { ok: true; dataUrl: string } | { ok: false; error: string };
 
@@ -26,6 +27,11 @@ export default defineBackground(() => {
   browser.runtime.onMessage.addListener((message: unknown, sender, sendResponse: (reply: ReadStatesReply | CaptureReply) => void) => {
     const m = message as { type?: string; count?: number };
     const tabId = sender.tab?.id;
+    if (m?.type === OPEN_HELP) {
+      void browser.tabs.create({ url: browser.runtime.getURL('/help.html') });
+      sendResponse({ ok: true, dataUrl: '' });
+      return false;
+    }
     // Pixel mode: a screenshot of the visible tab (allowed by activeTab, granted by the icon click)
     if (m?.type === CAPTURE_SCREEN && sender.tab?.windowId !== undefined) {
       browser.tabs.captureVisibleTab(sender.tab.windowId, { format: 'png' })

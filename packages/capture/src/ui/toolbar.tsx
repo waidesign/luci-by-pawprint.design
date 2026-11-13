@@ -38,14 +38,16 @@ export interface ToolbarProps {
   /** Called with every file the user produces (the extension can save it). */
   onOutput?: (output: Output) => void;
   onClose: () => void;
-  /** Lets the shell (or a test) feed an eyedropper colour in. */
+  /** Lets the shell (or a test) feed an eyedropper color in. */
   registerPixelInput?: (pick: (hex: string) => void) => void;
   /** Exact states through the browser's debugger (the extension); without it, states come from stylesheet rules. */
   readForcedStates?: ForcedStatesReader;
   /** Where the basket is kept (the extension: its storage, shared by every tab and site). */
   basket?: BasketStore;
-  /** A screenshot of the visible page as a data URL (the extension); Pixel mode reads colours from it. */
+  /** A screenshot of the visible page as a data URL (the extension); Pixel mode reads colors from it. */
   captureScreen?: () => Promise<string>;
+  /** Opens a help page; the "?" button shows only when the shell has one. */
+  onHelp?: () => void;
 }
 
 const STATE_ORDER: readonly StateName[] = ['hover', 'focus', 'focus-visible', 'active', 'disabled'];
@@ -63,7 +65,7 @@ const DRAG_PX = 6;
 export const TOOL_HINTS: Readonly<Record<ToolId, string>> = {
   component: 'Hover a button, card, link or field, and click it.',
   text: 'Hover any text (a heading, paragraph, link or label), and click it.',
-  color: 'Click an element to take its colour, or switch to Pixel to pick any spot on the page.',
+  color: 'Click an element to take its color, or switch to Pixel to pick any spot on the page.',
   spacing: 'Click an element for its padding, margin or gap, or drag from one element to another to measure the distance.'
 };
 
@@ -71,7 +73,7 @@ export const TOOL_HINTS: Readonly<Record<ToolId, string>> = {
 export const OUTPUT_HINTS: Readonly<Record<ToolId, { one: string; system: string }>> = {
   component: { one: 'this component: its parts, tokens and states', system: 'this component plus every variant of it on the page' },
   text: { one: 'this text style', system: 'every text style on the page, grouped into roles' },
-  color: { one: 'this colour and where it is used', system: 'every colour on the page, grouped by role' },
+  color: { one: 'this color and where it is used', system: 'every color on the page, grouped by role' },
   spacing: { one: 'the spacing value you choose', system: 'the page\'s spacing scale, base unit and outliers' }
 };
 const px = (v: string) => parseFloat(v) || 0;
@@ -260,7 +262,7 @@ export function Toolbar(props: ToolbarProps) {
     return () => doc.removeEventListener('keydown', onKey, true);
   }, [choosing, picked]);
 
-  // The eyedropper colour can come from the shell or a test
+  // The eyedropper color can come from the shell or a test
   useEffect(() => {
     props.registerPixelInput?.((hex: string) => {
       const live = liveSnapshot(doc);
@@ -502,7 +504,7 @@ export function Toolbar(props: ToolbarProps) {
       setPixelMode(true);
     } catch (err) {
       startPicking('color');
-      setNotice(`Luci could not read the screen (${err instanceof Error ? err.message : String(err)}). Click an element instead.`);
+      setNotice(`Pixel mode could not start. ${err instanceof Error ? err.message : String(err)} Until then, click an element to take its color.`);
     }
   };
   useLayoutEffect(() => {
@@ -561,6 +563,7 @@ export function Toolbar(props: ToolbarProps) {
           <button type="button" aria-pressed={tool === t && (picking || dropperOpen || Boolean(picked) || Boolean(result))} data-tool={t} onClick={() => startPicking(t)}>{TOOL_LABELS[t]}</button>
         ))}
         <button type="button" aria-pressed={basketOpen} data-action="basket" onClick={() => (basketOpen ? setBasketOpen(false) : openBasket())}>Basket ({basket.length})</button>
+        {props.onHelp && <button type="button" aria-label="How to use Luci" title="How to use Luci" data-action="help" onClick={props.onHelp}>?</button>}
         <button type="button" aria-label="Close Luci" data-action="close" onClick={props.onClose}>×</button>
       </div>
 
@@ -611,14 +614,14 @@ export function Toolbar(props: ToolbarProps) {
       {(picking || dropperOpen || pixelMode) && tool && (
         <div class="sub" data-part="tool-hint" role="note">
           {tool === 'color' && (
-            <div class="seg" role="group" aria-label="Pick a colour from">
-              <button type="button" aria-pressed={!dropperOpen && !pixelMode} data-colour-mode="element" onClick={() => { setPixelMode(false); startPicking('color'); }}>Element</button>
-              <button type="button" aria-pressed={dropperOpen || pixelMode} data-colour-mode="pixel" data-action="eyedropper" disabled={!canPickPixels}
+            <div class="seg" role="group" aria-label="Pick a color from">
+              <button type="button" aria-pressed={!dropperOpen && !pixelMode} data-color-mode="element" onClick={() => { setPixelMode(false); startPicking('color'); }}>Element</button>
+              <button type="button" aria-pressed={dropperOpen || pixelMode} data-color-mode="pixel" data-action="eyedropper" disabled={!canPickPixels}
                 title={canPickPixels ? 'Pick any spot on the page' : 'This browser cannot pick pixels. Click an element instead.'} onClick={() => void startPixel()}>Pixel</button>
             </div>
           )}
           <p class="hint" data-part="hint">
-            {pixelMode ? 'Hover the page to see the colour under the pointer, and click to pick it. Over Luci\'s own panels nothing is picked.'
+            {pixelMode ? 'Hover the page to see the color under the pointer, and click to pick it. Over Luci\'s own panels nothing is picked.'
               : `${TOOL_HINTS[tool]}${tool === 'color' && !canPickPixels ? ' (This browser cannot pick pixels.)' : ''}`}
           </p>
           <p class="keys">{pixelMode ? 'Esc goes back to Element' : 'After clicking, you can make the selection wider or narrower · Esc cancels'}</p>
@@ -718,7 +721,7 @@ export function Toolbar(props: ToolbarProps) {
                 <label>Units <select data-setting="units" value={settings.units ?? 'px'} onChange={e => changeSettings({ ...settings, units: (e.currentTarget as HTMLSelectElement).value as 'px' })}>
                   <option value="px">px</option><option value="rem">rem</option><option value="both">both</option>
                 </select></label>
-                <label>Colours <select data-setting="colors" value={settings.colors ?? 'hex'} onChange={e => changeSettings({ ...settings, colors: (e.currentTarget as HTMLSelectElement).value as 'hex' })}>
+                <label>Colors <select data-setting="colors" value={settings.colors ?? 'hex'} onChange={e => changeSettings({ ...settings, colors: (e.currentTarget as HTMLSelectElement).value as 'hex' })}>
                   <option value="hex">hex</option><option value="rgb">rgb</option><option value="hsl">hsl</option><option value="oklch">oklch</option>
                 </select></label>
               </div>

@@ -99,7 +99,7 @@ describe('items from two sites export as one file (M5 Done when)', () => {
     if (!parsed.ok) return;
     expect(parsed.value.items).toBe(3);
     expect(parsed.value.sources).toEqual([`${siteA.origin}/css-variables/`, `${siteB.origin}/web-components/`]);
-    expect(parsed.value.groups).toEqual({ Components: ['Signup button'], Text: ['Text heading 1'], Colours: ['Color wc primary'] });
+    expect(parsed.value.groups).toEqual({ Components: ['Signup button'], Text: ['Text heading 1'], Colors: ['Color wc primary'] });
     expect(md).toContain('| hover | background-color #0f62fe → #0353e9 | stylesheet rules |');
     expect(md).toContain('`--wc-primary`');
 

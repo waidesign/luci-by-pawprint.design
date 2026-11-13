@@ -161,7 +161,7 @@ describe.each(SITES)('capture tools on the %s site (M4)', (site) => {
     for (const c of result.h1.checks) expect(c.file, `${site} h1 ${c.prop}`).toBe(c.browser);
   });
 
-  it('Colour: every colour a visible element uses appears with its role, and the accent is found (FR13, FR14)', () => {
+  it('Color: every color a visible element uses appears with its role, and the accent is found (FR13, FR14)', () => {
     expect(result.colorUsesMissing).toEqual([]);
     expect(result.accent).not.toBeNull();
   });

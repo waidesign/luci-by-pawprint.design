@@ -29,7 +29,7 @@ export const CAPTURE_EXTENSION = '.design.md';
 /** The sections every file of a scope and type has, in order. */
 export const CAPTURE_SECTIONS: Readonly<Record<string, readonly string[]>> = {
   'token/text': ['Text style', 'Where used'],
-  'token/color': ['Colour', 'Where used'],
+  'token/color': ['Color', 'Where used'],
   'token/spacing': ['Spacing', 'Where used'],
   'system/typography': ['Roles', 'Families', 'Scale'],
   'system/color': ['Roles', 'Tokens'],
@@ -86,7 +86,7 @@ function table(head: readonly string[], rows: readonly (readonly string[])[]): s
 const ref = (r: ElementRef) => `${r.element}: ${code(r.selector)}`;
 
 type Kind = 'length' | 'color' | 'raw';
-/** Colours inside compound values ("2px solid rgb(15, 98, 254)", shadows) follow the colour setting too. */
+/** Colors inside compound values ("2px solid rgb(15, 98, 254)", shadows) follow the color setting too. */
 const EMBEDDED_COLOR = /rgba?\([^)]*\)/g;
 const show = (v: CapturedValue, kind: Kind, s: CaptureSettings) =>
   kind === 'length' ? formatLength(v.computed, s).replace(EMBEDDED_COLOR, c => formatColor(c, s))
@@ -111,9 +111,9 @@ function textToken(c: TextToken, s: CaptureSettings): string[] {
 function colorToken(c: ColorToken, s: CaptureSettings): string[] {
   const used = c.usedFor.length
     ? table(['Element', 'Property', 'Selector'], c.usedFor.map(u => [u.element, u.property, code(u.selector)]))
-    : '- No element on the page uses this colour: it was picked from a pixel, so the value is estimated.';
+    : '- No element on the page uses this color: it was picked from a pixel, so the value is estimated.';
   return [
-    '## Colour', table(['Value', 'Authored', 'Token', 'Role'], [[show(c.value, 'color', s), authored(c.value), code(c.value.token), c.role ?? '']]),
+    '## Color', table(['Value', 'Authored', 'Token', 'Role'], [[show(c.value, 'color', s), authored(c.value), code(c.value.token), c.role ?? '']]),
     '', '## Where used', used
   ];
 }
@@ -136,7 +136,7 @@ function typographySystem(c: TypographySystem, s: CaptureSettings): string[] {
     String(r.count), r.elements.join(', ')
   ]);
   return [
-    '## Roles', table(['Role', 'Family', 'Size', 'Weight', 'Line height', 'Letter spacing', 'Colour', 'Uses', 'Elements'], roles),
+    '## Roles', table(['Role', 'Family', 'Size', 'Weight', 'Line height', 'Letter spacing', 'Color', 'Uses', 'Elements'], roles),
     '', '## Families', table(['Family', 'Uses'], c.families.map(f => [f.family, String(f.count)])),
     '', '## Scale', table(['Size', 'Token', 'Uses'], c.scale.map(x => [show(x.size, 'length', s), code(x.size.token), String(x.count)]))
   ];
@@ -145,7 +145,7 @@ function typographySystem(c: TypographySystem, s: CaptureSettings): string[] {
 function colorSystem(c: ColorSystem, s: CaptureSettings): string[] {
   const tokens = c.tokens.length
     ? table(['Token', 'Value', 'Uses'], c.tokens.map(t => [code(t.token), formatColor(t.value, s), String(t.count)]))
-    : '- The page defines no colour custom properties.';
+    : '- The page defines no color custom properties.';
   return [
     '## Roles', table(['Role', 'Value', 'Authored', 'Token', 'Uses', 'Properties'], c.roles.map(r => [r.role, show(r.value, 'color', s), authored(r.value), code(r.value.token), String(r.count), r.properties.join(', ')])),
     '', '## Tokens', tokens
@@ -165,7 +165,7 @@ function spacingSystem(c: SpacingSystem, s: CaptureSettings): string[] {
   ];
 }
 
-/** Colours by property name; every other value goes through the length formatter (keywords pass unchanged). */
+/** Colors by property name; every other value goes through the length formatter (keywords pass unchanged). */
 const kindOf = (property: string): Kind => (/color$|^fill$|^stroke$/.test(property) ? 'color' : 'length');
 const styleText = (property: string, v: CapturedValue, s: CaptureSettings) =>
   `${property} ${show(v, kindOf(property), s)}${v.token ? ` (${code(v.token)})` : v.authored && v.authored !== v.computed ? ` (${code(v.authored)})` : ''}`;

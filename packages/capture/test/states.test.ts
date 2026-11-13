@@ -65,7 +65,7 @@ describe('states through the debugger (M5.3)', () => {
     const page = await open('css-variables');
     const { states, restored } = await forcedStates(page, 'li:nth-of-type(1) > a');
     expect(states).toEqual({
-      // The 150ms transition would otherwise show the first frame, the resting colour
+      // The 150ms transition would otherwise show the first frame, the resting color
       hover: 'forced: background-color=rgb(3, 83, 233)',
       // Forcing :focus alone does not trigger :focus-visible styles; nothing else changes on focus
       focus: 'not detected',

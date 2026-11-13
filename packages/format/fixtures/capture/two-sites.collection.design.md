@@ -47,14 +47,14 @@ sources: ["https://example.com/pricing", "https://shop.example.org/"]
 ### Where used
 - h1 (heading): `h1`
 
-# Colours
+# Colors
 
 ## Example accent
 - source: https://example.com/pricing
 - selector: `main a.cta`
 - type: token color · method: measured · captured: 2026-11-12
 
-### Colour
+### Color
 | Value | Authored | Token | Role |
 | --- | --- | --- | --- |
 | #0f62fe | `var(--color-primary)` | `--color-primary` | accent |

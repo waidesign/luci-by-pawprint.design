@@ -64,7 +64,7 @@ describe('component and collection files: golden files are the spec (M5.1)', () 
       if (!parsed.ok) return;
       // Items from both sites, grouped by type, each with its own source; no query strings
       expect(parsed.value.sources).toEqual(['https://example.com/pricing', 'https://shop.example.org/']);
-      expect(parsed.value.groups).toEqual({ Components: ['Signup button'], Text: ['Shop heading'], Colours: ['Example accent'] });
+      expect(parsed.value.groups).toEqual({ Components: ['Signup button'], Text: ['Shop heading'], Colors: ['Example accent'] });
     });
   }
 
@@ -92,7 +92,7 @@ describe('capture values and settings', () => {
     expect(pxValue('auto')).toBeNull();
   });
 
-  it('colours in hex, rgb, hsl or oklch; transparent and unknown values', () => {
+  it('colors in hex, rgb, hsl or oklch; transparent and unknown values', () => {
     expect(formatColor('rgb(15, 98, 254)')).toBe('#0f62fe');
     expect(formatColor('#0f62fe', { colors: 'rgb' })).toBe('rgb(15, 98, 254)');
     expect(formatColor('rgb(15, 98, 254)', { colors: 'hsl' })).toMatch(/^hsl\(/);
@@ -124,6 +124,6 @@ describe('capture values and settings', () => {
     expect(typographySystemSchema.safeParse({ ...typo, meta: { ...typo.meta, selector: 'main' } }).success).toBe(false);
     expect(typographySystemSchema.safeParse({ ...typo, roles: [] }).success).toBe(false);
     expect(parseCapture('# no frontmatter').ok).toBe(false);
-    expect(parseCapture('---\nname: x\nscope: token\ntype: color\nsource: https://a.b/\ncaptured: 2026-11-12\nmethod: measured\n---\n\n## Colour\n').ok).toBe(false);
+    expect(parseCapture('---\nname: x\nscope: token\ntype: color\nsource: https://a.b/\ncaptured: 2026-11-12\nmethod: measured\n---\n\n## Color\n').ok).toBe(false);
   });
 });

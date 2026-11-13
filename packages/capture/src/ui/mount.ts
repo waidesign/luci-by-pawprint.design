@@ -8,6 +8,7 @@ import type { ForcedStatesReader, Output } from './tools.js';
 import { memoryBasketStore, type BasketStore } from './basket.js';
 
 export const TOOLBAR_TAG = 'luci-toolbar';
+const REPLACE_EVENT = 'luci-toolbar-replace';
 
 export interface MountOptions {
   doc?: Document;
@@ -21,11 +22,13 @@ export interface MountOptions {
   basket?: BasketStore;
   /** A screenshot of the visible page (data URL) for Pixel mode; without it, the browser's eyedropper is used. */
   captureScreen?: () => Promise<string>;
+  /** Opens a help page (the extension opens its own); adds a "?" button. */
+  onHelp?: () => void;
 }
 
 export interface ToolbarHandle {
   host: HTMLElement;
-  /** Capture the colour of a pixel, as the eyedropper does (e.g. "#0f62fe"). */
+  /** Capture the color of a pixel, as the eyedropper does (e.g. "#0f62fe"). */
   pickPixel(hex: string): void;
   destroy(): void;
 }
@@ -33,6 +36,9 @@ export interface ToolbarHandle {
 /** Mount the toolbar. Mounting again on the same page returns the existing toolbar's host, replaced. */
 export function mountToolbar(options: MountOptions = {}): ToolbarHandle {
   const doc = options.doc ?? document;
+  // An older toolbar (e.g. from before the extension was reloaded, in another JavaScript world) shuts
+  // itself down, page listeners included: DOM events reach every world
+  doc.dispatchEvent(new CustomEvent(REPLACE_EVENT));
   doc.querySelector(TOOLBAR_TAG)?.remove();
   const host = doc.createElement(TOOLBAR_TAG);
   host.setAttribute(LUCI_UI_ATTRIBUTE, '');
@@ -47,9 +53,11 @@ export function mountToolbar(options: MountOptions = {}): ToolbarHandle {
 
   let pixelInput: ((hex: string) => void) | null = null;
   const destroy = () => {
+    doc.removeEventListener(REPLACE_EVENT, destroy);
     render(null, mountPoint);
     host.remove();
   };
+  doc.addEventListener(REPLACE_EVENT, destroy);
   render(h(Toolbar, {
     doc,
     settings: options.settings ?? {},
@@ -58,6 +66,7 @@ export function mountToolbar(options: MountOptions = {}): ToolbarHandle {
     ...(options.readForcedStates ? { readForcedStates: options.readForcedStates } : {}),
     basket: options.basket ?? memoryBasketStore(),
     ...(options.captureScreen ? { captureScreen: options.captureScreen } : {}),
+    ...(options.onHelp ? { onHelp: options.onHelp } : {}),
     onClose: () => { destroy(); options.onClose?.(); },
     registerPixelInput: (pick: (hex: string) => void) => { pixelInput = pick; }
   }), mountPoint);

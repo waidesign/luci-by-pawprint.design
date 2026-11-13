@@ -1,6 +1,6 @@
 /**
- * The Colour tool (FR13, FR14): one colour (from an element or the eyedropper), and the page's
- * colour system. Every colour a visible element uses appears, each with a role.
+ * The Color tool (FR13, FR14): one color (from an element or the eyedropper), and the page's
+ * color system. Every color a visible element uses appears, each with a role.
  */
 import { converter, parse } from 'culori';
 import { colorKey, isTransparent, toCaptureName, type ColorRole, type ColorSystem, type ColorToken } from '@luci/format/capture';
@@ -10,7 +10,7 @@ import { elementName } from './naming.js';
 const today = () => new Date().toISOString().slice(0, 10);
 const toOklch = converter('oklch');
 
-/** Colours with at least this much chroma (OKLCH) are accents; the rest are neutrals. */
+/** Colors with at least this much chroma (OKLCH) are accents; the rest are neutrals. */
 export const ACCENT_CHROMA = 0.06;
 
 export function isChromatic(computed: string): boolean {
@@ -31,7 +31,7 @@ export interface ColorUse {
 const SIDES = ['top', 'right', 'bottom', 'left'] as const;
 export const SVG_SHAPES: ReadonlySet<string> = new Set(['path', 'circle', 'rect', 'ellipse', 'line', 'polyline', 'polygon', 'text', 'tspan']);
 
-/** Every colour an element applies, with the role it plays. */
+/** Every color an element applies, with the role it plays. */
 export function colorUses(el: ElementSnapshot): ColorUse[] {
   const uses: ColorUse[] = [];
   const add = (property: SnapshotProperty, neutralRole: ColorRole) => {
@@ -60,7 +60,7 @@ export function colorUses(el: ElementSnapshot): ColorUse[] {
 
 export const allColorUses = (snapshot: PageSnapshot) => snapshot.elements.filter(e => e.visible).flatMap(colorUses);
 
-/** The colour system of the page (FR14). Null when no visible element applies a colour. */
+/** The color system of the page (FR14). Null when no visible element applies a color. */
 export function colorSystem(snapshot: PageSnapshot, options: { captured?: string } = {}): ColorSystem | null {
   const uses = allColorUses(snapshot);
   if (!uses.length) return null;
@@ -80,7 +80,7 @@ export function colorSystem(snapshot: PageSnapshot, options: { captured?: string
     })
     .sort((a, b) => ORDER.indexOf(a.role) - ORDER.indexOf(b.role) || b.count - a.count || a.value.computed.localeCompare(b.value.computed));
 
-  // Colour custom properties on :root, with how often elements use each one
+  // Color custom properties on :root, with how often elements use each one
   const tokenUses = new Map<string, number>();
   for (const u of uses) if (u.token) tokenUses.set(u.token, (tokenUses.get(u.token) ?? 0) + 1);
   const tokens = Object.entries(snapshot.customProperties)
@@ -109,9 +109,9 @@ function firstOfEach<T>(items: readonly { key: string; value: T }[]): T[] {
 export const MAX_USED_FOR = 12;
 
 /**
- * One colour (FR13). From an element: its main colour (background, else text, else border).
- * From a pixel (the eyedropper): when the pixel matches a colour an element uses, it resolves to
- * that colour and its token; otherwise it is marked estimated.
+ * One color (FR13). From an element: its main color (background, else text, else border).
+ * From a pixel (the eyedropper): when the pixel matches a color an element uses, it resolves to
+ * that color and its token; otherwise it is marked estimated.
  */
 export function colorToken(snapshot: PageSnapshot, pick: { element: ElementSnapshot } | { pixel: string }, options: { captured?: string } = {}): ColorToken | null {
   const captured = options.captured ?? today();

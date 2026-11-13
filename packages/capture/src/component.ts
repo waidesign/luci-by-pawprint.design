@@ -212,7 +212,7 @@ export function variantsOf(snap: PageSnapshot, picked: ElementSnapshot, name: st
   });
 }
 
-/** A component's name: its type, "primary-" when its background is an accent colour. */
+/** A component's name: its type, "primary-" when its background is an accent color. */
 export function componentName(el: ElementSnapshot): string {
   const type = componentType(el);
   const bg = el.styles['background-color'] ?? '';

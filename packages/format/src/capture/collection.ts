@@ -28,13 +28,13 @@ export const collectionSchema = z.object({
 export type Collection = z.infer<typeof collectionSchema>;
 
 /** Groups in export order. */
-export const COLLECTION_GROUPS = ['Components', 'Text', 'Colours', 'Spacing', 'Systems'] as const;
+export const COLLECTION_GROUPS = ['Components', 'Text', 'Colors', 'Spacing', 'Systems'] as const;
 export type CollectionGroup = (typeof COLLECTION_GROUPS)[number];
 
 export function groupOf(capture: Capture): CollectionGroup {
   if (capture.meta.scope === 'component') return 'Components';
   if (capture.meta.scope === 'system') return 'Systems';
-  return capture.meta.type === 'text' ? 'Text' : capture.meta.type === 'color' ? 'Colours' : 'Spacing';
+  return capture.meta.type === 'text' ? 'Text' : capture.meta.type === 'color' ? 'Colors' : 'Spacing';
 }
 
 /** A capture's body with its frontmatter removed and its headings one level down (## -> ###). */

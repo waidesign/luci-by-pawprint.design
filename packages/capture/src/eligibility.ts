@@ -33,7 +33,7 @@ export function hasPhotoBackground(backgroundImage: string | undefined): boolean
 export function eligibility(el: EligibilityInput): Eligibility {
   const tag = el.tag.toLowerCase();
   if (tag === 'html' || tag === 'body') {
-    return { status: 'redirected', reason: 'This is the whole page. Use "The whole system" to capture its typography, colours or spacing.' };
+    return { status: 'redirected', reason: 'This is the whole page. Use "The whole system" to capture its typography, colors or spacing.' };
   }
   const blocked = BLOCKED[tag];
   if (blocked) return { status: 'blocked', reason: blocked };

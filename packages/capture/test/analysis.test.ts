@@ -74,7 +74,7 @@ describe('Text tool (FR11, FR12)', () => {
     expect(groups.map(g => [g.role, g.elements.length])).toEqual([
       ['heading-1', 1], ['heading-2', 2], ['body-large', 1], ['body', 5], ['code', 1], ['label', 1], ['caption', 1]
     ]);
-    // Colour is not part of a style: the most used colour is shown
+    // Color is not part of a style: the most used color is shown
     expect(groups.find(g => g.role === 'body')?.style.color.computed).toBe('rgb(57, 57, 57)');
     expect(groups.find(g => g.role === 'body')?.tags).toEqual(['p', 'li']);
     expect(groups.find(g => g.role === 'label')?.style.transform?.computed).toBe('uppercase');
@@ -104,7 +104,7 @@ describe('Text tool (FR11, FR12)', () => {
   });
 });
 
-describe('Colour tool (FR13, FR14)', () => {
+describe('Color tool (FR13, FR14)', () => {
   const snapshot = () => page([
     el('body', { 'background-color': 'rgb(255, 255, 255)' }, { authored: { 'background-color': 'var(--color-bg)' } }),
     text('p'), text('p'),
@@ -113,7 +113,7 @@ describe('Colour tool (FR13, FR14)', () => {
     el('div', { 'background-color': 'rgb(244, 244, 244)' }, { visible: false })
   ], { '--color-bg': '#ffffff', '--color-primary': '#0f62fe', '--color-unused': 'rgb(1, 2, 3)', '--space-4': '16px' });
 
-  it('every colour a visible element uses appears with a role; chromatic colours are accents', () => {
+  it('every color a visible element uses appears with a role; chromatic colors are accents', () => {
     const system = colorSystem(snapshot(), CAPTURED)!;
     expect(system.roles.map(r => [r.role, r.value.computed, r.count])).toEqual([
       ['background', 'rgb(255, 255, 255)', 1], ['text', 'rgb(22, 22, 22)', 2], ['text', 'rgb(255, 255, 255)', 1], ['border', 'rgb(224, 224, 224)', 1], ['accent', 'rgb(15, 98, 254)', 1]
@@ -127,7 +127,7 @@ describe('Colour tool (FR13, FR14)', () => {
     roundTrips(system);
   });
 
-  it('a picked element gives its main colour; a pixel resolves to a token, or is estimated', () => {
+  it('a picked element gives its main color; a pixel resolves to a token, or is estimated', () => {
     const s = snapshot();
     const fromElement = colorToken(s, { element: s.elements[3]! }, CAPTURED)!;
     expect(fromElement).toMatchObject({ meta: { name: 'color-primary', method: 'measured' }, value: { token: '--color-primary' }, role: 'accent' });

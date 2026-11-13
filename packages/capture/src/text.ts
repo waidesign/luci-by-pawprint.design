@@ -30,7 +30,7 @@ export function textStyleOf(el: ElementSnapshot): TextStyle {
   };
 }
 
-/** Two elements share a text style when these match (colour is part of the colour system, not the style). */
+/** Two elements share a text style when these match (color is part of the color system, not the style). */
 export const styleKey = (el: ElementSnapshot) =>
   ['font-family', 'font-size', 'font-weight', 'line-height', 'letter-spacing', 'font-style', 'text-transform'].map(p => el.styles[p as 'font-size'] ?? '').join('|');
 
@@ -75,7 +75,7 @@ export function textGroups(snapshot: PageSnapshot): TextGroup[] {
     for (const e of elements) tagCount.set(e.tag, (tagCount.get(e.tag) ?? 0) + 1);
     // Most used first; on a tie, headings and body text win over labels, captions, code and links
     const tags = [...tagCount.entries()].sort((a, b) => b[1] - a[1] || tagRank(a[0]) - tagRank(b[0]) || a[0].localeCompare(b[0])).map(([t]) => t);
-    // The colour shown with a style is the one most of its elements use
+    // The color shown with a style is the one most of its elements use
     const colors = new Map<string, { el: ElementSnapshot; n: number }>();
     for (const e of elements) {
       const c = colorKey(e.styles.color ?? '') ?? '';

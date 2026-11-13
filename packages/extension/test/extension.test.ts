@@ -10,7 +10,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { chromium, type BrowserContext, type Worker } from 'playwright';
+import { chromium, type BrowserContext, type Page } from 'playwright';
 import { serveSites } from '../../capture/test/browser.js';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
@@ -39,7 +39,8 @@ describe('extension build (M4.6)', { timeout: 120_000 }, () => {
 // with a one-line manifest too), so this suite runs only when asked: LUCI_EXTENSION_E2E=1 pnpm test.
 describe.runIf(process.env['LUCI_EXTENSION_E2E'] === '1')('extension in Chromium (M4.6; LUCI_EXTENSION_E2E=1)', { timeout: 120_000 }, () => {
   let context: BrowserContext;
-  let worker: Worker;
+  let ext: Page;
+  let extensionId: string;
   let server: Awaited<ReturnType<typeof serveSites>>;
   let userData: string;
   beforeAll(async () => {
@@ -51,7 +52,12 @@ describe.runIf(process.env['LUCI_EXTENSION_E2E'] === '1')('extension in Chromium
       headless: true,
       args: [`--disable-extensions-except=${dir}`, `--load-extension=${dir}`]
     });
-    worker = context.serviceWorkers()[0] ?? await context.waitForEvent('serviceworker', { timeout: 30_000 });
+    const worker = context.serviceWorkers()[0] ?? await context.waitForEvent('serviceworker', { timeout: 30_000 });
+    extensionId = new URL(worker.url()).host;
+    // The tests call extension APIs from the extension's own help page. Chrome stops an idle background
+    // after about 30 seconds, so a handle on it goes stale; the page does not.
+    ext = await context.newPage();
+    await ext.goto(`chrome-extension://${extensionId}/help.html`);
   }, 120_000);
   afterAll(async () => {
     await context?.close();
@@ -59,13 +65,39 @@ describe.runIf(process.env['LUCI_EXTENSION_E2E'] === '1')('extension in Chromium
     if (userData) fs.rmSync(userData, { recursive: true, force: true });
   });
 
-  /** What the icon click does: the background script runs toolbar.js in the tab. */
-  const inject = (url: string) => worker.evaluate(async (pageUrl: string) => {
-    const c = (globalThis as unknown as { chrome: { tabs: { query(q: object): Promise<{ id: number; url: string }[]> }; scripting: { executeScript(o: object): Promise<unknown> } } }).chrome;
-    // The newest tab with this address: an earlier test's tab may still show the same page
-    const [tab] = (await c.tabs.query({ url: pageUrl })).sort((a, b) => b.id - a.id);
+  /** Run a function with the extension's APIs, failing after 20 seconds instead of hanging. */
+  async function api<A, R>(fn: (arg: A) => Promise<R>, arg: A): Promise<R> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('extension API call timed out after 20s')), 20_000); });
+    try {
+      return await Promise.race([ext.evaluate(fn as never, arg as never) as Promise<R>, timeout]);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  type Chrome = any;
+
+  /** What the icon click does: run toolbar.js in the tab (the newest tab with this address). */
+  const inject = (url: string) => api(async (pageUrl: string) => {
+    const c = (globalThis as unknown as { chrome: Chrome }).chrome;
+    const [tab] = ((await c.tabs.query({ url: pageUrl })) as { id: number }[]).sort((a, b) => b.id - a.id);
     await c.scripting.executeScript({ target: { tabId: tab!.id }, files: ['/toolbar.js'] });
   }, url);
+
+  it('the "?" button opens the help page, through the background (which Chrome may have stopped meanwhile)', async () => {
+    const page = await context.newPage();
+    page.setDefaultTimeout(10_000);
+    const url = `${server.origin}/css-variables/`;
+    await page.goto(url);
+    await inject(url);
+    const [help] = await Promise.all([context.waitForEvent('page', { timeout: 20_000 }), page.click('[data-action="help"]')]);
+    await help.waitForLoadState();
+    expect(help.url()).toBe(`chrome-extension://${extensionId}/help.html`);
+    expect(await help.locator('h1').innerText()).toBe('Capturing design with Luci');
+    await help.close();
+    await page.close();
+  });
 
   it('puts the toolbar on the page, captures with it, keeps settings, and a second click closes it', async () => {
     const page = await context.newPage();
@@ -78,10 +110,10 @@ describe.runIf(process.env['LUCI_EXTENSION_E2E'] === '1')('extension in Chromium
     await page.click('[data-output="one"]');
     expect(await page.locator('[data-part="preview"]').textContent()).toContain('| font-size | 48px | `clamp(2rem, 2rem + 2vw, 3rem)` |  |');
     await page.selectOption('select[data-setting="units"]', 'rem');
-    await expect.poll(() => worker.evaluate(async () => {
-      const c = (globalThis as unknown as { chrome: { storage: { local: { get(k: string): Promise<Record<string, unknown>> } } } }).chrome;
-      return (await c.storage.local.get('captureSettings'))['captureSettings'];
-    })).toEqual({ units: 'rem' });
+    await expect.poll(() => api(async () => {
+      const c = (globalThis as unknown as { chrome: Chrome }).chrome;
+      return ((await c.storage.local.get('captureSettings')) as Record<string, unknown>)['captureSettings'];
+    }, null)).toEqual({ units: 'rem' });
 
     // The page's own scripts can't see the toolbar's state (it lives in the extension's isolated world)
     expect(await page.evaluate(() => '__luciToolbar' in window)).toBe(false);
@@ -141,9 +173,9 @@ describe.runIf(process.env['LUCI_EXTENSION_E2E'] === '1')('extension in Chromium
     expect(md).toMatch(/\| hover \| background-color #0f62fe → #0353e9 \| browser, state forced \|/);
     expect(md).toContain('| disabled | opacity 1 → 0.5; cursor pointer → not-allowed | disabled attribute |');
     // The debugger is detached again: a second attach from the test succeeds
-    const attached = await worker.evaluate(async (pageUrl: string) => {
-      const c = (globalThis as unknown as { chrome: { tabs: { query(q: object): Promise<{ id: number }[]> }; debugger: { attach(t: object, v: string): Promise<void>; detach(t: object): Promise<void> } } }).chrome;
-      const [tab] = (await c.tabs.query({ url: pageUrl })).sort((a, b) => b.id - a.id);
+    const attached = await api(async (pageUrl: string) => {
+      const c = (globalThis as unknown as { chrome: Chrome }).chrome;
+      const [tab] = ((await c.tabs.query({ url: pageUrl })) as { id: number }[]).sort((a, b) => b.id - a.id);
       await c.debugger.attach({ tabId: tab!.id }, '1.3');
       await c.debugger.detach({ tabId: tab!.id });
       return true;
@@ -152,14 +184,14 @@ describe.runIf(process.env['LUCI_EXTENSION_E2E'] === '1')('extension in Chromium
     await page.close();
   });
 
-  it('Pixel mode reads colours from a screenshot of the tab; Luci\'s own panels are not picked (FR13)', async () => {
+  it('Pixel mode reads colors from a screenshot of the tab; Luci\'s own panels are not picked (FR13)', async () => {
     const page = await context.newPage();
     page.setDefaultTimeout(10_000);
     const url = `${server.origin}/css-variables/`;
     await page.goto(url);
     await inject(url);
     await page.click('button[data-tool="color"]');
-    await page.click('[data-colour-mode="pixel"]');
+    await page.click('[data-color-mode="pixel"]');
     await page.locator('[data-part="pixel-layer"]').waitFor();
     const box = (await page.locator('.button').first().boundingBox())!;
     await page.mouse.move(box.x + 6, box.y + box.height / 2);

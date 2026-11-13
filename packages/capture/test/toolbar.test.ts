@@ -46,7 +46,7 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
       return { shadow: Boolean(host.shadowRoot), inSnapshot: snap.elements.some((e: { tag: string }) => e.tag === 'luci-toolbar') };
     });
     expect(info).toEqual({ shadow: true, inSnapshot: false });
-    expect(await page.locator('button[data-tool]').allInnerTexts()).toEqual(['Component', 'Text', 'Colour', 'Spacing']);
+    expect(await page.locator('button[data-tool]').allInnerTexts()).toEqual(['Component', 'Text', 'Color', 'Spacing']);
   });
 
   it('hover shows tag and size; an image is greyed with the reason and cannot be picked (FR2, FR4)', async () => {
@@ -130,7 +130,7 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
     expect(md).toContain('| heading-1 |');
   });
 
-  it('Colour: an element, the whole system, and eyedropper pixels (FR13, FR14)', async () => {
+  it('Color: an element, the whole system, and eyedropper pixels (FR13, FR14)', async () => {
     await page.click('button[data-tool="color"]');
     await page.click('.button >> nth=0');
     await page.click('[data-output="one"]');
@@ -203,8 +203,8 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
   });
 });
 
-describe('tool hints and the Colour tool\'s two ways to pick (user feedback, M4)', { timeout: 30_000 }, () => {
-  it('each tool says what to do; Colour offers Element and Pixel side by side, Pixel off without an eyedropper', async () => {
+describe('tool hints and the Color tool\'s two ways to pick (user feedback, M4)', { timeout: 30_000 }, () => {
+  it('each tool says what to do; Color offers Element and Pixel side by side, Pixel off without an eyedropper', async () => {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const page = await context.newPage();
     page.setDefaultTimeout(4000);
@@ -219,10 +219,10 @@ describe('tool hints and the Colour tool\'s two ways to pick (user feedback, M4)
     await page.click('button[data-tool="spacing"]');
     expect(await page.locator('[data-part="hint"]').innerText()).toContain('drag from one element to another');
     await page.click('button[data-tool="color"]');
-    expect(await page.locator('[data-colour-mode]').allInnerTexts()).toEqual(['Element', 'Pixel']);
-    expect(await page.locator('[data-colour-mode="element"]').getAttribute('aria-pressed')).toBe('true');
+    expect(await page.locator('[data-color-mode]').allInnerTexts()).toEqual(['Element', 'Pixel']);
+    expect(await page.locator('[data-color-mode="element"]').getAttribute('aria-pressed')).toBe('true');
     // Without an eyedropper, Pixel stays visible but off, with the reason
-    expect(await page.locator('[data-colour-mode="pixel"]').isDisabled()).toBe(true);
+    expect(await page.locator('[data-color-mode="pixel"]').isDisabled()).toBe(true);
     expect(await page.locator('[data-part="hint"]').innerText()).toContain('This browser cannot pick pixels.');
     // The hint goes away once something is picked
     await page.click('h1');
@@ -230,7 +230,7 @@ describe('tool hints and the Colour tool\'s two ways to pick (user feedback, M4)
     await context.close();
   });
 
-  it('Pixel opens the eyedropper; a picked spot becomes a colour file, and Esc goes back to Element', async () => {
+  it('Pixel opens the eyedropper; a picked spot becomes a color file, and Esc goes back to Element', async () => {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const page = await context.newPage();
     page.setDefaultTimeout(4000);
@@ -245,20 +245,20 @@ describe('tool hints and the Colour tool\'s two ways to pick (user feedback, M4)
     await page.addScriptTag({ content: bundle });
     await page.evaluate(() => { (window as unknown as { LuciCapture: { mountToolbar(): unknown } }).LuciCapture.mountToolbar(); });
     await page.click('button[data-tool="color"]');
-    await page.click('[data-colour-mode="pixel"]');
+    await page.click('[data-color-mode="pixel"]');
     const md = await preview(page);
     expect(md).toContain('`--color-primary`');
     expect(md).toContain('method: measured');
     await page.click('button[data-tool="color"]');
-    await page.click('[data-colour-mode="pixel"]');
-    expect(await page.locator('[data-colour-mode="element"]').getAttribute('aria-pressed')).toBe('true');
+    await page.click('[data-color-mode="pixel"]');
+    expect(await page.locator('[data-color-mode="element"]').getAttribute('aria-pressed')).toBe('true');
     expect(await page.locator('[data-part="hint"]').count()).toBe(1);
     await context.close();
   });
 });
 
 describe('Pixel mode from a screenshot (user feedback)', { timeout: 30_000 }, () => {
-  it('shows the colour under the pointer, ignores Luci\'s own bar, and picks on click', async () => {
+  it('shows the color under the pointer, ignores Luci\'s own bar, and picks on click', async () => {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const page = await context.newPage();
     page.setDefaultTimeout(5000);
@@ -271,9 +271,9 @@ describe('Pixel mode from a screenshot (user feedback)', { timeout: 30_000 }, ()
       w.LuciCapture.mountToolbar({ captureScreen: () => w.luciScreenshot() });
     });
     await page.click('button[data-tool="color"]');
-    await page.click('[data-colour-mode="pixel"]');
+    await page.click('[data-color-mode="pixel"]');
     await page.locator('[data-part="pixel-layer"]').waitFor();
-    expect(await page.locator('[data-colour-mode="pixel"]').getAttribute('aria-pressed')).toBe('true');
+    expect(await page.locator('[data-color-mode="pixel"]').getAttribute('aria-pressed')).toBe('true');
     const button = (await page.locator('.button').first().boundingBox())!;
     await page.mouse.move(button.x + 6, button.y + button.height / 2);
     expect(await page.locator('[data-part="pixel-swatch"]').innerText()).toBe('#0f62fe');
