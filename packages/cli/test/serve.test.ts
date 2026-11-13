@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import { FeedbackStore, initProject } from '@luci/brain';
 import { SkillRegistry } from '@luci/skills';
-import { isLoopbackOrigin, startBridge, type Bridge } from '../src/serve/bridge.js';
+import { isLoopbackOrigin, relativeSource, startBridge, type Bridge } from '../src/serve/bridge.js';
 import { run } from '../src/index.js';
 import { fakeContext, tempProject } from './helpers.js';
 
@@ -117,6 +117,16 @@ describe('luci serve: the bridge (M6.3)', () => {
     expect(isLoopbackOrigin('http://[::1]:8080')).toBe(true);
     expect(isLoopbackOrigin('http://localhost.evil.example')).toBe(false);
     expect(isLoopbackOrigin('null')).toBe(false);
+  });
+
+  it('makes absolute source paths inside the project relative (Vite /@fs paths, React 18 _debugSource)', async () => {
+    const { dir, bridge } = await project();
+    const abs = path.join(dir, 'src', 'components', 'Card.jsx');
+    const r = await request(bridge, 'POST', '/feedback', { body: { page: { url: `${PAGE}/`, source: path.join(dir, 'src', 'pages', 'Home.jsx') }, target: { ...target, source: { file: abs, line: 3 } }, comment: 'x', intent: 'fix', priority: 'low' } });
+    expect(r.json().item.target.source).toEqual({ file: 'src/components/Card.jsx', line: 3 });
+    expect(r.json().item.page.source).toBe('src/pages/Home.jsx');
+    expect(relativeSource(dir, 'src/App.jsx')).toBe('src/App.jsx');
+    expect(relativeSource(dir, path.join(path.dirname(dir), 'elsewhere', 'x.js'))).toBe(path.join(path.dirname(dir), 'elsewhere', 'x.js'));
   });
 
   it('serves the toolbar script with the bridge address, and says how to set up a project without .luci/', async () => {

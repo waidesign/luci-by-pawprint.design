@@ -10,6 +10,7 @@
  */
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
+import path from 'node:path';
 import { z } from 'zod';
 import { DesignError, DesignStore, FeedbackError, FeedbackStore } from '@luci/brain';
 import { PRODUCT } from '@luci/format';
@@ -46,6 +47,17 @@ export function isLoopbackOrigin(origin: string): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * A source path as the project knows it: an absolute path inside the project becomes relative
+ * ("/home/me/shop/src/App.tsx" -> "src/App.tsx"); anything else is kept as the browser saw it.
+ */
+export function relativeSource(projectDir: string, file: string): string {
+  const abs = /^[A-Za-z]:[\\/]/.test(file) || file.startsWith('/') ? path.resolve(file) : null;
+  if (!abs) return file;
+  const rel = path.relative(projectDir, abs);
+  return rel && !rel.startsWith('..') && !path.isAbsolute(rel) ? rel.split(path.sep).join('/') : file;
 }
 
 const newItemSchema = z.object({
@@ -142,7 +154,17 @@ export function startBridge(options: BridgeOptions): Promise<Bridge> {
       if (!feedback.available) throw new HttpError(409, `No ${PRODUCT.projectDir}/ in ${options.projectDir}. Run \`${PRODUCT.command} init\` there first.`);
 
       if (route === '/feedback' && req.method === 'GET') { send(200, { items: feedback.list() }); return; }
-      if (route === '/feedback' && req.method === 'POST') { send(201, { item: feedback.add(parse(newItemSchema, await readBody(req))) }); return; }
+      if (route === '/feedback' && req.method === 'POST') {
+        const body = parse(newItemSchema, await readBody(req));
+        const rel = (file: string) => relativeSource(options.projectDir, file);
+        const item = feedback.add({
+          ...body,
+          page: { ...body.page, ...(body.page.source ? { source: rel(body.page.source) } : {}) },
+          target: { ...body.target, ...(body.target.source ? { source: { ...body.target.source, file: rel(body.target.source.file) } } : {}) }
+        });
+        send(201, { item });
+        return;
+      }
       if (route === '/feedback/prompt' && req.method === 'POST') {
         const body = parse(promptSchema, await readBody(req));
         const open = body.includeSent ? feedback.open() : feedback.list({ status: ['pending'] });

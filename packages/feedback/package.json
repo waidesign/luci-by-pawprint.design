@@ -1,0 +1,22 @@
+{
+  "name": "@luci/feedback",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Feedback in the browser: annotations on a running app, the React adapter, and where items are kept. Browser-safe.",
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@luci/capture": "workspace:*",
+    "@luci/format": "workspace:*",
+    "preact": "10.29.8"
+  }
+}
