@@ -60,6 +60,9 @@ pre { margin: 0; overflow: auto; padding: 10px; background: #09090b; border: 1px
 select { padding: 4px 6px; background: #27272a; border: 1px solid var(--line); border-radius: 6px; }
 label { display: inline-flex; gap: 4px; align-items: center; color: var(--muted); }
 @media (prefers-reduced-motion: no-preference) { .highlight { transition: top 60ms, left 60ms, width 60ms, height 60ms; } }
+.modes { margin-right: 4px; }
+.modes button { padding: 4px 10px; color: var(--muted); }
+.modes button[aria-pressed="true"] { color: var(--ink); }
 .loading { display: flex; gap: 10px; align-items: center; margin: 0; color: var(--ink); }
 .loading .steps { color: var(--muted); font-size: 12px; }
 /* Spins with transform only: the browser keeps it moving off the page's main thread, even while Luci reads a heavy page */

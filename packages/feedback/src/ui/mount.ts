@@ -1,6 +1,6 @@
 /** Put the Feedback layer on a page, in its own shadow root, apart from the page and its styles. */
 import { h, render } from 'preact';
-import { LUCI_UI_ATTRIBUTE } from '@luci/capture';
+import { LUCI_UI_ATTRIBUTE, type ModeSwitchProps } from '@luci/capture';
 import type { FeedbackBackend } from '../backend.js';
 import { FEEDBACK_CSS } from './styles.js';
 import { DEFAULT_FEEDBACK_SETTINGS, Feedback, type FeedbackSettings } from './feedback.js';
@@ -13,7 +13,7 @@ export interface FeedbackMountOptions {
   connectNote?: string;
   settings?: FeedbackSettings;
   onSettingsChange?: (settings: FeedbackSettings) => void;
-  onCapture?: () => void;
+  modes?: ModeSwitchProps;
   onConnect?: () => Promise<string | null>;
   onClose?: () => void;
   pollMs?: number;
@@ -56,7 +56,7 @@ export function mountFeedback(options: FeedbackMountOptions): FeedbackHandle {
     settings: options.settings ?? DEFAULT_FEEDBACK_SETTINGS,
     ...(options.connectNote ? { connectNote: options.connectNote } : {}),
     ...(options.onSettingsChange ? { onSettingsChange: options.onSettingsChange } : {}),
-    ...(options.onCapture ? { onCapture: options.onCapture } : {}),
+    ...(options.modes ? { modes: options.modes } : {}),
     ...(options.onConnect ? { onConnect: options.onConnect } : {}),
     ...(options.pollMs ? { pollMs: options.pollMs } : {}),
     onClose: () => { destroy(); options.onClose?.(); }

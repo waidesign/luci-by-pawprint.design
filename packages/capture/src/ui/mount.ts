@@ -6,6 +6,7 @@ import { TOOLBAR_CSS } from './styles.js';
 import { Toolbar } from './toolbar.js';
 import type { ForcedStatesReader, Output } from './tools.js';
 import { memoryBasketStore, type BasketStore } from './basket.js';
+import type { ModeSwitchProps } from './modeSwitch.js';
 
 export const TOOLBAR_TAG = 'luci-toolbar';
 const REPLACE_EVENT = 'luci-toolbar-replace';
@@ -24,8 +25,8 @@ export interface MountOptions {
   captureScreen?: () => Promise<string>;
   /** Opens a help page (the extension opens its own); adds a "?" button. */
   onHelp?: () => void;
-  /** A button in the bar that switches the shell to another mode (the dev toolbar's Feedback). */
-  modeButton?: { label: string; title?: string; onClick: () => void };
+  /** The dev toolbar's mode switch (Feedback, Capture, ...), first after "Luci". */
+  modes?: ModeSwitchProps;
   /** Saves a file into the project (the dev toolbar, through luci serve); adds "Save to project". */
   saveToProject?: (fileName: string, markdown: string) => Promise<{ path: string; replaced: boolean }>;
 }
@@ -83,7 +84,7 @@ export function mountToolbar(options: MountOptions = {}): ToolbarHandle {
     basket: options.basket ?? memoryBasketStore(),
     ...(options.captureScreen ? { captureScreen: options.captureScreen } : {}),
     ...(options.onHelp ? { onHelp: options.onHelp } : {}),
-    ...(options.modeButton ? { modeButton: options.modeButton } : {}),
+    ...(options.modes ? { modes: options.modes } : {}),
     ...(options.saveToProject ? { saveToProject: options.saveToProject } : {}),
     onClose: () => { destroy(); options.onClose?.(); },
     registerPixelInput: (pick: (hex: string) => void) => { pixelInput = pick; }

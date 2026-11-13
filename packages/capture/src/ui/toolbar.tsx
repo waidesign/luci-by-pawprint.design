@@ -12,6 +12,7 @@ import { manualState, type ComputedMap, type StateName } from '../states.js';
 import { elementName } from '../naming.js';
 import { elementAt, eligibilityOf, eventTarget, firstChildOf, hoverLabel, parentOf, scrollableAncestor } from './picker.js';
 import { ButtonSpinner, Loading, nextPaint } from './loading.js';
+import { ModeSwitch, type ModeSwitchProps } from './modeSwitch.js';
 import {
   ALL_SPACING,
   TOOLS,
@@ -51,8 +52,8 @@ export interface ToolbarProps {
   captureScreen?: () => Promise<string>;
   /** Opens a help page; the "?" button shows only when the shell has one. */
   onHelp?: () => void;
-  /** A button in the bar that switches the shell to another mode (the dev toolbar: Feedback). */
-  modeButton?: { label: string; title?: string; onClick: () => void };
+  /** The dev toolbar's mode switch (Feedback, Capture, ...), first after "Luci". */
+  modes?: ModeSwitchProps;
   /** Saves a file into the project's .luci/design/ (the dev toolbar, through luci serve); adds "Save to project". */
   saveToProject?: (fileName: string, markdown: string) => Promise<{ path: string; replaced: boolean }>;
 }
@@ -721,12 +722,12 @@ export function Toolbar(props: ToolbarProps) {
     <div class="luci">
       <div class="bar" role="toolbar" aria-label="Luci capture">
         <span class="brand">Luci</span>
+        {props.modes && <ModeSwitch {...props.modes} />}
         {TOOLS.map(t => (
           <button type="button" aria-pressed={tool === t && (picking || dropperOpen || Boolean(picked) || Boolean(result))} data-tool={t} onClick={() => startPicking(t)}>{TOOL_LABELS[t]}</button>
         ))}
         <button type="button" aria-pressed={wholePage && !basketOpen && (pageBusy || Boolean(result))} data-action="whole-page" title="One file for this whole page: its typography, colors, spacing and every kind of component" onClick={captureWholePage}>Whole page</button>
         <button type="button" aria-pressed={basketOpen} data-action="basket" onClick={() => (basketOpen ? setBasketOpen(false) : openBasket())}>Basket ({basket.length})</button>
-        {props.modeButton && <button type="button" data-action="mode" title={props.modeButton.title} onClick={props.modeButton.onClick}>{props.modeButton.label}</button>}
         {props.onHelp && <button type="button" aria-label="How to use Luci" title="How to use Luci" data-action="help" onClick={props.onHelp}>?</button>}
         <button type="button" aria-label="Close Luci" data-action="close" onClick={props.onClose}>×</button>
       </div>

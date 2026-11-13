@@ -54,6 +54,8 @@ async function context(bridgeUrl: string): Promise<BrowserContext> {
 async function open(ctx: BrowserContext, route: string): Promise<Page> {
   const page = await ctx.newPage();
   page.setDefaultTimeout(5000);
+  // Loading the app (each file transformed on request) can take longer while every test file runs at once
+  page.setDefaultNavigationTimeout(20_000);
   await page.goto(`${app.origin}${route}`);
   await page.locator('[data-action="annotate"]').waitFor();
   return page;
@@ -112,7 +114,18 @@ describe('dev toolbar without luci serve (this browser only)', { timeout: 60_000
     // A reload keeps the notes (FR26)
     await page.reload();
     await page.locator('[data-marker="P1-A2"]').waitFor();
-    expect(await page.locator('[data-action="copy-prompt"]').innerText()).toBe('Copy prompt (2)');
+    expect(await page.locator('[data-action="copy-prompt"]').innerText()).toBe('Copy prompt (2 new)');
+
+    // A saved note's intent and priority can be changed, not only its text (user request, 2026-11-13)
+    await page.click('[data-marker="P1-A1"]');
+    expect(await page.locator('[data-part="note-meta"]').innerText()).toBe('fix · high priority · button');
+    await page.click('[data-action="edit"]');
+    expect(await page.locator('[data-part="edit-note"] [data-part="comment"]').inputValue()).toBe('Label wraps on mobile');
+    await page.selectOption('[data-part="edit-note"] [data-part="intent"]', 'change');
+    await page.selectOption('[data-part="edit-note"] [data-part="priority"]', 'low');
+    await page.click('[data-part="edit-note"] [data-action="save-note"]');
+    await page.locator('[data-part="note-meta"]:text-is("change · low priority · button")').waitFor();
+    await page.click('[data-action="close-item"]');
 
     // Copy the prompt: it holds both, and they are marked as sent (FR29)
     await page.click('[data-action="copy-prompt"]');
@@ -122,8 +135,20 @@ describe('dev toolbar without luci serve (this browser only)', { timeout: 60_000
     expect(prompt).toContain('source: src/components/PlanCard.jsx:6');
     // The system clipboard may change line endings (Windows); the text is the same
     expect((await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, '\n').trimEnd()).toBe(prompt.trimEnd());
+    expect(prompt).toContain('[P1-A1] change, low: "Label wraps on mobile"');
     expect(await page.locator('[data-marker="P1-A1"]').getAttribute('data-status')).toBe('sent');
-    expect(await page.locator('[data-action="copy-prompt"]').isDisabled()).toBe(true);
+    // Copy prompt stays available: with nothing new, it copies every note not done (user request, 2026-11-13)
+    expect(await page.locator('[data-action="copy-prompt"]').isDisabled()).toBe(false);
+    expect(await page.locator('[data-action="copy-prompt"]').innerText()).toBe('Copy prompt (all 2)');
+    await page.click('[data-action="prompt-back"]');
+    await page.click('[data-action="copy-prompt"]');
+    expect(await page.locator('[data-part="prompt"]').innerText()).toMatch(/^# UI feedback: 1 page, 2 items/);
+    // The ▾ menu says what each choice copies; "only new" has nothing now
+    await page.click('[data-action="copy-menu"]');
+    expect(await page.locator('[data-copy="new"]').isDisabled()).toBe(true);
+    expect(await page.locator('[data-copy="open"]').innerText()).toContain('All notes not done (2)');
+    await page.keyboard.press('Escape');
+    expect(await page.locator('[data-part="copy-menu"]').count()).toBe(0);
 
     // Settings: marker color; pause animations on one frame (FR31)
     await page.click('[data-action="settings"]');
@@ -293,10 +318,17 @@ describe('dev toolbar with luci serve (M6 Done when, automated)', { timeout: 90_
     await mcp('resolve_feedback', { id: 'P3-A2', summary: 'Disabled with a spinner' });
     await page.click('[data-action="close-item"]');
 
-    // The person sees every item done, page by page
+    // The person sees every note done, page by page: "Not done" is empty, "Done" has all six
     await page.click('[data-action="items"]');
+    await page.locator('[data-tab="open"]:text-is("Not done (0)")').waitFor({ timeout: 6000 });
+    expect(await page.locator('[data-item]').count()).toBe(0);
+    await page.click('[data-tab="done"]');
     expect(await page.locator('[data-page]').count()).toBe(3);
-    await page.waitForFunction(() => [...document.querySelector('luci-feedback')!.shadowRoot!.querySelectorAll('[data-item] .status')].every(s => s.textContent === 'Done'), undefined, { timeout: 6000 });
+    expect(await page.locator('[data-item]').count()).toBe(6);
+    expect(await page.locator('[data-item] .status').allInnerTexts()).toEqual(Array(6).fill('Done'));
+    // A row opens to show the note, with the agent's summary
+    await page.click('[data-item="P3-A1"] [data-item-open]');
+    expect(await page.locator('[data-item="P3-A1"] [data-part="resolution"]').innerText()).toBe('Done: Error text is now #da1e28');
     await page.click('[data-action="clear-done"]');
     await page.waitForFunction(() => !document.querySelector('luci-feedback')!.shadowRoot!.querySelector('[data-item]'));
     expect(new FeedbackStore(dir).list()).toEqual([]);
@@ -308,8 +340,12 @@ describe('dev toolbar with luci serve (M6 Done when, automated)', { timeout: 90_
     const page = await open(ctx, '/pricing');
     const logs: string[] = [];
     page.on('console', m => logs.push(m.text()));
-    await page.click('[data-action="capture"]');
+    // The mode switch sits in the same place on both bars, the current mode pressed (user request, 2026-11-13)
+    expect(await page.locator('[data-mode="feedback"]').getAttribute('aria-pressed')).toBe('true');
+    await page.click('[data-mode="capture"]');
     await page.locator('button[data-tool="component"]').waitFor();
+    expect(await page.locator('luci-toolbar [data-mode="capture"]').getAttribute('aria-pressed')).toBe('true');
+    expect(await page.locator('luci-toolbar [data-part="modes"] button').allInnerTexts()).toEqual(['Feedback', 'Capture']);
     // The mode is remembered in this tab
     await page.reload();
     await page.locator('button[data-tool="component"]').waitFor();
@@ -324,7 +360,7 @@ describe('dev toolbar with luci serve (M6 Done when, automated)', { timeout: 90_
     expect(fs.existsSync(path.join(dir, '.luci', 'design', name))).toBe(true);
     expect(JSON.parse(await mcp('list_captures'))).toEqual([expect.objectContaining({ file: name, scope: 'component' })]);
     // Back to Feedback, then close: a small button brings Luci back
-    await page.click('[data-action="mode"]');
+    await page.click('luci-toolbar [data-mode="feedback"]');
     await page.locator('[data-action="annotate"]').waitFor();
     await page.click('luci-feedback [data-action="close"]');
     await page.click('[data-action="open-luci"]');

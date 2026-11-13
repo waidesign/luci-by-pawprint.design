@@ -1,17 +1,20 @@
 /**
  * The Feedback layer of the dev toolbar (FR23-FR31): annotate an element (click) or a text selection,
- * with intent and priority; numbered markers show each item's status on the page; the items panel
- * copies the page-grouped prompt and marks what it sent; settings for the marker color and the
- * prompt's detail level; pause animations to annotate one frame. Items live in a FeedbackBackend.
+ * with intent and priority; numbered markers show each note's status on the page; the notes panel
+ * lists them page by page and copies the page-grouped prompt (marking what it sent); settings for
+ * the marker color, the prompt's detail level and a webhook; pause animations to annotate one frame.
+ * Notes live in a FeedbackBackend.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import { ButtonSpinner, elementAt, isLuciUi, scrollableAncestor } from '@luci/capture';
+import { ButtonSpinner, ModeSwitch, elementAt, isLuciUi, scrollableAncestor, type ModeSwitchProps } from '@luci/capture';
 import {
   DETAIL_LEVELS,
   FEEDBACK_INTENTS,
   FEEDBACK_PRIORITIES,
+  OPEN_STATUSES,
   parseRef,
   routeOf,
+  sourceText,
   type DetailLevel,
   type FeedbackIntent,
   type FeedbackItem,
@@ -33,12 +36,12 @@ export const MARKER_COLORS = ['#a78bfa', '#f472b6', '#38bdf8', '#4ade80', '#fb92
 export interface FeedbackProps {
   doc: Document;
   backend: FeedbackBackend;
-  /** Shown in the bar: how to keep items in the project when they are only in this browser. */
+  /** Shown in the bar: how to keep notes in the project when they are only in this browser. */
   connectNote?: string;
   settings: FeedbackSettings;
   onSettingsChange?: (settings: FeedbackSettings) => void;
-  /** Switch to the capture tools. */
-  onCapture?: () => void;
+  /** The dev toolbar's mode switch (Feedback, Capture, ...). */
+  modes?: ModeSwitchProps;
   /** Look for `luci serve` again (the badge becomes a button); resolves null when connected, else why not. */
   onConnect?: () => Promise<string | null>;
   onClose: () => void;
@@ -46,11 +49,13 @@ export interface FeedbackProps {
   pollMs?: number;
 }
 
-const STATUS_TEXT: Readonly<Record<FeedbackItem['status'], string>> = {
+export const STATUS_TEXT: Readonly<Record<FeedbackItem['status'], string>> = {
   pending: 'Not sent yet', sent: 'Sent to the agent', acknowledged: 'The agent is on it', question: 'The agent asked a question',
   resolved: 'Done', dismissed: 'Not done'
 };
 const STATUS_MARK: Readonly<Record<FeedbackItem['status'], string>> = { pending: '', sent: '', acknowledged: '…', question: '?', resolved: '✓', dismissed: '–' };
+const isOpen = (i: FeedbackItem) => OPEN_STATUSES.includes(i.status);
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
 interface Draft {
   el: Element;
@@ -58,10 +63,13 @@ interface Draft {
   at: { x: number; y: number };
 }
 
+type Act = (fn: () => Promise<unknown>) => Promise<void>;
+type NoteFields = { comment: string; intent: FeedbackIntent; priority: FeedbackPriority };
+
 /** Where a popover goes: below the point, kept inside the window. */
 const popAt = (win: Window, x: number, y: number) => ({
   left: `${Math.max(12, Math.min(x, win.innerWidth - 352))}px`,
-  top: `${Math.max(12, Math.min(y + 12, win.innerHeight - 280))}px`
+  top: `${Math.max(12, Math.min(y + 12, win.innerHeight - 320))}px`
 });
 
 /** Copy text: the clipboard API, or a selected textarea when the page does not allow it. */
@@ -85,6 +93,16 @@ async function copyToClipboard(doc: Document, text: string): Promise<boolean> {
 /** The CSS that freezes a page for annotating one frame (FR31). */
 export const PAUSE_CSS = '*, *::before, *::after { animation-play-state: paused !important; transition: none !important; caret-color: transparent !important; }';
 
+/**
+ * What "Copy prompt" sends: the new notes when there are any, else every note not done yet
+ * (FR29: sent notes are not repeated unless asked; asking is one click, never a dead button).
+ */
+export function copyScope(items: readonly FeedbackItem[]): { includeSent: boolean; count: number; label: string } {
+  const fresh = items.filter(i => i.status === 'pending').length;
+  const open = items.filter(isOpen).length;
+  return fresh ? { includeSent: false, count: fresh, label: `${fresh} new` } : { includeSent: true, count: open, label: `all ${open}` };
+}
+
 export function Feedback(props: FeedbackProps) {
   const { doc, backend } = props;
   const win = doc.defaultView ?? window;
@@ -100,6 +118,7 @@ export function Feedback(props: FeedbackProps) {
   const [selection, setSelection] = useState<{ el: Element; text: string; x: number; y: number } | null>(null);
   const [paused, setPaused] = useState(false);
   const [checking, setChecking] = useState(false);
+  const [copyMenu, setCopyMenu] = useState(false);
   const [, setTick] = useState(0);
 
   const reload = async () => {
@@ -111,7 +130,7 @@ export function Feedback(props: FeedbackProps) {
       setError(err instanceof Error ? err.message : String(err));
     }
   };
-  const act = async (fn: () => Promise<unknown>) => {
+  const act: Act = async (fn) => {
     try {
       await fn();
       await reload();
@@ -120,7 +139,7 @@ export function Feedback(props: FeedbackProps) {
     }
   };
 
-  // Items load at start; in the project, the agent's changes show up within a poll
+  // Notes load at start; in the project, the agent's changes show up within a poll
   useEffect(() => {
     void reload();
     if (backend.kind !== 'project') return;
@@ -156,11 +175,12 @@ export function Feedback(props: FeedbackProps) {
     return () => doc.removeEventListener('mouseup', onUp, true);
   }, [annotating]);
 
-  // Esc: closes the form, then leaves annotate mode
+  // Esc: closes the menu or form, then leaves annotate mode
   useLayoutEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
-      if (draft) setDraft(null);
+      if (copyMenu) setCopyMenu(false);
+      else if (draft) setDraft(null);
       else if (openRef) setOpenRef(null);
       else if (annotating) { setAnnotating(false); setCandidate(null); }
       else return;
@@ -169,7 +189,7 @@ export function Feedback(props: FeedbackProps) {
     };
     doc.addEventListener('keydown', onKey, true);
     return () => doc.removeEventListener('keydown', onKey, true);
-  }, [draft, openRef, annotating]);
+  }, [draft, openRef, annotating, copyMenu]);
 
   // Pause animations (FR31): page animations, transitions and videos stop on the current frame,
   // straight after the render (not after the next paint)
@@ -197,7 +217,9 @@ export function Feedback(props: FeedbackProps) {
 
   const route = routeOf(href);
   const here = items.filter(i => i.page.route === route);
-  const pending = items.filter(i => i.status === 'pending').length;
+  const scope = copyScope(items);
+  const fresh = items.filter(i => i.status === 'pending').length;
+  const openCount = items.filter(isOpen).length;
 
   // ---- Annotating -------------------------------------------------------------------------
   const startDraft = (el: Element, x: number, y: number, selectedText?: string) => {
@@ -218,7 +240,7 @@ export function Feedback(props: FeedbackProps) {
     else win.scrollBy(e.deltaX, e.deltaY);
   };
 
-  const save = async (form: { comment: string; intent: FeedbackIntent; priority: FeedbackPriority }) => {
+  const save = async (form: NoteFields) => {
     if (!draft) return;
     const d = draft;
     await act(async () => {
@@ -233,10 +255,10 @@ export function Feedback(props: FeedbackProps) {
 
   // ---- Copy prompt (FR27-FR29) -------------------------------------------------------------
   const [prompt, setPrompt] = useState<{ text: string | null; refs: string[]; copied: boolean } | null>(null);
-  const [includeSent, setIncludeSent] = useState(false);
-  const copyPrompt = async (withSent = includeSent) => {
+  const copyPrompt = async (includeSent: boolean) => {
+    setCopyMenu(false);
     await act(async () => {
-      const r = await backend.prompt({ detail: settings.detail, includeSent: withSent });
+      const r = await backend.prompt({ detail: settings.detail, includeSent });
       const copied = r.prompt ? await copyToClipboard(doc, r.prompt) : false;
       setPrompt({ text: r.prompt, refs: r.refs, copied });
       setPanel('items');
@@ -249,17 +271,17 @@ export function Feedback(props: FeedbackProps) {
     const url = settings.webhookUrl;
     if (!url) return;
     await act(async () => {
-      const r = await backend.prompt({ detail: settings.detail, includeSent });
-      if (!r.prompt) { setWebhookNote('Nothing new to send.'); return; }
+      const r = await backend.prompt({ detail: settings.detail, includeSent: scope.includeSent });
+      if (!r.prompt) { setWebhookNote('Nothing to send.'); return; }
       const sent = await backend.list();
       const body = JSON.stringify({ source: 'luci', prompt: r.prompt, items: sent.filter(i => r.refs.includes(i.ref)) });
       try {
         const res = await win.fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body });
-        setWebhookNote(res.ok ? `Sent ${r.refs.length} item${r.refs.length === 1 ? '' : 's'} to the webhook.` : `The webhook answered ${res.status}.`);
+        setWebhookNote(res.ok ? `Sent ${plural(r.refs.length, 'item')} to the webhook.` : `The webhook answered ${res.status}.`);
       } catch {
         // A webhook that does not allow this page's origin: send it anyway, without reading the answer
         await win.fetch(url, { method: 'POST', mode: 'no-cors', headers: { 'content-type': 'text/plain' }, body });
-        setWebhookNote(`Sent ${r.refs.length} item${r.refs.length === 1 ? '' : 's'} (the webhook's answer cannot be read from this page).`);
+        setWebhookNote(`Sent ${plural(r.refs.length, 'item')} (the webhook's answer cannot be read from this page).`);
       }
     });
   };
@@ -278,20 +300,26 @@ export function Feedback(props: FeedbackProps) {
   const open = items.find(i => i.ref === openRef) ?? null;
 
   const hoverRect = annotating && candidate && !draft ? candidate.getBoundingClientRect() : null;
-  const hoverName = annotating && candidate ? `${nameOf(candidate)}${reactInfo(candidate)?.components.at(-1) ? ` · ${reactInfo(candidate)!.components.at(-1)}` : ''}` : '';
+  const innermost = annotating && candidate ? reactInfo(candidate)?.components.at(-1) : undefined;
+  const hoverName = annotating && candidate ? `${nameOf(candidate)}${innermost ? ` · ${innermost}` : ''}` : '';
 
   return (
     <div class="luci" style={{ '--marker': settings.markerColor }}>
       <div class="bar" role="toolbar" aria-label="Luci feedback">
         <span class="brand">Luci</span>
+        {props.modes && <ModeSwitch {...props.modes} />}
         <button type="button" aria-pressed={annotating} data-action="annotate" title="Click elements on the page to leave a note (Esc to stop). Or select text." onClick={() => { setAnnotating(a => !a); setCandidate(null); setDraft(null); }}>Annotate</button>
-        <button type="button" data-action="copy-prompt" disabled={!pending} title="Copy the new items as one prompt for your agent" onClick={() => void copyPrompt(false)}>Copy prompt{pending ? ` (${pending})` : ''}</button>
-        <button type="button" aria-pressed={panel === 'items'} data-action="items" onClick={() => { setPanel(p => (p === 'items' ? null : 'items')); setPrompt(null); }}>Items ({items.length})</button>
+        <span class="split">
+          <button type="button" data-action="copy-prompt" disabled={!scope.count}
+            title={!scope.count ? 'No notes to send' : scope.includeSent ? 'Copy every note not done yet, as one prompt (they were all sent before)' : 'Copy the new notes as one prompt for your agent'}
+            onClick={() => void copyPrompt(scope.includeSent)}>Copy prompt{scope.count ? ` (${scope.label})` : ''}</button>
+          <button type="button" class="caret" data-action="copy-menu" aria-label="Choose what to copy" aria-expanded={copyMenu} disabled={!openCount} onClick={() => setCopyMenu(m => !m)}>▾</button>
+        </span>
+        <button type="button" aria-pressed={panel === 'items'} data-action="items" onClick={() => { setPanel(p => (p === 'items' ? null : 'items')); setPrompt(null); }}>Notes ({items.length})</button>
         <button type="button" aria-pressed={paused} data-action="pause" title="Pause animations to annotate one frame" onClick={() => setPaused(p => !p)}>{paused ? 'Resume' : 'Pause'}</button>
         <button type="button" aria-pressed={panel === 'settings'} data-action="settings" aria-label="Settings" title="Settings" onClick={() => setPanel(p => (p === 'settings' ? null : 'settings'))}>⚙</button>
-        {props.onCapture && <button type="button" data-action="capture" title="Capture tools: component, text, color, spacing" onClick={props.onCapture}>Capture</button>}
         {backend.kind === 'project' || !props.onConnect ? (
-          <span class={`conn ${backend.kind}`} data-part="connection" title={backend.kind === 'project' ? 'Items are saved in the project, where your agent reads them' : props.connectNote ?? ''}>
+          <span class={`conn ${backend.kind}`} data-part="connection" title={backend.kind === 'project' ? 'Notes are saved in the project, where your agent reads them' : props.connectNote ?? ''}>
             {backend.kind === 'project' ? 'Project' : 'This browser'}
           </span>
         ) : (
@@ -302,6 +330,17 @@ export function Feedback(props: FeedbackProps) {
         )}
         <button type="button" aria-label="Close Luci" data-action="close" onClick={props.onClose}>×</button>
       </div>
+
+      {copyMenu && (
+        <div class="menu" role="menu" data-part="copy-menu">
+          <button type="button" role="menuitem" data-copy="new" disabled={!fresh} onClick={() => void copyPrompt(false)}>
+            Only new notes ({fresh})<span class="dim">Notes not sent to the agent yet</span>
+          </button>
+          <button type="button" role="menuitem" data-copy="open" disabled={!openCount} onClick={() => void copyPrompt(true)}>
+            All notes not done ({openCount})<span class="dim">Includes notes sent before, to send them again</span>
+          </button>
+        </div>
+      )}
 
       {annotating && !draft && (
         <div class="sub" role="note" data-part="hint">
@@ -339,38 +378,48 @@ export function Feedback(props: FeedbackProps) {
         );
       })}
 
-      {draft && <NoteForm key={`${draft.at.x},${draft.at.y}`} draft={draft} win={win} onSave={save} onCancel={() => setDraft(null)} />}
+      {draft && (
+        <div class="pop" role="dialog" aria-label="New feedback" data-part="note-form" style={popAt(win, draft.at.x, draft.at.y)}>
+          <h3>{draft.selectedText ? 'Feedback on the selected text' : `Feedback on ${nameOf(draft.el)}`}</h3>
+          {draft.selectedText && <p class="quote" data-part="selected">“{draft.selectedText}”</p>}
+          <NoteForm key={`${draft.at.x},${draft.at.y}`} submitLabel="Save" onSubmit={save} onCancel={() => setDraft(null)} />
+        </div>
+      )}
 
       {open && (() => {
         const pos = markerPos(open);
-        return <ItemPopover item={open} style={popAt(win, pos?.x ?? 24, pos?.y ?? 24)} backend={backend} act={act} onClose={() => setOpenRef(null)} />;
+        return (
+          <div class="pop" role="dialog" aria-label={`Note ${open.ref}`} data-part="item" data-ref={open.ref} style={popAt(win, pos?.x ?? 24, pos?.y ?? 24)}>
+            <NoteDetails key={open.ref} item={open} backend={backend} act={act} onClose={() => setOpenRef(null)} />
+          </div>
+        );
       })()}
 
       {panel === 'items' && (
-        <div class="panel" role="dialog" aria-label="Feedback items" data-part="items">
+        <div class="panel" role="dialog" aria-label="Feedback notes" data-part="items">
           {prompt ? (
             <>
-              <h2>{prompt.text ? `Prompt with ${prompt.refs.length} item${prompt.refs.length === 1 ? '' : 's'}` : 'Nothing new to send'}</h2>
+              <h2>{prompt.text ? `Prompt with ${plural(prompt.refs.length, 'note')}` : 'Nothing to send'}</h2>
               {prompt.text ? (
                 <>
                   <p class="hint" data-part="copied">{prompt.copied ? 'Copied. Paste it to your agent.' : 'Copy it from below and paste it to your agent.'}
-                    {backend.kind === 'project' ? ' Your agent can also fetch it with get_feedback_prompt.' : ''} These items are now marked as sent.</p>
+                    {backend.kind === 'project' ? ' Your agent can also fetch it with get_feedback_prompt.' : ''} These notes are now marked as sent.</p>
                   <pre data-part="prompt">{prompt.text}</pre>
                 </>
               ) : (
-                <p class="hint">Every item was sent already. Copy them again with "Include items already sent".</p>
+                <p class="hint">Every note is done.</p>
               )}
-              <div class="row"><button type="button" data-action="prompt-back" onClick={() => setPrompt(null)}>Back to the items</button></div>
+              <div class="row"><button type="button" data-action="prompt-back" onClick={() => setPrompt(null)}>Back to the notes</button></div>
             </>
           ) : (
-            <ItemsList items={items} route={route} backend={backend} act={act} onOpen={(ref) => { setPanel(null); setOpenRef(ref); }}
-              detail={settings.detail} includeSent={includeSent} setIncludeSent={setIncludeSent} onCopy={() => void copyPrompt()}
+            <NotesPanel items={items} route={route} backend={backend} act={act} scope={scope}
+              onCopy={() => void copyPrompt(scope.includeSent)} onShow={ref => { setPanel(null); setOpenRef(ref); }}
               webhook={settings.webhookUrl ? { send: () => void sendWebhook(), note: webhookNote } : null} />
           )}
         </div>
       )}
 
-      {panel === 'settings' && <SettingsPanel settings={settings} onChange={changeSettings} />}
+      {panel === 'settings' && <SettingsPanel settings={settings} onChange={changeSettings} count={items.length} onClearAll={() => void act(() => backend.clear('all'))} />}
 
       {error && (
         <div class="sub" role="alert" data-part="error" style={{ top: 'auto', bottom: '12px', left: '12px', right: 'auto' }}>
@@ -382,23 +431,22 @@ export function Feedback(props: FeedbackProps) {
   );
 }
 
-function NoteForm(props: { draft: Draft; win: Window; onSave: (f: { comment: string; intent: FeedbackIntent; priority: FeedbackPriority }) => Promise<void>; onCancel: () => void }) {
-  const [comment, setComment] = useState('');
-  const [intent, setIntent] = useState<FeedbackIntent>('fix');
-  const [priority, setPriority] = useState<FeedbackPriority>('medium');
+/** The note's text, intent and priority: for a new note, and to edit one already saved. */
+function NoteForm(props: { initial?: NoteFields; submitLabel: string; onSubmit: (f: NoteFields) => Promise<void>; onCancel: () => void }) {
+  const [comment, setComment] = useState(props.initial?.comment ?? '');
+  const [intent, setIntent] = useState<FeedbackIntent>(props.initial?.intent ?? 'fix');
+  const [priority, setPriority] = useState<FeedbackPriority>(props.initial?.priority ?? 'medium');
   const [busy, setBusy] = useState(false);
   const ref = useRef<HTMLTextAreaElement>(null);
   useEffect(() => { ref.current?.focus(); }, []);
   const submit = async () => {
     if (!comment.trim()) return;
     setBusy(true);
-    await props.onSave({ comment: comment.trim(), intent, priority });
+    await props.onSubmit({ comment: comment.trim(), intent, priority });
     setBusy(false);
   };
   return (
-    <div class="pop" role="dialog" aria-label="New feedback" data-part="note-form" style={popAt(props.win, props.draft.at.x, props.draft.at.y)}>
-      <h3>{props.draft.selectedText ? 'Feedback on the selected text' : `Feedback on ${nameOf(props.draft.el)}`}</h3>
-      {props.draft.selectedText && <p class="quote" data-part="selected">“{props.draft.selectedText}”</p>}
+    <>
       <textarea ref={ref} data-part="comment" placeholder="What should change?" value={comment}
         onInput={e => setComment((e.currentTarget as HTMLTextAreaElement).value)}
         onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) void submit(); }} />
@@ -411,27 +459,39 @@ function NoteForm(props: { draft: Draft; win: Window; onSave: (f: { comment: str
         </select></label>
       </div>
       <div class="row">
-        <button type="button" class="primary" data-action="save-note" disabled={!comment.trim() || busy} onClick={() => void submit()}>{busy ? <><ButtonSpinner />Saving…</> : 'Save'}</button>
+        <button type="button" class="primary" data-action="save-note" disabled={!comment.trim() || busy} onClick={() => void submit()}>{busy ? <><ButtonSpinner />Saving…</> : props.submitLabel}</button>
         <button type="button" data-action="cancel-note" onClick={props.onCancel}>Cancel</button>
       </div>
-    </div>
+    </>
   );
 }
 
-function ItemPopover(props: { item: FeedbackItem; style: Record<string, string>; backend: FeedbackBackend; act: (fn: () => Promise<unknown>) => Promise<void>; onClose: () => void }) {
+/** One note: what it says, its status and thread; edit it (text, intent, priority), answer, reopen, delete. */
+function NoteDetails(props: { item: FeedbackItem; backend: FeedbackBackend; act: Act; onClose?: () => void; inList?: boolean }) {
   const { item, backend, act } = props;
   const [answer, setAnswer] = useState('');
   const [editing, setEditing] = useState(false);
-  const [comment, setComment] = useState(item.comment);
   const done = item.status === 'resolved' || item.status === 'dismissed';
+  if (editing) {
+    return (
+      <div class="stack" data-part="edit-note">
+        <h3>Edit {item.ref}</h3>
+        <NoteForm initial={item} submitLabel="Save changes"
+          onSubmit={f => act(async () => { await backend.change(item.ref, { action: 'edit', ...f }); setEditing(false); })}
+          onCancel={() => setEditing(false)} />
+      </div>
+    );
+  }
   return (
-    <div class="pop" role="dialog" aria-label={`Feedback ${item.ref}`} data-part="item" data-ref={item.ref} style={props.style}>
-      <h3>{item.ref} · {item.intent}, {item.priority} <span class={`status ${item.status}`} data-part="status">{STATUS_TEXT[item.status]}</span></h3>
-      {editing ? (
-        <textarea data-part="edit-comment" value={comment} onInput={e => setComment((e.currentTarget as HTMLTextAreaElement).value)} />
-      ) : (
-        <p data-part="comment-text" style={{ margin: 0 }}>{item.comment}</p>
-      )}
+    <div class="stack details">
+      {/* In the list, the row above already shows the ref, status and text */}
+      {!props.inList && <h3>{item.ref} <span class={`status ${item.status}`} data-part="status">{STATUS_TEXT[item.status]}</span></h3>}
+      {!props.inList && <p class="meta" data-part="note-meta">{item.intent} · {item.priority} priority · {item.target.element}</p>}
+      {!props.inList && <p data-part="comment-text" class="comment">{item.comment}</p>}
+      <p class="meta" data-part="note-source">
+        {props.inList ? `On ${item.target.element}` : 'In'}{item.target.source ? <> · <code>{sourceText(item.target.source)}</code></> : ''}
+        {item.target.components?.length ? ` · ${item.target.components.slice(-3).join(' › ')}` : ''}
+      </p>
       {item.target.selectedText && <p class="quote">“{item.target.selectedText}”</p>}
       {item.resolution && <p class="dim" data-part="resolution">{item.status === 'resolved' ? 'Done: ' : 'Not done: '}{item.resolution}</p>}
       {item.thread.length > 0 && (
@@ -446,78 +506,85 @@ function ItemPopover(props: { item: FeedbackItem; style: Record<string, string>;
         </div>
       )}
       <div class="row">
-        {editing
-          ? <button type="button" class="primary" data-action="save-edit" disabled={!comment.trim()} onClick={() => void act(async () => { await backend.change(item.ref, { action: 'edit', comment: comment.trim() }); setEditing(false); })}>Save</button>
-          : <button type="button" data-action="edit" onClick={() => setEditing(true)}>Edit</button>}
+        <button type="button" data-action="edit" onClick={() => setEditing(true)}>Edit</button>
         {done && <button type="button" data-action="reopen" onClick={() => void act(() => backend.change(item.ref, { action: 'reopen' }))}>Reopen</button>}
-        <button type="button" data-action="delete" onClick={() => void act(async () => { await backend.remove(item.ref); props.onClose(); })}>Delete</button>
-        <button type="button" data-action="close-item" onClick={props.onClose}>Close</button>
+        <button type="button" data-action="delete" onClick={() => void act(async () => { await backend.remove(item.ref); props.onClose?.(); })}>Delete</button>
+        {props.onClose && <button type="button" data-action="close-item" onClick={props.onClose}>Close</button>}
       </div>
     </div>
   );
 }
 
-function ItemsList(props: {
-  items: FeedbackItem[]; route: string; backend: FeedbackBackend; act: (fn: () => Promise<unknown>) => Promise<void>; onOpen: (ref: string) => void;
-  detail: DetailLevel; includeSent: boolean; setIncludeSent: (v: boolean) => void; onCopy: () => void;
-  webhook: { send: () => void; note: string | null } | null;
+type Tab = 'open' | 'done' | 'all';
+
+/** Notes, page by page: tabs for not done / done / all; a row per note; open one to read, edit or answer it. */
+function NotesPanel(props: {
+  items: FeedbackItem[]; route: string; backend: FeedbackBackend; act: Act; scope: ReturnType<typeof copyScope>;
+  onCopy: () => void; onShow: (ref: string) => void; webhook: { send: () => void; note: string | null } | null;
 }) {
-  const [confirm, setConfirm] = useState(false);
+  const [tab, setTab] = useState<Tab>('open');
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const done = props.items.filter(i => !isOpen(i));
+  const open = props.items.filter(isOpen);
+  const shown = tab === 'open' ? open : tab === 'done' ? done : props.items;
   const pages = new Map<number, FeedbackItem[]>();
-  for (const i of props.items) {
+  for (const i of shown) {
     const p = parseRef(i.ref)?.page ?? 0;
     pages.set(p, [...(pages.get(p) ?? []), i]);
   }
-  const toSend = props.items.filter(i => (props.includeSent ? ['pending', 'sent', 'acknowledged', 'question'].includes(i.status) : i.status === 'pending')).length;
+  const allPages = new Set(props.items.map(i => parseRef(i.ref)?.page)).size;
   return (
     <>
-      <h2>Feedback: {props.items.length} item{props.items.length === 1 ? '' : 's'} on {pages.size} page{pages.size === 1 ? '' : 's'}</h2>
-      {!props.items.length && <p class="hint">No feedback yet. Press Annotate and click an element, or select text on the page.</p>}
-      <div style={{ overflow: 'auto' }}>
+      <h2>Notes: {plural(props.items.length, 'note')} on {plural(allPages, 'page')}</h2>
+      <div class="seg tabs" role="tablist" aria-label="Which notes">
+        {([['open', `Not done (${open.length})`], ['done', `Done (${done.length})`], ['all', `All (${props.items.length})`]] as const).map(([id, label]) => (
+          <button type="button" role="tab" data-tab={id} aria-selected={tab === id} aria-pressed={tab === id} onClick={() => setTab(id)}>{label}</button>
+        ))}
+      </div>
+      {!props.items.length && <p class="hint">No notes yet. Press Annotate and click an element, or select text on the page.</p>}
+      {props.items.length > 0 && !shown.length && <p class="hint">{tab === 'open' ? 'Every note is done.' : 'No notes are done yet.'}</p>}
+      <div class="notes-scroll">
         {[...pages.entries()].map(([page, list]) => (
-          <div class="page-group" data-page={page}>
-            <h3>Page {page}: {list[0]!.page.route}{list[0]!.page.route === props.route ? ' (this page)' : ''}</h3>
-            <ul class="items fb-items">
+          <section class="page-group" data-page={page}>
+            <h3><span>Page {page}</span> <code>{list[0]!.page.route}</code>{list[0]!.page.route === props.route ? <span class="here">this page</span> : null}<span class="count">{plural(list.length, 'note')}</span></h3>
+            <ul class="notes">
               {list.map(i => (
-                <li data-item={i.ref}>
-                  <span class="ref">{i.ref}</span>
-                  <span>{i.comment} <span class={`status ${i.status}`}>{STATUS_TEXT[i.status]}</span></span>
-                  <span class="row">
-                    {i.page.route === props.route && <button type="button" data-item-open onClick={() => props.onOpen(i.ref)}>Show</button>}
-                    <button type="button" data-item-remove aria-label={`Delete ${i.ref}`} onClick={() => void props.act(() => props.backend.remove(i.ref))}>Delete</button>
-                  </span>
+                <li data-item={i.ref} class={expanded === i.ref ? 'expanded' : ''}>
+                  <button type="button" class="row-main" data-item-open aria-expanded={expanded === i.ref} onClick={() => setExpanded(e => (e === i.ref ? null : i.ref))}>
+                    <span class={`dot marker-like ${i.status}`} aria-hidden="true">{parseRef(i.ref)?.n}{STATUS_MARK[i.status]}</span>
+                    <span class="body">
+                      <span class="comment">{i.comment}</span>
+                      <span class="meta">{i.ref} · {i.intent} · {i.priority} · <span class={`status ${i.status}`}>{STATUS_TEXT[i.status]}</span></span>
+                    </span>
+                  </button>
+                  {expanded === i.ref && (
+                    <div class="row-details">
+                      <NoteDetails item={i} backend={props.backend} act={props.act} inList />
+                      {i.page.route === props.route
+                        ? <button type="button" class="link-button" data-action="show-on-page" onClick={() => props.onShow(i.ref)}>Show on the page</button>
+                        : <a class="link" href={i.page.url} data-action="open-page">Go to {i.page.route}</a>}
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
-          </div>
+          </section>
         ))}
       </div>
-      <div class="row">
-        <button type="button" class="primary" data-action="copy-prompt-panel" disabled={!toSend} onClick={props.onCopy}>Copy prompt ({toSend})</button>
-        <label><input type="checkbox" data-part="include-sent" checked={props.includeSent} onChange={e => props.setIncludeSent((e.currentTarget as HTMLInputElement).checked)} /> Include items already sent</label>
-        <span class="dim">Detail: {props.detail}</span>
+      <div class="row footer">
+        <button type="button" class="primary" data-action="copy-prompt-panel" disabled={!props.scope.count} onClick={props.onCopy}>Copy prompt{props.scope.count ? ` (${props.scope.label})` : ''}</button>
+        {props.webhook && <button type="button" data-action="send-webhook" disabled={!props.scope.count} onClick={props.webhook.send}>Send to webhook</button>}
+        <button type="button" data-action="clear-done" disabled={!done.length} title="Delete the notes that are done or not done" onClick={() => void props.act(() => props.backend.clear('done'))}>Clear done ({done.length})</button>
       </div>
-      {props.webhook && (
-        <div class="row">
-          <button type="button" data-action="send-webhook" disabled={!toSend} onClick={props.webhook.send}>Send to webhook</button>
-          {props.webhook.note && <span class="dim" data-part="webhook-note">{props.webhook.note}</span>}
-        </div>
-      )}
-      {props.items.length > 0 && (
-        <div class="row">
-          <button type="button" data-action="clear-done" onClick={() => void props.act(() => props.backend.clear('done'))}>Clear done</button>
-          {confirm
-            ? <button type="button" data-action="clear-all-confirm" onClick={() => { setConfirm(false); void props.act(() => props.backend.clear('all')); }}>Yes, delete every item</button>
-            : <button type="button" data-action="clear-all" onClick={() => setConfirm(true)}>Clear all</button>}
-        </div>
-      )}
+      {props.webhook?.note && <p class="dim" data-part="webhook-note">{props.webhook.note}</p>}
     </>
   );
 }
 
-function SettingsPanel(props: { settings: FeedbackSettings; onChange: (s: FeedbackSettings) => void }) {
+function SettingsPanel(props: { settings: FeedbackSettings; onChange: (s: FeedbackSettings) => void; count: number; onClearAll: () => void }) {
   const s = props.settings;
   const [hook, setHook] = useState(s.webhookUrl ?? '');
+  const [confirm, setConfirm] = useState(false);
   const validHook = !hook || /^https?:\/\/\S+$/.test(hook);
   return (
     <div class="panel" role="dialog" aria-label="Feedback settings" data-part="settings">
@@ -534,12 +601,17 @@ function SettingsPanel(props: { settings: FeedbackSettings; onChange: (s: Feedba
       <p class="dim">compact: selector and text. standard: + source file and components. detailed: + computed styles.</p>
       <div class="stack">
         <span>Webhook (optional)</span>
-        <input type="url" data-part="webhook" placeholder="https://..." value={hook} style={{ font: 'inherit', color: 'inherit', background: '#27272a', border: '1px solid #3f3f46', borderRadius: '6px', padding: '4px 6px' }}
+        <input type="url" class="field" data-part="webhook" placeholder="https://..." value={hook}
           onInput={e => setHook((e.currentTarget as HTMLInputElement).value.trim())} />
         <div class="row">
           <button type="button" data-action="save-webhook" disabled={!validHook} onClick={() => { const { webhookUrl: _w, ...rest } = s; props.onChange(hook ? { ...rest, webhookUrl: hook } : rest); }}>Save webhook</button>
-          <span class="dim">Items go there only when you press "Send to webhook".</span>
+          <span class="dim">Notes go there only when you press "Send to webhook".</span>
         </div>
+      </div>
+      <div class="row danger">
+        {confirm
+          ? <button type="button" data-action="clear-all-confirm" onClick={() => { setConfirm(false); props.onClearAll(); }}>Yes, delete all {props.count} notes</button>
+          : <button type="button" data-action="clear-all" disabled={!props.count} onClick={() => setConfirm(true)}>Delete all notes…</button>}
       </div>
     </div>
   );

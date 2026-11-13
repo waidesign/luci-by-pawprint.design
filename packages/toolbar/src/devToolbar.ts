@@ -22,6 +22,11 @@ import {
 export const DEFAULT_BRIDGE = 'http://127.0.0.1:4545';
 export const LAUNCHER_TAG = 'luci-launcher';
 export type Mode = 'feedback' | 'capture';
+/** The modes, as the switch shows them. */
+export const MODES = [
+  { id: 'feedback', label: 'Feedback', title: 'Feedback: leave notes on your app for your coding agent' },
+  { id: 'capture', label: 'Capture', title: 'Capture: take a component, text, color or spacing as a design file' }
+] as const;
 
 export interface DevToolbarOptions {
   /** The `luci serve` address. Default: the one the script was served from, else http://127.0.0.1:4545. */
@@ -145,6 +150,9 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
     doc.documentElement.appendChild(launcher);
   };
 
+  /** The same switch on every mode's bar. */
+  const modeSwitch = () => ({ current: mode, modes: MODES, onSelect: (id: string) => show(id as Mode) });
+
   const show = (next: Mode) => {
     current?.destroy();
     removeLauncher();
@@ -157,7 +165,7 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
         ...(connected ? {} : { connectNote, onConnect: connect }),
         settings: readJson<FeedbackSettings>(storage, KEYS.feedback, DEFAULT_FEEDBACK_SETTINGS),
         onSettingsChange: s => storage.setItem(KEYS.feedback, JSON.stringify(s)),
-        onCapture: () => show('capture'),
+        modes: modeSwitch(),
         onClose: () => { current = null; showLauncher(); },
         ...(options.pollMs ? { pollMs: options.pollMs } : {})
       });
@@ -167,7 +175,7 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
         settings: readJson<CaptureSettings>(storage, KEYS.capture, {}),
         onSettingsChange: s => storage.setItem(KEYS.capture, JSON.stringify(s)),
         basket: storageBasket(storage),
-        modeButton: { label: 'Feedback', title: 'Leave notes on the app for your agent', onClick: () => show('feedback') },
+        modes: modeSwitch(),
         ...(backend.saveCapture ? { saveToProject: backend.saveCapture } : {}),
         onClose: () => { current = null; showLauncher(); }
       });
