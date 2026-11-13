@@ -75,15 +75,15 @@ describe('items from two sites export as one file (M5 Done when)', () => {
 
   it('collects on two origins, keeps items across pages, renames, and exports one collection file', async () => {
     const a = await open(`${siteA.origin}/css-variables/`);
-    await add(a, 'component', () => a.click('.button >> nth=0'));
-    await add(a, 'text', () => a.click('h1'));
+    await add(a, 'component', () => a.click('.button >> nth=0', { force: true }));
+    await add(a, 'text', () => a.click('h1', { force: true }));
     await expect.poll(() => a.locator('[data-action="basket"]').innerText()).toBe('Basket (2)');
     await a.context().close();
 
     const b = await open(`${siteB.origin}/web-components/`);
     // The basket came along to the other site (it loads from the store right after the toolbar opens)
     await expect.poll(() => b.locator('[data-action="basket"]').innerText()).toBe('Basket (2)');
-    await add(b, 'color', () => b.locator('plan-card').first().locator('button').click());
+    await add(b, 'color', () => b.locator('plan-card').first().locator('button').click({ force: true }));
     await b.click('[data-action="basket"]');
     expect(await b.locator('[data-item]').count()).toBe(3);
     await b.locator('[data-item-name]').first().fill('Signup button');
@@ -131,7 +131,7 @@ describe('items from two sites export as one file (M5 Done when)', () => {
       w.LuciCapture.mountToolbar({ basket: { load: () => w.luciBasketLoad(), save: (items: unknown) => w.luciBasketSave(items) } });
     });
     await page.click('button[data-tool="text"]');
-    await page.click('h1');
+    await page.click('h1', { force: true });
     await page.click('[data-output="one"]');
     await page.click('[data-action="add-to-basket"]');
     await expect.poll(() => stored.map(i => i.name), { timeout: 5000 }).toEqual(['Kept item', 'Text heading 1']);

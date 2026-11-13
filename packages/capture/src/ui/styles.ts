@@ -32,6 +32,7 @@ textarea[data-part="instructions"] { font: 13px/1.4 system-ui, sans-serif; backg
 textarea.preview { min-height: 160px; flex: 1; white-space: pre; overflow: auto; }
 textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .dim { color: var(--muted); font-size: 12px; font-weight: 400; margin: 0; }
+.pick-layer { position: fixed; inset: 0; z-index: 2147483640; cursor: crosshair; background: transparent; touch-action: none; }
 .pixel-layer { position: fixed; inset: 0; z-index: 2147483640; cursor: crosshair; background: transparent; }
 .swatch { position: fixed; z-index: 2147483647; pointer-events: none; display: flex; gap: 6px; align-items: center; padding: 4px 8px;
   background: var(--bg); border: 1px solid var(--line); border-radius: 6px; font: 12px ui-monospace, monospace; }

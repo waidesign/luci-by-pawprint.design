@@ -51,19 +51,19 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
 
   it('hover shows tag and size; an image is greyed with the reason and cannot be picked (FR2, FR4)', async () => {
     await page.click('button[data-tool="text"]');
-    await page.hover('h1');
+    await page.hover('h1', { force: true });
     expect(await label(page)).toMatch(/^h1 {2}\d+ × \d+/);
-    await page.hover('#logo');
+    await page.hover('#logo', { force: true });
     expect(await label(page)).toContain('Images cannot be captured.');
     expect(await page.locator('.highlight.blocked').count()).toBe(1);
-    await page.click('#logo');
+    await page.click('#logo', { force: true });
     expect(await page.locator('[data-part="notice"]').innerText()).toBe('Images cannot be captured.');
     expect(await page.locator('[data-output]').count()).toBe(0);
   });
 
   it('Text: click a heading, "This one" gives its text style (FR5, FR11)', async () => {
     await page.click('button[data-tool="text"]');
-    await page.click('h1');
+    await page.click('h1', { force: true });
     await page.click('[data-output="one"]');
     expect(await page.locator('[data-part="file-name"]').innerText()).toBe('127-0-0-1.token.text-heading-1.design.md');
     const md = await preview(page);
@@ -76,7 +76,7 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
 
   it('arrow keys widen to the parent and narrow back; Enter picks; Esc cancels (FR2, FR3)', async () => {
     await page.click('button[data-tool="text"]');
-    await page.hover('.card p >> nth=0');
+    await page.hover('.card p >> nth=0', { force: true });
     expect(await label(page)).toMatch(/^p /);
     await page.keyboard.press('ArrowUp');
     expect(await label(page)).toMatch(/^li /);
@@ -85,7 +85,7 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
     await page.keyboard.press('Escape');
     expect(await page.locator('.highlight').count()).toBe(0);
     await page.click('button[data-tool="text"]');
-    await page.hover('.card p >> nth=0');
+    await page.hover('.card p >> nth=0', { force: true });
     await page.keyboard.press('ArrowUp');
     await page.keyboard.press('Enter');
     expect(await page.locator('[data-part="selected-name"]').innerText()).toBe('li (listitem)');
@@ -93,7 +93,7 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
 
   it('after a click the selection stays: ↑ ↓ and the Wider / Narrower buttons change it, Enter takes "This one" (user feedback)', async () => {
     await page.click('button[data-tool="text"]');
-    await page.click('.card p >> nth=0');
+    await page.click('.card p >> nth=0', { force: true });
     const name = () => page.locator('[data-part="selected-name"]').innerText();
     expect(await name()).toBe('p (paragraph)');
     expect(await page.locator('[data-part="selection"]').count()).toBe(1);
@@ -107,7 +107,7 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
 
     // The same with the buttons
     await page.click('button[data-tool="text"]');
-    await page.click('.card p >> nth=0');
+    await page.click('.card p >> nth=0', { force: true });
     await page.click('[data-action="widen"]');
     expect(await name()).toBe('li (listitem)');
     await page.click('[data-action="narrow"]');
@@ -118,7 +118,7 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
 
   it('the page itself redirects to the system output (FR4, FR12)', async () => {
     await page.click('button[data-tool="text"]');
-    await page.hover('footer');
+    await page.hover('footer', { force: true });
     await page.keyboard.press('ArrowUp');
     expect(await label(page)).toContain('This is the whole page');
     await page.keyboard.press('Enter');
@@ -132,11 +132,11 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
 
   it('Color: an element, the whole system, and eyedropper pixels (FR13, FR14)', async () => {
     await page.click('button[data-tool="color"]');
-    await page.click('.button >> nth=0');
+    await page.click('.button >> nth=0', { force: true });
     await page.click('[data-output="one"]');
     expect(await preview(page)).toContain('| #0f62fe | `var(--color-primary)` | `--color-primary` | accent |');
     await page.click('button[data-tool="color"]');
-    await page.click('.button >> nth=1');
+    await page.click('.button >> nth=1', { force: true });
     await page.click('[data-output="system"]');
     expect(await preview(page)).toMatch(/\| `--color-unused` \| #da1e28 \| 0 \|/);
     await page.evaluate(() => (window as unknown as { toolbar: { pickPixel(h: string): void } }).toolbar.pickPixel('#0F62FE'));
@@ -149,7 +149,8 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
 
   it('Spacing: pick a value an element sets, or drag between two elements to measure (FR15, FR16)', async () => {
     await page.click('button[data-tool="spacing"]');
-    await page.hover('.card >> nth=0');
+    // In the card's own padding (its centre is the edge of the paragraph inside it)
+    await page.hover('.card >> nth=0', { force: true, position: { x: 6, y: 6 } });
     expect(await label(page)).toContain('padding 24px');
     await page.keyboard.press('ArrowUp');
     await page.keyboard.press('Enter');
@@ -171,7 +172,7 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
 
   it('Component: states from stylesheet rules without the debugger; a JavaScript hover can be captured by hand (FR8)', async () => {
     await page.click('button[data-tool="component"]');
-    await page.click('.button >> nth=0');
+    await page.click('.button >> nth=0', { force: true });
     await page.click('[data-output="one"]');
     const md = await preview(page);
     expect(md).toContain('scope: component');
@@ -179,12 +180,12 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
     expect(md).toContain('| disabled | opacity 1 → 0.5; cursor pointer → not-allowed | disabled attribute |');
 
     await page.click('button[data-tool="component"]');
-    await page.click('#js-hover');
+    await page.click('#js-hover', { force: true });
     await page.click('[data-output="one"]');
     expect(await preview(page)).toContain('| hover | Not detected');
     expect(await page.locator('select[data-setting="manual-state"]').inputValue()).toBe('hover');
     await page.click('[data-action="capture-state"]');
-    await page.hover('#js-hover');
+    await page.hover('#js-hover', { force: true });
     await expect.poll(() => preview(page), { timeout: 6000 }).toContain('captured by hand');
     expect(await preview(page)).toContain('| hover | color #525252 → #da1e28 | captured by hand |');
     await page.mouse.move(10, 10);
@@ -194,7 +195,7 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
     // A page shortcut on "s", as many sites have: typing in Luci's boxes must not trigger it
     await page.evaluate(() => { (window as unknown as { pageKeys: number }).pageKeys = 0; document.addEventListener('keydown', () => { (window as unknown as { pageKeys: number }).pageKeys++; }); });
     await page.click('button[data-tool="color"]');
-    await page.click('.button >> nth=0');
+    await page.click('.button >> nth=0', { force: true });
     await page.click('[data-output="one"]');
     await page.locator('[data-part="instructions"]').fill('Use this as our primary color, but slightly darker.');
     let md = await preview(page);
@@ -222,7 +223,7 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
 
     // Undo goes back to the generated file, with the current settings
     await page.click('button[data-tool="color"]');
-    await page.click('.button >> nth=0');
+    await page.click('.button >> nth=0', { force: true });
     await page.click('[data-output="one"]');
     await page.locator('[data-part="preview"]').fill('anything');
     await page.click('[data-action="undo-edits"]');
@@ -232,7 +233,7 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
 
   it('download saves a .design.md with the shown name; copy puts the text on the clipboard (FR20)', async () => {
     await page.click('button[data-tool="spacing"]');
-    await page.click('header');
+    await page.click('header', { force: true });
     await page.click('[data-output="system"]');
     const name = await page.locator('[data-part="file-name"]').innerText();
     const [download] = await Promise.all([page.waitForEvent('download'), page.click('[data-action="download"]')]);
@@ -265,7 +266,7 @@ describe('tool hints and the Color tool\'s two ways to pick (user feedback, M4)'
     expect(await page.locator('[data-color-mode="pixel"]').isDisabled()).toBe(true);
     expect(await page.locator('[data-part="hint"]').innerText()).toContain('This browser cannot pick pixels.');
     // The hint goes away once something is picked
-    await page.click('h1');
+    await page.click('h1', { force: true });
     expect(await page.locator('[data-part="tool-hint"]').count()).toBe(0);
     await context.close();
   });
@@ -294,6 +295,36 @@ describe('tool hints and the Color tool\'s two ways to pick (user feedback, M4)'
     expect(await page.locator('[data-color-mode="element"]').getAttribute('aria-pressed')).toBe('true');
     expect(await page.locator('[data-part="hint"]').count()).toBe(1);
     await context.close();
+  });
+});
+
+describe('picking never lets the page react (user report: picking a button followed it)', { timeout: 30_000 }, () => {
+  it('links and buttons that navigate on press, window-level click, form submit or pointer-up are picked, not followed', async () => {
+    const page = await open('traps');
+    const home = page.url();
+    // Events the page's own elements received (window-level listeners may still see clicks on Luci's
+    // element itself, which is unavoidable and harmless: they are not on the page's elements)
+    const events = () => page.evaluate(() => (window as unknown as { pageEvents: string[] }).pageEvents.filter(e => !e.endsWith(':LUCI-TOOLBAR')));
+    for (const id of ['press-link', 'window-click', 'submit', 'tap']) {
+      await page.click('button[data-tool="component"]');
+      await page.hover(`#${id}`, { force: true });
+      expect(await label(page)).toMatch(/^(a|button) /);
+      await page.click(`#${id}`, { force: true });
+      expect(await page.locator('[data-part="selected-name"]').innerText(), id).toMatch(/^(a \(link\)|button)$/);
+      await page.click('[data-output="one"]');
+      expect(await preview(page), id).toContain('scope: component');
+      expect(page.url(), id).toBe(home);
+    }
+    // The page received no pointer, mouse or click event at all while Luci was picking
+    expect(await events()).toEqual([]);
+
+    // Scrolling still works over the page's own scroll areas while picking
+    await page.click('button[data-tool="text"]');
+    await page.hover('#scroller', { force: true });
+    await page.mouse.wheel(0, 200);
+    await expect.poll(() => page.evaluate(() => document.getElementById('scroller')!.scrollTop)).toBeGreaterThan(0);
+    await page.keyboard.press('Escape');
+    await page.context().close();
   });
 });
 
@@ -337,7 +368,7 @@ describe('toolbar inside web components (FR6)', () => {
   it('picks an element inside a shadow root and resolves its token', async () => {
     const page = await open('web-components');
     await page.click('button[data-tool="color"]');
-    await page.locator('plan-card').first().locator('button').click();
+    await page.locator('plan-card').first().locator('button').click({ force: true });
     await page.click('[data-output="one"]');
     const md = await preview(page);
     expect(md).toContain('`--wc-primary`');

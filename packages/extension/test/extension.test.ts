@@ -108,7 +108,7 @@ describe.runIf(process.env['LUCI_EXTENSION_E2E'] === '1')('extension in Chromium
     await page.goto(url);
     await inject(url);
     await page.click('button[data-tool="text"]');
-    await page.click('h1');
+    await page.click('h1', { force: true });
     await page.click('[data-output="one"]');
     expect(await page.locator('[data-part="preview"]').evaluate(el => ('value' in el ? (el as HTMLTextAreaElement).value : el.textContent) ?? '')).toContain('| font-size | 48px | `clamp(2rem, 2rem + 2vw, 3rem)` |  |');
     await page.selectOption('select[data-setting="units"]', 'rem');
@@ -127,7 +127,7 @@ describe.runIf(process.env['LUCI_EXTENSION_E2E'] === '1')('extension in Chromium
     await page.reload();
     await inject(url);
     await page.click('button[data-tool="text"]');
-    await page.click('h1');
+    await page.click('h1', { force: true });
     await page.click('[data-output="one"]');
     expect(await page.locator('select[data-setting="units"]').inputValue()).toBe('rem');
     expect(await page.locator('[data-part="preview"]').evaluate(el => ('value' in el ? (el as HTMLTextAreaElement).value : el.textContent) ?? '')).toContain('| font-size | 3rem |');
@@ -143,7 +143,7 @@ describe.runIf(process.env['LUCI_EXTENSION_E2E'] === '1')('extension in Chromium
       await a.goto(urlA);
       await inject(urlA);
       await a.click('button[data-tool="text"]');
-      await a.click('h1');
+      await a.click('h1', { force: true });
       await a.click('[data-output="one"]');
       await a.click('[data-action="add-to-basket"]');
       const b = await context.newPage();
@@ -169,7 +169,7 @@ describe.runIf(process.env['LUCI_EXTENSION_E2E'] === '1')('extension in Chromium
     await page.goto(url);
     await inject(url);
     await page.click('button[data-tool="component"]');
-    await page.click('.button >> nth=0');
+    await page.click('.button >> nth=0', { force: true });
     await page.click('[data-output="one"]');
     const md = await page.locator('[data-part="preview"]').evaluate(el => ('value' in el ? (el as HTMLTextAreaElement).value : el.textContent) ?? '');
     expect(md).toMatch(/\| hover \| background-color #0f62fe → #0353e9 \| browser, state forced \|/);

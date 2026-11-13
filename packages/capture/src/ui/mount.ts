@@ -52,6 +52,11 @@ export function mountToolbar(options: MountOptions = {}): ToolbarHandle {
       if (t instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) e.stopPropagation();
     });
   }
+  // Pointer and click events on Luci's own UI stop at the toolbar, so page handlers (such as "click
+  // outside closes the menu") never react to them
+  for (const type of ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click', 'dblclick', 'auxclick', 'contextmenu', 'wheel'] as const) {
+    root.addEventListener(type, (e) => e.stopPropagation());
+  }
   const style = doc.createElement('style');
   style.textContent = TOOLBAR_CSS;
   root.appendChild(style);

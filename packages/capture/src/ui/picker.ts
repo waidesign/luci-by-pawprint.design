@@ -18,6 +18,37 @@ export function eventTarget(event: Event): Element | null {
   return first ?? null;
 }
 
+/**
+ * The deepest page element at a point, inside open shadow roots too, skipping Luci's own UI. The
+ * picker uses this under a layer that takes every pointer event, so the page never receives them.
+ */
+export function elementAt(doc: Document, x: number, y: number): Element | null {
+  const deepest = (root: Document | ShadowRoot): Element | null => {
+    for (const el of root.elementsFromPoint(x, y)) {
+      if (isLuciUi(el)) continue;
+      if (el.shadowRoot && el.shadowRoot !== root) {
+        const inner = deepest(el.shadowRoot);
+        if (inner) return inner;
+      }
+      return el;
+    }
+    return null;
+  };
+  return deepest(doc);
+}
+
+/** The nearest element at or above `el` that can scroll in this direction, if any. */
+export function scrollableAncestor(el: Element | null, dx: number, dy: number): Element | null {
+  for (let n: Element | null = el; n && n !== n.ownerDocument.documentElement && n !== n.ownerDocument.body; n = parentOf(n)) {
+    const cs = n.ownerDocument.defaultView?.getComputedStyle(n);
+    if (!cs) continue;
+    const canY = dy !== 0 && /(auto|scroll|overlay)/.test(cs.overflowY) && n.scrollHeight > n.clientHeight;
+    const canX = dx !== 0 && /(auto|scroll|overlay)/.test(cs.overflowX) && n.scrollWidth > n.clientWidth;
+    if (canY || canX) return n;
+  }
+  return null;
+}
+
 /** The parent element, crossing out of a shadow root to its host. Null at the root. */
 export function parentOf(el: Element): Element | null {
   if (el.parentElement) return el.parentElement;

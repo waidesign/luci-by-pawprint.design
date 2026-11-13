@@ -10,7 +10,7 @@ import type { Eligibility } from '../eligibility.js';
 import type { ElementSnapshot } from '../model.js';
 import { manualState, type ComputedMap, type StateName } from '../states.js';
 import { elementName } from '../naming.js';
-import { eligibilityOf, eventTarget, firstChildOf, hoverLabel, parentOf } from './picker.js';
+import { elementAt, eligibilityOf, eventTarget, firstChildOf, hoverLabel, parentOf, scrollableAncestor } from './picker.js';
 import {
   TOOLS,
   TOOL_LABELS,
@@ -275,38 +275,35 @@ export function Toolbar(props: ToolbarProps) {
     });
   });
 
-  // Page listeners while picking: hover, click or drag to pick, keys to move and cancel
-  useLayoutEffect(() => {
-    if (!picking || !tool) return;
-    const onMove = (e: PointerEvent) => {
-      // Chrome sends a move when the layout under a still pointer changes; only real moves re-aim the picker
-      const last = lastPointer.current;
-      if (last && last.x === e.clientX && last.y === e.clientY) return;
-      lastPointer.current = { x: e.clientX, y: e.clientY };
-      const target = eventTarget(e);
-      if (!target) return;
-      trail.current = [];
-      aim(target);
-    };
-    const block = (e: Event) => {
-      if (eventTarget(e)) { e.preventDefault(); e.stopPropagation(); }
-    };
-    const onDown = (e: PointerEvent) => {
-      const target = eventTarget(e);
-      if (!target) return;
-      e.preventDefault();
-      e.stopPropagation();
-      drag.current = { el: target, x: e.clientX, y: e.clientY };
-    };
-    const onUp = (e: PointerEvent) => {
-      const target = eventTarget(e);
+  // While picking, a transparent layer above the page takes every pointer event (see the pick-layer
+  // below), so the page never sees a press or click, however its links and buttons are wired.
+  // These handlers get the layer's pointer positions and find the page element under them.
+  const pickMove = (x: number, y: number) => {
+    // Chrome sends a move when the layout under a still pointer changes; only real moves re-aim the picker
+    const last = lastPointer.current;
+    if (last && last.x === x && last.y === y) return;
+    lastPointer.current = { x, y };
+    const target = elementAt(doc, x, y);
+    if (!target) return;
+    trail.current = [];
+    aim(target);
+  };
+  const pickDown = (x: number, y: number) => {
+    const target = elementAt(doc, x, y);
+    if (target) drag.current = { el: target, x, y };
+  };
+  const pickWheel = (e: WheelEvent) => {
+    // The layer would stop scrolling inside the page's own scroll areas: pass the wheel on
+    const area = scrollableAncestor(elementAt(doc, e.clientX, e.clientY), e.deltaX, e.deltaY);
+    if (area) { e.preventDefault(); area.scrollBy(e.deltaX, e.deltaY); }
+  };
+  const pickUp = (x: number, y: number) => {
+    {
+      const target = elementAt(doc, x, y);
       const start = drag.current;
       drag.current = null;
-      if (!target || !start) return;
-      e.preventDefault();
-      e.stopPropagation();
-      swallowClickUntil.current = performance.now() + 1000;
-      const moved = Math.hypot(e.clientX - start.x, e.clientY - start.y) > DRAG_PX;
+      if (!target || !start || !tool) return;
+      const moved = Math.hypot(x - start.x, y - start.y) > DRAG_PX;
       if (tool === 'spacing' && moved && target !== start.el) {
         // A drag between two elements measures the distance between them (FR15)
         const blocked = [start.el, target].map(eligibilityOf).find(x => x.status !== 'allowed');
@@ -322,7 +319,12 @@ export function Toolbar(props: ToolbarProps) {
       }
       // After arrow keys, a click picks what the keys aimed at
       select(candidateRef.current && trail.current.length ? candidateRef.current : target);
-    };
+    }
+  };
+
+  // Keys while picking (move, pick, cancel); after scrolling, re-aim at what is now under the pointer
+  useLayoutEffect(() => {
+    if (!picking || !tool) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { e.preventDefault(); setPicking(false); aim(null); setNotice(null); return; }
       // While picking, arrows and Enter belong to the picker, wherever focus is, except in a form field
@@ -344,20 +346,17 @@ export function Toolbar(props: ToolbarProps) {
         select(current);
       }
     };
-    const onScroll = () => setTick(t => t + 1);
-    doc.addEventListener('pointermove', onMove, true);
-    doc.addEventListener('pointerdown', onDown, true);
-    doc.addEventListener('pointerup', onUp, true);
-    doc.addEventListener('click', block, true);
-    doc.addEventListener('mousedown', block, true);
+    const onScroll = () => {
+      const p = lastPointer.current;
+      if (p && !trail.current.length) {
+        const target = elementAt(doc, p.x, p.y);
+        if (target) aim(target);
+      }
+      setTick(t => t + 1);
+    };
     doc.addEventListener('keydown', onKey, true);
     win.addEventListener('scroll', onScroll, true);
     return () => {
-      doc.removeEventListener('pointermove', onMove, true);
-      doc.removeEventListener('pointerdown', onDown, true);
-      doc.removeEventListener('pointerup', onUp, true);
-      doc.removeEventListener('click', block, true);
-      doc.removeEventListener('mousedown', block, true);
       doc.removeEventListener('keydown', onKey, true);
       win.removeEventListener('scroll', onScroll, true);
     };
@@ -645,6 +644,16 @@ export function Toolbar(props: ToolbarProps) {
           </p>
           <p class="keys">{pixelMode ? 'Esc goes back to Element' : 'After clicking, you can make the selection wider or narrower · Esc cancels'}</p>
         </div>
+      )}
+
+      {picking && tool && (
+        // Takes every pointer event while picking: the page cannot react to a press, click or drag
+        <div class="pick-layer" data-part="pick-layer"
+          onPointerMove={e => pickMove(e.clientX, e.clientY)}
+          onPointerDown={e => { e.preventDefault(); (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId); pickDown(e.clientX, e.clientY); }}
+          onPointerUp={e => { e.preventDefault(); pickUp(e.clientX, e.clientY); }}
+          onWheel={e => pickWheel(e as unknown as WheelEvent)}
+          onContextMenu={e => e.preventDefault()} />
       )}
 
       {pixelMode && (
