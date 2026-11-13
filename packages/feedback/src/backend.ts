@@ -13,8 +13,10 @@ import {
   type DetailLevel,
   type FeedbackIntent,
   type FeedbackItem,
-  type FeedbackPriority
+  type FeedbackPriority,
+  type SourceLocation
 } from '@luci/format/feedback';
+import type { ServerResolver } from './react.js';
 
 export interface NewItem {
   page: { url: string; route?: string; title?: string; source?: string };
@@ -48,6 +50,8 @@ export interface FeedbackBackend {
   clear(which: 'done' | 'all'): Promise<string[]>;
   /** Save a capture file into .luci/design/ (project only). */
   saveCapture?(fileName: string, markdown: string): Promise<{ path: string; replaced: boolean }>;
+  /** Map server-side positions (server components) to the project's files (project only). */
+  resolveFrames?: ServerResolver;
 }
 
 export class BridgeError extends Error {}
@@ -77,7 +81,8 @@ export function bridgeBackend(url: string, fetchImpl: typeof fetch = (...a) => f
     remove: async (ref) => { await call('DELETE', `/feedback/${ref}`); },
     prompt: (request) => call('POST', '/feedback/prompt', request),
     clear: async (which) => (await call<{ removed: string[] }>('POST', '/feedback/clear', { which })).removed,
-    saveCapture: (fileName, markdown) => call('POST', '/design', { fileName, markdown })
+    saveCapture: (fileName, markdown) => call('POST', '/design', { fileName, markdown }),
+    resolveFrames: async (frames) => (await call<{ locations: (SourceLocation | null)[] }>('POST', '/resolve', { frames })).locations
   };
 }
 

@@ -13,6 +13,7 @@ import type { AddressInfo } from 'node:net';
 import path from 'node:path';
 import { z } from 'zod';
 import { DesignError, DesignStore, FeedbackError, FeedbackStore } from '@luci/brain';
+import { serverResolver } from './resolve.js';
 import { PRODUCT } from '@luci/format';
 import { DETAIL_LEVELS, FEEDBACK_INTENTS, FEEDBACK_PRIORITIES, feedbackItemSchema, formatFeedbackPrompt } from '@luci/format/feedback';
 
@@ -75,6 +76,9 @@ const patchSchema = z.union([
 ]);
 const promptSchema = z.object({ detail: z.enum(DETAIL_LEVELS).optional(), includeSent: z.boolean().optional(), refs: z.array(z.string()).optional() });
 const clearSchema = z.object({ which: z.enum(['done', 'all']) });
+const resolveSchema = z.object({
+  frames: z.array(z.object({ url: z.string().min(1).max(4096), line: z.number().int().positive(), column: z.number().int().positive().optional() })).max(20)
+});
 const designSchema = z.object({ fileName: z.string().min(1), markdown: z.string().min(1) });
 
 class HttpError extends Error {
@@ -107,6 +111,7 @@ const parse = <T>(schema: z.ZodType<T>, value: unknown): T => {
 export function startBridge(options: BridgeOptions): Promise<Bridge> {
   const feedback = new FeedbackStore(options.projectDir);
   const design = new DesignStore(options.projectDir);
+  const resolveServer = serverResolver(options.projectDir);
   let port = options.port ?? DEFAULT_PORT;
 
   const server = http.createServer((req, res) => {
@@ -149,6 +154,12 @@ export function startBridge(options: BridgeOptions): Promise<Bridge> {
         const script = options.toolbarScript?.() ?? null;
         if (!script) throw new HttpError(404, 'The toolbar script is not built. Run `pnpm build` in the Luci repository.');
         send(200, `window.__LUCI_BRIDGE__ = ${JSON.stringify(`http://${host}`)};\n${script}`, 'text/javascript; charset=utf-8');
+        return;
+      }
+      // Server components' positions (read only: source maps inside the project)
+      if (route === '/resolve' && req.method === 'POST') {
+        const body = parse(resolveSchema, await readBody(req));
+        send(200, { locations: body.frames.map(f => resolveServer(f)) });
         return;
       }
       if (!feedback.available) throw new HttpError(409, `No ${PRODUCT.projectDir}/ in ${options.projectDir}. Run \`${PRODUCT.command} init\` there first.`);

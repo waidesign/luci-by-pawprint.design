@@ -5,7 +5,7 @@
  */
 import { elementName, implicitRole, selectorFor } from '@luci/capture';
 import type { FeedbackItem, SourceLocation } from '@luci/format/feedback';
-import { PAGE_FOLDER, frameResolver, reactInfo, type FrameResolver, type FrameworkInfo } from './react.js';
+import { PAGE_FOLDER, firstUserLocation, frameResolver, reactInfo, type FrameResolver, type FrameworkInfo, type ServerResolver } from './react.js';
 import { sourceMapLoader } from './sourcemap.js';
 
 export type Target = FeedbackItem['target'];
@@ -52,10 +52,26 @@ const sameOriginText = (doc: Document) => async (url: string): Promise<string | 
   }
 };
 
-let defaultResolver: FrameResolver | null = null;
-export function resolverFor(doc: Document): FrameResolver {
-  defaultResolver ??= frameResolver(sourceMapLoader(sameOriginText(doc)));
-  return defaultResolver;
+// One loader per page: each module and its map are fetched once
+let browserMaps: ReturnType<typeof sourceMapLoader> | null = null;
+const resolvers = new WeakMap<object, FrameResolver>();
+/** The resolver for this page; with `serverResolve` (luci serve), server components get exact lines too. */
+export function resolverFor(doc: Document, serverResolve?: ServerResolver): FrameResolver {
+  browserMaps ??= sourceMapLoader(sameOriginText(doc));
+  const key = (serverResolve ?? resolvers) as object;
+  if (!resolvers.has(key)) resolvers.set(key, frameResolver(browserMaps, serverResolve));
+  return resolvers.get(key)!;
+}
+
+/**
+ * The page's own file among the components' files (outermost first): a route file ("page.tsx",
+ * Next's App Router), then one in pages/, routes/, views/ or screens/, then any in app/.
+ */
+export function pageFile(files: readonly string[]): string | undefined {
+  const norm = (f: string) => f.replace(/\\/g, '/');
+  return files.find(f => /(^|\/)(page|route)\.[jt]sx?$/.test(norm(f)))
+    ?? files.find(f => /(^|\/)(pages|routes|views|screens)\//.test(norm(f)))
+    ?? files.find(f => PAGE_FOLDER.test(norm(f)));
 }
 
 /** The framework details of an element: components, its JSX location, and the page component's file. */
@@ -63,9 +79,9 @@ export async function frameworkDetails(el: Element, resolve: FrameResolver = res
   for (const adapter of ADAPTERS) {
     const info = adapter.read(el);
     if (!info) continue;
-    const source = info.frame ? await resolve(info.frame) : undefined;
-    const files = await Promise.all(info.componentFrames.map(f => (f ? resolve(f).then(s => s.file) : Promise.resolve(undefined))));
-    const pageSource = files.find(f => f && PAGE_FOLDER.test(f));
+    const source = await firstUserLocation(info.frames, resolve);
+    const files = await Promise.all(info.componentFrames.map(f => firstUserLocation(f, resolve).then(s => s?.file)));
+    const pageSource = pageFile(files.filter((f): f is string => Boolean(f)));
     return {
       ...(info.components.length ? { components: info.components } : {}),
       ...(source ? { source } : {}),
@@ -85,13 +101,13 @@ export function selectionElement(range: Range): Element | null {
  * Describe an element (or the selected text in it) for a feedback item. `pageSource` comes back
  * separately: it belongs on the item's page.
  */
-export async function describeTarget(el: Element, options: { selectedText?: string; resolve?: FrameResolver } = {}): Promise<{ target: Target; pageSource?: string }> {
+export async function describeTarget(el: Element, options: { selectedText?: string; resolve?: FrameResolver; serverResolve?: ServerResolver } = {}): Promise<{ target: Target; pageSource?: string }> {
   const doc = el.ownerDocument;
   const win = doc.defaultView!;
   const r = el.getBoundingClientRect();
   const text = shorten(collapse((el as HTMLElement).innerText ?? el.textContent ?? ''));
   const selected = options.selectedText ? shorten(collapse(options.selectedText)) : '';
-  const details = await frameworkDetails(el, options.resolve ?? resolverFor(doc));
+  const details = await frameworkDetails(el, options.resolve ?? resolverFor(doc, options.serverResolve));
   const target: Target = {
     kind: selected ? 'text' : 'element',
     selector: selectorFor(el, el.getRootNode() as Document | ShadowRoot),

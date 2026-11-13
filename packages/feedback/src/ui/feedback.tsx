@@ -222,7 +222,10 @@ export function Feedback(props: FeedbackProps) {
     if (!draft) return;
     const d = draft;
     await act(async () => {
-      const { target, pageSource } = await describeTarget(d.el, d.selectedText ? { selectedText: d.selectedText } : {});
+      const { target, pageSource } = await describeTarget(d.el, {
+        ...(d.selectedText ? { selectedText: d.selectedText } : {}),
+        ...(backend.resolveFrames ? { serverResolve: backend.resolveFrames } : {})
+      });
       await backend.add({ page: { url: doc.location.href, title: doc.title, ...(pageSource ? { source: pageSource } : {}) }, target, ...form });
       setDraft(null);
     });

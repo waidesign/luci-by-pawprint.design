@@ -19,11 +19,11 @@ describe('stacks, paths and source maps (pure)', () => {
   it('reads Chrome and Firefox stack frames', () => {
     expect(stackFrames('Error: react-stack-top-frame\n    at exports.jsxDEV (http://127.0.0.1:5173/node_modules/.vite/deps/chunk.js:23791:31)\n    at PlanCard (http://127.0.0.1:5173/src/components/PlanCard.jsx:17:21)\n    at http://127.0.0.1:5173/src/main.jsx:4:68'))
       .toEqual([
-        { url: 'http://127.0.0.1:5173/node_modules/.vite/deps/chunk.js', line: 23791, column: 31 },
-        { url: 'http://127.0.0.1:5173/src/components/PlanCard.jsx', line: 17, column: 21 },
+        { fn: 'exports.jsxDEV', url: 'http://127.0.0.1:5173/node_modules/.vite/deps/chunk.js', line: 23791, column: 31 },
+        { fn: 'PlanCard', url: 'http://127.0.0.1:5173/src/components/PlanCard.jsx', line: 17, column: 21 },
         { url: 'http://127.0.0.1:5173/src/main.jsx', line: 4, column: 68 }
       ]);
-    expect(stackFrames('PlanCard@http://localhost:5173/src/PlanCard.tsx?t=17:12:3')).toEqual([{ url: 'http://localhost:5173/src/PlanCard.tsx?t=17', line: 12, column: 3 }]);
+    expect(stackFrames('PlanCard@http://localhost:5173/src/PlanCard.tsx?t=17:12:3')).toEqual([{ fn: 'PlanCard', url: 'http://localhost:5173/src/PlanCard.tsx?t=17', line: 12, column: 3 }]);
   });
 
   it('turns served URLs into project paths (Vite, Next with webpack or Turbopack, files)', () => {

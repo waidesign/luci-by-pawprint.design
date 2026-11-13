@@ -218,6 +218,9 @@ importers:
       '@luci/brain':
         specifier: workspace:*
         version: link:../brain
+      '@luci/feedback':
+        specifier: workspace:*
+        version: link:../feedback
       '@luci/format':
         specifier: workspace:*
         version: link:../format
