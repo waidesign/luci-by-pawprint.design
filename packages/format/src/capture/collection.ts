@@ -30,11 +30,12 @@ export const collectionSchema = z.object({
 export type Collection = z.infer<typeof collectionSchema>;
 
 /** Groups in export order. */
-export const COLLECTION_GROUPS = ['Components', 'Text', 'Colors', 'Spacing', 'Systems', 'Pages'] as const;
+export const COLLECTION_GROUPS = ['Sections', 'Components', 'Text', 'Colors', 'Spacing', 'Systems', 'Pages'] as const;
 export type CollectionGroup = (typeof COLLECTION_GROUPS)[number];
 
 export function groupOf(capture: Capture): CollectionGroup {
   if (capture.meta.scope === 'page') return 'Pages';
+  if (capture.meta.scope === 'section') return 'Sections';
   if (capture.meta.scope === 'component') return 'Components';
   if (capture.meta.scope === 'system') return 'Systems';
   return capture.meta.type === 'text' ? 'Text' : capture.meta.type === 'color' ? 'Colors' : 'Spacing';

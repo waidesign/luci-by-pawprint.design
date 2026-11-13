@@ -4,14 +4,14 @@ Every capture is one Markdown file: YAML frontmatter that records where it came 
 
 The golden files in `packages/format/fixtures/capture/` are the reference for this spec, and the format tests check the formatter against them. Their inputs are in `inputs.json`; `node scripts/capture-goldens.mjs` rewrites them after a build. Review any change by eye before committing it.
 
-This page covers single tokens and page systems (M4), components and the basket export (M5), and the full-page reference. Section scope follows in v0.2.
+This page covers single tokens and page systems (M4), components and the basket export (M5), the full-page reference, and v0.2's sections, accessibility notes and basket item notes.
 
 ## Frontmatter
 
 | Field | Required | Meaning |
 | --- | --- | --- |
 | `name` | yes | Lowercase slug, e.g. `text-heading-1` |
-| `scope` | yes | `token`, `system`, `component` or `page` (`collection` for the basket export; `section` later) |
+| `scope` | yes | `token`, `system`, `component`, `section` (v0.2) or `page` (`collection` for the basket export) |
 | `type` | yes | For `token`: `text`, `color` or `spacing`. For `system`: `typography`, `color` or `spacing`. For `component`: what it is. For `page`: `page` |
 | `source` | yes | The page: origin and path only. The query and fragment are dropped, because they can carry personal data. With the **Source** setting `site`, only the site's name (`lattice.com`: the host without `www.`, with the port for a local server); a page without a host keeps its address |
 | `selector` | tokens and components | The picked element. System and page files have none |
@@ -71,6 +71,21 @@ One file per capture, flat: `<site>.<scope>.<name>.design.md`, where `<site>` is
 | Accessibility | Added in v0.2 (also in text files, after Where used). One table, measured on the page against WCAG 2.2: **Text contrast** for each part with its own text (the ratio, rounded down to two decimals; the text and background colors, the background being the element's and its ancestors' backgrounds layered over a white canvas; normal or large text; the level met, AA 4.5:1 and AAA 7:1, or 3:1 and 4.5:1 for large text), marked **Estimated** when the background has a picture or gradient or something on the way is see-through. For something you click or type in: **Target size** (AA 24 × 24px, AAA 44 × 44px; inline links in a sentence are exempt) and **Focus visible** (the properties its focus-visible, else focus, state changes; **No** when the browser forced focus and nothing visible changed; **Unknown** when only stylesheet rules were read). Ends with a line to check again wherever colors, sizes or focus styles differ |
 | Variants | Only in the whole-system output: similar elements on the page, grouped, with how each group differs from the picked one and an example selector |
 
+## Sections (section)
+
+Added in v0.2. The Component tool's **This section** turns a picked part of a page (a pricing section, a hero, a footer) into one section file plus one component file per kind of component in it (golden `example-com.section.pricing.design.md`). In the extension they download as one `.zip`; in the dev toolbar, **Save to project** writes them all into `.luci/design/`; **Add to basket** adds them all (the basket export has a `# Sections` group first).
+
+`scope: section`, `type` the section's tag when it says what it is (`section`, `header`, `footer`, `main`, `aside`, `nav`, `form`, `article`), else `section`; `name` its id when the selector has one (`#pricing` gives `pricing`). Sections:
+
+| Section | Content |
+| --- | --- |
+| Tokens | Custom properties the section's own boxes and text use (each component's are in its file) |
+| Structure | An outline in page order, one line per node, indented by depth: `container` (the section's own layout: display, flex and grid settings, grid columns, wrapping, max width, padding, background...), layout boxes named by how they lay out (`grid`, `row`, `column`, `group`) with their own styles, text parts (`heading`, `description`, `label`...) with their text style and never their text, image slots (size and shape), and components: `card ×3 — div → component \`plan-card\` (file), variants in order: ...`. Boxes with no styles of their own are left out (their children move up). At most 8 levels and 80 lines. Ends with a note that each component is described once in its own file |
+| Components | One row per component file: name, type, how many are in the section (and `inside \`plan-card\`` for a button or field placed in another component), how many variants, and the file |
+| Accessibility | Contrast of the section's own text parts |
+
+Components in a section are the outermost buttons, fields, cards, badges, navigation, forms, tables and dialogs in it (a box holding other cards is layout, not a card). One file per kind (same tag and type), captured from the first one, with its variants counted inside the section. A button or field inside another component gets its own file too, so its hover, focus and disabled states are described; the outer component's file lists it as a part.
+
 ## Full-page reference (page)
 
 The toolbar's **Whole page** writes one file for the current page: `scope: page`, `type: page`, named from the page's path (`pricing`; `home` for `/`), so `example-com.page.pricing.design.md`. Sections:
@@ -89,7 +104,7 @@ A system the page does not have (no visible text, colors or spacing) is a one-li
 The basket holds picks from any pages and sites and exports them as one file, `<name>.collection.design.md`:
 
 - **Frontmatter:** `name`, `scope: collection`, `captured`, `items` (the count) and `sources` (every page, query and fragment dropped).
-- **Body:** one `# group` per kind, in this order: Components, Text, Colors, Spacing, Systems, Pages.
+- **Body:** one `# group` per kind, in this order: Sections, Components, Text, Colors, Spacing, Systems, Pages.
 - **Items:** under its group, each item is a `## <name>` section (the name you gave it in the basket), followed by:
   - its source, selector, type, method and date;
   - the item's own sections, every heading one level down (`### Tokens`...). An item's note (v0.2: written in the basket, for any item from any site) is its `### Your instructions`, first in its section, so each note stays with the item it is about.

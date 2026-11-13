@@ -21,7 +21,9 @@ export const SNAPSHOT_PROPERTIES = [
   'width', 'height', 'flex-direction', 'align-items', 'justify-content',
   'border-radius', 'box-shadow', 'cursor', 'outline-offset', 'text-align', 'transform',
   'transition-property', 'transition-duration', 'transition-timing-function', 'transition-delay',
-  'animation-name', 'animation-duration', 'animation-timing-function', 'animation-iteration-count'
+  'animation-name', 'animation-duration', 'animation-timing-function', 'animation-iteration-count',
+  // Sections (v0.2) also read these
+  'grid-template-columns', 'flex-wrap', 'max-width'
 ] as const;
 export type SnapshotProperty = (typeof SNAPSHOT_PROPERTIES)[number];
 

@@ -23,6 +23,10 @@ button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); o
 .seg button { padding: 4px 12px; }
 .items { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; overflow: auto; }
 .items li { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; align-items: center; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; }
+.files { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.files li { display: flex; gap: 8px; align-items: center; justify-content: space-between; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; }
+.files code, [data-part="file-view-box"] code { font: 12px ui-monospace, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+pre.preview { margin: 0; max-height: 240px; overflow: auto; white-space: pre-wrap; font: 12px/1.45 ui-monospace, monospace; }
 .items textarea { grid-column: 1 / -1; font: 12px/1.4 system-ui, sans-serif; color: inherit; background: #27272a; border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; min-height: 34px; resize: vertical; }
 .items input { font: inherit; color: inherit; background: #27272a; border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; min-width: 0; }
 .items .meta { grid-column: 1; color: var(--muted); font-size: 12px; }

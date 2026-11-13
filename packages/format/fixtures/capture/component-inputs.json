@@ -128,5 +128,44 @@
         ] }
       ]
     }
+  },
+  "example-com.section.pricing.design.md": {
+    "settings": { "units": "px", "colors": "hex" },
+    "capture": {
+      "meta": { "name": "pricing", "scope": "section", "type": "section", "source": "https://example.com/pricing", "selector": "#pricing", "captured": "2026-11-13", "method": "measured" },
+      "tokens": [
+        { "token": "--ink", "value": "#161616", "usedFor": ["color"] },
+        { "token": "--space-12", "value": "48px", "usedFor": ["row-gap", "column-gap"] },
+        { "token": "--space-6", "value": "24px", "usedFor": ["row-gap", "column-gap", "padding"] }
+      ],
+      "structure": [
+        { "depth": 0, "part": "container", "element": "section (region)", "styles": [
+          { "property": "display", "value": { "computed": "grid" } },
+          { "property": "row-gap", "value": { "computed": "48px", "authored": "var(--space-12)", "token": "--space-12" } },
+          { "property": "padding", "value": { "computed": "96px 24px", "authored": "96px var(--space-6)" } },
+          { "property": "background-color", "value": { "computed": "rgb(244, 244, 244)" } }
+        ] },
+        { "depth": 1, "part": "group", "element": "div", "styles": [{ "property": "max-width", "value": { "computed": "640px" } }] },
+        { "depth": 2, "part": "heading", "element": "h2 (heading)", "styles": [
+          { "property": "font-size", "value": { "computed": "40px" } },
+          { "property": "font-weight", "value": { "computed": "700" } },
+          { "property": "color", "value": { "computed": "rgb(22, 22, 22)", "authored": "var(--ink)", "token": "--ink" } }
+        ] },
+        { "depth": 2, "part": "description", "element": "p (paragraph)", "styles": [{ "property": "font-size", "value": { "computed": "18px" } }] },
+        { "depth": 1, "part": "grid", "element": "div", "styles": [
+          { "property": "display", "value": { "computed": "grid" } },
+          { "property": "column-gap", "value": { "computed": "24px", "authored": "var(--space-6)", "token": "--space-6" } },
+          { "property": "grid-template-columns", "value": { "computed": "344px 344px 344px", "authored": "repeat(3, minmax(0, 1fr))" } },
+          { "property": "max-width", "value": { "computed": "1080px" } }
+        ] },
+        { "depth": 2, "part": "card", "element": "div", "styles": [], "count": 3, "component": { "name": "plan-card", "file": "example-com.component.plan-card.design.md", "variants": ["plan-card", "plan-card-2", "plan-card"] } },
+        { "depth": 1, "part": "image", "element": "img", "styles": [], "image": { "width": 1080, "height": 320, "aspectRatio": "27:8" } }
+      ],
+      "components": [
+        { "name": "plan-card", "type": "card", "file": "example-com.component.plan-card.design.md", "count": 3, "variants": 2 },
+        { "name": "primary-button", "type": "button", "file": "example-com.component.primary-button.design.md", "count": 3, "variants": 1, "inside": "plan-card" }
+      ],
+      "accessibility": { "contrast": [{ "part": "heading", "text": "rgb(22, 22, 22)", "background": "rgb(244, 244, 244)", "ratio": 16.45, "large": true, "level": "AAA" }] }
+    }
   }
 }

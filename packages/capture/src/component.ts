@@ -23,7 +23,8 @@ const NOTHING: Partial<Record<SnapshotProperty, RegExp>> = {
   'row-gap': /^(normal|0px)$/, 'column-gap': /^(normal|0px)$/, 'border-radius': /^0px$/, 'box-shadow': /^none$/,
   'background-image': /^none$/, opacity: /^1$/, cursor: /^auto$/, 'outline-offset': /^0px$/, 'text-align': /^(start|left)$/,
   'letter-spacing': /^normal$/, 'text-transform': /^none$/, 'text-decoration-line': /^none$/,
-  'flex-direction': /^row$/, 'align-items': /^normal$/, 'justify-content': /^normal$/, transform: /^none$/
+  'flex-direction': /^row$/, 'align-items': /^normal$/, 'justify-content': /^normal$/, transform: /^none$/,
+  'grid-template-columns': /^none$/, 'flex-wrap': /^nowrap$/, 'max-width': /^none$/
 };
 
 const isNothing = (prop: SnapshotProperty, v: string) => (prop === 'background-color' ? isTransparent(v) : NOTHING[prop]?.test(v) ?? false);
@@ -81,6 +82,20 @@ export function boxStyles(snap: PageSnapshot, el: ElementSnapshot): ComponentCap
   return out;
 }
 
+/** A layout box in a section (v0.2): its box styles, plus its grid columns, wrapping and max width when the site sets them. */
+export function layoutStyles(snap: PageSnapshot, el: ElementSnapshot): ComponentCapture['anatomy'][number]['styles'] {
+  const out = boxStyles(snap, el);
+  const extra: SnapshotProperty[] = ['grid-template-columns', 'flex-wrap', 'max-width'];
+  // After display and the flex settings (boxStyles writes those first), before padding and the rest
+  const first = new Set<string>(BOX.slice(0, 6));
+  const at = out.filter(s => first.has(s.property)).length;
+  out.splice(at, 0, ...extra.filter(p => own(snap, el, p)).map(p => ({ property: p, value: valueOf(el, p) })));
+  return out;
+}
+
+/** The text styles of an element (font, size, weight, line height, letter spacing, color...). */
+export const textStylesOf = (el: ElementSnapshot) => textStyles(el);
+
 const noUrls = (v: CapturedValue): CapturedValue => ({ ...v, computed: withoutUrls(v.computed), ...(v.authored ? { authored: withoutUrls(v.authored) } : {}) });
 
 function textStyles(el: ElementSnapshot): ComponentCapture['anatomy'][number]['styles'] {
@@ -103,7 +118,7 @@ export function componentType(el: ElementSnapshot): string {
 }
 
 /** A part's name from tag and role. */
-function partName(el: ElementSnapshot): string {
+export function partName(el: ElementSnapshot): string {
   if (/^h[1-6]$/.test(el.tag) || el.role === 'heading') return 'heading';
   if (['svg', 'i'].includes(el.tag) || el.role === 'img' && el.tag !== 'img') return 'icon';
   // "image" is an SVG <image>: a picture placed inside a drawing
@@ -237,19 +252,27 @@ export function motionOf(el: ElementSnapshot): ComponentCapture['motion'] {
 const VARIANT_PROPS: readonly SnapshotProperty[] = ['background-color', 'color', 'border-top-color', 'border-top-width', 'border-radius', 'padding-top', 'padding-left', 'font-size', 'font-weight', 'box-shadow', 'opacity'];
 const signature = (el: ElementSnapshot) => VARIANT_PROPS.map(p => (/color$/.test(p) ? colorKey(el.styles[p] ?? '') : el.styles[p]) ?? '').join('|');
 
-/** Similar elements on the page (same tag and type), grouped by how they look; the picked one's group first. */
-export function variantsOf(snap: PageSnapshot, picked: ElementSnapshot, name: string): NonNullable<ComponentCapture['variants']> {
+/**
+ * Similar elements on the page (same tag and type), grouped by how they look, the picked one's group
+ * first, each with its variant name. `within` limits them to part of the page (a section).
+ */
+export function variantGroups(snap: PageSnapshot, picked: ElementSnapshot, name: string, within?: (el: ElementSnapshot) => boolean): { name: string; elements: ElementSnapshot[] }[] {
   const type = componentType(picked);
-  const similar = snap.elements.filter(e => e.visible && e.tag === picked.tag && componentType(e) === type);
+  const similar = snap.elements.filter(e => e.visible && e.tag === picked.tag && componentType(e) === type && (!within || within(e)));
   const groups = new Map<string, ElementSnapshot[]>();
   for (const e of similar) groups.set(signature(e), [...(groups.get(signature(e)) ?? []), e]);
   const mine = signature(picked);
   const ordered = [...groups.entries()].sort((a, b) => (a[0] === mine ? -1 : b[0] === mine ? 1 : b[1].length - a[1].length));
-  return ordered.map(([, list], i) => {
-    const example = list.includes(picked) ? picked : list[0]!;
+  return ordered.map(([, elements], i) => ({ name: i === 0 ? name : `${name}-${i + 1}`, elements }));
+}
+
+/** Similar elements on the page (or within part of it), grouped by how they look; the picked one's group first. */
+export function variantsOf(snap: PageSnapshot, picked: ElementSnapshot, name: string, within?: (el: ElementSnapshot) => boolean): NonNullable<ComponentCapture['variants']> {
+  return variantGroups(snap, picked, name, within).map(({ name: variant, elements }) => {
+    const example = elements.includes(picked) ? picked : elements[0]!;
     const differences = VARIANT_PROPS.filter(p => (/color$/.test(p) ? colorKey(example.styles[p] ?? '') !== colorKey(picked.styles[p] ?? '') : example.styles[p] !== picked.styles[p]))
       .map(p => ({ property: p, value: valueOf(example, p) }));
-    return { name: i === 0 ? name : `${name}-${i + 1}`, count: list.length, selector: example.selector, differences };
+    return { name: variant, count: elements.length, selector: example.selector, differences };
   });
 }
 
@@ -268,7 +291,7 @@ export function componentCapture(
   snap: PageSnapshot,
   el: ElementSnapshot,
   inside: (e: ElementSnapshot) => number | null,
-  options: { captured?: string; system?: boolean; states?: ComponentCapture['states']; images?: readonly ComponentImageInput[] } = {}
+  options: { captured?: string; system?: boolean; states?: ComponentCapture['states']; images?: readonly ComponentImageInput[]; within?: (el: ElementSnapshot) => boolean } = {}
 ): ComponentCapture {
   const name = componentName(el);
   const anatomy = anatomyOf(snap, el, inside);
@@ -344,7 +367,7 @@ export function componentCapture(
     states,
     motion,
     accessibility: componentAccessibility(snap, el, componentParts(snap, el, inside), states),
-    ...(options.system ? { variants: variantsOf(snap, el, name) } : {})
+    ...(options.system ? { variants: variantsOf(snap, el, name, options.within) } : {})
   };
 }
 

@@ -19,6 +19,7 @@ import {
   type ComponentCapture,
   type ElementRef,
   type PageCapture,
+  type SectionCapture,
   type SpacingSet,
   type SpacingSystem,
   type SpacingToken,
@@ -43,6 +44,8 @@ export const CAPTURE_SECTIONS: Readonly<Record<string, readonly string[]>> = {
 
 /** Every component file has these; "Variants" is added for the whole-system output. */
 export const COMPONENT_SECTIONS: readonly string[] = ['Tokens', 'Anatomy', 'States', 'Motion'];
+/** Every section file (scope section) has these. */
+export const SECTION_SECTIONS: readonly string[] = ['Tokens', 'Structure', 'Components'];
 
 /** "https://www.example.com/pricing?x=1#top" -> "https://www.example.com/pricing". */
 export function cleanSource(url: string): string {
@@ -339,6 +342,34 @@ function componentBody(c: ComponentCapture, s: CaptureSettings, noStates = '- No
   return out;
 }
 
+export const SECTION_NOTE = '- Each component is described once, in its own file (listed under Components); this file places them. A button or field inside another component has its own file too, for its states. Text parts give their text style only, never the text.';
+
+/** A section: its tokens, its structure as an outline, the component files it uses, accessibility. */
+function sectionBody(c: SectionCapture, s: CaptureSettings): string[] {
+  const tokens = c.tokens.length
+    ? table(['Token', 'Value', 'Used for'], c.tokens.map(t => [code(t.token), kindOf(t.usedFor[0] ?? '') === 'color' ? formatColor(t.value, s) : formatLength(t.value, s), t.usedFor.join(', ')]))
+    : '- The section uses no custom properties of its own.';
+  const structure = c.structure.map(n => {
+    const indent = '  '.repeat(n.depth);
+    const name = `${n.part}${n.count && n.count > 1 ? ` ×${n.count}` : ''} — ${n.element}`;
+    if (n.component) {
+      const variants = n.component.variants?.length
+        ? `, ${n.component.variants.length === 1 ? 'variant' : 'variants in order:'} ${n.component.variants.map(code).join(', ')}`
+        : '';
+      return `${indent}- ${name} → component ${code(n.component.name)} (${code(n.component.file)})${variants}`;
+    }
+    const image = n.image ? `image slot ${sizeText(n.image.width, n.image.height, s)}, ${n.image.aspectRatio}` : '';
+    const styles = n.styles.map(e => styleText(e.property, e.value, s)).join(', ');
+    return `${indent}- ${name}: ${[image, styles].filter(Boolean).join('; ') || 'no styles of its own'}`;
+  });
+  const components = c.components.length
+    ? table(['Component', 'Type', 'Uses here', 'Variants', 'File'], c.components.map(k => [code(k.name), k.type, `${k.count}${k.inside ? `, inside ${code(k.inside)}` : ''}`, String(k.variants), code(k.file)]))
+    : '- No components inside: the structure describes everything.';
+  const out = ['## Tokens', tokens, '', '## Structure', ...structure, '', SECTION_NOTE, '', '## Components', components];
+  if (c.accessibility) out.push('', ...accessibilitySection(c.accessibility, s));
+  return out;
+}
+
 /** Headings `levels` deeper ("## Roles" -> "### Roles"), so a part can sit inside a larger file. */
 export const deeperHeadings = (text: string, levels = 1) => text.replace(/^#{2,5} /gm, h => `${'#'.repeat(levels)}${h}`);
 
@@ -403,6 +434,7 @@ export function formatCapture(capture: Capture, settings: CaptureSettings = {}):
 function formatMeasured(c: Capture, settings: CaptureSettings): string {
   const key = `${c.meta.scope}/${c.meta.type}`;
   if (c.meta.scope === 'component') return `${frontmatter(c.meta, settings)}\n\n${componentBody(c as ComponentCapture, settings).join('\n')}\n`;
+  if (c.meta.scope === 'section') return `${frontmatter(c.meta, settings)}\n\n${sectionBody(c as SectionCapture, settings).join('\n')}\n`;
   const body = key === 'page/page' ? pageBody(c as PageCapture, settings)
     : key === 'token/text' ? textToken(c as TextToken, settings)
     : key === 'token/color' ? colorToken(c as ColorToken, settings)
@@ -433,7 +465,7 @@ export function parseCapture(text: string): ParseResult<ParsedCapture> {
     if (h) { current = h[1]!.trim(); sections[current] = ''; } else if (current) sections[current] += `${line}\n`;
   }
   for (const k of Object.keys(sections)) sections[k] = sections[k]!.trim();
-  const expected = meta.data.scope === 'component' ? COMPONENT_SECTIONS : CAPTURE_SECTIONS[`${meta.data.scope}/${meta.data.type}`];
+  const expected = meta.data.scope === 'component' ? COMPONENT_SECTIONS : meta.data.scope === 'section' ? SECTION_SECTIONS : CAPTURE_SECTIONS[`${meta.data.scope}/${meta.data.type}`];
   const missing = (expected ?? []).filter(h => !(h in sections));
   if (missing.length) return fail(`capture "${meta.data.name}" is missing sections: ${missing.join(', ')}`);
   return ok({ meta: meta.data, sections });

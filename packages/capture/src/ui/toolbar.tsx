@@ -13,12 +13,14 @@ import { elementName } from '../naming.js';
 import { elementAt, eligibilityOf, eventTarget, firstChildOf, hoverLabel, parentOf, scrollableAncestor } from './picker.js';
 import { ButtonSpinner, Loading, nextPaint } from './loading.js';
 import { ModeSwitch, type ModeSwitchProps } from './modeSwitch.js';
+import { zip } from './zip.js';
 import {
   ALL_SPACING,
   TOOLS,
   TOOL_LABELS,
   captureComponent,
   capturePageInSteps,
+  captureSection,
   captureDistance,
   readComponentStates,
   restingValues,
@@ -123,6 +125,8 @@ export const OUTPUT_HINTS: Readonly<Record<ToolId, { one: string; system: string
   color: { one: 'this color and where it is used', system: 'every color on the page, grouped by role' },
   spacing: { one: 'every padding, margin and gap of this element, or the one value you choose', system: 'the page\'s spacing scale, base unit and outliers' }
 };
+/** "This section" (v0.2), for the Component tool. */
+export const SECTION_HINT = 'its layout in one file, and each kind of component in it in its own file (pick the section with ↑ Wider)';
 const px = (v: string) => parseFloat(v) || 0;
 
 function entryFor(live: LiveSnapshot, el: Element): ElementSnapshot | null {
@@ -184,6 +188,7 @@ export function Toolbar(props: ToolbarProps) {
     setAdded(false);
     setBasketOpen(false);
     setEdited(null);
+    setViewFile(null);
     if (r.ok) props.onOutput?.(r.output);
   };
 
@@ -219,8 +224,23 @@ export function Toolbar(props: ToolbarProps) {
     show({ ok: false, message: `Luci could not read this page (${reason.slice(0, 200)}). The details are in the browser console (F12).` });
   };
 
-  const produce = async (system: boolean) => {
+  const produce = async (system: boolean, section = false) => {
     if (!picked || !tool) return;
+    if (section) {
+      // "This section": the section file plus its component files (v0.2)
+      setComponentCtx(null);
+      setStateNote(null);
+      setBusy('Reading the section: its layout, then each kind of component in it…');
+      await nextPaint(win);
+      try {
+        show(captureSection(picked.live, picked.entry, settings));
+      } catch (err) {
+        failed(err);
+      } finally {
+        setBusy(null);
+      }
+      return;
+    }
     if (tool !== 'component') {
       setComponentCtx(null);
       try {
@@ -566,6 +586,29 @@ export function Toolbar(props: ToolbarProps) {
   const copy = () => copyText(markdown);
   const download = () => { if (output) downloadText(output.fileName, markdown); };
 
+  // A section (v0.2): its component files follow the unit and color settings too
+  const [viewFile, setViewFile] = useState<{ fileName: string; markdown: string } | null>(null);
+  const sectionFiles = (output?.files ?? []).map(f => ({ fileName: f.fileName, markdown: formatCapture(f.capture, settings), capture: f.capture }));
+  const downloadZip = () => {
+    if (!output) return;
+    const bytes = zip([{ name: output.fileName, data: markdown }, ...sectionFiles.map(f => ({ name: f.fileName, data: f.markdown }))]);
+    const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'application/zip' }));
+    const a = doc.createElement('a');
+    a.href = url;
+    a.download = output.fileName.replace(/\.design\.md$/, '.zip');
+    a.setAttribute('data-luci-ui', '');
+    doc.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+  /** Save to project: the file, and a section's component files with it. */
+  const saveAll = async () => {
+    const first = await props.saveToProject!(output!.fileName, markdown);
+    for (const f of sectionFiles) await props.saveToProject!(f.fileName, f.markdown);
+    return sectionFiles.length ? { ...first, path: `${first.path} and ${sectionFiles.length} component file${sectionFiles.length === 1 ? '' : 's'}` } : first;
+  };
+
   // The basket (FR18, FR19): kept by the shell's store, so it survives pages and sites
   const [basket, setBasket] = useState<BasketItem[]>([]);
   const [basketExport, setBasketExport] = useState<{ title: string; item?: BasketItem } | null>(null);
@@ -586,7 +629,10 @@ export function Toolbar(props: ToolbarProps) {
     setAdded(true);
     const current = basketLoaded.current || !store ? basket : await store.load();
     basketLoaded.current = true;
-    saveBasket(addToBasket(current, captureWithInstructions ?? output.capture, edited ?? undefined));
+    let next = addToBasket(current, captureWithInstructions ?? output.capture, edited ?? undefined);
+    // A section's component files go in with it
+    for (const f of output.files ?? []) next = addToBasket(next, f.capture);
+    saveBasket(next);
   };
   const openBasket = () => {
     setPicking(false);
@@ -883,11 +929,15 @@ export function Toolbar(props: ToolbarProps) {
                 {picked.eligibility.status !== 'blocked' && (
                   <button type="button" class={picked.eligibility.status === 'allowed' ? '' : 'primary'} data-output="system" onClick={() => void produce(true)}>The whole system</button>
                 )}
+                {tool === 'component' && picked.eligibility.status === 'allowed' && (
+                  <button type="button" data-output="section" title={SECTION_HINT} onClick={() => void produce(false, true)}>This section</button>
+                )}
                 <button type="button" onClick={() => startPicking(tool)}>Pick again</button>
               </div>
               {picked.eligibility.status !== 'blocked' && (
                 <p class="dim" data-part="output-hints">
                   {picked.eligibility.status === 'allowed' && <>This one: {OUTPUT_HINTS[tool].one}. </>}The whole system: {OUTPUT_HINTS[tool].system}.
+                  {tool === 'component' && picked.eligibility.status === 'allowed' && <> This section: {SECTION_HINT}.</>}
                 </p>
               )}
             </>
@@ -900,6 +950,22 @@ export function Toolbar(props: ToolbarProps) {
           {result.ok ? (
             <>
               <div class="file" data-part="file-name">{result.output.fileName}</div>
+              {sectionFiles.length > 0 && (
+                <div class="stack" data-part="section-files">
+                  <span class="dim">With {sectionFiles.length} component file{sectionFiles.length === 1 ? '' : 's'}, each described once (the section file places them):</span>
+                  <ul class="files">
+                    {sectionFiles.map(f => (
+                      <li data-file={f.fileName}><code>{f.fileName}</code> <button type="button" data-file-view onClick={() => setViewFile(f)}>View</button></li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {viewFile && (
+                <div class="stack" data-part="file-view-box">
+                  <span class="row"><code>{viewFile.fileName}</code><button type="button" data-action="file-view-close" onClick={() => setViewFile(null)}>Back to the section file</button></span>
+                  <pre class="preview" data-part="file-view">{viewFile.markdown}</pre>
+                </div>
+              )}
               <div class="row">
                 <label>Units <select data-setting="units" value={settings.units ?? 'px'} onChange={e => changeSettings({ ...settings, units: (e.currentTarget as HTMLSelectElement).value as 'px' })}>
                   <option value="px">px</option><option value="rem">rem</option><option value="both">both</option>
@@ -961,9 +1027,11 @@ export function Toolbar(props: ToolbarProps) {
               <textarea class="preview" data-part="preview" spellcheck={false} value={markdown}
                 onInput={e => setEdited((e.currentTarget as HTMLTextAreaElement).value)} />
               <div class="row">
-                <button type="button" class="primary" data-action="copy" onClick={copy}>{copied ? 'Copied' : 'Copy'}</button>
-                <button type="button" data-action="download" onClick={download}>Download .design.md</button>
-                {props.saveToProject && output && <SaveButton save={() => props.saveToProject!(output.fileName, markdown)} key={output.fileName} />}
+                <button type="button" class="primary" data-action="copy" onClick={copy}>{copied ? 'Copied' : sectionFiles.length ? 'Copy section file' : 'Copy'}</button>
+                {sectionFiles.length
+                  ? <button type="button" data-action="download-zip" title="The section file and its component files in one .zip" onClick={downloadZip}>Download .zip ({sectionFiles.length + 1} files)</button>
+                  : <button type="button" data-action="download" onClick={download}>Download .design.md</button>}
+                {props.saveToProject && output && <SaveButton save={saveAll} key={output.fileName} />}
                 <button type="button" data-action="add-to-basket" disabled={added} onClick={() => void addCurrent()}>{added ? 'Added to basket' : 'Add to basket'}</button>
                 {tool && <button type="button" onClick={() => startPicking(tool)}>Pick again</button>}
               </div>

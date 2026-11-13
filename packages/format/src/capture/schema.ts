@@ -5,7 +5,7 @@
  *
  * Token captures (one text style, color or spacing value, or every spacing value of one element),
  * the three page systems (typography, color, spacing), components, and the full-page reference.
- * v0.2 adds accessibility notes to components and text; section scope follows.
+ * v0.2 adds accessibility notes to components and text, and sections (layout plus component references).
  */
 import { z } from 'zod';
 
@@ -295,6 +295,43 @@ export const componentSchema = z.object({
 export type ComponentCapture = z.infer<typeof componentSchema>;
 
 /**
+ * A section (v0.2): how a part of a page is laid out, with each component inside it placed by
+ * reference to its own component file, so every component is described once. The structure is an
+ * outline in page order: layout boxes with their own styles, text parts with their text style (never
+ * the text), image slots, and components (several alike in a row become one line with a count).
+ */
+export const sectionSchema = z.object({
+  meta: metaSchema.extend({ scope: z.literal('section'), type: slug, selector: z.string().min(1) }),
+  instructions: instructionsField,
+  /** Custom properties the section's own boxes and text use (the components' are in their files). */
+  tokens: z.array(z.object({ token: z.string().regex(/^--[\w-]+$/), value: z.string().min(1), usedFor: z.array(z.string().min(1)) })),
+  structure: z.array(z.object({
+    /** 0 for the section itself; one more per level inside it. */
+    depth: z.number().int().min(0).max(12),
+    part: slug,
+    element: z.string().min(1),
+    styles: z.array(styleEntrySchema),
+    /**
+     * A component: its name and file in this capture; with `count`, the variant of each one in order
+     * (only when they are not all the same).
+     */
+    component: z.object({ name: slug, file: z.string().min(1), variants: z.array(slug).optional() }).optional(),
+    /** Several alike next to each other (three cards in a grid). */
+    count: z.number().int().positive().optional(),
+    /** An image slot: its size and shape (the image itself is never kept). */
+    image: z.object({ width: z.number().nonnegative(), height: z.number().nonnegative(), aspectRatio: z.string().min(1) }).optional()
+  })).min(1),
+  /** The component files this section uses, each described once. */
+  components: z.array(z.object({
+    name: slug, type: slug, file: z.string().min(1), count: z.number().int().positive(), variants: z.number().int().positive(),
+    /** Placed inside another component of this section (a button in a card): that component's name. */
+    inside: slug.optional()
+  })),
+  accessibility: accessibilitySchema.optional()
+});
+export type SectionCapture = z.infer<typeof sectionSchema>;
+
+/**
  * A full-page reference: the page's typography, color and spacing systems plus one entry per kind
  * of component on it (with its variants and states), in one file. Each system is null when the page
  * has none of it (no visible text, colors or spacing).
@@ -311,7 +348,7 @@ export const pageSchema = z.object({
 });
 export type PageCapture = z.infer<typeof pageSchema>;
 
-export const captureSchema = z.union([textTokenSchema, colorTokenSchema, spacingTokenSchema, spacingSetSchema, typographySystemSchema, colorSystemSchema, spacingSystemSchema, componentSchema, pageSchema]);
+export const captureSchema = z.union([textTokenSchema, colorTokenSchema, spacingTokenSchema, spacingSetSchema, typographySystemSchema, colorSystemSchema, spacingSystemSchema, componentSchema, sectionSchema, pageSchema]);
 
 export type TextToken = z.infer<typeof textTokenSchema>;
 export type ColorToken = z.infer<typeof colorTokenSchema>;

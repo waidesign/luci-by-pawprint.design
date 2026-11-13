@@ -356,6 +356,18 @@ describe('dev toolbar with luci serve (M6 Done when, automated)', { timeout: 90_
     expect(await page.locator('[data-part="saved"]').innerText()).toBe(`Saved .luci/design/${name}`);
     expect(fs.existsSync(path.join(dir, '.luci', 'design', name))).toBe(true);
     expect(JSON.parse(await mcp('list_captures'))).toEqual([expect.objectContaining({ file: name, scope: 'component' })]);
+    // A section (v0.2): Save to project writes the section file and its component files
+    await page.click('button[data-tool="component"]');
+    await page.click('main > section > h1', { force: true });
+    await page.click('[data-action="widen"]');
+    await page.click('[data-output="section"]');
+    await page.locator('[data-part="section-files"]').waitFor();
+    const sectionName = await page.locator('[data-part="file-name"]').innerText();
+    const parts = await page.locator('[data-part="section-files"] [data-file]').evaluateAll(els => els.map(e => e.getAttribute('data-file')!));
+    await page.click('[data-action="save-to-project"]');
+    expect(await page.locator('[data-part="saved"]').innerText()).toBe(`Saved .luci/design/${sectionName} and ${parts.length} component file${parts.length === 1 ? '' : 's'}`);
+    for (const f of [sectionName, ...parts]) expect(fs.existsSync(path.join(dir, '.luci', 'design', f)), f).toBe(true);
+    expect(JSON.parse(await mcp('list_captures'))).toEqual(expect.arrayContaining([expect.objectContaining({ file: sectionName, scope: 'section' })]));
     // Back to Feedback, then close: a small button brings Luci back
     await page.click('luci-toolbar [data-mode="feedback"]');
     await page.locator('[data-action="annotate"]').waitFor();

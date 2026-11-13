@@ -10,6 +10,7 @@ import { focusDepthOf, prepareTargets, readComputed, readDisabled, readStatesFro
 import { snapshotPage, type RuleCache } from '../dom.js';
 import type { ElementSnapshot, PageSnapshot } from '../model.js';
 import { pageCapture, pageComponents, type SkippedPart } from '../page.js';
+import { sectionCapture, sectionGroups } from '../section.js';
 import { distanceToken, spacingSet, spacingSystem, spacingToken, spacingUses, type SpacingUse } from '../spacing.js';
 import { textToken, typographySystem } from '../text.js';
 
@@ -21,6 +22,8 @@ export interface Output {
   capture: Capture;
   fileName: string;
   markdown: string;
+  /** A section's component files (v0.2): they go with it in the .zip, the basket and the project. */
+  files?: Output[];
 }
 
 export type Result = { ok: true; output: Output } | { ok: false; message: string };
@@ -256,6 +259,24 @@ export async function capturePageInSteps(
   }
   await step(PAGE_STEPS.systems);
   return pageResult(live, components, skipped, settings, options.captured ?? CAPTURED());
+}
+
+/**
+ * "This section" (v0.2): the section file (layout outline, components placed by reference) plus one
+ * component file per kind of component in it, each with its variants in the section and the states
+ * its stylesheet rules give it (as in the full-page reference).
+ */
+export function captureSection(live: LiveSnapshot, entry: ElementSnapshot, settings: CaptureSettings, options: { captured?: string } = {}): Result {
+  if (entry.tag === 'body' || entry.tag === 'html') {
+    return { ok: false, message: 'Pick one section of the page (a hero, a pricing section, a footer). For the whole page, use Whole page.' };
+  }
+  const inside = insideOf(live, entry);
+  const groups = sectionGroups(live.snapshot, entry, inside);
+  const skipped: SkippedPart[] = [];
+  const rules: RuleCache = new Map();
+  const inputs = groups.map(g => readPageComponent(live, g.example, skipped, rules));
+  const { section, components } = sectionCapture(live.snapshot, entry, inside, groups, inputs, { captured: options.captured ?? CAPTURED() });
+  return { ok: true, output: { ...toOutput(section, settings), files: components.map(c => toOutput(c, settings)) } };
 }
 
 /** The color of a pixel from the eyedropper. */

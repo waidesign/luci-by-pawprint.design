@@ -110,7 +110,7 @@ The toolbar checks every element under the cursor before it can be selected.
 
 **Scopes**
 
-Section and page scopes share the same file format. A section file (v0.2) lists its components by reference, so each component is described once. A page file from any existing extractor can be used as the base that component files extend.
+Section and page scopes share the same file format. A section file (v0.2) lists its components by reference, so each component is described once. (Built 13 Nov 2026: the Component tool's **This section** gives a section file with the layout as an outline plus one component file per kind of component, a button or field inside another component included for its states; the extension downloads them as one .zip, the dev toolbar saves them all. Component and text files gained accessibility notes: contrast, target size, focus visible. A note for the agent can be written on any basket item.) A page file from any existing extractor can be used as the base that component files extend.
 
 ## Functional requirements (v0.1)
 
