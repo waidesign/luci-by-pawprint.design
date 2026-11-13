@@ -56,8 +56,10 @@ const STATE_ORDER: readonly StateName[] = ['hover', 'focus', 'focus-visible', 'a
 /** The "Capture by hand" choice that walks through every state Luci could not read. */
 const ALL_MISSING = 'all-missing';
 type ManualTarget = StateName | typeof ALL_MISSING;
-/** Disabled cannot be set by hand, so the guided walk skips it. */
-const missingStates = (states: ComponentCapture['states']): StateName[] => states.filter(s => !s.detected && s.state !== 'disabled').map(s => s.state);
+/** A state Luci checked through the browser and found no change in (not a gap to fill by hand). */
+const checked = (s: ComponentCapture['states'][number]) => !s.detected && (s.method === 'forced' || s.method === 'pointer' || s.method === 'attribute');
+/** States Luci could not be sure about. Disabled cannot be set by hand, so the guided walk skips it. */
+const missingStates = (states: ComponentCapture['states']): StateName[] => states.filter(s => !s.detected && !checked(s) && s.state !== 'disabled').map(s => s.state);
 /** How to put a component in each state, shown during the countdown. */
 const STATE_HOW: Readonly<Record<StateName, string>> = {
   hover: 'move the pointer onto it',
@@ -878,8 +880,11 @@ export function Toolbar(props: ToolbarProps) {
                   <div data-part="states-summary">
                     <span class="dim">States in this file: </span>
                     {componentCtx.states.map(s => (
-                      <span class={s.detected ? 'state' : 'state missing'} data-state={s.state} title={s.detected ? 'In the file' : 'Not detected: it may change through JavaScript. Capture it by hand below.'}>
-                        {s.state} {s.detected ? '✓' : '– not detected'}
+                      <span class={s.detected ? 'state' : 'state missing'} data-state={s.state}
+                        title={s.detected ? (s.trigger ? `In the file: triggered by the ${s.trigger.element} around it` : 'In the file')
+                          : checked(s) ? 'Luci checked this state in the browser: nothing changes.'
+                          : 'Not detected: it may change through JavaScript. Capture it by hand below.'}>
+                        {s.state} {s.detected ? `✓${s.trigger ? ` (via ${s.trigger.element.split(' ')[0]})` : ''}` : checked(s) ? '– no change' : '– not detected'}
                       </span>
                     ))}
                   </div>

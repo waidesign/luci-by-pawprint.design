@@ -201,7 +201,7 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
     await page.click('button[data-tool="component"]');
     await page.click('#js-hover', { force: true });
     await page.click('[data-output="one"]');
-    expect(await preview(page)).toContain('| hover | Not detected');
+    expect(await preview(page)).toContain('| hover | Not in the stylesheets: it may change through JavaScript.');
     // The panel says which states are in the file; "All missing states" is the default (user request)
     expect(await page.locator('[data-part="states-summary"] [data-state="hover"]').innerText()).toContain('not detected');
     expect(await page.locator('select[data-setting="manual-state"]').inputValue()).toBe('all-missing');

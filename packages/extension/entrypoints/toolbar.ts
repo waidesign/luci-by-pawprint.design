@@ -58,6 +58,6 @@ export default defineUnlistedScript(async () => {
     // The "?" button opens the help page in a new tab
     onHelp: () => { void ask<string>({ type: 'luci:open-help' }).catch((err: unknown) => { window.alert(`Luci could not open its help page. ${err instanceof Error ? err.message : String(err)}`); }); },
     // Exact component states: the background attaches the debugger just for this reading
-    readForcedStates: (count) => ask<ForcedReading>({ type: 'luci:read-states', count })
+    readForcedStates: (count, options) => ask<ForcedReading>({ type: 'luci:read-states', count, options })
   });
 });

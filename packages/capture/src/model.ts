@@ -19,7 +19,7 @@ export const SNAPSHOT_PROPERTIES = [
   'fill', 'stroke', 'stroke-width',
   // The Component tool (M5) also reads these
   'width', 'height', 'flex-direction', 'align-items', 'justify-content',
-  'border-radius', 'box-shadow', 'cursor', 'outline-offset', 'text-align',
+  'border-radius', 'box-shadow', 'cursor', 'outline-offset', 'text-align', 'transform',
   'transition-property', 'transition-duration', 'transition-timing-function', 'transition-delay',
   'animation-name', 'animation-duration', 'animation-timing-function', 'animation-iteration-count'
 ] as const;

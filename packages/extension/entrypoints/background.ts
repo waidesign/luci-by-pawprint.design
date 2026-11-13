@@ -1,6 +1,6 @@
 import { browser } from 'wxt/browser';
 import { defineBackground } from 'wxt/utils/define-background';
-import { readStatesViaCdp, type ForcedReading } from '@luci/capture/states';
+import { readStatesViaCdp, type CdpReadOptions, type ForcedReading } from '@luci/capture/states';
 
 export const READ_STATES = 'luci:read-states';
 export const CAPTURE_SCREEN = 'luci:capture-screen';
@@ -25,7 +25,7 @@ export default defineBackground(() => {
   });
 
   browser.runtime.onMessage.addListener((message: unknown, sender, sendResponse: (reply: ReadStatesReply | CaptureReply) => void) => {
-    const m = message as { type?: string; count?: number };
+    const m = message as { type?: string; count?: number; options?: CdpReadOptions };
     const tabId = sender.tab?.id;
     if (m?.type === OPEN_HELP) {
       void browser.tabs.create({ url: browser.runtime.getURL('/help.html') });
@@ -50,7 +50,7 @@ export default defineBackground(() => {
       }
       try {
         const send = (method: string, params?: Record<string, unknown>) => browser.debugger.sendCommand(target, method, params);
-        sendResponse({ ok: true, reading: await readStatesViaCdp(send, m.count!) });
+        sendResponse({ ok: true, reading: await readStatesViaCdp(send, m.count!, m.options ?? {}) });
       } catch (err) {
         sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
       } finally {

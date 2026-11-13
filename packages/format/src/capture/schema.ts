@@ -165,10 +165,13 @@ export const spacingSystemSchema = z.object({
 export const COMPONENT_STATES = ['hover', 'focus', 'focus-visible', 'active', 'disabled'] as const;
 /**
  * How a state was read: `forced` (the browser was told to apply it, via the debugger), `rules` (from
- * stylesheet rules for the state), `attribute` (by setting disabled for a moment), `manual` (the user
- * put the component in the state and captured it with "Capture by hand").
+ * stylesheet rules for the state), `attribute` (by setting disabled for a moment), `pointer` (the
+ * debugger moved a mouse pointer onto it, so the site's own JavaScript ran), `manual` (the user put
+ * the component in the state and captured it with "Capture by hand"). On a state that was not
+ * detected, the method says how Luci looked: `forced` or `pointer` mean there is no change; `rules`
+ * means none in the stylesheets (it may still change through JavaScript).
  */
-export const STATE_METHODS = ['forced', 'rules', 'attribute', 'manual'] as const;
+export const STATE_METHODS = ['forced', 'rules', 'attribute', 'pointer', 'manual'] as const;
 
 /** One property of a part, as captured. */
 export const styleEntrySchema = z.object({ property: z.string().min(1), value: valueSchema });
@@ -183,16 +186,25 @@ export const componentSchema = z.object({
     part: slug,
     element: z.string().min(1),
     optional: z.boolean().optional(),
+    /** Hidden at rest and shown in these states (an arrow that fades in on hover). */
+    appearsIn: z.array(z.enum(COMPONENT_STATES)).optional(),
     styles: z.array(styleEntrySchema)
   })).min(1),
   states: z.array(z.object({
     state: z.enum(COMPONENT_STATES),
-    /** False when the state changes nothing that could be read (it may change through JavaScript). */
+    /** False when the state changes nothing that could be read; `method` says how Luci looked. */
     detected: z.boolean(),
     method: z.enum(STATE_METHODS).optional(),
+    /**
+     * When the state comes from an element around the component (Tailwind's group-hover, "a:hover > div"):
+     * that element, and how many levels up it is. Absent when the component itself triggers it.
+     */
+    trigger: z.object({ element: z.string().min(1), selector: z.string().min(1), depth: z.number().int().positive() }).optional(),
     changes: z.array(z.object({ part: slug.optional(), property: z.string().min(1), from: z.string(), to: valueSchema }))
   })),
   motion: z.array(z.object({
+    /** The part that moves; absent for the container. */
+    part: slug.optional(),
     kind: z.enum(['transition', 'animation']),
     /** The property for a transition, the animation name for an animation. */
     target: z.string().min(1),

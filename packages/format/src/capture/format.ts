@@ -25,7 +25,7 @@ import {
   type TextToken,
   type TypographySystem
 } from './schema.js';
-import { formatColor, formatLength } from './values.js';
+import { formatColor, formatLength, formatShadow, formatTransform } from './values.js';
 
 export const CAPTURE_EXTENSION = '.design.md';
 
@@ -102,11 +102,13 @@ function table(head: readonly string[], rows: readonly (readonly string[])[]): s
 }
 const ref = (r: ElementRef) => `${r.element}: ${code(r.selector)}`;
 
-type Kind = 'length' | 'color' | 'raw';
+type Kind = 'length' | 'color' | 'transform' | 'shadow' | 'raw';
 /** Colors inside compound values ("2px solid rgb(15, 98, 254)", shadows) follow the color setting too. */
-const EMBEDDED_COLOR = /rgba?\([^)]*\)/g;
+const EMBEDDED_COLOR = /rgba?\([^)]*\)|color\(srgb [^)]*\)/g;
 const show = (v: CapturedValue, kind: Kind, s: CaptureSettings) =>
-  kind === 'length' ? formatLength(v.computed, s).replace(EMBEDDED_COLOR, c => formatColor(c, s))
+  kind === 'shadow' ? formatLength(formatShadow(v.computed), s).replace(EMBEDDED_COLOR, c => formatColor(c, s))
+    : kind === 'length' ? formatLength(v.computed, s).replace(EMBEDDED_COLOR, c => formatColor(c, s))
+    : kind === 'transform' ? formatLength(formatTransform(v.computed), s)
     : kind === 'color' ? formatColor(v.computed, s) : v.computed;
 /** The authored value, only when it says more than the computed one. */
 const authored = (v: CapturedValue) => (v.authored && v.authored !== v.computed ? code(v.authored) : '');
@@ -191,31 +193,53 @@ function spacingSystem(c: SpacingSystem, s: CaptureSettings): string[] {
 }
 
 /** Colors by property name; every other value goes through the length formatter (keywords pass unchanged). */
-const kindOf = (property: string): Kind => (/color$|^fill$|^stroke$/.test(property) ? 'color' : 'length');
+const kindOf = (property: string): Kind =>
+  (/color$|^fill$|^stroke$/.test(property) ? 'color' : property === 'transform' ? 'transform' : property === 'box-shadow' ? 'shadow' : 'length');
 const styleText = (property: string, v: CapturedValue, s: CaptureSettings) =>
   `${property} ${show(v, kindOf(property), s)}${v.token ? ` (${code(v.token)})` : v.authored && v.authored !== v.computed ? ` (${code(v.authored)})` : ''}`;
 
-const STATE_SOURCE: Readonly<Record<string, string>> = { forced: 'browser, state forced', rules: 'stylesheet rules', attribute: 'disabled attribute', manual: 'captured by hand' };
+const STATE_SOURCE: Readonly<Record<string, string>> = {
+  forced: 'browser, state forced', rules: 'stylesheet rules', attribute: 'disabled attribute', pointer: 'browser, pointer moved onto it', manual: 'captured by hand'
+};
+
+type ComponentState = ComponentCapture['states'][number];
+
+/** What a state that changed nothing says: no change when Luci could check, a hint when it could not. */
+function notDetected(st: ComponentState): string {
+  if (st.method === 'forced' || st.method === 'pointer' || st.method === 'attribute') return 'No change';
+  if (st.method === 'rules') return 'Not in the stylesheets: it may change through JavaScript. Capture it by hand in Luci.';
+  return 'Not detected: it may change through JavaScript. Capture it by hand in Luci.';
+}
+
+/** One state's changes; a state triggered from an element around the component says which. */
+function stateChanges(st: ComponentState, container: string, s: CaptureSettings): string {
+  const list = st.changes.map(ch => {
+    const value = `${ch.part && ch.part !== container ? `${ch.part} ` : ''}${ch.property} ${show({ computed: ch.from }, kindOf(ch.property), s)} → ${show(ch.to, kindOf(ch.property), s)}${ch.to.token ? ` (${code(ch.to.token)})` : ''}`;
+    // Chrome's own focus ring is "auto"; say so, so it is not taken for the site's design
+    return ch.property === 'outline' && /\bauto\b/.test(ch.to.computed) ? `${value} (the browser's default focus ring)` : value;
+  }).join('; ');
+  const where = st.trigger ? `On the ${st.trigger.element} around it (${code(st.trigger.selector)}, ${st.trigger.depth} level${st.trigger.depth === 1 ? '' : 's'} up): ` : '';
+  return `${where}${list}`;
+}
 
 function componentBody(c: ComponentCapture, s: CaptureSettings, noStates = '- Not read.'): string[] {
   const tokens = c.tokens.length
     ? table(['Token', 'Value', 'Used for'], c.tokens.map(t => [code(t.token), kindOf(t.usedFor[0] ?? '') === 'color' ? formatColor(t.value, s) : formatLength(t.value, s), t.usedFor.join(', ')]))
     : '- The component uses no custom properties.';
   const anatomy = c.anatomy.map(p => {
-    const label = `${p.part} — ${p.element}${p.optional ? ', optional' : ''}`;
+    const appears = p.appearsIn?.length ? `, appears on ${p.appearsIn.join(' and ')}` : '';
+    const label = `${p.part} — ${p.element}${p.optional ? ', optional' : ''}${appears}`;
     return `- ${label}: ${p.styles.length ? p.styles.map(e => styleText(e.property, e.value, s)).join(', ') : 'no styles of its own'}`;
   });
   const states = c.states.length
     ? table(['State', 'Changes', 'Read from'], c.states.map(st => [
         st.state,
-        !st.detected ? 'Not detected: it may change through JavaScript. Capture it by hand in Luci.'
-          : st.changes.length ? st.changes.map(ch => `${ch.part && ch.part !== c.anatomy[0]!.part ? `${ch.part} ` : ''}${ch.property} ${show({ computed: ch.from }, kindOf(ch.property), s)} → ${show(ch.to, kindOf(ch.property), s)}${ch.to.token ? ` (${code(ch.to.token)})` : ''}`).join('; ')
-          : 'No visible change',
+        !st.detected ? notDetected(st) : st.changes.length ? stateChanges(st, c.anatomy[0]!.part, s) : 'No visible change',
         st.method ? STATE_SOURCE[st.method]! : ''
       ]))
     : noStates;
   const motion = c.motion.length
-    ? c.motion.map(m => `- ${m.kind} ${m.target} ${m.duration} ${m.easing}${m.delay && m.delay !== '0s' ? `, delay ${m.delay}` : ''}`)
+    ? c.motion.map(m => `- ${m.part ? `${m.part}: ` : ''}${m.kind} ${m.target} ${m.duration} ${m.easing}${m.delay && m.delay !== '0s' ? `, delay ${m.delay}` : ''}`)
     : ['- None.'];
   const out = ['## Tokens', tokens, '', '## Anatomy', ...anatomy, '', '## States', states, '', '## Motion', ...motion];
   if (c.variants) {

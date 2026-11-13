@@ -27,6 +27,69 @@ export function formatLength(computed: string, settings: CaptureSettings = {}): 
   return s.units === 'rem' ? rem : `${px} (${rem})`;
 }
 
+const num = (n: number, digits: number) => round(Math.abs(n) < 1e-9 ? 0 : n, digits);
+
+/**
+ * A computed transform as people write it: the browser reports "matrix(1, 0, 0, 1, 0, -12)", this
+ * gives "translateY(-12px)". 2D matrices (and 3D ones that are really 2D) become translate, rotate
+ * and scale; anything with skew, a mirror or depth is returned unchanged.
+ */
+export function formatTransform(computed: string): string {
+  const text = computed.trim();
+  const m = /^matrix(3d)?\(([^)]*)\)$/.exec(text);
+  if (!m) return text;
+  const v = m[2]!.split(',').map(Number);
+  if (v.some(Number.isNaN)) return text;
+  let a: number, b: number, c: number, d: number, e: number, f: number;
+  if (m[1]) {
+    if (v.length !== 16) return text;
+    const flat = [2, 3, 6, 7, 8, 9, 11, 14].every(i => Math.abs(v[i]!) < 1e-9) && v[10] === 1 && v[15] === 1;
+    if (!flat) return text;
+    [a, b, c, d, e, f] = [v[0]!, v[1]!, v[4]!, v[5]!, v[12]!, v[13]!];
+  } else {
+    if (v.length !== 6) return text;
+    [a, b, c, d, e, f] = v as [number, number, number, number, number, number];
+  }
+  // translate(e, f) rotate(θ) scale(sx, sy) is [sx·cos, sx·sin, -sy·sin, sy·cos, e, f]
+  const sx = Math.hypot(a, b);
+  if (sx < 1e-9 || a * d - b * c <= 0) return text;
+  const ax = a / sx;
+  const bx = b / sx;
+  const skew = ax * c + bx * d;
+  const sy = Math.hypot(c - ax * skew, d - bx * skew);
+  if (Math.abs(skew / sy) > 1e-3) return text;
+  const angle = (Math.atan2(b, a) * 180) / Math.PI;
+  const parts: string[] = [];
+  const x = num(e, 2);
+  const y = num(f, 2);
+  if (x !== '0' && y !== '0') parts.push(`translate(${x}px, ${y}px)`);
+  else if (y !== '0') parts.push(`translateY(${y}px)`);
+  else if (x !== '0') parts.push(`translateX(${x}px)`);
+  if (num(angle, 2) !== '0') parts.push(`rotate(${num(angle, 2)}deg)`);
+  const [sxs, sys] = [num(sx, 3), num(sy, 3)];
+  if (sxs !== '1' || sys !== '1') parts.push(sxs === sys ? `scale(${sxs})` : `scale(${sxs}, ${sys})`);
+  return parts.length ? parts.join(' ') : 'none';
+}
+
+/** The layers of a list value ("a, b(c, d), e" -> ["a", "b(c, d)", "e"]). */
+const layers = (text: string) => text.split(/,(?![^(]*\))/).map(l => l.trim()).filter(Boolean);
+const LAYER_COLOR = /rgba?\([^)]*\)|hsla?\([^)]*\)|color\([^)]*\)|#[0-9a-f]{3,8}\b|\btransparent\b/i;
+
+/**
+ * A box-shadow without the layers nobody sees: Tailwind writes "transparent 0px 0px 0px 0px" rings
+ * before every real shadow. A shadow of only such layers is "none".
+ */
+export function formatShadow(computed: string): string {
+  const text = computed.trim();
+  if (text === 'none') return text;
+  const all = layers(text);
+  const seen = all.filter(l => {
+    const color = LAYER_COLOR.exec(l)?.[0];
+    return !(color && isTransparent(color));
+  });
+  return seen.length === all.length ? text : seen.length ? seen.join(', ') : 'none';
+}
+
 /** A px number from a computed length ("16px" -> 16), or null. */
 export function pxValue(computed: string): number | null {
   const m = /^(-?\d*\.?\d+)px$/.exec(computed.trim());

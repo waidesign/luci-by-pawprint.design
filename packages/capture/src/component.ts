@@ -13,7 +13,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 /** Box properties a container keeps when the site sets them (or, when sheets can't be read, when they differ from the initial value). */
 const BOX: readonly SnapshotProperty[] = [
   'display', 'flex-direction', 'align-items', 'justify-content', 'row-gap', 'column-gap',
-  'width', 'height', 'border-radius', 'background-color', 'background-image', 'box-shadow', 'opacity', 'cursor', 'outline-offset', 'text-align'
+  'width', 'height', 'border-radius', 'background-color', 'background-image', 'box-shadow', 'opacity', 'cursor', 'outline-offset', 'text-align', 'transform'
 ];
 const TEXT: readonly SnapshotProperty[] = ['font-family', 'font-size', 'font-weight', 'line-height', 'letter-spacing', 'color', 'text-transform', 'text-decoration-line'];
 /** Values that mean "nothing set" for a property. */
@@ -21,7 +21,7 @@ const NOTHING: Partial<Record<SnapshotProperty, RegExp>> = {
   'row-gap': /^(normal|0px)$/, 'column-gap': /^(normal|0px)$/, 'border-radius': /^0px$/, 'box-shadow': /^none$/,
   'background-image': /^none$/, opacity: /^1$/, cursor: /^auto$/, 'outline-offset': /^0px$/, 'text-align': /^(start|left)$/,
   'letter-spacing': /^normal$/, 'text-transform': /^none$/, 'text-decoration-line': /^none$/,
-  'flex-direction': /^row$/, 'align-items': /^normal$/, 'justify-content': /^normal$/
+  'flex-direction': /^row$/, 'align-items': /^normal$/, 'justify-content': /^normal$/, transform: /^none$/
 };
 
 const isNothing = (prop: SnapshotProperty, v: string) => (prop === 'background-color' ? isTransparent(v) : NOTHING[prop]?.test(v) ?? false);
@@ -138,6 +138,41 @@ export function componentParts(snap: PageSnapshot, container: ElementSnapshot, i
   return parts;
 }
 
+/** States are read on every element inside the component down to this depth, at most this many in all. */
+export const STATE_DEPTH = 6;
+export const MAX_STATE_TARGETS = 60;
+/** Inside an SVG drawing only the drawing itself is watched, not each shape. */
+const SVG_INNER = /^(path|circle|rect|ellipse|line|polyline|polygon|g|defs|use|symbol|clippath|mask|lineargradient|radialgradient|stop|tspan|text)$/;
+
+/**
+ * The elements a component's states are read on: its parts (componentParts), then every other element
+ * inside it, hidden ones too (an arrow that fades in on hover, a shadow layer, an underline bar). The
+ * others are named "decoration", or image/icon/label when that is what they are.
+ */
+export function stateParts(snap: PageSnapshot, container: ElementSnapshot, inside: (el: ElementSnapshot) => number | null): { part: string; el: ElementSnapshot }[] {
+  const parts = componentParts(snap, container, inside);
+  const taken = new Set(parts.map(p => p.el.id));
+  const used = new Map<string, number>();
+  for (const p of parts) {
+    const base = p.part.replace(/-\d+$/, '');
+    const n = Number(/-(\d+)$/.exec(p.part)?.[1] ?? 1);
+    used.set(base, Math.max(used.get(base) ?? 0, n));
+  }
+  if (container.hasText) used.set('label', Math.max(used.get('label') ?? 0, 1));
+  for (const el of snap.elements) {
+    if (parts.length >= MAX_STATE_TARGETS) break;
+    if (taken.has(el.id)) continue;
+    const depth = inside(el);
+    if (depth === null || depth < 1 || depth > STATE_DEPTH || SVG_INNER.test(el.tag)) continue;
+    const kind = partName(el);
+    const name = ['icon', 'image'].includes(kind) || el.hasText ? kind : 'decoration';
+    const n = (used.get(name) ?? 0) + 1;
+    used.set(name, n);
+    parts.push({ part: n > 1 ? `${name}-${n}` : name, el });
+  }
+  return parts;
+}
+
 export function anatomyOf(snap: PageSnapshot, container: ElementSnapshot, inside: (el: ElementSnapshot) => number | null): ComponentCapture['anatomy'] {
   const parts: ComponentCapture['anatomy'] = [{ part: 'container', element: elementName(container.tag, container.role), styles: boxStyles(snap, container) }];
   if (container.hasText) parts.push({ part: 'label', element: 'text', styles: textStyles(container) });
@@ -231,12 +266,54 @@ export function componentCapture(
 ): ComponentCapture {
   const name = componentName(el);
   const anatomy = anatomyOf(snap, el, inside);
+  const watched = stateParts(snap, el, inside);
+  // Elements outside the anatomy that change in a state are named again, numbered from the anatomy's
+  // own (the reader counted hidden elements that never change: "decoration-5" becomes "decoration")
+  const changed = new Set((options.states ?? []).flatMap(s => s.changes.map(c => c.part ?? 'container')));
+  const counters = new Map<string, number>();
+  for (const a of anatomy) {
+    const base = a.part.replace(/-\d+$/, '');
+    counters.set(base, Math.max(counters.get(base) ?? 0, Number(/-(\d+)$/.exec(a.part)?.[1] ?? 1)));
+  }
+  const rename = new Map<string, string>();
+  for (const p of watched) {
+    if (!changed.has(p.part) || anatomy.some(a => a.part === p.part)) continue;
+    const base = p.part.replace(/-\d+$/, '');
+    const n = (counters.get(base) ?? 0) + 1;
+    counters.set(base, n);
+    rename.set(p.part, n > 1 ? `${base}-${n}` : base);
+  }
+  const renamed = (part: string) => rename.get(part) ?? part;
+  const states = (options.states ?? []).map(s => ({ ...s, changes: s.changes.map(c => (c.part ? { ...c, part: renamed(c.part) } : c)) }));
+  // Parts that change in a state: their element, so the anatomy names them and their motion is kept
+  const all = new Map(watched.map(p => [renamed(p.part), p.el]));
+  const changing = new Set(states.flatMap(s => s.changes.map(c => c.part ?? 'container')));
+  for (const part of changing) {
+    const partEl = all.get(part);
+    if (!partEl || anatomy.some(a => a.part === part)) continue;
+    const kind = part.replace(/-\d+$/, '');
+    const styles = kind === 'icon' || kind === 'image'
+      ? [{ property: 'width', value: { computed: `${round(partEl.rect.width)}px` } }, { property: 'height', value: { computed: `${round(partEl.rect.height)}px` } }, ...boxStyles(snap, partEl).filter(s => !['display', 'width', 'height'].includes(s.property))]
+      : [...(partEl.hasText ? textStyles(partEl) : []), ...boxStyles(snap, partEl).filter(s => s.property !== 'display')];
+    anatomy.push({ part, element: elementName(partEl.tag, partEl.role), styles });
+  }
+  // Hidden at rest and changed in a state: it appears then (an arrow fading in on hover)
+  for (const a of anatomy) {
+    const partEl = all.get(a.part);
+    if (!partEl || partEl.visible || a.part === 'container') continue;
+    const appearsIn = states.filter(s => s.detected && s.changes.some(c => c.part === a.part)).map(s => s.state);
+    if (appearsIn.length) a.appearsIn = appearsIn;
+  }
+  const motion = [
+    ...motionOf(el),
+    ...[...changing].filter(p => p !== 'container' && all.has(p)).flatMap(part => motionOf(all.get(part)!).map(m => ({ part, ...m })))
+  ];
   return {
     meta: { name, scope: 'component', type: componentType(el), source: snap.url, selector: el.selector, captured: options.captured ?? today(), method: 'measured' },
     tokens: tokensOf(snap, anatomy),
     anatomy,
-    states: options.states ?? [],
-    motion: motionOf(el),
+    states,
+    motion,
     ...(options.system ? { variants: variantsOf(snap, el, name) } : {})
   };
 }

@@ -4,8 +4,8 @@
  */
 import { captureFileName, formatCapture, type Capture, type CaptureSettings, type ComponentCapture } from '@luci/format/capture';
 import { colorToken, colorUses, colorSystem } from '../color.js';
-import { componentCapture, componentParts, componentType } from '../component.js';
-import { prepareTargets, readComputed, readDisabled, readStatesFromRules, statesFromForced, type ComputedMap, type ForcedReading, type StateTarget } from '../states.js';
+import { componentCapture, componentType, stateParts } from '../component.js';
+import { focusDepthOf, prepareTargets, readComputed, readDisabled, readStatesFromRules, statesFromForced, type CdpReadOptions, type ComputedMap, type ForcedReading, type StateTarget } from '../states.js';
 import { snapshotPage } from '../dom.js';
 import type { ElementSnapshot, PageSnapshot } from '../model.js';
 import { pageCapture, pageComponents, type SkippedPart } from '../page.js';
@@ -78,11 +78,38 @@ export function captureComponent(live: LiveSnapshot, entry: ElementSnapshot, set
 }
 
 /** Reads states through the debugger; the extension provides it (it sends the commands from its background). */
-export type ForcedStatesReader = (targetCount: number) => Promise<ForcedReading>;
+export type ForcedStatesReader = (targetCount: number, options?: CdpReadOptions) => Promise<ForcedReading>;
 
-/** The elements a component's states are read on: the container and its parts. */
+/** The elements a component's states are read on: the container, its parts and every other element inside it. */
 export function stateTargets(live: LiveSnapshot, entry: ElementSnapshot): StateTarget[] {
-  return componentParts(live.snapshot, entry, insideOf(live, entry)).map(p => ({ part: p.part, el: live.nodes[p.el.id]! }));
+  return stateParts(live.snapshot, entry, insideOf(live, entry)).map(p => ({ part: p.part, el: live.nodes[p.el.id]! }));
+}
+
+/**
+ * A point on the component where a real pointer would land on it (viewport px), or undefined when it
+ * is out of view or covered (by Luci's own panel, say). Tried: the centre, then points around it.
+ */
+export function pointerPointOf(el: Element): { x: number; y: number } | undefined {
+  const r = el.getBoundingClientRect();
+  const view = el.ownerDocument.defaultView;
+  if (!view || r.width < 1 || r.height < 1) return undefined;
+  const root = el.getRootNode() as Document | ShadowRoot;
+  const spots = [[0.5, 0.5], [0.25, 0.25], [0.75, 0.25], [0.25, 0.75], [0.75, 0.75], [0.5, 0.15], [0.5, 0.85], [0.15, 0.5], [0.85, 0.5]];
+  for (const [fx, fy] of spots) {
+    const x = Math.round(r.left + r.width * fx!);
+    const y = Math.round(r.top + r.height * fy!);
+    if (x < 0 || y < 0 || x >= view.innerWidth || y >= view.innerHeight) continue;
+    const hit = root.elementFromPoint(x, y);
+    if (hit && (hit === el || el.contains(hit))) return { x, y };
+  }
+  return undefined;
+}
+
+/** Where the user's pointer is while states are read: on Luci's panel (or the top-left corner). */
+function luciPanelPoint(doc: Document): { x: number; y: number } {
+  const panel = doc.querySelector('luci-toolbar')?.shadowRoot?.querySelector('.panel, .bar');
+  const r = panel?.getBoundingClientRect();
+  return r ? { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) } : { x: 0, y: 0 };
 }
 
 /** The resting values of the targets, for comparing a state captured by hand later. */
@@ -95,13 +122,17 @@ export const restingValues = (targets: readonly StateTarget[]): ComputedMap[] =>
  */
 export async function readComponentStates(live: LiveSnapshot, entry: ElementSnapshot, readForced?: ForcedStatesReader): Promise<{ states: ComponentCapture['states']; note: string | null }> {
   const targets = stateTargets(live, entry);
+  const container = targets[0]!.el;
+  // Before prepareTargets: the point must be read while the page looks as it does
+  const hoverPoint = pointerPointOf(container);
   const restore = prepareTargets(targets);
   try {
     let pseudo: ComponentCapture['states'];
     let note: string | null = null;
     if (readForced) {
       try {
-        pseudo = statesFromForced(targets, await readForced(targets.length));
+        const options: CdpReadOptions = { focusDepth: focusDepthOf(container), awayPoint: luciPanelPoint(container.ownerDocument), ...(hoverPoint ? { hoverPoint } : {}) };
+        pseudo = statesFromForced(targets, await readForced(targets.length, options));
       } catch (err) {
         pseudo = readStatesFromRules(targets);
         note = `The browser's debugger was not available (${err instanceof Error ? err.message : String(err)}), so states were read from stylesheet rules.`;

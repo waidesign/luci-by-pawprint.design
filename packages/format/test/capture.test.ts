@@ -16,6 +16,8 @@ import {
   formatCapture,
   formatColor,
   formatLength,
+  formatShadow,
+  formatTransform,
   isTransparent,
   parseCapture,
   parseColor,
@@ -175,6 +177,28 @@ describe('capture values and settings', () => {
     expect(siteSlug('https://www.Example.co.uk/x')).toBe('example-co-uk');
     expect(siteSlug('file:///C:/site/index.html')).toBe('local');
     expect(cleanSource('file:///C:/site/index.html?x=1')).toBe('file:///C:/site/index.html');
+  });
+
+  it('transforms read as people write them, not matrix(...) (user request, 2026-11-13)', () => {
+    expect(formatTransform('matrix(1, 0, 0, 1, 0, -12)')).toBe('translateY(-12px)');
+    expect(formatTransform('matrix(1, 0, 0, 1, 8, 0)')).toBe('translateX(8px)');
+    expect(formatTransform('matrix(1, 0, 0, 1, -20, 20)')).toBe('translate(-20px, 20px)');
+    expect(formatTransform('matrix(0, 0.5, -0.5, 0, 0, 0)')).toBe('rotate(90deg) scale(0.5)');
+    expect(formatTransform('matrix(1.05, 0, 0, 1.05, 0, 0)')).toBe('scale(1.05)');
+    expect(formatTransform('matrix(1, 0, 0, 1, 0, 0)')).toBe('none');
+    expect(formatTransform('matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, -4, 0, 1)')).toBe('translateY(-4px)');
+    // Skew, a mirror and real 3D stay as they are
+    expect(formatTransform('matrix(1, 0, 0.5, 1, 0, 0)')).toBe('matrix(1, 0, 0.5, 1, 0, 0)');
+    expect(formatTransform('matrix(-1, 0, 0, 1, 0, 0)')).toBe('matrix(-1, 0, 0, 1, 0, 0)');
+    expect(formatTransform('none')).toBe('none');
+  });
+
+  it('shadows drop the layers nobody sees (Tailwind\'s transparent rings)', () => {
+    expect(formatShadow('rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 21, 0.12) 0px 8px 24px -8px'))
+      .toBe('rgba(0, 0, 21, 0.12) 0px 8px 24px -8px');
+    expect(formatShadow('transparent 0px 0px 0px 0px, transparent 0px 0px 0px 0px')).toBe('none');
+    expect(formatShadow('rgb(0, 0, 0) 0px 1px 2px')).toBe('rgb(0, 0, 0) 0px 1px 2px');
+    expect(formatShadow('none')).toBe('none');
   });
 
   it('a value the color library cannot read is "not a color", never a crash (lattice.com, 2026-11-13)', () => {
