@@ -1,9 +1,10 @@
 import { browser } from 'wxt/browser';
 import { defineUnlistedScript } from 'wxt/utils/define-unlisted-script';
 import { mountToolbar, type ForcedReading, type ToolbarHandle } from '@luci/capture';
-import type { CaptureSettings } from '@luci/format/capture';
+import { basketItemSchema, type CaptureSettings } from '@luci/format/capture';
 
 const SETTINGS_KEY = 'captureSettings';
+const BASKET_KEY = 'basket';
 // The extension's isolated world keeps this between injections; the page can't see it
 const holder = globalThis as typeof globalThis & { __luciToolbar?: ToolbarHandle };
 
@@ -19,6 +20,17 @@ export default defineUnlistedScript(async () => {
     settings: (stored[SETTINGS_KEY] as CaptureSettings | undefined) ?? {},
     onSettingsChange: (settings) => { void browser.storage.local.set({ [SETTINGS_KEY]: settings }); },
     onClose: () => { holder.__luciToolbar = undefined; },
+    // The basket lives in extension storage: every tab and site sees the same items, across restarts
+    basket: {
+      load: async () => {
+        const raw = (await browser.storage.local.get(BASKET_KEY))[BASKET_KEY];
+        return (Array.isArray(raw) ? raw : []).flatMap(item => {
+          const parsed = basketItemSchema.safeParse(item);
+          return parsed.success ? [parsed.data] : [];
+        });
+      },
+      save: async (items) => { await browser.storage.local.set({ [BASKET_KEY]: items }); }
+    },
     // Exact component states: the background attaches the debugger just for this reading
     readForcedStates: async (count) => {
       const reply = (await browser.runtime.sendMessage({ type: 'luci:read-states', count })) as { ok: true; reading: ForcedReading } | { ok: false; error: string } | undefined;

@@ -18,6 +18,7 @@ The capture toolbar on any site, for Chrome (Manifest V3, built with WXT).
 - **Spacing extras:** hover shows padding and margin overlays. Drag from one element to another to measure the distance between them.
 - **Hints:** while a tool is picking, a strip under the bar says what to click and which keys work.
 - **Colour extras:** the strip has two ways to pick: **Element** (click an element) or **Pixel** (Chrome's eyedropper, for any spot on the screen). A pixel that matches a colour on the page resolves to its token; otherwise it is marked estimated.
+- **Basket:** after any capture, **Add to basket**. **Basket (n)** in the bar lists everything you collected, on any page or site, until you empty it. Rename an item by editing its name, **Export** one item, **Remove** it, or **Export all as one file**: one `.collection.design.md` grouped by kind, each item with its source page.
 - **Preview:** the units (px, rem, both) and colour format (hex, rgb, hsl, oklch) settings change the preview at once and are remembered. **Copy** or **Download .design.md**.
 
 ## Permissions

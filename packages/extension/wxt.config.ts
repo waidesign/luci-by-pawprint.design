@@ -5,8 +5,8 @@ import { defineConfig } from 'wxt';
 // reads exact component states (attached only during a component capture, detached right after).
 // No host permissions and no content scripts that run on every page.
 //
-// LUCI_EXTENSION_TEST=1 builds a test-only copy into .output-test/ that may also script 127.0.0.1
-// (the local test sites), because a test can't click the toolbar icon to grant activeTab.
+// LUCI_EXTENSION_TEST=1 builds a test-only copy into .output-test/ that may also script 127.0.0.1 and
+// localhost (the local test sites, two origins), because a test can't click the icon to grant activeTab.
 const testBuild = process.env['LUCI_EXTENSION_TEST'] === '1';
 
 export default defineConfig({
@@ -17,7 +17,7 @@ export default defineConfig({
     name: 'Luci',
     description: 'Capture exact design context from any page for your AI coding agent. Everything stays on your machine.',
     permissions: ['activeTab', 'scripting', 'storage', 'debugger'],
-    ...(testBuild ? { host_permissions: ['http://127.0.0.1/*'] } : {}),
+    ...(testBuild ? { host_permissions: ['http://127.0.0.1/*', 'http://localhost/*'] } : {}),
     action: { default_title: 'Luci: capture design on this page' }
   }
 });

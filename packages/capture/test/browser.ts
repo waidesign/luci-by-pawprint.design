@@ -16,15 +16,16 @@ export type SiteName = (typeof SITES)[number];
 
 const TYPES: Readonly<Record<string, string>> = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript' };
 
-export function serveSites(): Promise<{ origin: string; close: () => Promise<void> }> {
+/** Serve the fixture sites. A second server on "localhost" gives a second site (another origin). */
+export function serveSites(host = '127.0.0.1'): Promise<{ origin: string; close: () => Promise<void> }> {
   const server = http.createServer((req, res) => {
     const rel = decodeURIComponent((req.url ?? '/').split('?')[0]!).replace(/\/$/, '/index.html');
     const file = path.join(SITES_DIR, path.normalize(rel));
     if (!file.startsWith(SITES_DIR) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.writeHead(404).end(); return; }
     res.writeHead(200, { 'content-type': TYPES[path.extname(file)] ?? 'application/octet-stream' }).end(fs.readFileSync(file));
   });
-  return new Promise(resolve => server.listen(0, '127.0.0.1', () => resolve({
-    origin: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
+  return new Promise(resolve => server.listen(0, host, () => resolve({
+    origin: `http://${host}:${(server.address() as AddressInfo).port}`,
     close: () => new Promise<void>(done => server.close(() => done()))
   })));
 }

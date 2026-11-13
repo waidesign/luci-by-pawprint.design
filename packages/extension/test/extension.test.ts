@@ -98,6 +98,34 @@ describe.runIf(process.env['LUCI_EXTENSION_E2E'] === '1')('extension in Chromium
     expect(await page.locator('[data-part="preview"]').textContent()).toContain('| font-size | 3rem |');
   });
 
+  it('the basket lives in extension storage: an item added on one site is there on another (FR18)', async () => {
+    const other = await serveSites('localhost');
+    try {
+      const a = await context.newPage();
+      a.setDefaultTimeout(10_000);
+      const urlA = `${server.origin}/css-variables/`;
+      await a.goto(urlA);
+      await inject(urlA);
+      await a.click('button[data-tool="text"]');
+      await a.click('h1');
+      await a.click('[data-output="one"]');
+      await a.click('[data-action="add-to-basket"]');
+      const b = await context.newPage();
+      b.setDefaultTimeout(10_000);
+      const urlB = `${other.origin}/utility/`;
+      await b.goto(urlB);
+      await inject(urlB);
+      await expect.poll(() => b.locator('[data-action="basket"]').innerText()).toBe('Basket (1)');
+      await b.click('[data-action="basket"]');
+      await b.click('[data-action="clear-basket"]');
+      await b.click('[data-action="clear-basket-confirm"]');
+      await a.close();
+      await b.close();
+    } finally {
+      await other.close();
+    }
+  });
+
   it('a component capture reads exact states through the debugger, then detaches it (FR8)', async () => {
     const page = await context.newPage();
     page.setDefaultTimeout(10_000);

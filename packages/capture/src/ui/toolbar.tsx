@@ -4,7 +4,8 @@
  * Rendered by mount.ts inside a shadow root.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import { formatCapture, type CaptureSettings, type ComponentCapture } from '@luci/format/capture';
+import { formatCapture, groupOf, type BasketItem, type CaptureSettings, type ComponentCapture } from '@luci/format/capture';
+import { addToBasket, exportBasket, exportItem, removeFromBasket, renameInBasket, sourceLabel, type BasketStore } from './basket.js';
 import type { Eligibility } from '../eligibility.js';
 import type { ElementSnapshot } from '../model.js';
 import { manualState, type ComputedMap, type StateName } from '../states.js';
@@ -41,6 +42,8 @@ export interface ToolbarProps {
   registerPixelInput?: (pick: (hex: string) => void) => void;
   /** Exact states through the browser's debugger (the extension); without it, states come from stylesheet rules. */
   readForcedStates?: ForcedStatesReader;
+  /** Where the basket is kept (the extension: its storage, shared by every tab and site). */
+  basket?: BasketStore;
 }
 
 const STATE_ORDER: readonly StateName[] = ['hover', 'focus', 'focus-visible', 'active', 'disabled'];
@@ -118,6 +121,8 @@ export function Toolbar(props: ToolbarProps) {
   const show = (r: Result) => {
     setResult(r);
     setCopied(false);
+    setAdded(false);
+    setBasketOpen(false);
     if (r.ok) props.onOutput?.(r.output);
   };
 
@@ -181,6 +186,7 @@ export function Toolbar(props: ToolbarProps) {
     setComponentCtx(null);
     setStateNote(null);
     setCountdown(null);
+    setBasketOpen(false);
     aim(null);
     lastPointer.current = null;
     trail.current = [];
@@ -319,13 +325,13 @@ export function Toolbar(props: ToolbarProps) {
   const output = result?.ok ? result.output : null;
   const markdown = output ? formatCapture(output.capture, settings) : '';
 
-  const copy = async () => {
+  const copyText = async (text: string) => {
     try {
-      await win.navigator.clipboard.writeText(markdown);
+      await win.navigator.clipboard.writeText(text);
     } catch {
       // Without clipboard permission: the classic copy through a selected text area
       const area = doc.createElement('textarea');
-      area.value = markdown;
+      area.value = text;
       area.setAttribute('data-luci-ui', '');
       doc.body.appendChild(area);
       area.select();
@@ -335,18 +341,51 @@ export function Toolbar(props: ToolbarProps) {
     setCopied(true);
   };
 
-  const download = () => {
-    if (!output) return;
-    const url = URL.createObjectURL(new Blob([markdown], { type: 'text/markdown' }));
+  const downloadText = (fileName: string, text: string) => {
+    const url = URL.createObjectURL(new Blob([text], { type: 'text/markdown' }));
     const a = doc.createElement('a');
     a.href = url;
-    a.download = output.fileName;
+    a.download = fileName;
     a.setAttribute('data-luci-ui', '');
     doc.body.appendChild(a);
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
+
+  const copy = () => copyText(markdown);
+  const download = () => { if (output) downloadText(output.fileName, markdown); };
+
+  // The basket (FR18, FR19): kept by the shell's store, so it survives pages and sites
+  const [basket, setBasket] = useState<BasketItem[]>([]);
+  const [basketOpen, setBasketOpen] = useState(false);
+  const [basketExport, setBasketExport] = useState<{ title: string; item?: BasketItem } | null>(null);
+  const [added, setAdded] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
+  const store = props.basket;
+  useEffect(() => { if (store) void store.load().then(setBasket); }, [store]);
+  const saveBasket = (next: BasketItem[]) => {
+    setBasket(next);
+    void store?.save(next);
+  };
+  const addCurrent = () => {
+    if (!output) return;
+    saveBasket(addToBasket(basket, output.capture));
+    setAdded(true);
+  };
+  const openBasket = () => {
+    setPicking(false);
+    aim(null);
+    setBasketOpen(true);
+    setBasketExport(null);
+    setConfirmClear(false);
+    setCopied(false);
+    // The latest items, in case another tab added some
+    if (store) void store.load().then(setBasket);
+  };
+  const exported = basketExport
+    ? (basketExport.item ? exportItem(basketExport.item, settings) : basket.length ? exportBasket(basket, settings) : null)
+    : null;
 
   const Dropper = (win as unknown as { EyeDropper?: new () => { open(): Promise<{ sRGBHex: string }> } }).EyeDropper;
   const hasDropper = Boolean(Dropper);
@@ -379,8 +418,53 @@ export function Toolbar(props: ToolbarProps) {
         {TOOLS.map(t => (
           <button type="button" aria-pressed={tool === t && (picking || dropperOpen || Boolean(picked) || Boolean(result))} data-tool={t} onClick={() => startPicking(t)}>{TOOL_LABELS[t]}</button>
         ))}
+        <button type="button" aria-pressed={basketOpen} data-action="basket" onClick={() => (basketOpen ? setBasketOpen(false) : openBasket())}>Basket ({basket.length})</button>
         <button type="button" aria-label="Close Luci" data-action="close" onClick={props.onClose}>×</button>
       </div>
+
+      {basketOpen && (
+        <div class="panel" role="dialog" aria-label="Basket" data-part="basket">
+          {basketExport && exported ? (
+            <>
+              <h2>{basketExport.title}</h2>
+              <div class="file" data-part="file-name">{exported.fileName}</div>
+              <pre data-part="preview">{exported.markdown}</pre>
+              <div class="row">
+                <button type="button" class="primary" data-action="copy" onClick={() => void copyText(exported.markdown)}>{copied ? 'Copied' : 'Copy'}</button>
+                <button type="button" data-action="download" onClick={() => downloadText(exported.fileName, exported.markdown)}>Download .design.md</button>
+                <button type="button" data-action="basket-back" onClick={() => { setBasketExport(null); setCopied(false); }}>Back to the basket</button>
+              </div>
+            </>
+          ) : (
+            <>
+              <h2>Basket</h2>
+              {!basket.length ? (
+                <p class="hint">Nothing here yet. After a capture, press "Add to basket". Items stay here across pages and sites.</p>
+              ) : (
+                <ul class="items">
+                  {basket.map(item => (
+                    <li data-item={item.id}>
+                      <input type="text" aria-label="Name" data-item-name value={item.name}
+                        onChange={e => saveBasket(renameInBasket(basket, item.id, (e.currentTarget as HTMLInputElement).value))} />
+                      <span class="meta">{groupOf(item.capture)} · {sourceLabel(item)}</span>
+                      <span class="row">
+                        <button type="button" data-item-export onClick={() => setBasketExport({ title: item.name, item })}>Export</button>
+                        <button type="button" data-item-remove aria-label={`Remove ${item.name}`} onClick={() => saveBasket(removeFromBasket(basket, item.id))}>Remove</button>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div class="row">
+                <button type="button" class="primary" data-action="export-all" disabled={!basket.length} onClick={() => setBasketExport({ title: `All ${basket.length} items, one file` })}>Export all as one file</button>
+                {basket.length > 0 && (confirmClear
+                  ? <button type="button" data-action="clear-basket-confirm" onClick={() => { saveBasket([]); setConfirmClear(false); }}>Yes, empty the basket</button>
+                  : <button type="button" data-action="clear-basket" onClick={() => setConfirmClear(true)}>Empty basket</button>)}
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {(picking || dropperOpen) && tool && (
         <div class="sub" data-part="tool-hint" role="note">
@@ -417,7 +501,7 @@ export function Toolbar(props: ToolbarProps) {
         <div class="panel" role="status"><p class="error" data-part="notice">{notice}</p></div>
       )}
 
-      {!picking && picked && !result && tool && (
+      {!picking && !basketOpen && picked && !result && tool && (
         <div class="panel" role="dialog" aria-label="Capture">
           <h2>{elementName(picked.entry.tag, picked.entry.role)}</h2>
           {picked.eligibility.status === 'redirected' && <p class="hint">{picked.eligibility.reason}</p>}
@@ -440,7 +524,7 @@ export function Toolbar(props: ToolbarProps) {
         </div>
       )}
 
-      {!picking && result && (
+      {!picking && !basketOpen && result && (
         <div class="panel" role="dialog" aria-label="Capture file">
           {result.ok ? (
             <>
@@ -472,6 +556,7 @@ export function Toolbar(props: ToolbarProps) {
               <div class="row">
                 <button type="button" class="primary" data-action="copy" onClick={copy}>{copied ? 'Copied' : 'Copy'}</button>
                 <button type="button" data-action="download" onClick={download}>Download .design.md</button>
+                <button type="button" data-action="add-to-basket" disabled={added} onClick={addCurrent}>{added ? 'Added to basket' : 'Add to basket'}</button>
                 {tool && <button type="button" onClick={() => startPicking(tool)}>Pick again</button>}
               </div>
             </>

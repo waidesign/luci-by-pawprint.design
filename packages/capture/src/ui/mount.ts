@@ -5,6 +5,7 @@ import { LUCI_UI_ATTRIBUTE } from '../dom.js';
 import { TOOLBAR_CSS } from './styles.js';
 import { Toolbar } from './toolbar.js';
 import type { ForcedStatesReader, Output } from './tools.js';
+import { memoryBasketStore, type BasketStore } from './basket.js';
 
 export const TOOLBAR_TAG = 'luci-toolbar';
 
@@ -16,6 +17,8 @@ export interface MountOptions {
   onClose?: () => void;
   /** Exact component states through the browser's debugger (the extension provides it). */
   readForcedStates?: ForcedStatesReader;
+  /** Where the basket is kept. Default: in this page's memory only. */
+  basket?: BasketStore;
 }
 
 export interface ToolbarHandle {
@@ -51,6 +54,7 @@ export function mountToolbar(options: MountOptions = {}): ToolbarHandle {
     ...(options.onSettingsChange ? { onSettingsChange: options.onSettingsChange } : {}),
     ...(options.onOutput ? { onOutput: options.onOutput } : {}),
     ...(options.readForcedStates ? { readForcedStates: options.readForcedStates } : {}),
+    basket: options.basket ?? memoryBasketStore(),
     onClose: () => { destroy(); options.onClose?.(); },
     registerPixelInput: (pick: (hex: string) => void) => { pixelInput = pick; }
   }), mountPoint);
