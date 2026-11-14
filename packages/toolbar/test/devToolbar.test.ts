@@ -75,6 +75,61 @@ async function annotate(page: Page, selector: string, comment: string, options: 
   await page.locator('[data-part="note-form"]').waitFor({ state: 'detached' });
 }
 
+describe('dev toolbar placement and descriptions (user request, 2026-11-15)', { timeout: 60_000 }, () => {
+  it('sits at the bottom in its launcher\'s corner, grows out of it, centres the mode switch and says what each mode is for', async () => {
+    const ctx = await context('http://127.0.0.1:9');
+    const page = await open(ctx, '/pricing');
+    const box = async (sel: string) => (await page.locator(sel).first().boundingBox())!;
+    const middle = (b: { y: number; height: number }) => b.y + b.height / 2;
+
+    // At the bottom right, where the launcher is
+    const bar = await box('luci-feedback .bar');
+    expect(Math.round(900 - (bar.y + bar.height))).toBe(12);
+    expect(Math.round(1280 - (bar.x + bar.width))).toBe(12);
+    // The mode switch is centred with the tools
+    expect(Math.abs(middle(await box('luci-feedback [data-part="modes"]')) - middle(await box('luci-feedback [data-action="annotate"]')))).toBeLessThan(1);
+    // Feedback says what it is for, just above the bar, until a tool starts
+    const intro = page.locator('luci-feedback [data-part="intro"]');
+    expect(await intro.innerText()).toContain('Leave notes on your app for your agent.');
+    expect(await intro.locator('.mascot').getAttribute('data-pose')).toBe('peek');
+    const introBox = await box('luci-feedback [data-part="intro"]');
+    expect(introBox.y + introBox.height).toBeLessThan(bar.y);
+    await page.click('[data-action="annotate"]');
+    expect(await intro.count()).toBe(0);
+    await page.click('[data-action="annotate"]');
+    expect(await intro.count()).toBe(1);
+
+    // Capture: Luci greets once; after that, the description shows whenever nothing is open
+    await page.click('[data-mode="capture"]');
+    await page.locator('luci-toolbar [data-part="greeting"]').waitFor();
+    await page.click('luci-toolbar button[data-tool="text"]');
+    await page.keyboard.press('Escape');
+    expect(await page.locator('luci-toolbar [data-part="intro"]').innerText()).toContain('Take a part of this page as a design file.');
+    const shell = await box('luci-toolbar .bar');
+    expect(Math.round(900 - (shell.y + shell.height))).toBe(12);
+
+    // Closed, Luci waits in the same corner; opening grows the bar out of it
+    await page.click('luci-toolbar [data-action="close"]');
+    const launcher = await box('[data-action="open-luci"]');
+    expect(Math.round(1280 - (launcher.x + launcher.width))).toBe(12);
+    expect(Math.round(900 - (launcher.y + launcher.height))).toBe(12);
+    const growing = await page.evaluate(() => {
+      document.querySelector('luci-launcher')!.shadowRoot!.querySelector('button')!.click();
+      return document.querySelector('luci-toolbar')!.shadowRoot!.querySelector('.bar')!.getAnimations().length;
+    });
+    expect(growing).toBe(1);
+
+    // Docked left, both are in the bottom-left corner
+    await page.evaluate(() => localStorage.setItem('luci.ui', JSON.stringify({ theme: 'system', dock: 'left', greeted: true })));
+    await page.reload();
+    const left = await box('luci-toolbar .bar');
+    expect(Math.round(left.x)).toBe(12);
+    await page.click('luci-toolbar [data-action="close"]');
+    expect(Math.round((await box('[data-action="open-luci"]')).x)).toBe(12);
+    await ctx.close();
+  });
+});
+
 describe('dev toolbar without luci serve (this browser only)', { timeout: 60_000 }, () => {
   it('annotates elements and text, keeps notes across reloads, copies the prompt, pauses animations', async () => {
     const ctx = await context('http://127.0.0.1:9'); // nothing listens there

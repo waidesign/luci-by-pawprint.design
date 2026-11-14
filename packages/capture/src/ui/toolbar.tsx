@@ -1030,6 +1030,17 @@ export function Toolbar(props: ToolbarProps) {
           </div>
         )}
 
+        {/* The dev toolbar says what Capture is for while nothing is open (after the first-run greeting) */}
+        {props.modes && idle && !greeting && (
+          <div class="sub with-luci" role="note" data-part="intro">
+            <Mascot pose="peek" size={96} />
+            <div class="sub-body">
+              <p class="hint">{COPY.devToolbar.intro.capture.body}</p>
+              <p class="keys">{COPY.devToolbar.intro.capture.keys}</p>
+            </div>
+          </div>
+        )}
+
         {settingsOpen && (
           <div class="panel" role="dialog" aria-label={COPY.common.menu} data-part="settings">
             <div class="menu-head">

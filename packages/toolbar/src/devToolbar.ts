@@ -5,7 +5,7 @@
  * agent reads them through luci-mcp; without it, feedback stays in this browser and the bar says
  * how to connect.
  */
-import { LUCI_UI_ATTRIBUTE, mountToolbar, type BasketStore, type CheckNote } from '@luci/capture';
+import { LUCI_UI_ATTRIBUTE, mountToolbar, readUiPrefs, type BasketStore, type CheckNote } from '@luci/capture';
 import { basketItemSchema, type BasketItem, type CaptureSettings } from '@luci/format/capture';
 import { ANIMATIONS_CSS, COPY, TOKENS_CSS, mascotSvg } from '@luci/ui';
 import {
@@ -107,7 +107,7 @@ function connectingPill(doc: Document): HTMLElement {
   const root = host.attachShadow({ mode: 'open' });
   // The Charcoal pill (brand/DESIGN.md, On-page toolbar), with a ginger ring turning
   root.innerHTML = `<style>${TOKENS_CSS}
-    div{position:fixed;top:12px;right:12px;z-index:2147483647;display:flex;gap:8px;align-items:center;padding:8px 16px 8px 12px;border-radius:var(--luci-radius-full);
+    div{position:fixed;bottom:12px;${readUiPrefs(doc).dock === 'left' ? 'left' : 'right'}:12px;z-index:2147483647;display:flex;gap:8px;align-items:center;padding:8px 16px 8px 12px;border-radius:var(--luci-radius-full);
       background:var(--luci-color-bar);color:var(--luci-color-bar-ink);font:500 var(--luci-type-small-size)/var(--luci-type-small-line) var(--luci-font-body);box-shadow:var(--luci-shadow-float)}
     i{width:14px;height:14px;border-radius:50%;border:2px solid var(--luci-color-bar-stroke);border-top-color:var(--luci-color-tool-active);animation:s .8s linear infinite}
     @keyframes s{to{transform:rotate(360deg)}}
@@ -154,7 +154,7 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
   let session: KeyValue | null = null;
   try { session = win.sessionStorage; } catch { /* not available */ }
   let mode: Mode = options.mode ?? ((session?.getItem(KEYS.mode) as Mode | null) ?? 'feedback');
-  let current: { destroy(): void } | null = null;
+  let current: { host: HTMLElement; destroy(): void } | null = null;
   let launcher: HTMLElement | null = null;
 
   const removeLauncher = () => { launcher?.remove(); launcher = null; };
@@ -163,23 +163,36 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
     launcher = doc.createElement(LAUNCHER_TAG);
     launcher.setAttribute(LUCI_UI_ATTRIBUTE, '');
     const root = launcher.attachShadow({ mode: 'open' });
-    // Luci's head in a Ginger circle: the 48 px menu button (brand/DESIGN.md, On-page toolbar)
+    // Luci's head in a Ginger circle: the 48 px menu button (brand/DESIGN.md, On-page toolbar), in the
+    // corner the bar opens from (the dock side, at the bottom)
     root.innerHTML = `<style>${TOKENS_CSS}${ANIMATIONS_CSS}
-      button{position:fixed;right:12px;bottom:12px;z-index:2147483647;display:flex;align-items:center;justify-content:center;width:48px;height:48px;padding:0;border:0;
+      button{position:fixed;${readUiPrefs(doc).dock === 'left' ? 'left' : 'right'}:12px;bottom:12px;z-index:2147483647;display:flex;align-items:center;justify-content:center;width:48px;height:48px;padding:0;border:0;
         border-radius:var(--luci-radius-full);background:var(--luci-color-primary);cursor:pointer;box-shadow:var(--luci-shadow-float);transition:background-color var(--luci-motion-fast)}
       button:hover{background:var(--luci-color-primary-hover)}
       button:focus-visible{outline:2px solid var(--luci-color-focus);outline-offset:2px}
       button span{display:block;width:38px;line-height:0} svg{display:block;width:100%;height:auto}
       @media (prefers-reduced-motion: reduce){button{transition:none}}
     </style><button type="button" data-action="open-luci" aria-label="${COPY.devToolbar.open}" title="${COPY.devToolbar.open}"><span>${mascotSvg('head')}</span></button>`;
-    root.querySelector('button')!.addEventListener('click', (e) => { e.stopPropagation(); show(mode); });
+    root.querySelector('button')!.addEventListener('click', (e) => { e.stopPropagation(); show(mode, { grow: true }); });
     doc.documentElement.appendChild(launcher);
+  };
+
+  const reducedMotion = () => { try { return win.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } };
+  /** The bar grows out of the launcher's corner (opacity and transform only, brand/DESIGN.md motion). */
+  const grow = (host: HTMLElement) => {
+    const bar = host.shadowRoot?.querySelector<HTMLElement>('.bar');
+    if (!bar || reducedMotion() || typeof bar.animate !== 'function') return;
+    const origin = `${readUiPrefs(doc).dock === 'left' ? 'left' : 'right'} bottom`;
+    bar.animate([
+      { opacity: 0, transform: 'translateY(8px) scale(0.3)', transformOrigin: origin },
+      { opacity: 1, transform: 'none', transformOrigin: origin }
+    ], { duration: 220, easing: 'cubic-bezier(0.2, 0, 0, 1)' });
   };
 
   /** The same switch on every mode's bar. */
   const modeSwitch = () => ({ current: mode, modes: MODES, onSelect: (id: string) => show(id as Mode) });
 
-  const show = (next: Mode) => {
+  const show = (next: Mode, how: { grow?: boolean } = {}) => {
     current?.destroy();
     removeLauncher();
     mode = next;
@@ -224,6 +237,9 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
         onClose: () => { current = null; showLauncher(); }
       });
     }
+    // At the bottom, where the launcher is (each mode's styles mirror their cards for it)
+    current.host.setAttribute('data-place', 'bottom');
+    if (how.grow) grow(current.host);
   };
 
   show(mode);

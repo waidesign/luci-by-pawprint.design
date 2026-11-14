@@ -53,6 +53,8 @@ ${UI_CSS}
 }
 /* Above the cards, so the tools' tooltips are never under a card */
 .shell > .bar { position: relative; z-index: 2; }
+/* In the column the shell is what is placed: the bar's own offsets would move it a second time */
+.luci-theme .shell > .bar { inset: auto; }
 .luci-theme .bar button { --luci-btn-h: 40px; color: var(--luci-color-bar-ink); }
 .luci-theme .bar .tool, .luci-theme .bar .menu-btn { --luci-btn-h: 48px; }
 .luci-theme .bar button:hover:not(:disabled) { background: var(--luci-color-bar-hover); }
@@ -77,9 +79,27 @@ ${UI_CSS}
 .brand { display: inline-flex; align-items: center; gap: var(--luci-space-8); padding: 0 var(--luci-space-8) 0 0;
   font: var(--luci-type-display-weight) var(--luci-type-heading-size)/1 var(--luci-font-display); color: var(--luci-color-bar-ink); }
 /* The dev toolbar's mode switch, on Charcoal */
-.bar .seg { background: var(--luci-color-muzzle-800); }
+.bar .seg { background: var(--luci-color-muzzle-800); align-self: center; }
 .luci-theme .bar .seg button { color: var(--luci-color-bar-ink); }
 .modes { margin-right: var(--luci-space-4); }
+
+/*
+ * The dev toolbar sits at the bottom, in its launcher's corner (host attribute data-place="bottom";
+ * the extension keeps the top). Mirrored: hints stack just above the bar, the big panels go to the
+ * top edge, tooltips open upwards.
+ */
+:host([data-place="bottom"]) .shell { top: auto; bottom: var(--luci-space-12); flex-direction: column-reverse; }
+:host([data-place="bottom"]) .bar { top: auto; bottom: var(--luci-space-12); }
+:host([data-place="bottom"]) .shell > .bar { bottom: auto; }
+:host([data-place="bottom"]) .sub { top: auto; bottom: 84px; }
+:host([data-place="bottom"]) .panel { bottom: auto; top: var(--luci-space-12); }
+:host([data-place="bottom"]) .menu { top: auto; bottom: 76px; }
+/* New page's canvas covers the window: its tools need no room for a top bar, its panel sits above the bar */
+:host([data-place="bottom"]) .wf { padding-bottom: 88px; }
+:host([data-place="bottom"]) .wf-tools { padding-top: var(--luci-space-12); }
+:host([data-place="bottom"]) [data-part="sketch-panel"] { top: auto; bottom: 84px; }
+:host([data-place="bottom"]) .bar [data-tip]::after { top: auto; bottom: calc(100% + var(--luci-space-8)); transform: translate(-50%, 4px); }
+:host([data-place="bottom"]) .bar [data-tip]:is(:hover, :focus-visible)::after { transform: translate(-50%, 0); }
 
 /* Cards under the pill: the hint while picking, and every panel (radius-xl, float shadow, no stroke) */
 .sub, .panel { background: var(--luci-color-surface); border-radius: var(--luci-radius-xl); box-shadow: var(--luci-shadow-float); }

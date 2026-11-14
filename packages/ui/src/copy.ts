@@ -43,7 +43,12 @@ export const COPY = {
   },
   devToolbar: {
     connecting: 'Luci: connecting to your project.',
-    open: 'Open Luci'
+    open: 'Open Luci',
+    /** What each mode is for, shown while nothing in it is active (Layout's is its Select hint). */
+    intro: {
+      feedback: { body: 'Leave notes on your app for your agent. Press Annotate, then click an element. Or select text to note words.', keys: 'A annotate · N notes · P pause' },
+      capture: { body: 'Take a part of this page as a design file. Pick a tool, then click it on the page.', keys: 'V component · T text · C colour · S spacing · P whole page · K check' }
+    }
   }
 } as const;
 

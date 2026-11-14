@@ -349,6 +349,17 @@ export function Feedback(props: FeedbackProps) {
         </div>
       )}
 
+      {/* What Feedback is for, while nothing in it is active (Layout's is its Select hint) */}
+      {!annotating && !draft && !paused && panel === null && !open && !copyMenu && (
+        <div class="sub with-luci" role="note" data-part="intro">
+          <Mascot pose="peek" size={96} />
+          <div class="sub-body">
+            <p class="hint">{COPY.devToolbar.intro.feedback.body}</p>
+            <p class="keys">{COPY.devToolbar.intro.feedback.keys}</p>
+          </div>
+        </div>
+      )}
+
       {annotating && !draft && (
         <div class="sub with-luci" role="note" data-part="hint">
           <Mascot pose="note" size={96} />
