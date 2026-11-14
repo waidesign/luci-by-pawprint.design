@@ -20,7 +20,7 @@ export const COPY = {
     readingPage: 'Reading the whole page: text, colours, spacing and components.'
   },
   feedback: {
-    notesEmpty: { title: 'No notes yet.', body: 'Press Annotate, then click an element to leave a note.' }
+    notesEmpty: { title: 'No notes yet.', body: 'Press Annotate and click an element, or select text on the page.' }
   },
   devToolbar: {
     connecting: 'Luci: connecting to your project.',

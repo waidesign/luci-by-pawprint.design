@@ -14,6 +14,7 @@ import { elementName } from '../naming.js';
 import { elementAt, eligibilityOf, eventTarget, firstChildOf, hoverLabel, parentOf, scrollableAncestor } from './picker.js';
 import { ButtonSpinner, Loading, nextPaint } from './loading.js';
 import { ModeSwitch, type ModeSwitchProps } from './modeSwitch.js';
+import { COPY, EmptyState } from '@luci/ui';
 import { AppearanceControls, BasketIcon, CopyIcon, DownloadIcon, LuciLogo, PickAgainIcon, useUiPrefs } from './theme.js';
 import { zip } from './zip.js';
 import { CheckResultPanel, DesignChooser, type AddCheckNotes, type DesignSource } from './check.js';
@@ -939,7 +940,7 @@ export function Toolbar(props: ToolbarProps) {
   const cs = hovered && tool === 'spacing' ? win.getComputedStyle(hovered) : null;
 
   return (
-    <div class="luci" data-theme={uiPrefs.theme} data-dock={uiPrefs.dock}>
+    <div class="luci luci-theme" data-theme={uiPrefs.theme} data-dock={uiPrefs.dock}>
       <div class="shell" data-part="shell">
         <div class={props.modes ? 'header compact' : 'header'} data-part="header">
           {props.modes ? (
@@ -961,10 +962,10 @@ export function Toolbar(props: ToolbarProps) {
             </div>
           )}
           <div class="header-actions">
-            {!props.modes && <span class="ver-badge" data-part="version">v0.3.0</span>}
-            <button type="button" class="icon-btn" aria-pressed={settingsOpen} aria-label="Settings" title="Settings & appearance" data-action="settings" onClick={() => setSettingsOpen(s => !s)}>⚙</button>
-            {props.onHelp && <button type="button" class="icon-btn" aria-label="How to use Luci" title="How to use Luci" data-action="help" onClick={props.onHelp}>?</button>}
-            <button type="button" class="icon-btn" aria-label="Close Luci" title="Close Luci" data-action="close" onClick={props.onClose}>×</button>
+            {!props.modes && <span class="badge" data-part="version">v0.3.0</span>}
+            <button type="button" class="btn-icon" aria-pressed={settingsOpen} aria-label="Settings" title="Settings & appearance" data-action="settings" onClick={() => setSettingsOpen(s => !s)}>⚙</button>
+            {props.onHelp && <button type="button" class="btn-icon" aria-label="How to use Luci" title="How to use Luci" data-action="help" onClick={props.onHelp}>?</button>}
+            <button type="button" class="btn-icon" aria-label="Close Luci" title="Close Luci" data-action="close" onClick={props.onClose}>×</button>
           </div>
         </div>
 
@@ -1021,7 +1022,7 @@ export function Toolbar(props: ToolbarProps) {
         )}
 
         {!settingsOpen && pageBusy && !basketOpen && (
-          <div class="panel"><Loading text="Reading the whole page: text, colors, spacing and components…" step={pageStep} /></div>
+          <div class="panel"><Loading sleep text="Reading the whole page: text, colors, spacing and components…" step={pageStep} /></div>
         )}
 
         {!settingsOpen && basketOpen && (
@@ -1032,17 +1033,17 @@ export function Toolbar(props: ToolbarProps) {
                 <div class="file" data-part="file-name">{exported.fileName}</div>
                 <pre data-part="preview">{exported.markdown}</pre>
                 <div class="row">
-                  <button type="button" class="primary btn-with-ico" data-action="copy" onClick={() => void copyText(exported.markdown)}><CopyIcon copied={copied} />{copied ? 'Copied' : 'Copy'}</button>
-                  <button type="button" class="btn-outline btn-with-ico" data-action="download" onClick={() => downloadText(exported.fileName, exported.markdown)}><DownloadIcon />Download .design.md</button>
+                  <button type="button" class="btn-primary btn-with-ico" data-action="copy" onClick={() => void copyText(exported.markdown)}><CopyIcon copied={copied} />{copied ? 'Copied' : 'Copy'}</button>
+                  <button type="button" class="btn-secondary btn-with-ico" data-action="download" onClick={() => downloadText(exported.fileName, exported.markdown)}><DownloadIcon />Download .design.md</button>
                   {props.saveToProject && <SaveButton save={() => props.saveToProject!(exported.fileName, exported.markdown)} key={exported.fileName} />}
-                  <button type="button" class="btn-outline" data-action="basket-back" onClick={() => { setBasketExport(null); setCopied(false); }}>Back to the basket</button>
+                  <button type="button" class="btn-secondary" data-action="basket-back" onClick={() => { setBasketExport(null); setCopied(false); }}>Back to the basket</button>
                 </div>
               </>
             ) : (
               <>
                 <h2>Basket</h2>
                 {!basket.length ? (
-                  <p class="hint">Nothing here yet. After a capture, press "Add to basket". Items stay here across pages and sites.</p>
+                  <EmptyState pose="box" title={COPY.capture.basketEmpty.title} body={COPY.capture.basketEmpty.body} part="basket-empty" />
                 ) : (
                   <ul class="items">
                     {basket.map(item => (
@@ -1053,8 +1054,8 @@ export function Toolbar(props: ToolbarProps) {
                         <textarea data-item-note aria-label={`Note for your agent about ${item.name}`} placeholder="Note for your agent (optional): what to use it for, what to change" value={item.capture.instructions ?? ''}
                           onChange={e => saveBasket(noteInBasket(basket, item.id, (e.currentTarget as HTMLTextAreaElement).value))} />
                         <span class="row">
-                          <button type="button" class="btn-outline" data-item-export onClick={() => setBasketExport({ title: item.name, item })}>Export</button>
-                          <button type="button" data-item-remove aria-label={`Remove ${item.name}`} onClick={() => saveBasket(removeFromBasket(basket, item.id))}>Remove</button>
+                          <button type="button" class="btn-secondary" data-item-export onClick={() => setBasketExport({ title: item.name, item })}>Export</button>
+                          <button class="btn-danger" type="button" data-item-remove aria-label={`Remove ${item.name}`} onClick={() => saveBasket(removeFromBasket(basket, item.id))}>Remove</button>
                         </span>
                       </li>
                     ))}
@@ -1063,15 +1064,15 @@ export function Toolbar(props: ToolbarProps) {
                 {mergeable.length > 0 && (
                   <div class="stack" data-part="merge">
                     <span class="dim">Systems from more than one page of a site can become one site-level system: {mergeable.map(g => `${g.type} from ${g.pages.length} pages of ${g.site}`).join(', ')}. Rows say which pages use them; values that differ between pages are listed as conflicts.</span>
-                    <span class="row"><button type="button" class="btn-outline" data-action="merge-systems" onClick={mergeSystemsNow}>Merge into site system{mergeable.length === 1 ? '' : 's'} ({mergeable.length})</button></span>
+                    <span class="row"><button type="button" class="btn-secondary" data-action="merge-systems" onClick={mergeSystemsNow}>Merge into site system{mergeable.length === 1 ? '' : 's'} ({mergeable.length})</button></span>
                   </div>
                 )}
                 {mergedNote && <p class="hint" data-part="merged">{mergedNote}</p>}
                 <div class="row">
-                  <button type="button" class="primary" data-action="export-all" disabled={!basket.length} onClick={() => setBasketExport({ title: `All ${basket.length} items, one file` })}>Export all as one file</button>
+                  <button type="button" class="btn-primary" data-action="export-all" disabled={!basket.length} onClick={() => setBasketExport({ title: `All ${basket.length} items, one file` })}>Export all as one file</button>
                   {basket.length > 0 && (confirmClear
-                    ? <button type="button" class="btn-outline" data-action="clear-basket-confirm" onClick={() => { saveBasket([]); setConfirmClear(false); }}>Yes, empty the basket</button>
-                    : <button type="button" class="btn-outline" data-action="clear-basket" onClick={() => setConfirmClear(true)}>Empty basket</button>)}
+                    ? <button type="button" class="btn-danger" data-action="clear-basket-confirm" onClick={() => { saveBasket([]); setConfirmClear(false); }}>Yes, empty the basket</button>
+                    : <button type="button" class="btn-danger" data-action="clear-basket" onClick={() => setConfirmClear(true)}>Empty basket</button>)}
                 </div>
               </>
             )}
@@ -1127,17 +1128,17 @@ export function Toolbar(props: ToolbarProps) {
                 <span class="dim">{Math.round(picked.el.getBoundingClientRect().width)} × {Math.round(picked.el.getBoundingClientRect().height)}</span>
               </div>
               <div class="row">
-                <button type="button" class="btn-outline" data-action="widen" disabled={!widerOf(picked.el)} onClick={widen} title="Select the element around this one (↑)">↑ Wider</button>
-                <button type="button" class="btn-outline" data-action="narrow" disabled={!narrowerOf(picked.el)} onClick={narrow} title="Select the element inside this one (↓)">↓ Narrower</button>
+                <button type="button" class="btn-secondary" data-action="widen" disabled={!widerOf(picked.el)} onClick={widen} title="Select the element around this one (↑)">↑ Wider</button>
+                <button type="button" class="btn-secondary" data-action="narrow" disabled={!narrowerOf(picked.el)} onClick={narrow} title="Select the element inside this one (↓)">↓ Narrower</button>
                 <span class="dim">or use the ↑ ↓ keys</span>
               </div>
               {picked.eligibility.status !== 'allowed' && <p class="error" data-part="notice">{picked.eligibility.reason} Make the selection wider or narrower.</p>}
               {busy ? <Loading text={busy} /> : (
                 <>
                   <div class="row">
-                    <button type="button" class="primary" data-action="check-run" disabled={picked.eligibility.status !== 'allowed'} onClick={() => void runCheck()}>Check against the design</button>
-                    <button type="button" class="btn-outline" onClick={() => startPicking('component')}>Pick again</button>
-                    <button type="button" class="btn-outline" data-action="check-design" onClick={openCheck}>Change design</button>
+                    <button type="button" class="btn-primary" data-action="check-run" disabled={picked.eligibility.status !== 'allowed'} onClick={() => void runCheck()}>Check against the design</button>
+                    <button type="button" class="btn-secondary" onClick={() => startPicking('component')}>Pick again</button>
+                    <button type="button" class="btn-secondary" data-action="check-design" onClick={openCheck}>Change design</button>
                   </div>
                   <p class="tip-box" data-part="check-against">Design: {checkDesign.label}</p>
                 </>
@@ -1154,17 +1155,17 @@ export function Toolbar(props: ToolbarProps) {
                 <span class="dim">{Math.round(picked.el.getBoundingClientRect().width)} × {Math.round(picked.el.getBoundingClientRect().height)}</span>
               </div>
               <div class="row">
-                <button type="button" class="btn-outline" data-action="widen" disabled={!widerOf(picked.el)} onClick={widen} title="Select the element around this one (↑)">↑ Wider</button>
-                <button type="button" class="btn-outline" data-action="narrow" disabled={!narrowerOf(picked.el)} onClick={narrow} title="Select the element inside this one (↓)">↓ Narrower</button>
+                <button type="button" class="btn-secondary" data-action="widen" disabled={!widerOf(picked.el)} onClick={widen} title="Select the element around this one (↑)">↑ Wider</button>
+                <button type="button" class="btn-secondary" data-action="narrow" disabled={!narrowerOf(picked.el)} onClick={narrow} title="Select the element inside this one (↓)">↓ Narrower</button>
                 <span class="dim">or use the ↑ ↓ keys</span>
               </div>
               {picked.eligibility.status === 'redirected' && <p class="hint">{picked.eligibility.reason}</p>}
               {picked.eligibility.status === 'blocked' && <p class="error" data-part="notice">{picked.eligibility.reason} Make the selection wider or narrower.</p>}
               {tool === 'spacing' && picked.eligibility.status === 'allowed' && spacingChoices(picked.entry).length > 1 && (
                 <div class="row">
-                  <button type="button" class="btn-outline" aria-pressed={choice === ALL_SPACING} data-choice="all" onClick={() => setChoice(ALL_SPACING)}>All ({spacingChoices(picked.entry).length})</button>
+                  <button type="button" class="btn-secondary" aria-pressed={choice === ALL_SPACING} data-choice="all" onClick={() => setChoice(ALL_SPACING)}>All ({spacingChoices(picked.entry).length})</button>
                   {spacingChoices(picked.entry).map((u, i) => (
-                    <button type="button" class="btn-outline" aria-pressed={choice === i} data-choice={u.property} onClick={() => setChoice(i)}>{u.property} {u.computed}</button>
+                    <button type="button" class="btn-secondary" aria-pressed={choice === i} data-choice={u.property} onClick={() => setChoice(i)}>{u.property} {u.computed}</button>
                   ))}
                 </div>
               )}
@@ -1172,15 +1173,15 @@ export function Toolbar(props: ToolbarProps) {
                 <>
                   <div class="row">
                     {picked.eligibility.status === 'allowed' && (
-                      <button type="button" class="primary" data-output="one" onClick={() => void produce(false)}>This one</button>
+                      <button type="button" class="btn-primary" data-output="one" onClick={() => void produce(false)}>This one</button>
                     )}
                     {picked.eligibility.status !== 'blocked' && (
-                      <button type="button" class={picked.eligibility.status === 'allowed' ? 'btn-outline' : 'primary'} data-output="system" onClick={() => void produce(true)}>The whole system</button>
+                      <button type="button" class={picked.eligibility.status === 'allowed' ? 'btn-secondary' : 'btn-primary'} data-output="system" onClick={() => void produce(true)}>The whole system</button>
                     )}
                     {tool === 'component' && picked.eligibility.status === 'allowed' && (
-                      <button type="button" class="btn-outline" data-output="section" title={SECTION_HINT} onClick={() => void produce(false, true)}>This section</button>
+                      <button type="button" class="btn-secondary" data-output="section" title={SECTION_HINT} onClick={() => void produce(false, true)}>This section</button>
                     )}
-                    <button type="button" class="btn-outline" onClick={() => startPicking(tool)}>Pick again</button>
+                    <button type="button" class="btn-secondary" onClick={() => startPicking(tool)}>Pick again</button>
                   </div>
                   {picked.eligibility.status !== 'blocked' && (
                     <p class="tip-box" data-part="output-hints">
@@ -1208,14 +1209,14 @@ export function Toolbar(props: ToolbarProps) {
                       <span class="dim">With {sectionFiles.length} component file{sectionFiles.length === 1 ? '' : 's'}, each described once (the section file places them):</span>
                       <ul class="files">
                         {sectionFiles.map(f => (
-                          <li data-file={f.fileName}><code>{f.fileName}</code> <button type="button" class="btn-outline" data-file-view onClick={() => setViewFile(f)}>View</button></li>
+                          <li data-file={f.fileName}><code>{f.fileName}</code> <button type="button" class="btn-secondary" data-file-view onClick={() => setViewFile(f)}>View</button></li>
                         ))}
                       </ul>
                     </div>
                   )}
                   {viewFile && (
                     <div class="stack" data-part="file-view-box">
-                      <span class="row"><code>{viewFile.fileName}</code><button type="button" class="btn-outline" data-action="file-view-close" onClick={() => setViewFile(null)}>Back to the section file</button></span>
+                      <span class="row"><code>{viewFile.fileName}</code><button type="button" class="btn-secondary" data-action="file-view-close" onClick={() => setViewFile(null)}>Back to the section file</button></span>
                       <pre class="preview" data-part="file-view">{viewFile.markdown}</pre>
                     </div>
                   )}
@@ -1263,7 +1264,7 @@ export function Toolbar(props: ToolbarProps) {
                           <p class="hint" data-part="countdown">
                             {capturing.total > 1 ? `${capturing.index} of ${capturing.total}: ` : ''}Put the component in its <strong>{capturing.state}</strong> state now ({STATE_HOW[capturing.state]}). Capturing in {countdown}…
                           </p>
-                          <button type="button" class="btn-outline" data-action="cancel-capture" onClick={cancelCapture}>Stop</button>
+                          <button type="button" class="btn-secondary" data-action="cancel-capture" onClick={cancelCapture}>Stop</button>
                         </div>
                       ) : (
                         <div class="manual-row">
@@ -1276,7 +1277,7 @@ export function Toolbar(props: ToolbarProps) {
                               {missingStates(componentCtx.states).length > 0 && <option value={ALL_MISSING}>All missing states ({missingStates(componentCtx.states).length})</option>}
                               {STATE_ORDER.filter(s => s !== 'disabled').map(s => <option value={s}>{s}</option>)}
                             </select>
-                            <button type="button" class="btn-outline" data-action="capture-state" onClick={captureCurrentState}>{manualTarget === ALL_MISSING ? 'Capture' : 'Capture state'}</button>
+                            <button type="button" class="btn-secondary" data-action="capture-state" onClick={captureCurrentState}>{manualTarget === ALL_MISSING ? 'Capture' : 'Capture state'}</button>
                           </div>
                         </div>
                       )}
@@ -1292,7 +1293,7 @@ export function Toolbar(props: ToolbarProps) {
                             {!widthNote && <span class="dim">{responsiveRef.current ? 'In the file under Responsive.' : 'At the site\'s own breakpoints, 2 or 3 widths.'}</span>}
                           </div>
                           <div class="manual-actions">
-                            <button type="button" class="btn-outline" data-action="responsive" title="Read it at the widths where the site's media queries change it (2 or 3), and add what changes to the file"
+                            <button type="button" class="btn-secondary" data-action="responsive" title="Read it at the widths where the site's media queries change it (2 or 3), and add what changes to the file"
                               onClick={() => void addResponsive()}>{responsiveRef.current ? 'Read the widths again' : 'How it changes by width'}</button>
                           </div>
                         </div>
@@ -1315,30 +1316,30 @@ export function Toolbar(props: ToolbarProps) {
                     {edited !== null && (
                       <span class="row">
                         <span class="dim" data-part="edited-note">Edited by hand: the unit and color settings no longer change it.</span>
-                        <button type="button" class="btn-outline" data-action="undo-edits" onClick={() => setEdited(null)}>Undo my edits</button>
+                        <button type="button" class="btn-danger" data-action="undo-edits" onClick={() => setEdited(null)}>Undo my edits</button>
                       </span>
                     )}
                   </div>
                   <textarea class="preview" data-part="preview" spellcheck={false} value={markdown}
                     onInput={e => { setEdited((e.currentTarget as HTMLTextAreaElement).value); setCopied(false); }} />
                   <div class="row">
-                    <button type="button" class="primary btn-with-ico" data-action="copy" onClick={copy}><CopyIcon copied={copied} />{copied ? 'Copied' : sectionFiles.length ? 'Copy section file' : 'Copy'}</button>
+                    <button type="button" class="btn-primary btn-with-ico" data-action="copy" onClick={copy}><CopyIcon copied={copied} />{copied ? 'Copied' : sectionFiles.length ? 'Copy section file' : 'Copy'}</button>
                     {sectionFiles.length
-                      ? <button type="button" class="btn-outline btn-with-ico" data-action="download-zip" title="The section file and its component files in one .zip" onClick={downloadZip}><DownloadIcon />Download .zip ({sectionFiles.length + 1} files)</button>
-                      : <button type="button" class="btn-outline btn-with-ico" data-action="download" onClick={download}><DownloadIcon />Download</button>}
+                      ? <button type="button" class="btn-secondary btn-with-ico" data-action="download-zip" title="The section file and its component files in one .zip" onClick={downloadZip}><DownloadIcon />Download .zip ({sectionFiles.length + 1} files)</button>
+                      : <button type="button" class="btn-secondary btn-with-ico" data-action="download" onClick={download}><DownloadIcon />Download</button>}
                     {props.saveToProject && output && <SaveButton save={saveAll} key={output.fileName} />}
                     {props.makeRule && output && output.capture.meta.scope === 'component' && (
                       <RuleButton make={() => props.makeRule!(output.fileName, markdown)} key={`rule ${output.fileName}`} />
                     )}
-                    <button type="button" class="btn-outline btn-with-ico" data-action="add-to-basket" onClick={() => { if (added) openBasket(); else void addCurrent(); }}><BasketIcon added={added} />{added ? 'View in Basket' : 'Add to basket'}</button>
-                    {tool && <button type="button" class="btn-outline btn-with-ico" data-action="pick-again" onClick={() => startPicking(tool)}><PickAgainIcon />Pick again</button>}
+                    <button type="button" class="btn-secondary btn-with-ico" data-action="add-to-basket" onClick={() => { if (added) openBasket(); else void addCurrent(); }}><BasketIcon added={added} />{added ? 'View in Basket' : 'Add to basket'}</button>
+                    {tool && <button type="button" class="btn-secondary btn-with-ico" data-action="pick-again" onClick={() => startPicking(tool)}><PickAgainIcon />Pick again</button>}
                   </div>
                 </div>
               </>
             ) : (
               <>
                 <p class="error" data-part="error">{result.message}</p>
-                {tool && <div class="row"><button type="button" class="btn-outline btn-with-ico" data-action="pick-again" onClick={() => startPicking(tool)}><PickAgainIcon />Pick again</button></div>}
+                {tool && <div class="row"><button type="button" class="btn-secondary btn-with-ico" data-action="pick-again" onClick={() => startPicking(tool)}><PickAgainIcon />Pick again</button></div>}
               </>
             )}
           </div>

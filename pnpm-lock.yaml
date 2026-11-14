@@ -322,6 +322,9 @@ importers:
       '@luci/format':
         specifier: workspace:*
         version: link:../format
+      '@luci/ui':
+        specifier: workspace:*
+        version: link:../ui
 
   packages/ui:
     dependencies:

@@ -503,7 +503,7 @@ export function Layout(props: LayoutProps) {
       <h2>New: {partName(ins.what)}</h2>
       <p class="dim" data-part="insert-where">{KIND_TEXT[ins.what.kind]}{ins.what.file ? ` · ${ins.what.file}` : ''}. Goes {POSITION_TEXT[ins.position]} {nameWithComponent(ins.anchor)}.</p>
       <div class="row">
-        <button type="button" data-action="remove-insert" onClick={() => { p.removeInsert(ins.id); selectInsert(null); bump(); }}>Remove</button>
+        <button class="btn-danger" type="button" data-action="remove-insert" onClick={() => { p.removeInsert(ins.id); selectInsert(null); bump(); }}>Remove</button>
         <button type="button" data-action="deselect" onClick={() => selectInsert(null)}>Pick another</button>
       </div>
       <label class="stack">
@@ -565,7 +565,7 @@ export function Layout(props: LayoutProps) {
   };
 
   return (
-    <div class="luci" data-theme={uiPrefs.theme} data-dock={uiPrefs.dock}>
+    <div class="luci luci-theme" data-theme={uiPrefs.theme} data-dock={uiPrefs.dock}>
       <div class="bar" role="toolbar" aria-label="Luci layout">
         <span class="brand" data-part="brand-title"><LuciLogo compact />Luci</span>
         {props.modes && <ModeSwitch {...props.modes} />}
@@ -582,7 +582,7 @@ export function Layout(props: LayoutProps) {
             <button type="button" data-action="undo" disabled={!p.canUndo} title="Undo (Ctrl+Z)" onClick={() => { p.undo(); bump(); }}>Undo</button>
             <button type="button" data-action="redo" disabled={!p.canRedo} title="Redo (Ctrl+Shift+Z)" onClick={() => { p.redo(); bump(); }}>Redo</button>
             <button type="button" data-action="reset" disabled={!plannedCount && !p.canUndo} title="Put the page back as it is in your code" onClick={() => { p.reset(); bump(); }}>Reset</button>
-            <button type="button" class="primary" data-action="copy-layout-prompt" disabled={!plannedCount || Boolean(busy)} title="Copy every planned change as one prompt for your agent; the page goes back as it was"
+            <button type="button" class="btn-primary" data-action="copy-layout-prompt" disabled={!plannedCount || Boolean(busy)} title="Copy every planned change as one prompt for your agent; the page goes back as it was"
               onClick={() => void copyPrompt()}>{busy === 'copy' ? <><ButtonSpinner />Copying…</> : `Copy prompt${plannedCount ? ` (${plannedCount})` : ''}`}</button>
           </>
         )}
@@ -796,7 +796,7 @@ export function Layout(props: LayoutProps) {
               <span>Your note for the agent <span class="dim">(optional, goes with the plan)</span></span>
               <textarea data-part="layout-note" placeholder="Why, or what else should change" value={note} onInput={e => setNote((e.currentTarget as HTMLTextAreaElement).value)} />
               <div class="row">
-                <button type="button" class="primary" data-action="copy-layout-prompt-panel" disabled={Boolean(busy)} onClick={() => void copyPrompt()}>
+                <button type="button" class="btn-primary" data-action="copy-layout-prompt-panel" disabled={Boolean(busy)} onClick={() => void copyPrompt()}>
                   {busy === 'copy' ? <><ButtonSpinner />Copying…</> : `Copy prompt (${plannedCount} change${plannedCount === 1 ? '' : 's'})`}
                 </button>
                 <button type="button" data-action="add-layout-notes" disabled={Boolean(busy)} title="Keep the plan as Feedback notes, to send with other notes in one prompt"

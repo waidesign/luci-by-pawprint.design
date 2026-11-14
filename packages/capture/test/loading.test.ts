@@ -45,7 +45,7 @@ describe('loader', { timeout: 60_000 }, () => {
     await page.close();
   });
 
-  it('toolbar: Whole page shows the spinner and its steps, then the file', async () => {
+  it('toolbar: Whole page shows Luci asleep (the brand kit\'s loading pose) and its steps, then the file', async () => {
     const page = await open('css-variables');
     // Record every step the loader shows (it can be quick)
     await page.evaluate(() => {
@@ -58,8 +58,9 @@ describe('loader', { timeout: 60_000 }, () => {
       new MutationObserver(() => {
         const step = root.querySelector('[data-part="busy-step"]')?.textContent;
         if (step && w.seen.at(-1) !== step) w.seen.push(step);
-        const spinner = root.querySelector('[data-part="busy"] .spinner');
-        if (spinner && getComputedStyle(spinner).animationName === 'luci-spin') w.spun = true;
+        // Luci asleep, breathing
+        const body = root.querySelector('[data-part="busy"] [data-pose="sleep"] .luci-body');
+        if (body && getComputedStyle(body).animationName === 'luci-breathe') w.spun = true;
       }).observe(root, { subtree: true, childList: true, characterData: true });
     });
     await page.click('[data-action="whole-page"]');
@@ -73,18 +74,19 @@ describe('loader', { timeout: 60_000 }, () => {
     await page.close();
   });
 
-  it('the spinner pulses in place of spinning when the system asks for less motion', async () => {
+  it('the spinner and Luci hold still when the system asks for less motion', async () => {
     const page = await open('css-variables', 'reduce');
-    const name = await page.evaluate(() => {
+    const names = await page.evaluate(() => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window as any).LuciCapture.mountToolbar();
       const root = document.querySelector('luci-toolbar')!.shadowRoot!;
       const s = document.createElement('span');
       s.className = 'spinner';
-      root.querySelector('.luci')!.appendChild(s);
-      return getComputedStyle(s).animationName;
+      root.querySelector('.luci-theme')!.appendChild(s);
+      const head = root.querySelector('.luci-avatar .luci-eye')!;
+      return [getComputedStyle(s).animationName, getComputedStyle(head).animationName];
     });
-    expect(name).toBe('luci-pulse');
+    expect(names).toEqual(['none', 'none']);
     await page.close();
   });
 });

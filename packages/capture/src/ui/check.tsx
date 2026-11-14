@@ -178,11 +178,11 @@ export function CheckResultPanel(props: {
       {error && <p class="error" data-part="check-error">{error}</p>}
       <div class="row">
         {props.addNotes && diffs.length > 0 && !added && (
-          <button type="button" class="primary" data-action="check-add" disabled={adding || !chosen.length} onClick={() => void add()}>
+          <button type="button" class="btn-primary" data-action="check-add" disabled={adding || !chosen.length} onClick={() => void add()}>
             {adding ? <><ButtonSpinner />Adding…</> : `Add ${chosen.length} as feedback note${chosen.length === 1 ? '' : 's'}`}
           </button>
         )}
-        <button type="button" class={props.addNotes ? '' : 'primary'} data-action="check-copy" onClick={() => void props.onCopy(report()).then(() => { setCopied(true); clearTimeout(copyTimer.current); copyTimer.current = setTimeout(() => setCopied(false), 1400); })}>
+        <button type="button" class={props.addNotes ? '' : 'btn-primary'} data-action="check-copy" onClick={() => void props.onCopy(report()).then(() => { setCopied(true); clearTimeout(copyTimer.current); copyTimer.current = setTimeout(() => setCopied(false), 1400); })}>
           {copied ? 'Copied' : diffs.length ? 'Copy as a prompt' : 'Copy the report'}
         </button>
         <button type="button" data-action="check-again" onClick={props.onAgain}>Check another</button>

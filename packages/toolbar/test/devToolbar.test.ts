@@ -152,8 +152,9 @@ describe('dev toolbar without luci serve (this browser only)', { timeout: 60_000
 
     // Settings: marker color; pause animations on one frame (FR31)
     await page.click('[data-action="settings"]');
-    await page.click('[data-color="#38bdf8"]');
-    expect(await page.locator('[data-marker="P1-A1"]').evaluate(el => getComputedStyle(el).borderColor)).toBe('rgb(56, 189, 248)');
+    // Brand Info teal (info-700, #1E767F)
+    await page.click('[data-color="#1E767F"]');
+    expect(await page.locator('[data-marker="P1-A1"]').evaluate(el => getComputedStyle(el).getPropertyValue('--marker'))).toBe('#1E767F');
     expect(await page.evaluate(() => document.getAnimations().map(a => a.playState))).toContain('running');
     await page.click('[data-action="pause"]');
     // The page's own pulsing price stops, and runs again on Resume
@@ -212,7 +213,7 @@ describe('connecting', { timeout: 60_000 }, () => {
       await page.goto(`${app.origin}/`);
       const pill = page.locator('[data-part="connecting"]');
       await pill.waitFor();
-      expect(await pill.innerText()).toBe('Luci: connecting to your project…');
+      expect(await pill.innerText()).toBe('Luci: connecting to your project.');
       await page.locator('[data-action="annotate"]').waitFor();
       expect(await pill.count()).toBe(0);
       expect(await page.locator('[data-part="connection"]').getAttribute('title')).toContain('no answer within');

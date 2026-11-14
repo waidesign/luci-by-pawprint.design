@@ -140,7 +140,7 @@
   .luci-theme:not([data-theme="light"]) {
     --luci-color-surface: var(--luci-color-muzzle-900);
     --luci-color-surface-raised: var(--luci-color-muzzle-800);
-    --luci-color-surface-sunken: var(--luci-color-muzzle-900);
+    --luci-color-surface-sunken: var(--luci-color-muzzle-800);
     --luci-color-ink: var(--luci-color-muzzle-50);
     --luci-color-ink-secondary: var(--luci-color-muzzle-300);
     --luci-color-ink-disabled: var(--luci-color-muzzle-500);
@@ -171,7 +171,7 @@
 .luci-theme[data-theme="dark"] {
   --luci-color-surface: var(--luci-color-muzzle-900);
   --luci-color-surface-raised: var(--luci-color-muzzle-800);
-  --luci-color-surface-sunken: var(--luci-color-muzzle-900);
+  --luci-color-surface-sunken: var(--luci-color-muzzle-800);
   --luci-color-ink: var(--luci-color-muzzle-50);
   --luci-color-ink-secondary: var(--luci-color-muzzle-300);
   --luci-color-ink-disabled: var(--luci-color-muzzle-500);

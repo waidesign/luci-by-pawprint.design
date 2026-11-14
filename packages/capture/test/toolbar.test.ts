@@ -440,41 +440,33 @@ describe('toolbar inside web components (FR6)', () => {
   }, 60_000);
 });
 
-describe('extension branding, settings panel, theme switcher, and Muzzle White / #2b2b2b palette', { timeout: 30_000 }, () => {
-  it('shows DESIGN.md Extractor by Luci in extension mode, switches System/Light/Dark and Right/Left dock in Settings, and uses #f5efea / #2b2b2b with no pure #fff/#000 or purple slop', async () => {
+describe('extension branding, settings panel and the brand kit themes', { timeout: 30_000 }, () => {
+  it('shows DESIGN.md Extractor by Luci with Luci\'s head, switches System/Light/Dark and Right/Left dock in Settings, and resolves the kit\'s colours', async () => {
     const page = await open('css-variables');
     expect(await page.locator('.brand-title').innerText()).toBe('DESIGN.md Extractor');
     expect(await page.locator('.brand-sub').innerText()).toBe('by Luci');
     expect(await page.locator('.brand-desc').innerText()).toContain('Component-level DESIGN.md extractor');
+    expect(await page.locator('.header .luci-avatar svg.luci-pose-head').count()).toBe(1);
 
-    // Open Settings panel and switch between Light, Dark, and System
+    const theme = page.locator('.luci-theme');
+    const colour = (name: string, el = theme) => el.evaluate((e, n) => getComputedStyle(e).getPropertyValue(n), name);
+    const bg = (sel: string) => page.locator(sel).first().evaluate(e => getComputedStyle(e).backgroundColor);
     await page.click('[data-action="settings"]');
     expect(await page.locator('[data-part="settings"]').count()).toBe(1);
     await page.click('[data-theme-choice="light"]');
-    expect(await page.locator('.luci').getAttribute('data-theme')).toBe('light');
-    const lightBg = await page.locator('.luci').evaluate(el => getComputedStyle(el).getPropertyValue('--bg').trim());
-    const lightAccent = await page.locator('.luci').evaluate(el => getComputedStyle(el).getPropertyValue('--accent').trim());
-    const lightDanger = await page.locator('.luci').evaluate(el => getComputedStyle(el).getPropertyValue('--danger-bg').trim());
-    expect(lightBg).toBe('#f5efea');
-    expect(lightAccent).toBe('#2b2b2b');
-    expect(lightDanger).toBe('#c34545');
+    expect(await theme.getAttribute('data-theme')).toBe('light');
+    expect(await bg('.shell')).toBe('rgb(245, 239, 234)'); // Muzzle White
+    expect(await colour('color')).toBe('rgb(43, 43, 43)'); // Charcoal ink
 
     await page.click('[data-theme-choice="dark"]');
-    expect(await page.locator('.luci').getAttribute('data-theme')).toBe('dark');
-    const darkBg = await page.locator('.luci').evaluate(el => getComputedStyle(el).getPropertyValue('--bg').trim());
-    expect(darkBg).toBe('#1f1f1f');
+    expect(await theme.getAttribute('data-theme')).toBe('dark');
+    expect(await bg('.shell')).toBe('rgb(43, 43, 43)'); // Charcoal surface
+    await page.click('[data-theme-choice="system"]');
 
-    // Switch panel dock position
     await page.click('[data-dock-choice="left"]');
-    expect(await page.locator('.luci').getAttribute('data-dock')).toBe('left');
+    expect(await theme.getAttribute('data-dock')).toBe('left');
     await page.click('[data-dock-choice="right"]');
-    expect(await page.locator('.luci').getAttribute('data-dock')).toBe('right');
-
-    // Enforce no pure white (#fff/#ffffff), pure black (#000/#000000), or purple slop in toolbar CSS
-    const { TOOLBAR_CSS } = await import('../src/ui/styles.js');
-    expect(TOOLBAR_CSS).not.toMatch(/#(?:fff(?:fff)?|000(?:000)?|6d28d9|a78bfa|7c3aed|ede9fe)\b/i);
-    expect(TOOLBAR_CSS).not.toMatch(/rgb\(\s*(?:0\s+0\s+0|255\s+255\s+255)\b/i);
-
+    expect(await theme.getAttribute('data-dock')).toBe('right');
     await page.context().close();
   });
 });

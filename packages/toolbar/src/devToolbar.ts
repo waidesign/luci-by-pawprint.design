@@ -7,6 +7,7 @@
  */
 import { LUCI_UI_ATTRIBUTE, mountToolbar, type BasketStore, type CheckNote } from '@luci/capture';
 import { basketItemSchema, type BasketItem, type CaptureSettings } from '@luci/format/capture';
+import { ANIMATIONS_CSS, COPY, TOKENS_CSS, mascotSvg } from '@luci/ui';
 import {
   DEFAULT_FEEDBACK_SETTINGS,
   bridgeBackend,
@@ -104,13 +105,14 @@ function connectingPill(doc: Document): HTMLElement {
   const host = doc.createElement(CONNECTING_TAG);
   host.setAttribute(LUCI_UI_ATTRIBUTE, '');
   const root = host.attachShadow({ mode: 'open' });
-  root.innerHTML = `<style>
-    div{position:fixed;top:12px;right:12px;z-index:2147483647;display:flex;gap:8px;align-items:center;padding:8px 12px;border-radius:10px;border:1px solid #3f3f46;
-      background:#18181b;color:#f4f4f5;font:13px/1.4 system-ui,sans-serif;box-shadow:0 6px 24px rgb(18 18 21 / .35)}
-    i{width:14px;height:14px;border-radius:50%;border:2px solid rgb(167 139 250 / .25);border-top-color:#a78bfa;animation:s .8s linear infinite}
-    @keyframes s{to{transform:rotate(360deg)}} @keyframes p{50%{opacity:.35}}
-    @media (prefers-reduced-motion: reduce){i{animation:p 1.6s ease-in-out infinite;border-color:#a78bfa}}
-  </style><div role="status" aria-live="polite" data-part="connecting"><i aria-hidden="true"></i><span>Luci: connecting to your project…</span></div>`;
+  // The Charcoal pill (brand/DESIGN.md, On-page toolbar), with a ginger ring turning
+  root.innerHTML = `<style>${TOKENS_CSS}
+    div{position:fixed;top:12px;right:12px;z-index:2147483647;display:flex;gap:8px;align-items:center;padding:8px 16px 8px 12px;border-radius:var(--luci-radius-full);
+      background:var(--luci-color-bar);color:var(--luci-color-bar-ink);font:500 var(--luci-type-small-size)/var(--luci-type-small-line) var(--luci-font-body);box-shadow:var(--luci-shadow-float)}
+    i{width:14px;height:14px;border-radius:50%;border:2px solid var(--luci-color-bar-stroke);border-top-color:var(--luci-color-tool-active);animation:s .8s linear infinite}
+    @keyframes s{to{transform:rotate(360deg)}}
+    @media (prefers-reduced-motion: reduce){i{animation:none}}
+  </style><div role="status" aria-live="polite" data-part="connecting"><i aria-hidden="true"></i><span>${COPY.devToolbar.connecting}</span></div>`;
   doc.documentElement.appendChild(host);
   return host;
 }
@@ -161,7 +163,15 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
     launcher = doc.createElement(LAUNCHER_TAG);
     launcher.setAttribute(LUCI_UI_ATTRIBUTE, '');
     const root = launcher.attachShadow({ mode: 'open' });
-    root.innerHTML = '<style>button{position:fixed;right:12px;bottom:12px;z-index:2147483647;padding:6px 12px;border-radius:999px;border:1px solid #45423e;background:#2b2b2b;color:#f5efea;font:600 12px system-ui,sans-serif;cursor:pointer;box-shadow:0 4px 16px rgb(43 43 43 / .28)}</style><button type="button" data-action="open-luci" title="Open Luci">Luci</button>';
+    // Luci's head in a Ginger circle: the 48 px menu button (brand/DESIGN.md, On-page toolbar)
+    root.innerHTML = `<style>${TOKENS_CSS}${ANIMATIONS_CSS}
+      button{position:fixed;right:12px;bottom:12px;z-index:2147483647;display:flex;align-items:center;justify-content:center;width:48px;height:48px;padding:0;border:0;
+        border-radius:var(--luci-radius-full);background:var(--luci-color-primary);cursor:pointer;box-shadow:var(--luci-shadow-float);transition:background-color var(--luci-motion-fast)}
+      button:hover{background:var(--luci-color-primary-hover)}
+      button:focus-visible{outline:2px solid var(--luci-color-focus);outline-offset:2px}
+      button span{display:block;width:38px;line-height:0} svg{display:block;width:100%;height:auto}
+      @media (prefers-reduced-motion: reduce){button{transition:none}}
+    </style><button type="button" data-action="open-luci" aria-label="${COPY.devToolbar.open}" title="${COPY.devToolbar.open}"><span>${mascotSvg('head')}</span></button>`;
     root.querySelector('button')!.addEventListener('click', (e) => { e.stopPropagation(); show(mode); });
     doc.documentElement.appendChild(launcher);
   };

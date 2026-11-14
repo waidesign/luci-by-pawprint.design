@@ -8,7 +8,11 @@ import { ANIMATIONS_CSS } from './mascot/art.js';
 
 export const BASE_CSS = `
 .luci-theme {
+  /* Buttons: 40 px with 15 px labels (DESIGN.md section 6); a compact surface sets them to 32 px with small labels */
   --luci-btn-h: 40px;
+  --luci-btn-font: 15px;
+  --luci-btn-line: 20px;
+  --luci-btn-pad: var(--luci-space-16);
   font-family: var(--luci-font-body);
   font-size: var(--luci-type-body-size);
   line-height: var(--luci-type-body-line);
@@ -48,23 +52,24 @@ export const COMPONENTS_CSS = `
 /* Button (DESIGN.md section 6). A bare button is the ghost variant. */
 .luci-theme button {
   position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--luci-space-8);
+  display: inline-block;
+  vertical-align: middle;
   min-height: var(--luci-btn-h);
-  padding: 0 var(--luci-space-16);
+  padding: calc((var(--luci-btn-h) - var(--luci-btn-line)) / 2) var(--luci-btn-pad);
   border: 0;
   border-radius: var(--luci-radius-full);
   background: transparent;
   color: var(--luci-color-ink);
-  font-size: 15px;
+  font-size: var(--luci-btn-font);
   font-weight: 600;
-  line-height: 1.2;
+  line-height: var(--luci-btn-line);
+  text-align: center;
   white-space: nowrap;
   cursor: pointer;
   transition: background-color var(--luci-motion-fast), color var(--luci-motion-fast);
 }
+/* Text and an icon side by side */
+.luci-theme .btn-with-ico { display: inline-flex; align-items: center; justify-content: center; gap: var(--luci-space-8); padding-block: 0; }
 /* Every button is a 44 px target, even when it is drawn 32 px tall */
 .luci-theme button::before { content: ""; position: absolute; inset: min(0px, calc((var(--luci-btn-h) - var(--luci-size-touch-target)) / 2)) 0; }
 .luci-theme button:hover { background: var(--luci-color-ghost-hover); }
@@ -72,13 +77,15 @@ export const COMPONENTS_CSS = `
 .luci-theme .btn-primary { background: var(--luci-color-primary); color: var(--luci-color-on-primary); }
 .luci-theme .btn-primary:hover:not(:disabled) { background: var(--luci-color-primary-hover); }
 .luci-theme .btn-primary:disabled { background: var(--luci-color-surface-sunken); color: var(--luci-color-ink-disabled); }
-.luci-theme .btn-secondary { background: var(--luci-color-surface-raised); border: 1px solid var(--luci-color-stroke-subtle); }
+.luci-theme .btn-secondary { background: var(--luci-color-surface-raised); border: 1px solid var(--luci-color-stroke-subtle);
+  padding-block: calc((var(--luci-btn-h) - var(--luci-btn-line)) / 2 - 1px); }
+.luci-theme .btn-secondary.btn-with-ico { padding-block: 0; }
 .luci-theme .btn-secondary:hover:not(:disabled) { background: var(--luci-color-secondary-hover); }
 .luci-theme .btn-secondary:disabled { background: var(--luci-color-surface-raised); }
 .luci-theme .btn-danger { background: var(--luci-color-danger-bg); color: var(--luci-color-danger); }
 .luci-theme .btn-danger:hover:not(:disabled) { background: var(--luci-color-danger-hover); }
 .luci-theme .btn-danger:disabled { background: var(--luci-color-danger-bg); color: var(--luci-color-danger); opacity: 0.5; }
-.luci-theme .btn-icon { width: var(--luci-btn-h); padding: 0; }
+.luci-theme .btn-icon { display: inline-flex; align-items: center; justify-content: center; width: var(--luci-btn-h); padding: 0; }
 .luci-theme button[aria-pressed="true"]:not(.btn-primary) { background: var(--luci-color-primary-soft); color: var(--luci-color-link); }
 .btn-ico { width: 20px; height: 20px; flex: none; }
 
@@ -135,7 +142,7 @@ export const COMPONENTS_CSS = `
 /* Empty state: Luci watching, a title, one line, an optional primary button */
 .empty { display: flex; flex-direction: column; align-items: center; gap: var(--luci-space-12); padding: var(--luci-space-24) var(--luci-space-16); text-align: center; }
 .empty .t-title { margin: 0; }
-.empty p { margin: 0; color: var(--luci-color-ink-secondary); }
+.empty p:not(.t-title) { margin: 0; color: var(--luci-color-ink-secondary); }
 `;
 
 /** Everything a Luci surface needs in its shadow root, in order. */

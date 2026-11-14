@@ -20,6 +20,7 @@ import {
   type FeedbackItem,
   type FeedbackPriority
 } from '@luci/format/feedback';
+import { COPY, EmptyState, PALETTE } from '@luci/ui';
 import type { FeedbackBackend } from '../backend.js';
 import { copyToClipboard } from './clipboard.js';
 import { describeTarget, frameworkInfo, nameOf, selectionElement } from '../target.js';
@@ -30,8 +31,12 @@ export interface FeedbackSettings {
   /** Where "Send to webhook" posts the prompt; nothing is sent until the person presses it. */
   webhookUrl?: string;
 }
-export const DEFAULT_FEEDBACK_SETTINGS: FeedbackSettings = { markerColor: '#2b2b2b', detail: 'standard' };
-export const MARKER_COLORS = ['#2b2b2b', '#f472b6', '#38bdf8', '#4ade80', '#fb923c'] as const;
+/** Marker colours, from the brand palette: Charcoal, Ginger, Collar Lime, Nose Pink, Info teal. */
+export const MARKER_COLORS = [PALETTE['muzzle-900'], PALETTE['ginger-500'], PALETTE['collar-lime-500'], PALETTE['nose-pink-500'], PALETTE['info-700']] as const;
+/** The number's colour on each marker (4.5:1 or better); a colour saved before these is read as dark. */
+const LIGHT_MARKERS: readonly string[] = [PALETTE['ginger-500'], PALETTE['collar-lime-500'], PALETTE['nose-pink-500']];
+const markerInk = (color: string) => (LIGHT_MARKERS.includes(color.toUpperCase()) ? 'var(--luci-color-muzzle-900)' : 'var(--luci-color-muzzle-50)');
+export const DEFAULT_FEEDBACK_SETTINGS: FeedbackSettings = { markerColor: MARKER_COLORS[0], detail: 'standard' };
 
 export interface FeedbackProps {
   doc: Document;
@@ -290,7 +295,7 @@ export function Feedback(props: FeedbackProps) {
   const hoverName = annotating && candidate ? `${nameOf(candidate)}${innermost ? ` · ${innermost}` : ''}` : '';
 
   return (
-    <div class="luci" data-theme={uiPrefs.theme} data-dock={uiPrefs.dock} style={{ '--marker': settings.markerColor }}>
+    <div class="luci luci-theme" data-theme={uiPrefs.theme} data-dock={uiPrefs.dock} style={{ '--marker': settings.markerColor, '--marker-ink': markerInk(settings.markerColor) }}>
       <div class="bar" role="toolbar" aria-label="Luci feedback">
         <span class="brand" data-part="brand-title"><LuciLogo compact />Luci</span>
         {props.modes && <ModeSwitch {...props.modes} />}
@@ -347,7 +352,7 @@ export function Feedback(props: FeedbackProps) {
       )}
 
       {selection && !draft && (
-        <button type="button" class="chip-add primary" data-action="add-selection" style={popAt(win, selection.x, selection.y - 8)}
+        <button type="button" class="chip-add btn-primary" data-action="add-selection" style={popAt(win, selection.x, selection.y - 8)}
           onClick={() => startDraft(selection.el, selection.x, selection.y, selection.text)}>Add feedback</button>
       )}
 
@@ -445,7 +450,7 @@ function NoteForm(props: { initial?: NoteFields; submitLabel: string; onSubmit: 
         </select></label>
       </div>
       <div class="row">
-        <button type="button" class="primary" data-action="save-note" disabled={!comment.trim() || busy} onClick={() => void submit()}>{busy ? <><ButtonSpinner />Saving…</> : props.submitLabel}</button>
+        <button type="button" class="btn-primary" data-action="save-note" disabled={!comment.trim() || busy} onClick={() => void submit()}>{busy ? <><ButtonSpinner />Saving…</> : props.submitLabel}</button>
         <button type="button" data-action="cancel-note" onClick={props.onCancel}>Cancel</button>
       </div>
     </>
@@ -489,9 +494,9 @@ function NoteDetails(props: { item: FeedbackItem; backend: FeedbackBackend; act:
       <div class="row">
         {done
           ? <button type="button" data-action="reopen" onClick={() => void act(() => backend.change(item.ref, { action: 'reopen' }))}>Reopen</button>
-          : <button type="button" class="primary" data-action="mark-done" title="You checked the agent's work: this note is done" onClick={() => void act(() => backend.change(item.ref, { action: 'done' }))}>Mark done</button>}
+          : <button type="button" class="btn-primary" data-action="mark-done" title="You checked the agent's work: this note is done" onClick={() => void act(() => backend.change(item.ref, { action: 'done' }))}>Mark done</button>}
         <button type="button" data-action="edit" onClick={() => setEditing(true)}>Edit</button>
-        <button type="button" data-action="delete" onClick={() => void act(async () => { await backend.remove(item.ref); props.onClose?.(); })}>Delete</button>
+        <button class="btn-danger" type="button" data-action="delete" onClick={() => void act(async () => { await backend.remove(item.ref); props.onClose?.(); })}>Delete</button>
         {props.onClose && <button type="button" data-action="close-item" onClick={props.onClose}>Close</button>}
       </div>
     </div>
@@ -525,7 +530,7 @@ function NotesPanel(props: {
           <button type="button" role="tab" data-tab={id} aria-selected={tab === id} aria-pressed={tab === id} onClick={() => setTab(id)}>{label}</button>
         ))}
       </div>
-      {!props.items.length && <p class="hint">No notes yet. Press Annotate and click an element, or select text on the page.</p>}
+      {!props.items.length && <EmptyState title={COPY.feedback.notesEmpty.title} body={COPY.feedback.notesEmpty.body} part="notes-empty" />}
       {props.items.length > 0 && !shown.length && <p class="hint">{tab === 'open' ? 'Every note is done.' : 'No notes are done yet.'}</p>}
       <div class="notes-scroll">
         {[...pages.entries()].map(([page, list]) => (
@@ -556,11 +561,11 @@ function NotesPanel(props: {
         ))}
       </div>
       <div class="row footer">
-        <button type="button" class="primary" data-action="copy-prompt-panel" disabled={!props.scope.count} onClick={props.onCopy}>Copy prompt{props.scope.count ? ` (${props.scope.label})` : ''}</button>
+        <button type="button" class="btn-primary" data-action="copy-prompt-panel" disabled={!props.scope.count} onClick={props.onCopy}>Copy prompt{props.scope.count ? ` (${props.scope.label})` : ''}</button>
         {props.webhook && <button type="button" data-action="send-webhook" disabled={!props.scope.count} onClick={props.webhook.send}>Send to webhook</button>}
         <button type="button" data-action="mark-copied-done" disabled={!copied.length} title="You checked the agent's work on every copied note"
           onClick={() => void props.act(async () => { for (const i of copied) await props.backend.change(i.ref, { action: 'done' }); })}>Mark all copied as done ({copied.length})</button>
-        <button type="button" data-action="clear-done" disabled={!done.length} title="Delete the notes that are done" onClick={() => void props.act(() => props.backend.clear('done'))}>Clear done ({done.length})</button>
+        <button class="btn-danger" type="button" data-action="clear-done" disabled={!done.length} title="Delete the notes that are done" onClick={() => void props.act(() => props.backend.clear('done'))}>Clear done ({done.length})</button>
       </div>
       {props.webhook?.note && <p class="dim" data-part="webhook-note">{props.webhook.note}</p>}
     </>
@@ -598,8 +603,8 @@ function SettingsPanel(props: { settings: FeedbackSettings; onChange: (s: Feedba
       </div>
       <div class="row danger">
         {confirm
-          ? <button type="button" data-action="clear-all-confirm" onClick={() => { setConfirm(false); props.onClearAll(); }}>Yes, delete all {props.count} notes</button>
-          : <button type="button" data-action="clear-all" disabled={!props.count} onClick={() => setConfirm(true)}>Delete all notes…</button>}
+          ? <button class="btn-danger" type="button" data-action="clear-all-confirm" onClick={() => { setConfirm(false); props.onClearAll(); }}>Yes, delete all {props.count} notes</button>
+          : <button class="btn-danger" type="button" data-action="clear-all" disabled={!props.count} onClick={() => setConfirm(true)}>Delete all notes…</button>}
       </div>
     </div>
   );

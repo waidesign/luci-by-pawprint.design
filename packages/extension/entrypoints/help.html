@@ -1,26 +1,42 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="luci-theme">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Luci: how to capture</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<!-- Tokens generated from brand/ by pnpm brand:sync -->
+<link rel="stylesheet" href="/luci-tokens.css">
 <style>
-  :root { color-scheme: light dark; --ink: #2b2b2b; --muted: #6e675f; --bg: #f5efea; --line: #dfd7ce; --accent: #2b2b2b; }
-  @media (prefers-color-scheme: dark) { :root { --ink: #f5efea; --muted: #a39d96; --bg: #1f1f1f; --line: #333333; --accent: #f5efea; } }
-  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  main { max-width: 720px; margin: 0 auto; padding: 40px 16px 64px; }
-  h1 { font-size: 28px; line-height: 1.25; margin: 0 0 8px; }
-  h2 { font-size: 18px; margin: 32px 0 8px; }
-  p, li { color: var(--muted); }
-  strong, kbd { color: var(--ink); }
-  kbd { font: 13px ui-monospace, monospace; padding: 1px 6px; border: 1px solid var(--line); border-radius: 4px; }
-  ol, ul { padding-left: 20px; }
-  .lead { font-size: 18px; }
+  :root { color-scheme: light dark; }
+  body { margin: 0; background: var(--luci-color-surface); color: var(--luci-color-ink);
+    font: var(--luci-type-body-weight) var(--luci-type-body-size)/var(--luci-type-body-line) var(--luci-font-body); }
+  main { max-width: 720px; margin: 0 auto; padding: var(--luci-space-40) var(--luci-space-16) var(--luci-space-64); }
+  header { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--luci-space-24); margin-bottom: var(--luci-space-32); }
+  .logo { display: block; width: 132px; height: auto; }
+  .logo-dark { display: none; }
+  .mascot { width: 120px; height: auto; flex: none; }
+  h1 { font: var(--luci-type-display-weight) var(--luci-type-display-size)/var(--luci-type-display-line) var(--luci-font-display); margin: var(--luci-space-24) 0 var(--luci-space-8); }
+  h2 { font: var(--luci-type-heading-weight) var(--luci-type-heading-size)/var(--luci-type-heading-line) var(--luci-font-body); margin: var(--luci-space-32) 0 var(--luci-space-8); }
+  p, li { color: var(--luci-color-ink-secondary); }
+  strong, kbd { color: var(--luci-color-ink); }
+  kbd { font: var(--luci-type-code-weight) var(--luci-type-code-size) var(--luci-font-code); padding: 1px var(--luci-space-8); border-radius: 6px; background: var(--luci-color-surface-sunken); }
+  ol, ul { padding-left: var(--luci-space-20); }
+  .lead { font-size: var(--luci-type-heading-size); line-height: var(--luci-type-heading-line); }
+  @media (prefers-color-scheme: dark) { .logo-light { display: none; } .logo-dark { display: block; } }
+  @media (max-width: 520px) { .mascot { display: none; } }
 </style>
 </head>
 <body>
 <main>
-  <h1>Capturing design with Luci</h1>
+  <header>
+    <div>
+      <img class="logo logo-light" src="/luci-logo-horizontal.svg" alt="Luci">
+      <img class="logo logo-dark" src="/luci-logo-horizontal-dark.svg" alt="Luci">
+      <h1>Capturing design with Luci</h1>
+    </div>
+    <img class="mascot" src="/luci-sit-animated.svg" alt="" aria-hidden="true">
+  </header>
   <p class="lead">Luci turns what you pick on a live page into a design.md file your AI coding agent can use. Everything stays on your machine.</p>
 
   <h2>Three steps</h2>

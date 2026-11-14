@@ -261,7 +261,7 @@ export function Sketch(props: SketchProps) {
             <p class="dim" data-part="wf-what">{selBlock.what ? `${{ component: 'Your component', capture: 'Saved capture', block: 'Block' }[selBlock.what.kind]}: ${partName(selBlock.what)}${selBlock.what.file ? ` · ${selBlock.what.file}` : ''}` : 'An area: say what goes in it, or choose what it is.'}</p>
             <div class="row">
               <button type="button" data-action="wf-choose" onClick={() => { loadSources(doc, backend, setSources); setPicking(true); }}>Choose what it is…</button>
-              {selBlock.what && <button type="button" data-action="wf-clear" onClick={() => change(mapBlock(selRow.id, selBlock.id, ({ what: _w, ...b }) => b))}>Make it an area</button>}
+              {selBlock.what && <button class="btn-secondary" type="button" data-action="wf-clear" onClick={() => change(mapBlock(selRow.id, selBlock.id, ({ what: _w, ...b }) => b))}>Make it an area</button>}
             </div>
             <label class="stack">
               <span>What goes in it <span class="dim">(optional)</span></span>
@@ -272,7 +272,7 @@ export function Sketch(props: SketchProps) {
               <summary>This part</summary>
               <div class="row">
                 <button type="button" data-action="wf-split" disabled={selBlock.span < 2 || selRow.blocks.length >= 12} title="Two side by side: this one and a new one on its right" onClick={split}>Split in two</button>
-                <button type="button" data-action="wf-remove-block" onClick={removeBlock}>Remove</button>
+                <button class="btn-danger" type="button" data-action="wf-remove-block" onClick={removeBlock}>Remove</button>
               </div>
             </details>
             <details open data-section="wf-row">
@@ -289,7 +289,7 @@ export function Sketch(props: SketchProps) {
                 <button type="button" data-action="wf-row-up" disabled={rowIndex === 0} onClick={() => moveRow(-1)}>Move up</button>
                 <button type="button" data-action="wf-row-down" disabled={rowIndex === rows.length - 1} onClick={() => moveRow(1)}>Move down</button>
                 <button type="button" data-action="wf-row-below" onClick={() => addRow(selRow.id)}>+ Row below</button>
-                <button type="button" data-action="wf-remove-row" disabled={rows.length === 1} onClick={removeRow}>Remove row</button>
+                <button class="btn-danger" type="button" data-action="wf-remove-row" disabled={rows.length === 1} onClick={removeRow}>Remove row</button>
               </div>
             </details>
           </div>
@@ -311,7 +311,7 @@ export function Sketch(props: SketchProps) {
             <span>Your note for the agent <span class="dim">(optional)</span></span>
             <textarea data-part="wf-note" placeholder="What the page is for, who it is for" value={note} onInput={e => setNote((e.currentTarget as HTMLTextAreaElement).value)} />
             <div class="row">
-              <button type="button" class="primary" data-action="wf-copy" disabled={Boolean(busy)} onClick={() => void copy()}>
+              <button type="button" class="btn-primary" data-action="wf-copy" disabled={Boolean(busy)} onClick={() => void copy()}>
                 {busy === 'copy' ? <><ButtonSpinner />Copying…</> : 'Copy page prompt'}
               </button>
               <button type="button" data-action="wf-notes" disabled={Boolean(busy)} title="Keep the sketch as a Feedback note, to send with other notes in one prompt" onClick={() => void keep()}>

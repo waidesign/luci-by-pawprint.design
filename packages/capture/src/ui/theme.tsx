@@ -3,6 +3,7 @@
  * and the Luci brand mark, shared by the Capture extension toolbar and the Dev Toolbar.
  */
 import { useEffect, useState } from 'preact/hooks';
+import { LuciAvatar } from '@luci/ui';
 
 export type ThemeChoice = 'system' | 'light' | 'dark';
 export type DockChoice = 'right' | 'left';
@@ -22,8 +23,8 @@ const UI_PREFS_EVENT = 'luci-ui-prefs';
 
 export const THEME_OPTIONS: readonly { id: ThemeChoice; label: string; title: string }[] = [
   { id: 'system', label: 'System', title: 'Match your operating system or browser appearance' },
-  { id: 'light', label: 'Light', title: 'Muzzle White surface (#F5EFEA) with #2B2B2B primary ink' },
-  { id: 'dark', label: 'Dark', title: 'Charcoal surface (#1F1F1F) with Muzzle White (#F5EFEA) ink' }
+  { id: 'light', label: 'Light', title: 'Muzzle White surface with Charcoal text' },
+  { id: 'dark', label: 'Dark', title: 'Charcoal surface with Muzzle White text' }
 ];
 
 export const DOCK_OPTIONS: readonly { id: DockChoice; label: string; title: string }[] = [
@@ -75,17 +76,9 @@ export function useUiPrefs(doc: Document): [UiPrefs, (patch: Partial<UiPrefs>) =
   return [prefs, update];
 }
 
-/** Luci architectural component-frame logo mark (uses currentColor / CSS variables, never pure #fff or #000). */
+/** Luci's head in a Ginger circle, from the brand kit (brand/BRAND.md section 8). Decorative: the name is beside it. */
 export function LuciLogo(props: { compact?: boolean }) {
-  return (
-    <span class={props.compact ? 'logo-mark compact' : 'logo-mark'} aria-hidden="true">
-      <svg viewBox="0 0 24 24" width={props.compact ? '15' : '18'} height={props.compact ? '15' : '18'} fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3.5" y="3.5" width="17" height="17" rx="3.5" />
-        <path d="M3.5 9.5h17M9.5 9.5v11" />
-        <rect x="12.5" y="12.5" width="5" height="5" rx="1" fill="currentColor" fill-opacity="0.18" stroke="none" />
-      </svg>
-    </span>
-  );
+  return <LuciAvatar size={props.compact ? 32 : 44} />;
 }
 
 /** Reusable Theme (System / Light / Dark) and Panel position (Right / Left) controls for Settings panels. */
@@ -96,7 +89,7 @@ export function AppearanceControls(props: { prefs: UiPrefs; onChange: (patch: Pa
       <div class="setting-row">
         <div class="setting-copy">
           <span class="field-label">Appearance</span>
-          <span class="dim">System, Muzzle White light, or charcoal dark</span>
+          <span class="dim">System, light or dark</span>
         </div>
         <div class="seg" role="group" aria-label="Theme">
           {THEME_OPTIONS.map(t => (

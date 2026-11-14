@@ -64,7 +64,8 @@ const dark = {
   ...light,
   surface: pal('muzzle-900'),
   'surface-raised': pal('muzzle-800'),
-  'surface-sunken': pal('muzzle-900'),
+  // On Charcoal a tint reads only when it is lighter: sunken areas use the raised step too
+  'surface-sunken': pal('muzzle-800'),
   ink: pal('muzzle-50'),
   'ink-secondary': pal('muzzle-300'),
   'ink-disabled': pal('muzzle-500'),
@@ -195,5 +196,7 @@ copy(join(brand, 'favicon/icon-512.png'), join(root, 'packages/extension/public/
 copy(join(brand, 'favicon/favicon.svg'), join(root, 'packages/extension/public/favicon.svg'));
 copy(join(brand, 'logo/luci-logo-horizontal.svg'), join(root, 'packages/extension/public/luci-logo-horizontal.svg'));
 copy(join(brand, 'logo/luci-logo-horizontal-dark.svg'), join(root, 'packages/extension/public/luci-logo-horizontal-dark.svg'));
+copy(join(brand, 'animated/luci-sit-animated.svg'), join(root, 'packages/extension/public/luci-sit-animated.svg'));
+copy(join(ui, 'tokens.css'), join(root, 'packages/extension/public/luci-tokens.css'));
 
 console.log(`brand-sync: ${Object.keys(palette).length} colours, ${Object.keys(poses).length} poses, ${Object.keys(faces).length} faces, ${Object.keys(logos).length} logos`);
