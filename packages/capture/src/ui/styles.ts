@@ -98,6 +98,9 @@ ${UI_CSS}
 .shell > .sub { position: static; z-index: auto; width: min(560px, calc(100vw - 24px)); }
 .sub p { margin: 0; }
 .sub.with-luci { flex-direction: row; align-items: center; gap: var(--luci-space-16); }
+/* Luci beside a hint inside a card (Layout: placing, new page) */
+.luci-hint { display: flex; align-items: center; gap: var(--luci-space-16); }
+.luci-hint > p { margin: 0; min-width: 0; }
 .sub .sub-body { display: flex; flex-direction: column; gap: var(--luci-space-8); min-width: 0; }
 .keys { color: var(--luci-color-ink-secondary); font-size: var(--luci-type-small-size); line-height: var(--luci-type-small-line); }
 .panel {

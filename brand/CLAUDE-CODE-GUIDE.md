@@ -69,13 +69,15 @@ Build one `Mascot` component; never place mascot files ad hoc.
 ```ts
 type MascotPose =
   | 'sit' | 'hello' | 'head' | 'peek' | 'measure'
-  | 'box' | 'sleep' | 'content' | 'annoyed' | 'turned';
+  | 'box' | 'sleep' | 'content' | 'annoyed' | 'turned'
+  | 'press' | 'read' | 'swatch' | 'compare' | 'note' | 'arrange' | 'place' | 'sketch';
 
 <Mascot pose="peek" size={128} animated label="Luci watching" />
 ```
 
 - Import the layered SVGs from `brand/layered/` as raw strings and inline them, so `luci-animations.css` can animate their named parts. `hello` is the `sit` file with the extra class `luci-hello` on the root.
 - When the same pose can appear twice on one page, rewrite the clip-path ids inside the SVG with a unique prefix per instance.
+- Below about 200 px, drop the collar name (the `luci-name` group): it cannot be read and muddies the collar.
 - `animated={false}` renders it still. Under `prefers-reduced-motion` the CSS already stops every loop.
 - Decorative use: `aria-hidden="true"`. Meaningful use: `role="img"` and an `aria-label`.
 - Pick the pose from the table in `BRAND.md` section 5. Toast faces come from `brand/mascot/luci-face-*.svg`.

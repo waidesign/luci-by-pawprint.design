@@ -35,9 +35,18 @@ Every SVG root has the class `luci` plus `luci-pose-<name>`. Parts are groups wi
 | `luci-tail luci-tail-wrap` / `luci-tail-up` | Tail wrapped round the paws, or raised | Where the tail meets the body |
 | `luci-arm` | Raised front leg (measuring pose) | Shoulder |
 | `luci-collar`, `luci-tag` | Lime collar and paw tag | Centre |
+| `luci-name` | "Lucifer" lettered on the collar (front views) | None: hide it below about 200 px |
 | `luci-zz`, `luci-z1`, `luci-z2` | Sleeping letters | Centre |
 | `luci-ruler`, `luci-ruler-line` | Dimension marker (measuring pose) | Centre |
 | `luci-box`, `luci-ledge` | Props | Bottom centre |
+| `luci-button-cap`, `luci-click` | Pressing: the button top and its click lines | Centre |
+| `luci-highlight`, `luci-letters` | Reading: the line being selected, the "Aa" tag | Left edge |
+| `luci-chip-lift` | Swatch: the chip under the paw | Centre |
+| `luci-tick` | Comparing: the tick between the two cards | Centre |
+| `luci-marker` | Noting: the numbered note marker | Centre |
+| `luci-select-box` | Arranging: the selected card with its handles | Bottom-left handle |
+| `luci-block`, `luci-arrow` | Placing: the block and the arrow to its slot | Centre |
+| `luci-draft` | Sketching: the block being drawn | Centre |
 
 Clip paths have ids unique to each file, so several SVGs can sit inline on one page.
 
@@ -55,6 +64,14 @@ Clip paths have ids unique to each file, so several SVGs can sit inline on one p
 | Content | `luci-content` | Slow breathing, lazy tail | Success |
 | Annoyed | `luci-annoyed` | Tail lash 0.9 s, ears bristle, fast breaths | Errors |
 | Not now | `luci-turned` | Tail sway, ear twitch, head tilt | Paused, do not disturb, 404 |
+| Pressing | `luci-press` | Paw taps, button presses, 1.6 s | Component tool |
+| Reading | `luci-read` | Line highlights while the pupils follow it, 3.2 s | Text tool |
+| Swatch | `luci-swatch` | Chip lifts with the paw, 2 s | Colour tool |
+| Comparing | `luci-compare` | Glances between the cards, tick pulses, 4 s | Design check |
+| Noting | `luci-note` | Marker drops onto the card, 3 s | Feedback: annotate |
+| Arranging | `luci-arrange` | Selected card grows from the handle, 2.4 s | Layout: select |
+| Placing | `luci-place` | Pushes the block towards its slot, 2 s | Layout: insert |
+| Sketching | `luci-sketch` | Paw draws, the new block pulses, 2.4 s | Layout: new page |
 
 All loops are seamless and stop under `prefers-reduced-motion: reduce`.
 

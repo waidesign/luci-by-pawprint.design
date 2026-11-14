@@ -9,14 +9,21 @@ import { FACE_SVG, POSE_SVG } from './art.js';
 /** brand/BRAND.md section 5. "hello" is the sitting pose with the slow-blink greeting. */
 export type MascotPose =
   | 'sit' | 'hello' | 'head' | 'peek' | 'measure'
-  | 'box' | 'sleep' | 'content' | 'annoyed' | 'turned' | 'slowblink';
+  | 'box' | 'sleep' | 'content' | 'annoyed' | 'turned' | 'slowblink'
+  // One per tool (BRAND.md section 5, tool table)
+  | 'press' | 'read' | 'swatch' | 'compare' | 'note' | 'arrange' | 'place' | 'sketch';
 export type MascotFace = keyof typeof FACE_SVG;
+
+/** Below this width "Lucifer" on the collar cannot be read, so the art leaves it out (BRAND.md section 5). */
+export const COLLAR_NAME_MIN_SIZE = 200;
 
 export interface MascotArtOptions {
   /** false renders him still. Under prefers-reduced-motion the kit's CSS stops every loop anyway. */
   animated?: boolean;
   /** Meaningful use: role="img" with this label. Without it the art is decorative (aria-hidden). */
   label?: string;
+  /** false leaves the collar name out (for small sizes). Default: kept, as in the kit. */
+  name?: boolean;
 }
 
 let instances = 0;
@@ -54,7 +61,8 @@ function rootAttributes(svg: string, extraClass: string, opts: MascotArtOptions)
 export function mascotSvg(pose: MascotPose, opts: MascotArtOptions = {}): string {
   const file = pose === 'hello' ? POSE_SVG.sit : POSE_SVG[pose];
   const extra = `${pose === 'hello' ? ' luci-hello' : ''}${opts.animated === false ? ' luci-still' : ''}`;
-  return uniqueIds(rootAttributes(file, extra, opts));
+  const art = opts.name === false ? file.replace(/<g class="luci-name"[^>]*>.*?<\/g>/, '') : file;
+  return uniqueIds(rootAttributes(art, extra, opts));
 }
 
 /** A small face (48 px) for toasts and inline messages, as an SVG string. */
@@ -76,7 +84,8 @@ export interface MascotProps extends MascotArtOptions {
  */
 export function Mascot(props: MascotProps) {
   const { pose, size = 96, animated, label } = props;
-  const html = useMemo(() => mascotSvg(pose, { ...(animated === undefined ? {} : { animated }), ...(label ? { label } : {}) }), [pose, animated, label]);
+  const name = size >= COLLAR_NAME_MIN_SIZE;
+  const html = useMemo(() => mascotSvg(pose, { ...(animated === undefined ? {} : { animated }), ...(label ? { label } : {}), name }), [pose, animated, label, name]);
   return <span class={`mascot${props.class ? ` ${props.class}` : ''}`} data-pose={pose} style={{ width: `${size}px` }} dangerouslySetInnerHTML={{ __html: html }} />;
 }
 

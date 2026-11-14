@@ -16,7 +16,7 @@ import { ButtonSpinner, Loading, nextPaint } from './loading.js';
 import { ModeSwitch, type ModeSwitchProps } from './modeSwitch.js';
 import {
   Button, COPY, EmptyState, Icon, IconBasket, IconCheck, IconClose, IconColour, IconComponent, IconCopy, IconDownload, IconInfo, IconPage,
-  IconSpacing, IconSuccess, IconText, Mascot, Select, useShortcuts, type LucideIcon
+  IconSpacing, IconSuccess, IconText, Mascot, Select, useShortcuts, type LucideIcon, type MascotPose
 } from '@luci/ui';
 import { AppearanceControls, LuciLogo, useUiPrefs } from './theme.js';
 import { zip } from './zip.js';
@@ -214,6 +214,8 @@ function Loupe(props: { shot: { ctx: CanvasRenderingContext2D; scale: number }; 
 export const KEYS = { component: 'V', text: 'T', color: 'C', spacing: 'S', page: 'P', check: 'K', basket: 'B', menu: 'M' } as const;
 /** Each tool's icon in the toolbar (brand/luci-icons.json). */
 const TOOL_ICONS: Readonly<Record<ToolId, LucideIcon>> = { component: IconComponent, text: IconText, color: IconColour, spacing: IconSpacing };
+/** Luci's pose in each tool's hint (brand/BRAND.md section 5, tool table). Check uses "compare". */
+export const TOOL_POSES: Readonly<Record<ToolId, MascotPose>> = { component: 'press', text: 'read', color: 'swatch', spacing: 'measure' };
 const px = (v: string) => parseFloat(v) || 0;
 
 function entryFor(live: LiveSnapshot, el: Element): ElementSnapshot | null {
@@ -1149,8 +1151,9 @@ export function Toolbar(props: ToolbarProps) {
         )}
 
         {!settingsOpen && (picking || dropperOpen || pixelMode) && tool && (
-          <div class={tool === 'spacing' && !pixelMode ? 'sub with-luci' : 'sub'} data-part="tool-hint" role="note">
-            {tool === 'spacing' && !pixelMode && <Mascot pose="measure" size={96} />}
+          <div class="sub with-luci" data-part="tool-hint" role="note">
+            <Mascot pose={checkDesign ? 'compare' : TOOL_POSES[tool]} size={96} />
+
             <div class="sub-body">
               {tool === 'color' && (
                 <div class="seg" role="group" aria-label="Pick a colour from">

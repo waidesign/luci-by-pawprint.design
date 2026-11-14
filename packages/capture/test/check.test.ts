@@ -54,6 +54,8 @@ describe('design check in the capture toolbar (v0.3.1)', { timeout: 60_000 }, ()
     expect(await page.locator('[data-part="check-saved"]').count()).toBe(0);
     await page.click('[data-part="check-basket"] [data-design-use]');
     expect(await page.locator('[data-part="hint"]').innerText()).toMatch(/^Click the component you built\. Luci checks it against Primary button \(button\) from 127\.0\.0\.1:\d+\.$/);
+    // Luci compares while you pick the built one (brand/BRAND.md section 5)
+    expect(await page.locator('[data-part="tool-hint"] .mascot').getAttribute('data-pose')).toBe('compare');
     await page.click('#built', { force: true });
     await page.locator('[data-part="check-selected"]').waitFor();
     await page.click('[data-action="check-run"]');

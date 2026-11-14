@@ -20,7 +20,7 @@ import {
   type FeedbackItem,
   type FeedbackPriority
 } from '@luci/format/feedback';
-import { Button, COPY, EmptyState, IconAnnotate, IconChevron, IconClose, IconCopy, IconNotes, IconPause, PALETTE, Select, useShortcuts } from '@luci/ui';
+import { Button, COPY, EmptyState, IconAnnotate, IconChevron, IconClose, IconCopy, IconNotes, IconPause, Mascot, PALETTE, Select, useShortcuts } from '@luci/ui';
 
 /** Feedback's single-key shortcuts (in each tooltip). */
 export const FEEDBACK_KEYS = { annotate: 'A', notes: 'N', pause: 'P', menu: 'M' } as const;
@@ -350,8 +350,20 @@ export function Feedback(props: FeedbackProps) {
       )}
 
       {annotating && !draft && (
-        <div class="sub" role="note" data-part="hint">
-          <p class="hint">Click an element to leave a note. Esc stops. Then select text to note words.</p>
+        <div class="sub with-luci" role="note" data-part="hint">
+          <Mascot pose="note" size={96} />
+          <div class="sub-body"><p class="hint">Click an element to leave a note. Esc stops. Then select text to note words.</p></div>
+        </div>
+      )}
+
+      {/* Paused: Luci turned away, held still so Pause stays a freeze (BRAND.md: Paused) */}
+      {paused && !(annotating && !draft) && (
+        <div class="sub with-luci" role="status" data-part="paused">
+          <Mascot pose="turned" size={96} animated={false} />
+          <div class="sub-body">
+            <p class="hint">Page paused. Its animations are frozen.</p>
+            <p class="keys">{FEEDBACK_KEYS.pause}: resume</p>
+          </div>
         </div>
       )}
 
@@ -414,7 +426,7 @@ export function Feedback(props: FeedbackProps) {
                   <pre data-part="prompt">{prompt.text}</pre>
                 </>
               ) : (
-                <p class="hint">Every note is done.</p>
+                <EmptyState title="Every note is done." pose="content" part="all-done" />
               )}
               <div class="row"><button type="button" data-action="prompt-back" onClick={() => setPrompt(null)}>Back to the notes</button></div>
             </>
@@ -547,7 +559,9 @@ function NotesPanel(props: {
         ))}
       </div>
       {!props.items.length && <EmptyState title={COPY.feedback.notesEmpty.title} body={COPY.feedback.notesEmpty.body} part="notes-empty" />}
-      {props.items.length > 0 && !shown.length && <p class="hint">{tab === 'open' ? 'Every note is done.' : 'No notes are done yet.'}</p>}
+      {props.items.length > 0 && !shown.length && (tab === 'open'
+        ? <EmptyState title="Every note is done." pose="content" part="all-done" />
+        : <p class="hint">No notes are done yet.</p>)}
       <div class="notes-scroll">
         {[...pages.entries()].map(([page, list]) => (
           <section class="page-group" data-page={page}>

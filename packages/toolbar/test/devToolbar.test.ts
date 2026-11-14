@@ -84,6 +84,8 @@ describe('dev toolbar without luci serve (this browser only)', { timeout: 60_000
 
     // Hover names the element and its component (parity: hover shows the element's name)
     await page.click('[data-action="annotate"]');
+    // Annotate's hint has Luci noting (brand/BRAND.md section 5)
+    expect(await page.locator('[data-part="hint"] .mascot').getAttribute('data-pose')).toBe('note');
     await page.hover('.plan:nth-of-type(2) button', { force: true });
     expect(await page.locator('[data-part="hover-label"]').innerText()).toBe('button · PlanCard');
     await annotate(page, '.plan:nth-of-type(2) button', 'Label wraps on mobile', { priority: 'high' });
@@ -159,7 +161,11 @@ describe('dev toolbar without luci serve (this browser only)', { timeout: 60_000
     await page.click('[data-action="pause"]');
     // The page's own pulsing price stops, and runs again on Resume
     await page.waitForFunction(() => document.getAnimations().every(a => a.playState !== 'running'));
+    // While paused, Luci is turned away and still (his own loops would undo the freeze)
+    expect(await page.locator('[data-part="paused"] .mascot').getAttribute('data-pose')).toBe('turned');
+    expect(await page.locator('[data-part="paused"] svg.luci-still').count()).toBe(1);
     await page.click('[data-action="pause"]');
+    expect(await page.locator('[data-part="paused"]').count()).toBe(0);
     await page.waitForFunction(() => document.getAnimations().some(a => a.playState === 'running'));
     await ctx.close();
   });
@@ -316,6 +322,7 @@ describe('dev toolbar with luci serve (M6 Done when, automated)', { timeout: 90_
     // Every note done, page by page: "Not done" is empty, "Done" has all six
     await page.locator('[data-tab="open"]:text-is("Not done (0)")').waitFor();
     expect(await page.locator('[data-item]').count()).toBe(0);
+    expect(await page.locator('[data-part="all-done"] .mascot').getAttribute('data-pose')).toBe('content');
     await page.click('[data-tab="done"]');
     expect(await page.locator('[data-page]').count()).toBe(3);
     expect(await page.locator('[data-item] .status').allInnerTexts()).toEqual(Array(6).fill('Done'));

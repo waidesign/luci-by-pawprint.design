@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="luci luci-pose-swatch" viewBox="-14 -14 300 292" width="600" height="584" role="img" aria-label="Luci the cat, swatch"><style>/* Luci mascot animations. Works on the layered SVGs (inline) or inside the animated SVG files. */
+.luci .luci-ear,.luci .luci-eye,.luci .luci-tail,.luci .luci-body,.luci .luci-head,.luci .luci-z,.luci .luci-pupil,.luci .luci-arm,.luci .luci-ruler-line{transform-box:fill-box}
+.luci .luci-ear-l{transform-origin:70% 100%}
+.luci .luci-ear-r{transform-origin:30% 100%}
+.luci .luci-eye{transform-origin:50% 50%}
+.luci .luci-body{transform-origin:50% 100%}
+.luci .luci-head{transform-origin:50% 85%}
+.luci .luci-tail-wrap{transform-origin:92% 20%}
+.luci .luci-tail-up{transform-origin:5% 95%}
+.luci .luci-arm{transform-origin:10% 90%}
+.luci .luci-z{transform-origin:50% 50%}
+
+@keyframes luci-breathe{0%,100%{transform:scaleY(1)}50%{transform:scaleY(1.025)}}
+@keyframes luci-blink{0%,90%,100%{transform:scaleY(1)}94%{transform:scaleY(.08)}}
+@keyframes luci-slowblink{0%,25%{transform:scaleY(1)}42%,68%{transform:scaleY(.08)}85%,100%{transform:scaleY(1)}}
+@keyframes luci-twitch{0%,86%,100%{transform:rotate(0)}89%{transform:rotate(-12deg)}92%{transform:rotate(5deg)}95%{transform:rotate(-6deg)}98%{transform:rotate(0)}}
+@keyframes luci-sway{0%,100%{transform:rotate(-2.5deg)}50%{transform:rotate(2.5deg)}}
+@keyframes luci-lash{0%{transform:rotate(-9deg)}100%{transform:rotate(9deg)}}
+@keyframes luci-look{0%,18%{transform:translateX(0)}30%,50%{transform:translateX(-4px)}62%,82%{transform:translateX(4px)}94%,100%{transform:translateX(0)}}
+@keyframes luci-z{0%{opacity:0;transform:translate(0,6px) scale(.8)}25%{opacity:1}100%{opacity:0;transform:translate(10px,-20px) scale(1.1)}}
+@keyframes luci-tap{0%,100%{transform:rotate(0)}50%{transform:rotate(-7deg)}}
+@keyframes luci-pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes luci-tilt{0%,100%{transform:rotate(0)}50%{transform:rotate(3deg)}}
+@keyframes luci-bristle{0%{transform:rotate(-2deg)}100%{transform:rotate(2deg)}}
+
+/* Idle: sitting tall */
+.luci-pose-sit .luci-body{animation:luci-breathe 4.5s ease-in-out infinite}
+.luci-pose-sit .luci-eye{animation:luci-blink 6s ease-in-out infinite}
+.luci-pose-sit .luci-ear-r{animation:luci-twitch 7s ease-in-out infinite}
+.luci-pose-sit .luci-tail{animation:luci-sway 5s ease-in-out infinite}
+/* Hello: slow blink (add class luci-hello to the sitting pose) */
+.luci-hello .luci-eye{animation:luci-slowblink 5s ease-in-out infinite}
+.luci-hello .luci-head{animation:luci-tilt 5s ease-in-out infinite}
+/* Avatar head */
+.luci-pose-head .luci-eye{animation:luci-blink 6s ease-in-out infinite}
+.luci-pose-head .luci-ear-l{animation:luci-twitch 8s ease-in-out infinite 2s}
+/* Watching (empty state) */
+.luci-pose-peek .luci-pupil{animation:luci-look 7s ease-in-out infinite}
+.luci-pose-peek .luci-eye{animation:luci-blink 7s ease-in-out infinite 3s}
+.luci-pose-peek .luci-ear-l{animation:luci-twitch 6s ease-in-out infinite 1s}
+/* Measuring (spacing tool) */
+.luci-pose-measure .luci-ruler-line{animation:luci-pulse 1.6s ease-in-out infinite}
+.luci-pose-measure .luci-arm{animation:luci-tap 1.6s ease-in-out infinite}
+.luci-pose-measure .luci-eye{animation:luci-blink 5s ease-in-out infinite}
+/* In the box (capture basket) */
+.luci-pose-box .luci-eye{animation:luci-blink 6s ease-in-out infinite}
+.luci-pose-box .luci-pupil{animation:luci-look 9s ease-in-out infinite 1s}
+.luci-pose-box .luci-ear-r{animation:luci-twitch 5s ease-in-out infinite}
+/* Asleep (loading) */
+.luci-pose-sleep .luci-body{animation:luci-breathe 3.5s ease-in-out infinite}
+.luci-pose-sleep .luci-z1{animation:luci-z 3s ease-out infinite}
+.luci-pose-sleep .luci-z2{animation:luci-z 3s ease-out infinite 1.5s}
+/* Content (success) */
+.luci-pose-content .luci-body{animation:luci-breathe 4s ease-in-out infinite}
+.luci-pose-content .luci-tail{animation:luci-sway 6s ease-in-out infinite}
+.luci-pose-content .luci-ear-r{animation:luci-twitch 6s ease-in-out infinite 2s}
+/* Annoyed (error) */
+.luci-pose-annoyed .luci-tail{animation:luci-lash .9s ease-in-out infinite alternate}
+.luci-pose-annoyed .luci-ear{animation:luci-bristle .35s ease-in-out infinite alternate}
+.luci-pose-annoyed .luci-body{animation:luci-breathe 1.8s ease-in-out infinite}
+/* Turned away (not now) */
+.luci-pose-turned .luci-tail{animation:luci-sway 4s ease-in-out infinite}
+.luci-pose-turned .luci-ear-r{animation:luci-twitch 5s ease-in-out infinite}
+.luci-pose-turned .luci-head{animation:luci-tilt 6s ease-in-out infinite}
+
+/* Tool poses: Pressing, Reading, Swatch, Comparing, Noting, Arranging, Placing, Sketching */
+.luci .luci-button-cap,.luci .luci-highlight,.luci .luci-chip-lift,.luci .luci-tick,.luci .luci-marker,.luci .luci-select-box,.luci .luci-block,.luci .luci-draft{transform-box:fill-box}
+.luci .luci-highlight{transform-origin:0 50%}
+.luci .luci-tick{transform-origin:50% 50%}
+.luci .luci-select-box{transform-origin:0 100%}
+
+@keyframes luci-press{0%,100%{transform:translateY(3px)}50%{transform:translateY(0)}}
+@keyframes luci-select{0%{transform:scaleX(.05);opacity:1}45%,85%{transform:scaleX(1);opacity:1}100%{transform:scaleX(1);opacity:0}}
+@keyframes luci-scan{0%,15%{transform:translateX(-3px)}50%,65%{transform:translateX(3px)}100%{transform:translateX(-3px)}}
+@keyframes luci-lift{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes luci-glance{0%,40%{transform:translateX(-3px)}50%,90%{transform:translateX(3px)}100%{transform:translateX(-3px)}}
+@keyframes luci-pop{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+@keyframes luci-drop{0%{transform:translateY(-8px);opacity:0}20%{opacity:1}35%,85%{transform:translateY(0);opacity:1}100%{transform:translateY(0);opacity:0}}
+@keyframes luci-resize{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+@keyframes luci-settle{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
+@keyframes luci-push{0%,100%{transform:rotate(0)}50%{transform:rotate(5deg)}}
+
+/* Pressing (Component tool) */
+.luci-pose-press .luci-arm{animation:luci-tap 1.6s ease-in-out infinite}
+.luci-pose-press .luci-button-cap{animation:luci-press 1.6s ease-in-out infinite}
+.luci-pose-press .luci-click{animation:luci-pulse 1.6s ease-in-out infinite}
+.luci-pose-press .luci-eye{animation:luci-blink 5s ease-in-out infinite}
+/* Reading (Text tool) */
+.luci-pose-read .luci-highlight{animation:luci-select 3.2s ease-in-out infinite}
+.luci-pose-read .luci-pupil{animation:luci-scan 3.2s ease-in-out infinite}
+.luci-pose-read .luci-eye{animation:luci-blink 6s ease-in-out infinite 2s}
+/* Swatch (Colour tool) */
+.luci-pose-swatch .luci-chip-lift{animation:luci-lift 2s ease-in-out infinite}
+.luci-pose-swatch .luci-arm{animation:luci-tap 2s ease-in-out infinite}
+.luci-pose-swatch .luci-eye{animation:luci-blink 6s ease-in-out infinite}
+/* Comparing (Check) */
+.luci-pose-compare .luci-pupil{animation:luci-glance 4s ease-in-out infinite}
+.luci-pose-compare .luci-tick{animation:luci-pop 4s ease-in-out infinite}
+.luci-pose-compare .luci-head{animation:luci-tilt 6s ease-in-out infinite}
+.luci-pose-compare .luci-tail{animation:luci-sway 5s ease-in-out infinite}
+/* Noting (Feedback: Annotate) */
+.luci-pose-note .luci-marker{animation:luci-drop 3s ease-out infinite}
+.luci-pose-note .luci-arm{animation:luci-tap 3s ease-in-out infinite}
+.luci-pose-note .luci-eye{animation:luci-blink 6s ease-in-out infinite 1s}
+/* Arranging (Layout: Select) */
+.luci-pose-arrange .luci-select-box{animation:luci-resize 2.4s ease-in-out infinite}
+.luci-pose-arrange .luci-ear-r{animation:luci-twitch 6s ease-in-out infinite}
+.luci-pose-arrange .luci-eye{animation:luci-blink 5s ease-in-out infinite}
+/* Placing (Layout: Insert) */
+.luci-pose-place .luci-block{animation:luci-settle 2s ease-in-out infinite}
+.luci-pose-place .luci-arm{animation:luci-push 2s ease-in-out infinite}
+.luci-pose-place .luci-arrow{animation:luci-pulse 2s ease-in-out infinite}
+/* Sketching (Layout: New page) */
+.luci-pose-sketch .luci-draft{animation:luci-pulse 2.4s ease-in-out infinite}
+.luci-pose-sketch .luci-arm{animation:luci-tap 1.2s ease-in-out infinite}
+.luci-pose-sketch .luci-eye{animation:luci-blink 6s ease-in-out infinite}
+
+@media (prefers-reduced-motion: reduce){.luci *{animation:none!important}}
+</style><g class="luci-body"><path d="M78 166 C60 196 58 232 68 246 L172 246 C182 232 180 196 162 166 Z" fill="#F6A24F" stroke="#2B2B2B" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/><path d="M102 176 C94 196 98 222 120 234 C142 222 146 196 138 176 Z" fill="#FDF9F6"/><path d="M68 206 L82 204" fill="none" stroke="#D86D1D" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M66 220 L80 220" fill="none" stroke="#D86D1D" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M172 206 L158 204" fill="none" stroke="#D86D1D" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M174 220 L160 220" fill="none" stroke="#D86D1D" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/></g><g class="luci-paws"><ellipse cx="70" cy="244" rx="17" ry="8" fill="#F6A24F" stroke="#2B2B2B" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/><ellipse cx="170" cy="244" rx="17" ry="8" fill="#F6A24F" stroke="#2B2B2B" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/><rect x="94" y="198" width="22" height="50" rx="11" fill="#F6A24F" stroke="#2B2B2B" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/><path d="M97 213 L105 213" fill="none" stroke="#D86D1D" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></g><g class="luci-tail luci-tail-wrap"><path d="M166 238 C196 244 188 260 140 258 C112 257 88 256 80 252 C74 247 82 243 92 245 C112 248 140 249 156 244 Z" fill="#F6A24F" stroke="#2B2B2B" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/><path d="M108 247 L106 256 M128 248 L127 257 M150 246 L152 256 M172 246 L178 254" fill="none" stroke="#D86D1D" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/></g><g transform="rotate(-10 199 248)"><rect x="186" y="200" width="26" height="48" rx="6" fill="#FDF9F6" stroke="#2B2B2B" stroke-width="3" stroke-linejoin="round"/><rect x="190" y="204" width="18" height="24" rx="4" fill="#B4D43C"/><path d="M193 238 L205 238" fill="none" stroke="#2B2B2B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></g><g transform="rotate(10 259 248)"><rect x="246" y="200" width="26" height="48" rx="6" fill="#FDF9F6" stroke="#2B2B2B" stroke-width="3" stroke-linejoin="round"/><rect x="250" y="204" width="18" height="24" rx="4" fill="#EC862B"/><path d="M253 238 L265 238" fill="none" stroke="#2B2B2B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></g><g class="luci-chip-lift"><rect x="214" y="188" width="26" height="48" rx="6" fill="#FDF9F6" stroke="#2B2B2B" stroke-width="3" stroke-linejoin="round"/><rect x="218" y="192" width="18" height="24" rx="4" fill="#E79993"/><path d="M221 226 L233 226" fill="none" stroke="#2B2B2B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></g><g class="luci-arm"><path d="M154 200 L208 178" fill="none" stroke="#2B2B2B" stroke-width="29.0" stroke-linecap="round"/><path d="M154 200 L208 178" fill="none" stroke="#F6A24F" stroke-width="22" stroke-linecap="round"/></g><g class="luci-collar"><rect x="84.0" y="174" width="72" height="12" rx="6" fill="#B4D43C" stroke="#2B2B2B" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/><g class="luci-name" fill="none" stroke="#2B2B2B" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M103.5 177.7 L103.5 183.5 L107.3 183.5"/><path d="M109.3 179.5 L109.3 181.9 Q109.3 183.5 111.2 183.5 Q113.1 183.5 113.1 181.9 M113.1 179.5 L113.1 183.5"/><path d="M118.9 180 Q118.2 179.5 117.2 179.5 Q115.2 179.5 115.2 181.5 Q115.2 183.5 117.2 183.5 Q118.2 183.5 118.9 183"/><path d="M121 179.7 L121 183.5"/><circle cx="121" cy="178.2" r="0.65" fill="#2B2B2B" stroke="none"/><path d="M125.7 178.5 Q125.2 178.1 124.6 178.1 Q123.5 178.1 123.5 179.5 L123.5 183.5 M122.4 179.8 L125.4 179.8"/><path d="M127.6 181.5 L131.2 181.5 Q131.2 179.5 129.4 179.5 Q127.6 179.5 127.6 181.5 Q127.6 183.5 129.5 183.5 Q130.6 183.5 131.1 182.9"/><path d="M133.2 179.5 L133.2 183.5 M133.2 181.7 Q133.8 179.5 135.5 179.6"/></g><g class="luci-tag"><circle cx="120" cy="194" r="8" fill="#DBD4CF" stroke="#2B2B2B" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/><circle cx="120" cy="196" r="2.4" fill="#2B2B2B"/><circle cx="117" cy="191" r="1.3" fill="#2B2B2B"/><circle cx="123" cy="191" r="1.3" fill="#2B2B2B"/></g></g><g transform="translate(20 0)"><g class="luci-head"><g class="luci-ear luci-ear-r"><g><path d="M162 98 L151 26 Q148 18 141 23 L104 60 Z" fill="#F6A24F" stroke="#2B2B2B" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/><path d="M148 84 L145 40 L116 64 Z" fill="#F5B9B4"/><path d="M138 74 L144 58 M130 70 L136 52" fill="none" stroke="#FDF9F6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M146 22 L149 11 M146 22 L144 12" fill="none" stroke="#2B2B2B" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></g></g><g class="luci-ear luci-ear-l"><g><path d="M38 98 L49 26 Q52 18 59 23 L96 60 Z" fill="#F6A24F" stroke="#2B2B2B" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/><path d="M52 84 L55 40 L84 64 Z" fill="#F5B9B4"/><path d="M62 74 L56 58 M70 70 L64 52" fill="none" stroke="#FDF9F6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M54 22 L51 11 M54 22 L56 12" fill="none" stroke="#2B2B2B" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></g></g><path class="luci-face" d="M100 54 C140 54 166 72 169 104 L180 114 L169 121 L178 133 L163 139 L168 152 L149 156 C136 170 118 176 100 176 C82 176 64 170 51 156 L32 152 L37 139 L22 133 L31 121 L20 114 L31 104 C34 72 60 54 100 54 Z" fill="#F6A24F" stroke="#2B2B2B" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/><g class="luci-stripes"><path d="M100 58 L100 80" fill="none" stroke="#D86D1D" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M87 60 L91 78" fill="none" stroke="#D86D1D" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M113 60 L109 78" fill="none" stroke="#D86D1D" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M75 66 L81 79" fill="none" stroke="#D86D1D" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M125 66 L119 79" fill="none" stroke="#D86D1D" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M30 112 L48 115" fill="none" stroke="#D86D1D" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M33 125 L49 125" fill="none" stroke="#D86D1D" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M170 112 L152 115" fill="none" stroke="#D86D1D" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M167 125 L151 125" fill="none" stroke="#D86D1D" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/></g><path class="luci-muzzle" d="M78 130 C78 118 92 114 100 121 C108 114 122 118 122 130 C122 147 110 154 100 154 C90 154 78 147 78 130 Z" fill="#FDF9F6"/><g class="luci-brows"><path d="M60 86 L82 92" fill="none" stroke="#AD4F1A" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M140 86 L118 92" fill="none" stroke="#AD4F1A" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></g><g class="luci-eye luci-eye-l"><g transform="rotate(8 73 104)"><clipPath id="swatche1"><path d="M58 104 Q73 83 88 104 Q73 125 58 104 Z"/></clipPath><path d="M58 104 Q73 83 88 104 Q73 125 58 104 Z" fill="#CBB042"/><g class="luci-pupil"><g transform="translate(4 1)"><ellipse cx="73" cy="104" rx="2.6" ry="8.5" fill="#2B2B2B"/><circle cx="77" cy="101" r="2.2" fill="#FFFFFF"/></g></g><g clip-path="url(#swatche1)"><rect x="56" y="90" width="34" height="10" fill="#F6A24F"/><path d="M57 101 Q73 103 89 99" fill="none" stroke="#2B2B2B" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></g><path d="M58 104 Q73 83 88 104 Q73 125 58 104 Z" fill="none" stroke="#2B2B2B" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/></g></g><g class="luci-eye luci-eye-r"><g transform="rotate(-8 127 104)"><clipPath id="swatche2"><path d="M112 104 Q127 83 142 104 Q127 125 112 104 Z"/></clipPath><path d="M112 104 Q127 83 142 104 Q127 125 112 104 Z" fill="#CBB042"/><g class="luci-pupil"><g transform="translate(4 1)"><ellipse cx="127" cy="104" rx="2.6" ry="8.5" fill="#2B2B2B"/><circle cx="131" cy="101" r="2.2" fill="#FFFFFF"/></g></g><g clip-path="url(#swatche2)"><rect x="110" y="90" width="34" height="10" fill="#F6A24F"/><path d="M111 101 Q127 103 143 99" fill="none" stroke="#2B2B2B" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></g><path d="M112 104 Q127 83 142 104 Q127 125 112 104 Z" fill="none" stroke="#2B2B2B" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/></g></g><path class="luci-nose" d="M92 117 L108 117 Q104 124 100 127 Q96 124 92 117 Z" fill="#E79993" stroke="#2B2B2B" stroke-width="3" stroke-linejoin="round"/><g class="luci-mouth"><path d="M100 127 L100 133" fill="none" stroke="#2B2B2B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M91 137 Q96 136 100 133 Q104 136 109 137" fill="none" stroke="#2B2B2B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></g><g class="luci-whiskers"><path d="M76 130 L34 124" fill="none" stroke="#2B2B2B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M124 130 L166 124" fill="none" stroke="#2B2B2B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M76 136 L34 141" fill="none" stroke="#2B2B2B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M124 136 L166 141" fill="none" stroke="#2B2B2B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></g></g></g></svg>

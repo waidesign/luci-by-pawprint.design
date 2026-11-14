@@ -8,6 +8,7 @@
 import { Fragment } from 'preact';
 import { useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { ButtonSpinner } from '@luci/capture';
+import { Mascot } from '@luci/ui';
 import { formatWireframePrompt, routeOf, shareText, wireframeSchema, type Part, type Wireframe } from '@luci/format/feedback';
 import type { FeedbackBackend } from '../backend.js';
 import { snapTo } from '../layout/preview.js';
@@ -296,7 +297,10 @@ export function Sketch(props: SketchProps) {
         ) : (
           <div class="stack" data-part="wf-summary">
             <h2>New page {normalRoute(route)}</h2>
-            <p class="dim">{rows.length} row{rows.length === 1 ? '' : 's'}, top to bottom. Click a part to name it, describe it or split it.</p>
+            <div class="luci-hint" data-part="sketch-hint">
+              <Mascot pose="sketch" size={96} />
+              <p class="dim">{rows.length} row{rows.length === 1 ? '' : 's'}, top to bottom. Click a part to name it, describe it or split it.</p>
+            </div>
           </div>
         )}
 

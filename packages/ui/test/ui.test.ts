@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { COPY, FACE_SVG, ICON_NAMES, Icon, IconColour, PALETTE, POSE_SVG, ROLES_BAR, ROLES_DARK, ROLES_LIGHT, faceSvg, mascotSvg, shortcutFor } from '@luci/ui';
+import { COLLAR_NAME_MIN_SIZE, COPY, FACE_SVG, ICON_NAMES, Icon, IconColour, PALETTE, POSE_SVG, ROLES_BAR, ROLES_DARK, ROLES_LIGHT, faceSvg, mascotSvg, shortcutFor } from '@luci/ui';
 
 const brand = (file: string) => readFileSync(fileURLToPath(new URL(`../../../brand/${file}`, import.meta.url)), 'utf8');
 
@@ -174,5 +174,28 @@ describe('Mascot', () => {
     // Every reference points at an id of the same instance
     for (const ref of [...a.matchAll(/url\(#([^)]+)\)/g)].map(m => m[1])) expect(ids(a)).toContain(ref);
     expect(faceSvg('calm')).toMatch(/^<svg[^>]*aria-hidden="true"/);
+  });
+  it('has a pose for every tool in BRAND.md section 5, each with its loop in luci-animations.css', () => {
+    const table = brand('BRAND.md').split('Each tool has its own pose')[1]!.split('\n\n')[1]!;
+    const files = [...table.matchAll(/`mascot\/luci-([a-z]+)\.svg`/g)].map(m => m[1]!);
+    expect(files).toEqual(['press', 'read', 'swatch', 'measure', 'compare', 'note', 'arrange', 'place', 'sketch']);
+    const css = brand('luci-animations.css');
+    for (const pose of files) {
+      expect(POSE_SVG[pose as keyof typeof POSE_SVG], pose).toMatch(new RegExp(`^<svg[^>]*class="luci luci-pose-${pose}"`));
+      expect(css, pose).toContain(`.luci-pose-${pose} `);
+    }
+  });
+  it('keeps "Lucifer" on the collar of front views, and drops it below the size it can be read at', () => {
+    for (const pose of ['sit', 'slowblink', 'measure', 'annoyed', 'press', 'read', 'swatch', 'compare', 'note', 'arrange', 'place', 'sketch'] as const) {
+      expect(POSE_SVG[pose], pose).toMatch(/<g class="luci-collar"><rect[^>]*\/><g class="luci-name"/);
+    }
+    // The back view has the collar but no name
+    expect(POSE_SVG.turned).toContain('luci-collar');
+    expect(POSE_SVG.turned).not.toContain('luci-name');
+    expect(mascotSvg('sit')).toContain('luci-name');
+    const small = mascotSvg('sit', { name: false });
+    expect(small).not.toContain('luci-name');
+    expect(small).toContain('luci-tag');
+    expect(COLLAR_NAME_MIN_SIZE).toBe(200);
   });
 });

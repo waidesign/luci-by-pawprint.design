@@ -320,11 +320,19 @@ describe('tool hints and the Color tool\'s two ways to pick (user feedback, M4)'
     await page.addScriptTag({ content: bundle });
     await page.evaluate(() => { (window as unknown as { LuciCapture: { mountToolbar(): unknown } }).LuciCapture.mountToolbar(); });
     expect(await page.locator('[data-action="eyedropper"]').count()).toBe(0);
+    // Each tool's hint has Luci in that tool's pose (brand/BRAND.md section 5), without the collar name at 96 px
+    const pose = () => page.locator('[data-part="tool-hint"] .mascot').getAttribute('data-pose');
+    await page.click('button[data-tool="component"]');
+    expect(await pose()).toBe('press');
+    expect(await page.locator('[data-part="tool-hint"] .luci-name').count()).toBe(0);
     await page.click('button[data-tool="text"]');
     expect(await page.locator('[data-part="hint"]').innerText()).toContain('Click any text');
+    expect(await pose()).toBe('read');
     await page.click('button[data-tool="spacing"]');
     expect(await page.locator('[data-part="hint"]').innerText()).toContain('Drag between two elements to measure');
+    expect(await pose()).toBe('measure');
     await page.click('button[data-tool="color"]');
+    expect(await pose()).toBe('swatch');
     expect(await page.locator('[data-color-mode]').allInnerTexts()).toEqual(['Element', 'Pixel']);
     expect(await page.locator('[data-color-mode="element"]').getAttribute('aria-pressed')).toBe('true');
     // Without an eyedropper, Pixel stays visible but off, with the reason

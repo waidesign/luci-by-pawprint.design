@@ -70,6 +70,12 @@ const css = (page: Page, sel: string, prop: string) => page.evaluate(([s, p]) =>
 const marked = (page: Page) => page.evaluate(() => document.querySelectorAll('[data-luci-layout]').length);
 
 describe('Layout mode', { timeout: 120_000 }, () => {
+  it('Luci in each tool\'s pose: arranging for Select (brand/BRAND.md section 5)', async () => {
+    const page = await open('/pricing');
+    expect(await page.locator('luci-layout [data-part="hint"] .mascot').getAttribute('data-pose')).toBe('arrange');
+    await page.context().close();
+  });
+
   it('a flex row: gap, undo, a real move; Copy prompt gives every change and puts the page back', async () => {
     const page = await open('/');
     const unit = await base(page);
@@ -284,6 +290,7 @@ describe('Layout mode', { timeout: 120_000 }, () => {
     // Another PlanCard, before the second one: the drop line and label say where
     await page.click('[data-insert="component:PlanCard"]');
     await page.locator('[data-part="placing"]').waitFor();
+    expect(await page.locator('[data-part="placing-hint"] .mascot').getAttribute('data-pose')).toBe('place');
     await page.mouse.move(plan2.x + plan2.width / 2, plan2.y + 4);
     expect(await page.locator('[data-part="place-line"]').count()).toBe(1);
     expect(await page.locator('[data-part="place-label"]').innerText()).toBe('PlanCard: before div · PlanCard');
@@ -388,6 +395,7 @@ describe('Layout mode', { timeout: 120_000 }, () => {
     expect(await page.locator('[data-row]').count()).toBe(3);
     await page.fill('[data-part="wf-route"]', 'Enterprise plans');
     expect(await page.locator('[data-part="wf-summary"] h2').innerText()).toBe('New page /enterprise-plans');
+    expect(await page.locator('[data-part="sketch-hint"] .mascot').getAttribute('data-pose')).toBe('sketch');
 
     // Row 1 is the app's own Nav
     await block('1a').click();

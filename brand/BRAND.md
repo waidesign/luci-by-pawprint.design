@@ -4,7 +4,7 @@ Read this file, then `DESIGN.md` (component and token rules), then `CLAUDE-CODE-
 
 ## 1. Who Luci is
 
-Luci is the product and its mascot: a short-haired ginger tabby, based on a real cat.
+Luci is the product and its mascot: a short-haired ginger tabby, based on a real cat. His full name, Lucifer, is lettered on his lime collar.
 
 Personality, in order of importance:
 
@@ -89,6 +89,22 @@ Use one mascot per screen, at 96 px or larger (avatar and icons excepted). Anima
 | Success, all items done | Content | `mascot/luci-content.svg` | `luci-content-animated.svg` |
 | Errors, blocked actions | Annoyed | `mascot/luci-annoyed.svg` | `luci-annoyed-animated.svg` |
 | Paused, do not disturb, 404 | Turned away | `mascot/luci-turned.svg` | `luci-turned-animated.svg` |
+
+Each tool has its own pose, shown in the tool's hint panel:
+
+| Tool | Pose | Static file | Animated file |
+| --- | --- | --- | --- |
+| Component (pick a button, card, link or field) | Pressing | `mascot/luci-press.svg` | `luci-press-animated.svg` |
+| Text | Reading | `mascot/luci-read.svg` | `luci-read-animated.svg` |
+| Colour (element or pixel) | Swatch | `mascot/luci-swatch.svg` | `luci-swatch-animated.svg` |
+| Spacing | Measuring | `mascot/luci-measure.svg` | `luci-measure-animated.svg` |
+| Design check | Comparing | `mascot/luci-compare.svg` | `luci-compare-animated.svg` |
+| Feedback: annotate | Noting | `mascot/luci-note.svg` | `luci-note-animated.svg` |
+| Layout: select and resize | Arranging | `mascot/luci-arrange.svg` | `luci-arrange-animated.svg` |
+| Layout: insert | Placing | `mascot/luci-place.svg` | `luci-place-animated.svg` |
+| Layout: new page | Sketching | `mascot/luci-sketch.svg` | `luci-sketch-animated.svg` |
+
+The name on the collar (`luci-name`) is too small to read below about 200 px; leave it out of the art at smaller sizes.
 
 Small faces for toasts and inline messages (48 px): `mascot/luci-face-<calm|focused|unimpressed|slowblink|alert|annoyed|asleep>.svg`.
 

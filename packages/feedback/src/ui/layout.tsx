@@ -7,11 +7,11 @@
  * adding the plan to Feedback notes) puts the page back as it was.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import { Button, IconAdd, IconClose, IconCopy, IconNewPage, IconRedo, IconReset, IconSelect, IconUndo, Select, useShortcuts } from '@luci/ui';
+import { Button, IconAdd, IconClose, IconCopy, IconNewPage, IconRedo, IconReset, IconSelect, IconUndo, Mascot, Select, useShortcuts } from '@luci/ui';
 
 /** Layout's single-key shortcuts (in each tooltip); Undo and Redo keep Ctrl+Z and Ctrl+Shift+Z. */
 export const LAYOUT_KEYS = { select: 'S', insert: 'I', newPage: 'N' } as const;
-import { ButtonSpinner, LuciLogo, ModeSwitch, elementAt, isLuciUi, parentOf, scrollableAncestor, selectorFor, useUiPrefs, type ModeSwitchProps } from '@luci/capture';
+import { ButtonSpinner, Loading, LuciLogo, ModeSwitch, elementAt, isLuciUi, parentOf, scrollableAncestor, selectorFor, useUiPrefs, type ModeSwitchProps } from '@luci/capture';
 import { formatLayoutPrompt, layoutChangeText, routeOf, type LayoutPromptElement, type Part } from '@luci/format/feedback';
 import type { FeedbackBackend } from '../backend.js';
 import { startSize } from '../layout/catalog.js';
@@ -469,7 +469,10 @@ export function Layout(props: LayoutProps) {
   const placingView = (pl: Chosen) => (
     <div class="stack" data-part="placing">
       <h2>Place: {partName(pl.what)}</h2>
-      <p class="hint">Click where it goes. Near an edge: before or after. The middle of a card or list: inside, at the end. Esc cancels.</p>
+      <div class="luci-hint" data-part="placing-hint">
+        <Mascot pose="place" size={96} />
+        <p class="hint">Click where it goes. Near an edge: before or after. The middle of a card or list: inside, at the end. Esc cancels.</p>
+      </div>
       {selected && (
         <div class="stack">
           <span>Or next to {nameWithComponent(selected)}:</span>
@@ -610,15 +613,16 @@ export function Layout(props: LayoutProps) {
 
       {sketching && scale && <Sketch doc={doc} backend={backend} base={scale.base} onClose={() => setSketching(false)} />}
       {!sketching && <>
-      {!scale && <div class="sub"><p class="loading"><ButtonSpinner />Reading the page's spacing scale…</p></div>}
+      {!scale && <div class="sub"><Loading text="Reading the page's spacing scale…" part="scale-loading" sleep /></div>}
       {result?.why && (
         <div class="sub" role="status" data-part="reset-note">
           <p class="hint">Preview cleared. Your plan is safe in the {result.prompt ? 'copied prompt' : 'Feedback notes'}.</p>
         </div>
       )}
       {scale && selecting && !selected && !result && !catalog && !placing && (
-        <div class="sub" role="note" data-part="hint">
-          <p class="hint">Click an element. Drag its handles to resize, ⠿ to move it. Values snap to this page's {scale.base}px scale. Your code stays as it is.</p>
+        <div class="sub with-luci" role="note" data-part="hint">
+          <Mascot pose="arrange" size={96} />
+          <div class="sub-body"><p class="hint">Click an element. Drag its handles to resize, ⠿ to move it. Values snap to this page's {scale.base}px scale. Your code stays as it is.</p></div>
         </div>
       )}
 
