@@ -92,3 +92,15 @@ font's full licence is next to it.
 | Fredoka | Copyright 2016 The Fredoka Project Authors | `packages/ui/src/fonts/fredoka-OFL.txt` |
 | Inter | Copyright 2016 The Inter Project Authors | `packages/ui/src/fonts/inter-OFL.txt` |
 | JetBrains Mono | Copyright 2020 The JetBrains Mono Project Authors | `packages/ui/src/fonts/jetbrains-mono-OFL.txt` |
+
+## Tools Luci can install and run (not bundled)
+
+Luci's code map is powered by Graphify. Luci contains no Graphify or uv code: with the person's
+consent, `luci map --install` installs them from their own sources, and Luci runs Graphify as a
+separate program and reads the files it writes (`graphify-out/graph.json`, `GRAPH_REPORT.md`). The
+code map is optional; Luci works without it.
+
+| Tool | What Luci uses it for | Source | Licence |
+| --- | --- | --- | --- |
+| Graphify (`graphifyy` on PyPI), Copyright 2026 Safi Shamsi and the Graphify contributors | The code map: a graph of the project's code that agents query instead of reading whole files | https://github.com/Graphify-Labs/graphify, https://graphify.com | Apache License 2.0 (parts contributed earlier remain under the MIT License, as its NOTICE says) |
+| uv, by Astral | Installs Graphify (`uv tool install graphifyy`) | https://github.com/astral-sh/uv | MIT or Apache License 2.0, at your option |
