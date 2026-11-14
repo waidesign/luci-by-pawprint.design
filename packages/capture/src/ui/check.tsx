@@ -3,7 +3,7 @@
  * basket, or pasted), then, after the built component is picked and read, the result: what matches
  * and each difference, ticked to become a feedback note (dev toolbar) or copied as a report.
  */
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { cleanSource, formatCheckReport, readComponentFile, type BasketItem, type CheckDifference } from '@luci/format/capture';
 import { exportItem } from './basket.js';
 import { ButtonSpinner, Loading } from './loading.js';
@@ -131,6 +131,8 @@ export function CheckResultPanel(props: {
   const [added, setAdded] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const copyTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(copyTimer.current), []);
   const chosen = diffs.filter((_, i) => ticked[i]);
   const page = cleanSource(props.el.ownerDocument.location.href);
   const report = () => formatCheckReport({ ...result, differences: chosen }, { selector: props.selector, page, designFile: props.design.file });
@@ -180,7 +182,7 @@ export function CheckResultPanel(props: {
             {adding ? <><ButtonSpinner />Adding…</> : `Add ${chosen.length} as feedback note${chosen.length === 1 ? '' : 's'}`}
           </button>
         )}
-        <button type="button" class={props.addNotes ? '' : 'primary'} data-action="check-copy" onClick={() => void props.onCopy(report()).then(() => setCopied(true))}>
+        <button type="button" class={props.addNotes ? '' : 'primary'} data-action="check-copy" onClick={() => void props.onCopy(report()).then(() => { setCopied(true); clearTimeout(copyTimer.current); copyTimer.current = setTimeout(() => setCopied(false), 1400); })}>
           {copied ? 'Copied' : diffs.length ? 'Copy as a prompt' : 'Copy the report'}
         </button>
         <button type="button" data-action="check-again" onClick={props.onAgain}>Check another</button>

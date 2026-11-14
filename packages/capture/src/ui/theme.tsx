@@ -122,3 +122,47 @@ export function AppearanceControls(props: { prefs: UiPrefs; onChange: (patch: Pa
     </div>
   );
 }
+
+/** Meaningful inline SVG icons (aria-hidden so button.innerText stays purely the text label). */
+export function CopyIcon(props: { copied?: boolean }) {
+  return props.copied ? (
+    <svg class="btn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  ) : (
+    <svg class="btn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="9" y="9" width="11" height="11" rx="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+  );
+}
+
+export function DownloadIcon() {
+  return (
+    <svg class="btn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+  );
+}
+
+export function BasketIcon(props: { added?: boolean }) {
+  return (
+    <svg class="btn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M5 8h14l-1.4 11a2 2 0 0 1-2 1.7H8.4a2 2 0 0 1-2-1.7L5 8Z" />
+      <path d="M9 8V5.5a3 3 0 0 1 6 0V8" />
+      {props.added ? <polyline points="9.5 14 11.3 15.8 14.8 12.2" /> : <path d="M12 11.5v5M9.5 14h5" />}
+    </svg>
+  );
+}
+
+export function PickAgainIcon() {
+  return (
+    <svg class="btn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="7" />
+      <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+      <circle cx="12" cy="12" r="1.8" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}

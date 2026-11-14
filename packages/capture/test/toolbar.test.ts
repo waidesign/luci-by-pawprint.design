@@ -289,9 +289,18 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
     const name = await page.locator('[data-part="file-name"]').innerText();
     const [download] = await Promise.all([page.waitForEvent('download'), page.click('[data-action="download"]')]);
     expect(download.suggestedFilename()).toBe(name);
+    // Meaningful icons on Copy, Download, Add to basket, Pick again
+    expect(await page.locator('[data-action="copy"] svg.btn-ico').count()).toBe(1);
+    expect(await page.locator('[data-action="download"] svg.btn-ico').count()).toBe(1);
+    expect(await page.locator('[data-action="add-to-basket"] svg.btn-ico').count()).toBe(1);
+    expect(await page.locator('[data-action="pick-again"] svg.btn-ico').count()).toBe(1);
+    // Copy works repeatedly (infinite times) as edits or settings change
     await page.click('[data-action="copy"]');
-    // Windows' clipboard stores line breaks as CRLF
     expect((await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, '\n')).toBe(await preview(page));
+    await page.locator('[data-part="instructions"]').fill('Second copy check');
+    expect(await page.locator('[data-action="copy"]').innerText()).toBe('Copy');
+    await page.click('[data-action="copy"]');
+    expect((await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, '\n')).toContain('Second copy check');
   });
 });
 
@@ -442,8 +451,10 @@ describe('extension branding, settings panel, theme switcher, and Muzzle White /
     expect(await page.locator('.luci').getAttribute('data-theme')).toBe('light');
     const lightBg = await page.locator('.luci').evaluate(el => getComputedStyle(el).getPropertyValue('--bg').trim());
     const lightAccent = await page.locator('.luci').evaluate(el => getComputedStyle(el).getPropertyValue('--accent').trim());
+    const lightDanger = await page.locator('.luci').evaluate(el => getComputedStyle(el).getPropertyValue('--danger-bg').trim());
     expect(lightBg).toBe('#f5efea');
     expect(lightAccent).toBe('#2b2b2b');
+    expect(lightDanger).toBe('#f8d7d5');
 
     await page.click('[data-theme-choice="dark"]');
     expect(await page.locator('.luci').getAttribute('data-theme')).toBe('dark');

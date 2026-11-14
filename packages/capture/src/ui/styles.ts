@@ -19,6 +19,10 @@ export const TOOLBAR_CSS = `
   --accent-ink: #2b2b2b;
   --active-bg: #333333;
   --active-border: transparent;
+  --danger-bg: #3d2424;
+  --danger-hover: #4f2d2d;
+  --danger-border: #854648;
+  --danger-ink: #fca5a5;
   --blocked: #f87171;
   --shadow: 0 12px 36px rgb(18 18 21 / 0.48), 0 2px 8px rgb(18 18 21 / 0.28);
   font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -42,6 +46,10 @@ export const TOOLBAR_CSS = `
     --accent-ink: #f5efea;
     --active-bg: #ded5cb;
     --active-border: transparent;
+    --danger-bg: #f8d7d5;
+    --danger-hover: #f2c2bf;
+    --danger-border: #e4ada9;
+    --danger-ink: #6e1f1d;
     --blocked: #dc2626;
     --shadow: 0 12px 36px rgb(43 43 43 / 0.14), 0 2px 8px rgb(43 43 43 / 0.08);
   }
@@ -63,6 +71,10 @@ export const TOOLBAR_CSS = `
   --accent-ink: #f5efea;
   --active-bg: #ded5cb;
   --active-border: transparent;
+  --danger-bg: #f8d7d5;
+  --danger-hover: #f2c2bf;
+  --danger-border: #e4ada9;
+  --danger-ink: #6e1f1d;
   --blocked: #dc2626;
   --shadow: 0 12px 36px rgb(43 43 43 / 0.14), 0 2px 8px rgb(43 43 43 / 0.08);
 }
@@ -83,6 +95,10 @@ export const TOOLBAR_CSS = `
   --accent-ink: #2b2b2b;
   --active-bg: #333333;
   --active-border: transparent;
+  --danger-bg: #3d2424;
+  --danger-hover: #4f2d2d;
+  --danger-border: #854648;
+  --danger-ink: #fca5a5;
   --blocked: #f87171;
   --shadow: 0 12px 36px rgb(18 18 21 / 0.48), 0 2px 8px rgb(18 18 21 / 0.28);
 }
@@ -281,6 +297,60 @@ button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); o
   font-weight: 600;
 }
 .primary:hover { background: var(--accent-hover); }
+.btn-with-ico {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+.btn-ico {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+.btn-danger,
+button[data-item-remove],
+button[data-action="clear-basket"],
+button[data-action="clear-basket-confirm"],
+button[data-action="undo-edits"],
+button[data-action="delete"],
+button[data-action="clear-done"],
+button[data-action="clear-all"],
+button[data-action="clear-all-confirm"],
+button[data-action="remove-insert"],
+button[data-action="wf-clear"],
+button[data-action="wf-remove-block"],
+button[data-action="wf-remove-row"] {
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+  color: var(--danger-ink);
+  font-weight: 500;
+}
+.btn-danger:hover:not(:disabled),
+button[data-item-remove]:hover:not(:disabled),
+button[data-action="clear-basket"]:hover:not(:disabled),
+button[data-action="clear-basket-confirm"]:hover:not(:disabled),
+button[data-action="undo-edits"]:hover:not(:disabled),
+button[data-action="delete"]:hover:not(:disabled),
+button[data-action="clear-done"]:hover:not(:disabled),
+button[data-action="clear-all"]:hover:not(:disabled),
+button[data-action="clear-all-confirm"]:hover:not(:disabled),
+button[data-action="remove-insert"]:hover:not(:disabled),
+button[data-action="wf-clear"]:hover:not(:disabled),
+button[data-action="wf-remove-block"]:hover:not(:disabled),
+button[data-action="wf-remove-row"]:hover:not(:disabled) {
+  background: var(--danger-hover);
+  border-color: var(--danger-border);
+}
+.btn-danger:disabled,
+button[data-action="clear-done"]:disabled,
+button[data-action="clear-all"]:disabled,
+button[data-action="wf-remove-row"]:disabled {
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+  color: var(--danger-ink);
+  opacity: 0.45;
+}
 
 .sub {
   position: fixed;

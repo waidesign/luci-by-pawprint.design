@@ -14,7 +14,7 @@ import { elementName } from '../naming.js';
 import { elementAt, eligibilityOf, eventTarget, firstChildOf, hoverLabel, parentOf, scrollableAncestor } from './picker.js';
 import { ButtonSpinner, Loading, nextPaint } from './loading.js';
 import { ModeSwitch, type ModeSwitchProps } from './modeSwitch.js';
-import { AppearanceControls, LuciLogo, useUiPrefs } from './theme.js';
+import { AppearanceControls, BasketIcon, CopyIcon, DownloadIcon, LuciLogo, PickAgainIcon, useUiPrefs } from './theme.js';
 import { zip } from './zip.js';
 import { CheckResultPanel, DesignChooser, type AddCheckNotes, type DesignSource } from './check.js';
 import {
@@ -662,8 +662,12 @@ export function Toolbar(props: ToolbarProps) {
     return () => doc.removeEventListener('keydown', onKey, true);
   }, [picking, settingsOpen, picked, result, checkOutcome, checkOpen]);
 
+  const copyTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(copyTimer.current), []);
+
   const changeSettings = (next: CaptureSettings) => {
     setSettings(next);
+    setCopied(false);
     props.onSettingsChange?.(next);
   };
 
@@ -676,6 +680,7 @@ export function Toolbar(props: ToolbarProps) {
   const markdown = edited ?? (captureWithInstructions ? formatCapture(captureWithInstructions, settings) : '');
   const changeInstructions = (text: string) => {
     setInstructions(text);
+    setCopied(false);
     // Edited text keeps the edits; only its instructions section follows the box
     if (edited !== null) setEdited(withInstructions(edited, text));
   };
@@ -694,6 +699,8 @@ export function Toolbar(props: ToolbarProps) {
       area.remove();
     }
     setCopied(true);
+    clearTimeout(copyTimer.current);
+    copyTimer.current = setTimeout(() => setCopied(false), 1400);
   };
 
   const downloadText = (fileName: string, text: string) => {
@@ -963,7 +970,7 @@ export function Toolbar(props: ToolbarProps) {
 
         <div class="bar" role="toolbar" aria-label="Luci capture">
           {TOOLS.map(t => (
-            <button type="button" aria-pressed={!checking && !settingsOpen && tool === t && (picking || dropperOpen || Boolean(picked) || Boolean(result))} data-tool={t} onClick={() => { setCheckDesign(null); startPicking(t); }}>{TOOL_LABELS[t]}</button>
+            <button type="button" aria-pressed={!checking && !basketOpen && !settingsOpen && tool === t && (picking || dropperOpen || Boolean(picked) || Boolean(result))} data-tool={t} onClick={() => { setCheckDesign(null); startPicking(t); }}>{TOOL_LABELS[t]}</button>
           ))}
           <button type="button" aria-pressed={wholePage && !basketOpen && !settingsOpen && (pageBusy || Boolean(result))} data-action="whole-page" title="One file for this whole page: its typography, colors, spacing and every kind of component" onClick={captureWholePage}>Whole page</button>
           <button type="button" aria-pressed={checking && !basketOpen && !settingsOpen} data-action="check" title="Check a component you built against its design file" onClick={openCheck}>Check</button>
@@ -1025,8 +1032,8 @@ export function Toolbar(props: ToolbarProps) {
                 <div class="file" data-part="file-name">{exported.fileName}</div>
                 <pre data-part="preview">{exported.markdown}</pre>
                 <div class="row">
-                  <button type="button" class="primary" data-action="copy" onClick={() => void copyText(exported.markdown)}>{copied ? 'Copied' : 'Copy'}</button>
-                  <button type="button" class="btn-outline" data-action="download" onClick={() => downloadText(exported.fileName, exported.markdown)}>Download .design.md</button>
+                  <button type="button" class="primary btn-with-ico" data-action="copy" onClick={() => void copyText(exported.markdown)}><CopyIcon copied={copied} />{copied ? 'Copied' : 'Copy'}</button>
+                  <button type="button" class="btn-outline btn-with-ico" data-action="download" onClick={() => downloadText(exported.fileName, exported.markdown)}><DownloadIcon />Download .design.md</button>
                   {props.saveToProject && <SaveButton save={() => props.saveToProject!(exported.fileName, exported.markdown)} key={exported.fileName} />}
                   <button type="button" class="btn-outline" data-action="basket-back" onClick={() => { setBasketExport(null); setCopied(false); }}>Back to the basket</button>
                 </div>
@@ -1301,25 +1308,25 @@ export function Toolbar(props: ToolbarProps) {
                     )}
                   </div>
                   <textarea class="preview" data-part="preview" spellcheck={false} value={markdown}
-                    onInput={e => setEdited((e.currentTarget as HTMLTextAreaElement).value)} />
+                    onInput={e => { setEdited((e.currentTarget as HTMLTextAreaElement).value); setCopied(false); }} />
                   <div class="row">
-                    <button type="button" class="primary" data-action="copy" onClick={copy}>{copied ? 'Copied' : sectionFiles.length ? 'Copy section file' : 'Copy'}</button>
+                    <button type="button" class="primary btn-with-ico" data-action="copy" onClick={copy}><CopyIcon copied={copied} />{copied ? 'Copied' : sectionFiles.length ? 'Copy section file' : 'Copy'}</button>
                     {sectionFiles.length
-                      ? <button type="button" class="btn-outline" data-action="download-zip" title="The section file and its component files in one .zip" onClick={downloadZip}>Download .zip ({sectionFiles.length + 1} files)</button>
-                      : <button type="button" class="btn-outline" data-action="download" onClick={download}>Download</button>}
+                      ? <button type="button" class="btn-outline btn-with-ico" data-action="download-zip" title="The section file and its component files in one .zip" onClick={downloadZip}><DownloadIcon />Download .zip ({sectionFiles.length + 1} files)</button>
+                      : <button type="button" class="btn-outline btn-with-ico" data-action="download" onClick={download}><DownloadIcon />Download</button>}
                     {props.saveToProject && output && <SaveButton save={saveAll} key={output.fileName} />}
                     {props.makeRule && output && output.capture.meta.scope === 'component' && (
                       <RuleButton make={() => props.makeRule!(output.fileName, markdown)} key={`rule ${output.fileName}`} />
                     )}
-                    <button type="button" class="btn-outline" data-action="add-to-basket" disabled={added} onClick={() => void addCurrent()}>{added ? 'Added to basket' : 'Add to basket'}</button>
-                    {tool && <button type="button" class="btn-outline" onClick={() => startPicking(tool)}>Pick again</button>}
+                    <button type="button" class="btn-outline btn-with-ico" data-action="add-to-basket" disabled={added} onClick={() => void addCurrent()}><BasketIcon added={added} />{added ? 'Added to basket' : 'Add to basket'}</button>
+                    {tool && <button type="button" class="btn-outline btn-with-ico" data-action="pick-again" onClick={() => startPicking(tool)}><PickAgainIcon />Pick again</button>}
                   </div>
                 </div>
               </>
             ) : (
               <>
                 <p class="error" data-part="error">{result.message}</p>
-                {tool && <div class="row"><button type="button" class="btn-outline" onClick={() => startPicking(tool)}>Pick again</button></div>}
+                {tool && <div class="row"><button type="button" class="btn-outline btn-with-ico" data-action="pick-again" onClick={() => startPicking(tool)}><PickAgainIcon />Pick again</button></div>}
               </>
             )}
           </div>
