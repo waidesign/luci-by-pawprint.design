@@ -16,7 +16,7 @@ import { ButtonSpinner, Loading, nextPaint } from './loading.js';
 import { ModeSwitch, type ModeSwitchProps } from './modeSwitch.js';
 import {
   Button, COPY, EmptyState, Icon, IconBasket, IconCheck, IconClose, IconColour, IconComponent, IconCopy, IconDownload, IconInfo, IconPage,
-  IconSpacing, IconSuccess, IconText, Mascot, type LucideIcon
+  IconSpacing, IconSuccess, IconText, Mascot, Select, useShortcuts, type LucideIcon
 } from '@luci/ui';
 import { AppearanceControls, LuciLogo, useUiPrefs } from './theme.js';
 import { zip } from './zip.js';
@@ -24,7 +24,6 @@ import { CheckResultPanel, DesignChooser, type AddCheckNotes, type DesignSource 
 import {
   ALL_SPACING,
   TOOLS,
-  TOOL_LABELS,
   captureComponent,
   checkAgainst,
   readResponsive,
@@ -211,6 +210,8 @@ function Loupe(props: { shot: { ctx: CanvasRenderingContext2D; scale: number }; 
   return <canvas ref={ref} class="loupe" data-part="pixel-loupe" aria-hidden="true" style={{ left: `${props.left}px`, top: `${props.top}px` }} />;
 }
 
+/** The toolbar's single-key shortcuts (in each tooltip; the menu lists them under Keys). */
+export const KEYS = { component: 'V', text: 'T', color: 'C', spacing: 'S', page: 'P', check: 'K', basket: 'B', menu: 'M' } as const;
 /** Each tool's icon in the toolbar (brand/luci-icons.json). */
 const TOOL_ICONS: Readonly<Record<ToolId, LucideIcon>> = { component: IconComponent, text: IconText, color: IconColour, spacing: IconSpacing };
 const px = (v: string) => parseFloat(v) || 0;
@@ -968,6 +969,20 @@ export function Toolbar(props: ToolbarProps) {
     }
   };
 
+  // The tool in use, for the pill (including Pixel mode and the eyedropper)
+  const currentTool: ToolId | null = !checking && !wholePage && tool && (picking || dropperOpen || pixelMode || Boolean(picked) || Boolean(result)) ? tool : null;
+  const pickTool = (t: ToolId) => { setSettingsOpen(false); setBasketOpen(false); setCheckDesign(null); startPicking(t); };
+  const toggleMenu = () => setSettingsOpen(s => !s);
+  const toggleBasket = () => { setSettingsOpen(false); if (basketOpen) setBasketOpen(false); else openBasket(); };
+  // Single-key shortcuts while the toolbar is open (never while typing; DESIGN.md section 7)
+  useShortcuts(doc, [
+    ...TOOLS.map(t => ({ key: KEYS[t], run: () => pickTool(t) })),
+    { key: KEYS.page, run: () => void captureWholePage() },
+    { key: KEYS.check, run: openCheck },
+    { key: KEYS.basket, run: toggleBasket },
+    { key: KEYS.menu, run: toggleMenu }
+  ], countdown === null);
+
   // First run: Luci greets once, until the first tool or panel is opened (BRAND.md: first run, slow blink)
   const idle = !settingsOpen && !basketOpen && !picking && !picked && !result && !pageBusy && !checkOpen && !pixelMode && !dropperOpen;
   const greeting = idle && !uiPrefs.greeted;
@@ -982,22 +997,22 @@ export function Toolbar(props: ToolbarProps) {
     <div class="luci luci-theme" data-theme={uiPrefs.theme} data-dock={uiPrefs.dock}>
       <div class="shell" data-part="shell">
         <div class="bar" role="toolbar" aria-label={props.modes ? COPY.capture.devTitle : COPY.capture.title}>
-          <button type="button" class="menu-btn" data-action="settings" aria-label={COPY.common.menu} aria-pressed={settingsOpen} data-tip={COPY.common.menu}
-            onClick={() => setSettingsOpen(s => !s)}><LuciLogo size={48} /></button>
+          <button type="button" class="menu-btn" data-action="settings" aria-label={COPY.common.menu} aria-pressed={settingsOpen} aria-keyshortcuts={KEYS.menu}
+            data-tip={`${COPY.common.menu}  ${KEYS.menu}`} onClick={toggleMenu}><LuciLogo size={48} /></button>
           {props.modes && <ModeSwitch {...props.modes} />}
           <span class="bar-sep" aria-hidden="true" />
+          {/* The tool in use stays marked while the menu or the basket is open: the pill always says where you are */}
           {TOOLS.map(t => (
-            <Button iconOnly size="lg" class="tool" icon={TOOL_ICONS[t]} label={COPY.capture.tools[t]} data-tool={t}
-              aria-pressed={!checking && !basketOpen && !settingsOpen && tool === t && (picking || dropperOpen || Boolean(picked) || Boolean(result))}
-              onClick={() => { setCheckDesign(null); startPicking(t); }} />
+            <Button iconOnly size="lg" class="tool" icon={TOOL_ICONS[t]} label={COPY.capture.tools[t]} shortcut={KEYS[t]} data-tool={t}
+              aria-pressed={currentTool === t} onClick={() => pickTool(t)} />
           ))}
-          <Button iconOnly size="lg" class="tool" icon={IconPage} label={COPY.capture.tools.page} data-action="whole-page"
-            aria-pressed={wholePage && !basketOpen && !settingsOpen && (pageBusy || Boolean(result))} onClick={captureWholePage} />
-          <Button iconOnly size="lg" class="tool" icon={IconCheck} label={COPY.capture.tools.check} data-action="check"
-            aria-pressed={checking && !basketOpen && !settingsOpen} onClick={openCheck} />
+          <Button iconOnly size="lg" class="tool" icon={IconPage} label={COPY.capture.tools.page} shortcut={KEYS.page} data-action="whole-page"
+            aria-pressed={wholePage && (pageBusy || Boolean(result))} onClick={captureWholePage} />
+          <Button iconOnly size="lg" class="tool" icon={IconCheck} label={COPY.capture.tools.check} shortcut={KEYS.check} data-action="check"
+            aria-pressed={checking} onClick={openCheck} />
           <span class="bar-sep" aria-hidden="true" />
           <button type="button" class="basket-pill" data-action="basket" aria-pressed={basketOpen && !settingsOpen} aria-label={COPY.capture.basketLabel(basket.length)}
-            onClick={() => { setSettingsOpen(false); if (basketOpen) setBasketOpen(false); else openBasket(); }}>
+            aria-keyshortcuts={KEYS.basket} data-tip={`Basket  ${KEYS.basket}`} onClick={toggleBasket}>
             <Icon icon={IconBasket} />{COPY.capture.basket(basket.length)}
           </button>
           <Button iconOnly size="lg" class="tool" icon={IconClose} label={COPY.common.close} data-action="close" onClick={props.onClose} />
@@ -1034,28 +1049,34 @@ export function Toolbar(props: ToolbarProps) {
               <div class="settings-grid">
                 <label class="field-stack">
                   <span class="dim">Units</span>
-                  <select data-setting="units" value={settings.units ?? 'px'} onChange={e => changeSettings({ ...settings, units: (e.currentTarget as HTMLSelectElement).value as 'px' })}>
+                  <Select data-setting="units" value={settings.units ?? 'px'} onChange={e => changeSettings({ ...settings, units: (e.currentTarget as HTMLSelectElement).value as 'px' })}>
                     <option value="px">px</option><option value="rem">rem</option><option value="both">both</option>
-                  </select>
+                  </Select>
                 </label>
                 <label class="field-stack">
                   <span class="dim">Colours</span>
-                  <select data-setting="colors" value={settings.colors ?? 'hex'} onChange={e => changeSettings({ ...settings, colors: (e.currentTarget as HTMLSelectElement).value as 'hex' })}>
+                  <Select data-setting="colors" value={settings.colors ?? 'hex'} onChange={e => changeSettings({ ...settings, colors: (e.currentTarget as HTMLSelectElement).value as 'hex' })}>
                     <option value="hex">hex</option><option value="rgb">rgb</option><option value="hsl">hsl</option><option value="oklch">oklch</option>
-                  </select>
+                  </Select>
                 </label>
                 <label class="field-stack" title="The file's source line: the page address, or only the site name">
                   <span class="dim">Source</span>
-                  <select data-setting="source" value={settings.source ?? 'page'} onChange={e => changeSettings({ ...settings, source: (e.currentTarget as HTMLSelectElement).value as 'page' })}>
+                  <Select data-setting="source" value={settings.source ?? 'page'} onChange={e => changeSettings({ ...settings, source: (e.currentTarget as HTMLSelectElement).value as 'page' })}>
                     <option value="page">page address</option><option value="site">site name only</option>
-                  </select>
+                  </Select>
                 </label>
               </div>
             </div>
             <hr class="settings-divider" />
             <div class="stack">
               <span class="field-label">Keys</span>
-              <div class="shortcut-list">
+              <div class="shortcut-list" data-part="keys">
+                <span>{TOOLS.map(t => <><kbd class="kbd">{KEYS[t]}</kbd> </>)}</span>
+                <span class="dim">Component, Text, Colour, Spacing</span>
+                <span><kbd class="kbd">{KEYS.page}</kbd> <kbd class="kbd">{KEYS.check}</kbd></span>
+                <span class="dim">Whole page, Check a build</span>
+                <span><kbd class="kbd">{KEYS.basket}</kbd> <kbd class="kbd">{KEYS.menu}</kbd></span>
+                <span class="dim">Basket, this menu</span>
                 <span><kbd class="kbd">↑</kbd> <kbd class="kbd">↓</kbd></span>
                 <span class="dim">Wider or narrower selection</span>
                 <span><kbd class="kbd">Enter</kbd></span>
@@ -1274,21 +1295,21 @@ export function Toolbar(props: ToolbarProps) {
                   <div class="settings-grid">
                     <label class="field-stack">
                       <span class="field-label">Units</span>
-                      <select data-setting="units" value={settings.units ?? 'px'} onChange={e => changeSettings({ ...settings, units: (e.currentTarget as HTMLSelectElement).value as 'px' })}>
+                      <Select data-setting="units" value={settings.units ?? 'px'} onChange={e => changeSettings({ ...settings, units: (e.currentTarget as HTMLSelectElement).value as 'px' })}>
                         <option value="px">px</option><option value="rem">rem</option><option value="both">both</option>
-                      </select>
+                      </Select>
                     </label>
                     <label class="field-stack">
                       <span class="field-label">Colours</span>
-                      <select data-setting="colors" value={settings.colors ?? 'hex'} onChange={e => changeSettings({ ...settings, colors: (e.currentTarget as HTMLSelectElement).value as 'hex' })}>
+                      <Select data-setting="colors" value={settings.colors ?? 'hex'} onChange={e => changeSettings({ ...settings, colors: (e.currentTarget as HTMLSelectElement).value as 'hex' })}>
                         <option value="hex">hex</option><option value="rgb">rgb</option><option value="hsl">hsl</option><option value="oklch">oklch</option>
-                      </select>
+                      </Select>
                     </label>
                     <label class="field-stack" title="The file's source line: the page address, or only the site name">
                       <span class="field-label">Source</span>
-                      <select data-setting="source" value={settings.source ?? 'page'} onChange={e => changeSettings({ ...settings, source: (e.currentTarget as HTMLSelectElement).value as 'page' })}>
+                      <Select data-setting="source" value={settings.source ?? 'page'} onChange={e => changeSettings({ ...settings, source: (e.currentTarget as HTMLSelectElement).value as 'page' })}>
                         <option value="page">page address</option><option value="site">site name only</option>
-                      </select>
+                      </Select>
                     </label>
                   </div>
                   {stateNote && <p class="hint" data-part="state-note">{stateNote}</p>}
@@ -1324,10 +1345,10 @@ export function Toolbar(props: ToolbarProps) {
                             <span class="dim">Set hover, focus or active yourself. 3 second countdown.</span>
                           </div>
                           <div class="manual-actions">
-                            <select id="luci-manual-state" data-setting="manual-state" value={manualTarget} onChange={e => setManualTarget((e.currentTarget as HTMLSelectElement).value as ManualTarget)}>
+                            <Select id="luci-manual-state" data-setting="manual-state" value={manualTarget} onChange={e => setManualTarget((e.currentTarget as HTMLSelectElement).value as ManualTarget)}>
                               {missingStates(componentCtx.states).length > 0 && <option value={ALL_MISSING}>All missing states ({missingStates(componentCtx.states).length})</option>}
                               {STATE_ORDER.filter(s => s !== 'disabled').map(s => <option value={s}>{s}</option>)}
-                            </select>
+                            </Select>
                             <button type="button" class="btn-secondary" data-action="capture-state" onClick={captureCurrentState}>{manualTarget === ALL_MISSING ? 'Capture' : 'Capture state'}</button>
                           </div>
                         </div>

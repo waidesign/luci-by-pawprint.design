@@ -410,6 +410,8 @@ describe('Pixel mode from a screenshot (user feedback)', { timeout: 30_000 }, ()
     await page.click('[data-color-mode="pixel"]');
     await page.locator('[data-part="pixel-layer"]').waitFor();
     expect(await page.locator('[data-color-mode="pixel"]').getAttribute('aria-pressed')).toBe('true');
+    // The Colour tool stays marked as the one in use while picking a pixel
+    expect(await page.locator('button[data-tool="color"]').getAttribute('aria-pressed')).toBe('true');
     const button = (await page.locator('.button').first().boundingBox())!;
     await page.mouse.move(button.x + 6, button.y + button.height / 2);
     expect(await page.locator('[data-part="pixel-swatch"]').innerText()).toBe('#0f62fe');
@@ -458,9 +460,23 @@ describe('extension branding, settings panel and the brand kit themes', { timeou
       const b = page.locator(`button[data-tool="${t}"]`);
       expect(await b.locator('svg.icon').count(), t).toBe(1);
       expect(await b.getAttribute('aria-label'), t).toBeTruthy();
-      expect(await b.getAttribute('data-tip'), t).toBe(await b.getAttribute('aria-label'));
+      // The tooltip: the name, then the key
+      expect(await b.getAttribute('data-tip'), t).toBe(`${await b.getAttribute('aria-label')}  ${await b.getAttribute('aria-keyshortcuts')}`);
     }
     expect(await page.locator('.bar').evaluate(e => getComputedStyle(e).backgroundColor)).toBe('rgb(43, 43, 43)');
+    // Shortcuts: C picks Colour, which shows as on (ginger-400, Charcoal); the tooltip names the key
+    expect(await page.locator('button[data-tool="color"]').getAttribute('data-tip')).toBe('Colour  C');
+    await page.keyboard.press('c');
+    const colourTool = page.locator('button[data-tool="color"]');
+    expect(await colourTool.getAttribute('aria-pressed')).toBe('true');
+    // (after the 150 ms colour transition), and stays on while the pointer is over it
+    await expect.poll(() => colourTool.evaluate(e => [getComputedStyle(e).backgroundColor, getComputedStyle(e).color])).toEqual(['rgb(246, 162, 79)', 'rgb(43, 43, 43)']);
+    await colourTool.hover();
+    await expect.poll(() => colourTool.evaluate(e => getComputedStyle(e).backgroundColor)).toBe('rgb(246, 162, 79)');
+    // The pill sits above the cards, so its tooltips are never under one
+    expect(await page.locator('.shell > .bar').evaluate(e => getComputedStyle(e).zIndex)).toBe('2');
+    expect(await page.locator('.shell > .sub').evaluate(e => getComputedStyle(e).zIndex)).toBe('auto');
+    await page.keyboard.press('Escape');
     // The kit's fonts are loaded into the page under Luci's own names
     expect(await page.evaluate(async () => { await document.fonts.ready; const s: string[] = []; document.fonts.forEach(f => { if (f.family.includes('Luci')) s.push(f.status); }); return s; })).toEqual(['loaded', 'loaded', 'loaded']);
 

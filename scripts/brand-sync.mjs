@@ -85,7 +85,8 @@ const bar = {
   bar: pal('muzzle-900'),
   'bar-ink': pal('muzzle-50'),
   'bar-ink-secondary': pal('muzzle-300'),
-  'bar-hover': alpha('muzzle-50', 10),
+  // A hover a person can see on Charcoal (muzzle-700), clearly short of the ginger-400 active fill
+  'bar-hover': pal('muzzle-700'),
   'bar-stroke': alpha('muzzle-50', 16),
   'tool-active': pal('ginger-400'),
   'on-tool-active': pal('muzzle-900')

@@ -81,7 +81,12 @@ export const COMPONENTS_CSS = `
 .luci-theme button:active:not(:disabled) { transform: translateY(1px); }
 .luci-theme button:disabled { color: var(--luci-color-ink-disabled); background: transparent; cursor: not-allowed; }
 .luci-theme button[aria-busy="true"] { cursor: progress; }
-.luci-theme button[aria-pressed="true"]:not(.btn-primary) { background: var(--luci-color-primary-soft); color: var(--luci-color-link); }
+/* On (a tool, a toggle, a segment): one look everywhere, the kit's active tool fill (ginger-400, Charcoal text, 6.9:1) */
+.luci-theme button[aria-pressed="true"]:not(.btn-primary),
+.luci-theme button[aria-pressed="true"]:not(.btn-primary):hover:not(:disabled) { background: var(--luci-color-tool-active); color: var(--luci-color-on-tool-active); }
+/* A small count on a button */
+.btn-badge { position: absolute; top: 0; right: 0; min-width: 18px; height: 18px; padding: 0 5px; border-radius: var(--luci-radius-full);
+  background: var(--luci-color-accent); color: var(--luci-color-on-accent); font: 600 11px/18px var(--luci-font-body); text-align: center; pointer-events: none; }
 
 /* Sizes */
 .luci-theme .btn-sm { --luci-btn-h: 32px; --luci-btn-font: var(--luci-type-small-size); --luci-btn-line: var(--luci-type-small-line); --luci-btn-pad: var(--luci-space-12); }
@@ -153,17 +158,11 @@ export const COMPONENTS_CSS = `
   transition: border-color var(--luci-motion-fast);
 }
 .luci-theme :where(textarea) { padding: var(--luci-space-8) var(--luci-space-12); resize: vertical; }
-/* A select draws its own chevron, always 12 px from the edge, in the text colour */
-.luci-theme :where(select) {
-  appearance: none;
-  padding-inline-end: 32px;
-  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
-  background-position: calc(100% - 17px) 50%, calc(100% - 12px) 50%;
-  background-size: 5px 5px, 5px 5px;
-  background-repeat: no-repeat;
-  text-overflow: ellipsis;
-  cursor: pointer;
-}
+/* Select: the component wraps it with the kit's chevron icon, 12 px from the edge */
+.luci-theme :where(select) { appearance: none; padding-inline-end: 36px; text-overflow: ellipsis; cursor: pointer; }
+.select { position: relative; display: inline-flex; vertical-align: middle; min-width: 0; }
+.select > select { flex: 1 1 auto; min-width: 0; }
+.select > .icon { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; }
 .luci-theme :where(input, select, textarea):hover:not(:disabled) { border-color: var(--luci-color-stroke-strong); }
 .luci-theme ::placeholder { color: var(--luci-color-ink-secondary); opacity: 1; }
 .luci-theme :where(input[type="checkbox"], input[type="radio"]) { accent-color: var(--luci-color-primary); }

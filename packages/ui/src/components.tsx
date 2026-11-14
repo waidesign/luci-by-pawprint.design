@@ -1,13 +1,13 @@
 /** Shared components (brand/DESIGN.md section 6). */
 import type { ComponentChildren, JSX } from 'preact';
 import { Icon, type IconSize } from './icon.js';
-import { IconError, IconInfo, IconSuccess, IconWarning, type LucideIcon } from './icons.js';
+import { IconChevron, IconError, IconInfo, IconSuccess, IconWarning, type LucideIcon } from './icons.js';
 import { Mascot, type MascotPose } from './mascot/mascot.js';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'link';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
-export type ButtonProps = Omit<JSX.HTMLAttributes<HTMLButtonElement>, 'size' | 'icon' | 'label'> & {
+export type ButtonProps = Omit<JSX.ButtonHTMLAttributes<HTMLButtonElement>, 'size' | 'icon' | 'label' | 'type'> & {
   variant?: ButtonVariant;
   /** Default: the surface's size (sm on Luci's compact panels, md elsewhere). */
   size?: ButtonSize;
@@ -22,6 +22,10 @@ export type ButtonProps = Omit<JSX.HTMLAttributes<HTMLButtonElement>, 'size' | '
   tipAbove?: boolean;
   /** Working: aria-busy, and a click does nothing until it is done. */
   loading?: boolean;
+  /** Its single-key shortcut ("C"): shown in the tooltip and as aria-keyshortcuts (the surface runs it with useShortcuts). */
+  shortcut?: string;
+  /** A small count on an icon-only button (notes, planned changes). */
+  badge?: number | string;
   disabled?: boolean;
   type?: 'button' | 'submit';
   class?: string;
@@ -33,7 +37,7 @@ export type ButtonProps = Omit<JSX.HTMLAttributes<HTMLButtonElement>, 'size' | '
  * carry an aria-label and a tooltip (DESIGN.md section 7).
  */
 export function Button(props: ButtonProps) {
-  const { variant = 'ghost', size, icon, iconOnly, label, tip, tipAbove, loading, class: extra, children, type = 'button', onClick, ...rest } = props;
+  const { variant = 'ghost', size, icon, iconOnly, label, tip, tipAbove, loading, shortcut, badge, class: extra, children, type = 'button', onClick, ...rest } = props;
   const iconSize: IconSize = size === 'lg' ? 'toolbar' : size === 'md' ? 'content' : 'compact';
   const cls = [
     `btn-${variant}`,
@@ -42,12 +46,13 @@ export function Button(props: ButtonProps) {
     extra ?? ''
   ].filter(Boolean).join(' ');
   const name = label ?? (typeof children === 'string' ? children : undefined);
-  const tipText = iconOnly ? [name, tip].filter(Boolean).join('  ') : tip;
+  const tipText = iconOnly ? [name, tip, shortcut].filter(Boolean).join('  ') : [tip, shortcut].filter(Boolean).join('  ') || undefined;
   return (
     <button
       type={type}
       class={cls}
       {...(iconOnly && name ? { 'aria-label': name } : {})}
+      {...(shortcut ? { 'aria-keyshortcuts': shortcut } : {})}
       {...(tipText ? { 'data-tip': tipText } : {})}
       {...(tipText && tipAbove ? { 'data-tip-pos': 'above' } : {})}
       {...(loading ? { 'aria-busy': 'true' } : {})}
@@ -56,7 +61,21 @@ export function Button(props: ButtonProps) {
     >
       {icon && <Icon icon={icon} size={iconSize} />}
       {!iconOnly && (children ?? label)}
+      {badge !== undefined && badge !== '' && badge !== 0 && <span class="btn-badge" aria-hidden="true">{badge}</span>}
     </button>
+  );
+}
+
+export type SelectProps = Omit<JSX.SelectHTMLAttributes<HTMLSelectElement>, 'class'> & { class?: string; children?: ComponentChildren };
+
+/** A select with the kit's chevron (the approved Lucide icon), always 12 px from its edge. */
+export function Select(props: SelectProps) {
+  const { class: extra, children, ...rest } = props;
+  return (
+    <span class={`select${extra ? ` ${extra}` : ''}`}>
+      <select {...rest}>{children}</select>
+      <Icon icon={IconChevron} size="compact" />
+    </span>
   );
 }
 

@@ -101,7 +101,7 @@ describe('Layout mode', { timeout: 120_000 }, () => {
     expect(xs[2]).toBeLessThan(xs[0]!);
     // Only the moved link gets a move step (its neighbors shifted, they did not move)
     expect(await page.locator('[data-part="changes"]').innerText()).toBe('move it before `nav > a:nth-of-type(1)` (a): 3rd of 3 → 1st');
-    expect(await page.locator('[data-action="copy-layout-prompt"]').innerText()).toBe('Copy prompt (2)');
+    expect(await page.locator('[data-action="copy-layout-prompt"]').getAttribute('aria-label')).toBe('Copy prompt (2)');
 
     // Copy the plan with a note: one prompt, then the page is back
     await page.fill('[data-part="layout-note"]', 'Checkout is what most people come for');
@@ -341,7 +341,7 @@ describe('Layout mode', { timeout: 120_000 }, () => {
     expect(await page.locator('[data-action="insert-full-width"]').count()).toBe(0);
 
     // Copy: one prompt with all three; the page is back
-    expect(await page.locator('[data-action="copy-layout-prompt"]').innerText()).toBe('Copy prompt (3)');
+    expect(await page.locator('[data-action="copy-layout-prompt"]').getAttribute('aria-label')).toBe('Copy prompt (3)');
     await page.click('[data-action="deselect"]');
     await page.click('[data-action="copy-layout-prompt-panel"]');
     const prompt = await page.locator('[data-part="layout-prompt"]').innerText();

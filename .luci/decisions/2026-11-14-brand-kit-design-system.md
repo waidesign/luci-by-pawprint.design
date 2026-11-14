@@ -22,6 +22,13 @@ The user supplied the Luci brand kit (mascot, logos, tokens, DESIGN.md, BRAND.md
 14. **Selects** draw their chevron with CSS (two gradients in the text colour), 12 px from the edge everywhere; the kit's icon list has no chevron.
 15. **Copy**: shorter, factual hints and labels across the toolbar, Feedback, Layout and the sketch.
 
+## Update 2: states, shortcuts, more icons (user's go)
+16. **One "on" look everywhere**: any pressed button (tool, toggle, segment) is ginger-400 with Charcoal, also while hovered. The tool in use stays marked with the menu or basket open, and in Pixel mode. Hover on Charcoal is muzzle-700.
+17. **Tooltips above cards**: cards in the shell column drop their stand-alone z-index (flex items honour z-index unpositioned); the pill sits at z-index 2. Stand-alone cards (Feedback, Layout) sit one layer below their pill.
+18. **Shortcuts** (`useShortcuts` in @luci/ui; never while typing, never with a modifier): Capture V T C S P K B M; Feedback A N P M; Layout S I N. Tooltips show "Name  Key"; buttons carry aria-keyshortcuts; the menu lists them.
+19. **Icons added with the user's approval**: notes `list`, select `mouse-pointer-click`, new-page `file-plus`, redo `redo-2`, reset `rotate-ccw`, chevron `chevron-down`. Feedback and Layout pills are now icon-only, counts as badges. `Select` wraps every select with the chevron icon (replaces the CSS-drawn one).
+20. **Flaky dev-toolbar test, found**: Pause waits until no animation runs, and `document.getAnimations()` includes Luci's mascot in the shadow root. `Mascot` rebuilt its SVG (new ids) on every render, so Preact replaced it and a fresh, running copy undid the pause. `Mascot` and `Face` now build the SVG once per instance; this also stops Luci's loops restarting on every state change. The `luci init` e2e test got its own 90 s limit (6 s alone, over 30 s under full parallel load).
+
 ## Open (asked the user)
 - The kit has no icon set; the Charcoal pill toolbar with 48 px icon buttons waits for one.
 - Fredoka, Inter and JetBrains Mono are not in the kit; fonts fall back to system-ui until the woff2 files are added.

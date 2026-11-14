@@ -20,7 +20,10 @@ import {
   type FeedbackItem,
   type FeedbackPriority
 } from '@luci/format/feedback';
-import { Button, COPY, EmptyState, IconAnnotate, IconClose, IconCopy, IconPause, PALETTE } from '@luci/ui';
+import { Button, COPY, EmptyState, IconAnnotate, IconChevron, IconClose, IconCopy, IconNotes, IconPause, PALETTE, Select, useShortcuts } from '@luci/ui';
+
+/** Feedback's single-key shortcuts (in each tooltip). */
+export const FEEDBACK_KEYS = { annotate: 'A', notes: 'N', pause: 'P', menu: 'M' } as const;
 import type { FeedbackBackend } from '../backend.js';
 import { copyToClipboard } from './clipboard.js';
 import { describeTarget, frameworkInfo, nameOf, selectionElement } from '../target.js';
@@ -294,22 +297,34 @@ export function Feedback(props: FeedbackProps) {
   const innermost = annotating && candidate ? frameworkInfo(candidate)?.components.at(-1) : undefined;
   const hoverName = annotating && candidate ? `${nameOf(candidate)}${innermost ? ` · ${innermost}` : ''}` : '';
 
+  const toggleSettings = () => setPanel(p => (p === 'settings' ? null : 'settings'));
+  const toggleNotes = () => { setPanel(p => (p === 'items' ? null : 'items')); setPrompt(null); };
+  const toggleAnnotate = () => { setAnnotating(a => !a); setCandidate(null); setDraft(null); };
+  useShortcuts(doc, [
+    { key: FEEDBACK_KEYS.annotate, run: toggleAnnotate },
+    { key: FEEDBACK_KEYS.notes, run: toggleNotes },
+    { key: FEEDBACK_KEYS.pause, run: () => setPaused(p => !p) },
+    { key: FEEDBACK_KEYS.menu, run: toggleSettings }
+  ]);
+
   return (
     <div class="luci luci-theme" data-theme={uiPrefs.theme} data-dock={uiPrefs.dock} style={{ '--marker': settings.markerColor, '--marker-ink': markerInk(settings.markerColor) }}>
       <div class="bar" role="toolbar" aria-label="Luci feedback">
-        <button type="button" class="menu-btn" data-action="settings" aria-label="Menu and settings" aria-pressed={panel === 'settings'} data-tip="Menu"
-          onClick={() => setPanel(p => (p === 'settings' ? null : 'settings'))}><LuciLogo size={48} /></button>
+        <button type="button" class="menu-btn" data-action="settings" aria-label="Menu and settings" aria-pressed={panel === 'settings'} aria-keyshortcuts={FEEDBACK_KEYS.menu}
+          data-tip={`Menu  ${FEEDBACK_KEYS.menu}`} onClick={toggleSettings}><LuciLogo size={48} /></button>
         {props.modes && <ModeSwitch {...props.modes} />}
         <span class="bar-sep" aria-hidden="true" />
-        <Button icon={IconAnnotate} aria-pressed={annotating} data-action="annotate" title="Click an element to leave a note. Or select text. Esc stops." onClick={() => { setAnnotating(a => !a); setCandidate(null); setDraft(null); }}>Annotate</Button>
+        <Button iconOnly size="lg" class="tool" icon={IconAnnotate} label="Annotate" shortcut={FEEDBACK_KEYS.annotate} aria-pressed={annotating} data-action="annotate" onClick={toggleAnnotate} />
         <span class="split">
-          <Button icon={IconCopy} data-action="copy-prompt" disabled={!scope.count}
-            title={!scope.count ? 'No notes to send' : scope.includeSent ? 'Copy every open note as one prompt. All were sent before.' : 'Copy the new notes as one prompt'}
-            onClick={() => void copyPrompt(scope.includeSent)}>Copy prompt{scope.count ? ` (${scope.label})` : ''}</Button>
-          <button type="button" class="caret" data-action="copy-menu" aria-label="Choose what to copy" aria-expanded={copyMenu} disabled={!openCount} onClick={() => setCopyMenu(m => !m)}>▾</button>
+          <Button iconOnly size="lg" class="tool" icon={IconCopy} data-action="copy-prompt" disabled={!scope.count} badge={scope.count || undefined}
+            label={`Copy prompt${scope.count ? ` (${scope.label})` : ''}`}
+            onClick={() => void copyPrompt(scope.includeSent)} />
+          <Button iconOnly class="caret" icon={IconChevron} label="Choose what to copy" data-action="copy-menu" aria-expanded={copyMenu} disabled={!openCount} onClick={() => setCopyMenu(m => !m)} />
         </span>
-        <button type="button" aria-pressed={panel === 'items'} data-action="items" onClick={() => { setPanel(p => (p === 'items' ? null : 'items')); setPrompt(null); }}>Notes ({items.length})</button>
-        <Button icon={IconPause} aria-pressed={paused} data-action="pause" title="Freeze the page's animations to annotate one frame" onClick={() => setPaused(p => !p)}>{paused ? 'Resume' : 'Pause'}</Button>
+        <Button iconOnly size="lg" class="tool" icon={IconNotes} label={`Notes (${items.length})`} badge={items.length || undefined} shortcut={FEEDBACK_KEYS.notes}
+          aria-pressed={panel === 'items'} data-action="items" onClick={toggleNotes} />
+        <Button iconOnly size="lg" class="tool" icon={IconPause} label={paused ? 'Resume' : 'Pause'} tip={paused ? undefined : 'Freezes the page\'s animations'} shortcut={FEEDBACK_KEYS.pause}
+          aria-pressed={paused} data-action="pause" onClick={() => setPaused(p => !p)} />
         {backend.kind === 'project' || !props.onConnect ? (
           <span class={`conn ${backend.kind}`} data-part="connection" title={backend.kind === 'project' ? 'Notes are saved in the project, where your agent reads them' : props.connectNote ?? ''}>
             {backend.kind === 'project' ? 'Project' : 'This browser'}
@@ -443,12 +458,12 @@ function NoteForm(props: { initial?: NoteFields; submitLabel: string; onSubmit: 
         onInput={e => setComment((e.currentTarget as HTMLTextAreaElement).value)}
         onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) void submit(); }} />
       <div class="row">
-        <label>Intent <select data-part="intent" value={intent} onChange={e => setIntent((e.currentTarget as HTMLSelectElement).value as FeedbackIntent)}>
+        <label>Intent <Select data-part="intent" value={intent} onChange={e => setIntent((e.currentTarget as HTMLSelectElement).value as FeedbackIntent)}>
           {FEEDBACK_INTENTS.map(i => <option value={i}>{i}</option>)}
-        </select></label>
-        <label>Priority <select data-part="priority" value={priority} onChange={e => setPriority((e.currentTarget as HTMLSelectElement).value as FeedbackPriority)}>
+        </Select></label>
+        <label>Priority <Select data-part="priority" value={priority} onChange={e => setPriority((e.currentTarget as HTMLSelectElement).value as FeedbackPriority)}>
           {FEEDBACK_PRIORITIES.map(p => <option value={p}>{p}</option>)}
-        </select></label>
+        </Select></label>
       </div>
       <div class="row">
         <button type="button" class="btn-primary" data-action="save-note" disabled={!comment.trim() || busy} onClick={() => void submit()}>{busy ? <><ButtonSpinner />Saving…</> : props.submitLabel}</button>
@@ -589,9 +604,9 @@ function SettingsPanel(props: { settings: FeedbackSettings; onChange: (s: Feedba
           {MARKER_COLORS.map(c => <button type="button" aria-label={c} aria-pressed={s.markerColor === c} data-color={c} style={{ background: c }} onClick={() => props.onChange({ ...s, markerColor: c })} />)}
         </div>
       </div>
-      <label>Prompt detail <select data-part="detail" value={s.detail} onChange={e => props.onChange({ ...s, detail: (e.currentTarget as HTMLSelectElement).value as DetailLevel })}>
+      <label>Prompt detail <Select data-part="detail" value={s.detail} onChange={e => props.onChange({ ...s, detail: (e.currentTarget as HTMLSelectElement).value as DetailLevel })}>
         {DETAIL_LEVELS.map(d => <option value={d}>{d}</option>)}
-      </select></label>
+      </Select></label>
       <p class="dim">compact: selector and text. standard: + source file and components. detailed: + computed styles.</p>
       <div class="stack">
         <span>Webhook (optional)</span>

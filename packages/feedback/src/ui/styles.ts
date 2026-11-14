@@ -52,8 +52,8 @@ export const FEEDBACK_CSS = `${TOOLBAR_CSS}
 
 /* Copy prompt and its menu */
 .split { display: inline-flex; }
-.split > button:first-child { border-top-right-radius: 0; border-bottom-right-radius: 0; padding-right: var(--luci-space-8); }
-.luci-theme .split .caret { padding-inline: var(--luci-space-8) var(--luci-space-12); border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.split > button:first-child { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.luci-theme .bar .split .caret { --luci-btn-h: 48px; width: 28px; border-top-left-radius: 0; border-bottom-left-radius: 0; }
 .menu { position: fixed; top: 64px; right: var(--luci-space-12); z-index: 2147483647; display: flex; flex-direction: column; gap: 2px; padding: var(--luci-space-8); min-width: 280px;
   background: var(--luci-color-surface-raised); border-radius: var(--luci-radius-md); box-shadow: var(--luci-shadow-float); }
 .luci-theme[data-dock="left"] .menu { right: auto; left: var(--luci-space-12); }

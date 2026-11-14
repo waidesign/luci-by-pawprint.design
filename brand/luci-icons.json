@@ -118,6 +118,30 @@
       "lucide": "info",
       "use": "Info status"
     },
+    "notes": {
+      "lucide": "list",
+      "use": "Feedback notes list"
+    },
+    "select": {
+      "lucide": "mouse-pointer-click",
+      "use": "Select an element to change its layout"
+    },
+    "new-page": {
+      "lucide": "file-plus",
+      "use": "Sketch a new page"
+    },
+    "redo": {
+      "lucide": "redo-2",
+      "use": "Redo"
+    },
+    "reset": {
+      "lucide": "rotate-ccw",
+      "use": "Put the page back as the code has it"
+    },
+    "chevron": {
+      "lucide": "chevron-down",
+      "use": "Dropdowns and menus that open"
+    },
     "menu": {
       "file": "logo/luci-mark-tile.svg",
       "use": "Toolbar menu button"

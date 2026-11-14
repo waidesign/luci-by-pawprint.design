@@ -114,7 +114,7 @@ describe('dev toolbar without luci serve (this browser only)', { timeout: 60_000
     // A reload keeps the notes (FR26)
     await page.reload();
     await page.locator('[data-marker="P1-A2"]').waitFor();
-    expect(await page.locator('[data-action="copy-prompt"]').innerText()).toBe('Copy prompt (2 new)');
+    expect(await page.locator('[data-action="copy-prompt"]').getAttribute('aria-label')).toBe('Copy prompt (2 new)');
 
     // A saved note's intent and priority can be changed, not only its text (user request, 2026-11-13)
     await page.click('[data-marker="P1-A1"]');
@@ -139,7 +139,7 @@ describe('dev toolbar without luci serve (this browser only)', { timeout: 60_000
     expect(await page.locator('[data-marker="P1-A1"]').getAttribute('data-status')).toBe('copied');
     // Copy prompt stays available: with nothing new, it copies every note not done (user request, 2026-11-13)
     expect(await page.locator('[data-action="copy-prompt"]').isDisabled()).toBe(false);
-    expect(await page.locator('[data-action="copy-prompt"]').innerText()).toBe('Copy prompt (all 2)');
+    expect(await page.locator('[data-action="copy-prompt"]').getAttribute('aria-label')).toBe('Copy prompt (all 2)');
     await page.click('[data-action="prompt-back"]');
     await page.click('[data-action="copy-prompt"]');
     expect(await page.locator('[data-part="prompt"]').innerText()).toMatch(/^# UI feedback: 1 page, 2 items/);

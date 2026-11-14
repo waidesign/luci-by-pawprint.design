@@ -7,3 +7,4 @@ export { COPY } from './copy.js';
 export * from './icons.js';
 export * from './icon.js';
 export { loadFonts, FONT_FAMILIES } from './fonts.js';
+export * from './shortcuts.js';

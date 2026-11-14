@@ -122,7 +122,7 @@
   --luci-color-bar: var(--luci-color-muzzle-900);
   --luci-color-bar-ink: var(--luci-color-muzzle-50);
   --luci-color-bar-ink-secondary: var(--luci-color-muzzle-300);
-  --luci-color-bar-hover: color-mix(in srgb, var(--luci-color-muzzle-50) 10%, transparent);
+  --luci-color-bar-hover: var(--luci-color-muzzle-700);
   --luci-color-bar-stroke: color-mix(in srgb, var(--luci-color-muzzle-50) 16%, transparent);
   --luci-color-tool-active: var(--luci-color-ginger-400);
   --luci-color-on-tool-active: var(--luci-color-muzzle-900);

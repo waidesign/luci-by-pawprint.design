@@ -7,7 +7,10 @@
  * adding the plan to Feedback notes) puts the page back as it was.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import { Button, IconAdd, IconClose, IconCopy, IconUndo } from '@luci/ui';
+import { Button, IconAdd, IconClose, IconCopy, IconNewPage, IconRedo, IconReset, IconSelect, IconUndo, Select, useShortcuts } from '@luci/ui';
+
+/** Layout's single-key shortcuts (in each tooltip); Undo and Redo keep Ctrl+Z and Ctrl+Shift+Z. */
+export const LAYOUT_KEYS = { select: 'S', insert: 'I', newPage: 'N' } as const;
 import { ButtonSpinner, LuciLogo, ModeSwitch, elementAt, isLuciUi, parentOf, scrollableAncestor, selectorFor, useUiPrefs, type ModeSwitchProps } from '@luci/capture';
 import { formatLayoutPrompt, layoutChangeText, routeOf, type LayoutPromptElement, type Part } from '@luci/format/feedback';
 import type { FeedbackBackend } from '../backend.js';
@@ -425,9 +428,9 @@ export function Layout(props: LayoutProps) {
     return (
       <label class="lrow" data-prop={prop} key={prop}>
         <span class="lname">{label}</span>
-        <select data-part={`value-${prop}`} value={v} onChange={e => setValue(el, prop, (e.currentTarget as HTMLSelectElement).value)}>
+        <Select data-part={`value-${prop}`} value={v} onChange={e => setValue(el, prop, (e.currentTarget as HTMLSelectElement).value)}>
           {(options.includes(v) ? options : [v, ...options]).map(o => <option value={o}>{o}</option>)}
-        </select>
+        </Select>
       </label>
     );
   };
@@ -565,6 +568,14 @@ export function Layout(props: LayoutProps) {
     ));
   };
 
+  const toggleSelect = () => { setPlacing(null); setCatalog(false); setSelecting(s => !s); setHovered(null); };
+  const toggleSketch = () => { if (!scale) return; setSketching(s => !s); setCatalog(false); setPlacing(null); setPlaceHover(null); setHovered(null); };
+  useShortcuts(doc, [
+    { key: LAYOUT_KEYS.select, run: toggleSelect, enabled: !sketching },
+    { key: LAYOUT_KEYS.insert, run: openCatalog, enabled: !sketching },
+    { key: LAYOUT_KEYS.newPage, run: toggleSketch }
+  ]);
+
   return (
     <div class="luci luci-theme" data-theme={uiPrefs.theme} data-dock={uiPrefs.dock}>
       <div class="bar" role="toolbar" aria-label="Luci layout">
@@ -573,19 +584,22 @@ export function Layout(props: LayoutProps) {
         <span class="bar-sep" aria-hidden="true" />
         {!sketching && (
           <>
-            <button type="button" aria-pressed={selecting && !placing} data-action="select" title="Click an element to change its layout. Esc stops." onClick={() => { setPlacing(null); setCatalog(false); setSelecting(s => !s); setHovered(null); }}>Select</button>
-            <Button icon={IconAdd} aria-pressed={catalog || Boolean(placing)} data-action="insert" title="Add a component, a saved capture or a block, then place it" onClick={openCatalog}>Insert</Button>
+            <Button iconOnly size="lg" class="tool" icon={IconSelect} label="Select" tip="Click an element to change its layout" shortcut={LAYOUT_KEYS.select}
+              aria-pressed={selecting && !placing} data-action="select" onClick={toggleSelect} />
+            <Button iconOnly size="lg" class="tool" icon={IconAdd} label="Insert" tip="A component, a saved capture or a block" shortcut={LAYOUT_KEYS.insert}
+              aria-pressed={catalog || Boolean(placing)} data-action="insert" onClick={openCatalog} />
           </>
         )}
-        <button type="button" aria-pressed={sketching} data-action="new-page" title="Sketch a new page from your components, captures and blocks" disabled={!scale}
-          onClick={() => { setSketching(s => !s); setCatalog(false); setPlacing(null); setPlaceHover(null); setHovered(null); }}>New page</button>
+        <Button iconOnly size="lg" class="tool" icon={IconNewPage} label="New page" tip="Sketch it from your parts" shortcut={LAYOUT_KEYS.newPage}
+          aria-pressed={sketching} data-action="new-page" disabled={!scale} onClick={toggleSketch} />
         {!sketching && (
           <>
-            <Button icon={IconUndo} data-action="undo" disabled={!p.canUndo} title="Undo  Ctrl+Z" onClick={() => { p.undo(); bump(); }}>Undo</Button>
-            <button type="button" data-action="redo" disabled={!p.canRedo} title="Redo  Ctrl+Shift+Z" onClick={() => { p.redo(); bump(); }}>Redo</button>
-            <button type="button" data-action="reset" disabled={!plannedCount && !p.canUndo} title="Put the page back as your code has it" onClick={() => { p.reset(); bump(); }}>Reset</button>
-            <Button variant="primary" icon={busy === 'copy' ? undefined : IconCopy} data-action="copy-layout-prompt" disabled={!plannedCount || Boolean(busy)} title="Copy every planned change as one prompt. The page goes back as it was."
-              onClick={() => void copyPrompt()}>{busy === 'copy' ? <><ButtonSpinner />Copying…</> : `Copy prompt${plannedCount ? ` (${plannedCount})` : ''}`}</Button>
+            <Button iconOnly size="lg" class="tool" icon={IconUndo} label="Undo" shortcut="Ctrl+Z" data-action="undo" disabled={!p.canUndo} onClick={() => { p.undo(); bump(); }} />
+            <Button iconOnly size="lg" class="tool" icon={IconRedo} label="Redo" shortcut="Ctrl+Shift+Z" data-action="redo" disabled={!p.canRedo} onClick={() => { p.redo(); bump(); }} />
+            <Button iconOnly size="lg" class="tool" icon={IconReset} label="Reset" tip="Back to what your code has" data-action="reset" disabled={!plannedCount && !p.canUndo} onClick={() => { p.reset(); bump(); }} />
+            <Button iconOnly size="lg" variant="primary" class="tool" icon={IconCopy} data-action="copy-layout-prompt" disabled={!plannedCount || Boolean(busy)} loading={busy === 'copy'}
+              badge={plannedCount || undefined} label={busy === 'copy' ? 'Copying' : `Copy prompt${plannedCount ? ` (${plannedCount})` : ''}`} tip="The page goes back as it was"
+              onClick={() => void copyPrompt()} />
           </>
         )}
         <span class={`conn ${backend.kind}`} data-part="connection" title={backend.kind === 'project' ? 'Notes are saved in the project' : props.connectNote ?? ''}>

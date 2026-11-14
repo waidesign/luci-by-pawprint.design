@@ -51,15 +51,18 @@ ${UI_CSS}
   color: var(--luci-color-bar-ink);
   box-shadow: var(--luci-shadow-float);
 }
-.shell > .bar { position: static; }
+/* Above the cards, so the tools' tooltips are never under a card */
+.shell > .bar { position: relative; z-index: 2; }
 .luci-theme .bar button { --luci-btn-h: 40px; color: var(--luci-color-bar-ink); }
 .luci-theme .bar .tool, .luci-theme .bar .menu-btn { --luci-btn-h: 48px; }
 .luci-theme .bar button:hover:not(:disabled) { background: var(--luci-color-bar-hover); }
 .luci-theme .bar button:disabled { color: var(--luci-color-muzzle-500); }
-.luci-theme .bar button[aria-pressed="true"] { background: var(--luci-color-tool-active); color: var(--luci-color-on-tool-active); }
+.luci-theme .bar button[aria-pressed="true"],
+.luci-theme .bar button[aria-pressed="true"]:hover:not(:disabled) { background: var(--luci-color-tool-active); color: var(--luci-color-on-tool-active); }
 .luci-theme .bar .btn-primary { background: var(--luci-color-primary); color: var(--luci-color-on-primary); }
 .luci-theme .bar .btn-primary:hover:not(:disabled) { background: var(--luci-color-primary-hover); }
-.luci-theme .bar .btn-primary:disabled { background: var(--luci-color-muzzle-800); color: var(--luci-color-muzzle-500); }
+/* Disabled on Charcoal: only the icon dims, so it never looks like an "on" state */
+.luci-theme .bar .btn-primary:disabled { background: transparent; color: var(--luci-color-muzzle-500); }
 .bar-sep { flex: none; width: 1px; height: 24px; margin: 0 2px; background: var(--luci-color-bar-stroke); }
 /* Luci's head: the menu button */
 .luci-theme .bar .menu-btn { display: inline-flex; align-items: center; justify-content: center; width: 48px; padding: 0; }
@@ -74,9 +77,8 @@ ${UI_CSS}
 .brand { display: inline-flex; align-items: center; gap: var(--luci-space-8); padding: 0 var(--luci-space-8) 0 0;
   font: var(--luci-type-display-weight) var(--luci-type-heading-size)/1 var(--luci-font-display); color: var(--luci-color-bar-ink); }
 /* The dev toolbar's mode switch, on Charcoal */
-.bar .seg { background: var(--luci-color-bar-hover); }
-.luci-theme .bar .seg button { color: var(--luci-color-bar-ink-secondary); }
-.luci-theme .bar .seg button[aria-pressed="true"] { background: var(--luci-color-tool-active); color: var(--luci-color-on-tool-active); }
+.bar .seg { background: var(--luci-color-muzzle-800); }
+.luci-theme .bar .seg button { color: var(--luci-color-bar-ink); }
 .modes { margin-right: var(--luci-space-4); }
 
 /* Cards under the pill: the hint while picking, and every panel (radius-xl, float shadow, no stroke) */
@@ -85,14 +87,15 @@ ${UI_CSS}
   position: fixed;
   top: 84px;
   right: var(--luci-space-12);
-  z-index: 2147483647;
+  z-index: 2147483646;
   width: min(420px, calc(100vw - 24px));
   display: flex;
   flex-direction: column;
   gap: var(--luci-space-8);
   padding: var(--luci-space-12) var(--luci-space-16);
 }
-.shell > .sub { position: static; width: min(560px, calc(100vw - 24px)); }
+/* In the column, cards drop the stand-alone z-index (flex items honour it even unpositioned) */
+.shell > .sub { position: static; z-index: auto; width: min(560px, calc(100vw - 24px)); }
 .sub p { margin: 0; }
 .sub.with-luci { flex-direction: row; align-items: center; gap: var(--luci-space-16); }
 .sub .sub-body { display: flex; flex-direction: column; gap: var(--luci-space-8); min-width: 0; }
@@ -101,7 +104,7 @@ ${UI_CSS}
   position: fixed;
   right: var(--luci-space-12);
   bottom: var(--luci-space-12);
-  z-index: 2147483647;
+  z-index: 2147483646;
   width: min(480px, calc(100vw - 24px));
   max-height: min(72vh, 660px);
   display: flex;
@@ -111,7 +114,7 @@ ${UI_CSS}
   overflow-y: auto;
   overscroll-behavior: contain;
 }
-.shell > .panel { position: static; width: min(560px, calc(100vw - 24px)); max-height: none; flex: 0 1 auto; min-height: 0; }
+.shell > .panel { position: static; z-index: auto; width: min(560px, calc(100vw - 24px)); max-height: none; flex: 0 1 auto; min-height: 0; }
 .panel > * { flex-shrink: 0; }
 .panel > .items, .panel > .diffs { flex-shrink: 1; }
 .panel h2 { margin: 0; font: var(--luci-type-title-weight) var(--luci-type-title-size)/var(--luci-type-title-line) var(--luci-font-display); }
@@ -133,7 +136,6 @@ ${UI_CSS}
 .seg { display: inline-flex; align-self: flex-start; gap: var(--luci-space-4); padding: var(--luci-space-4); background: var(--luci-color-surface-sunken); border-radius: var(--luci-radius-full); }
 .luci-theme .seg button { min-height: 28px; padding: 5px var(--luci-space-12); }
 .seg button::before { inset: -8px 0; }
-.luci-theme .seg button[aria-pressed="true"] { background: var(--luci-color-surface-raised); color: var(--luci-color-ink); }
 
 /* Lists: basket items, section files */
 .items { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--luci-space-8); overflow: auto; }
@@ -200,7 +202,7 @@ label { display: inline-flex; gap: var(--luci-space-4); align-items: center; col
 .settings-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--luci-space-8); }
 .field-stack { display: flex; flex-direction: column; align-items: stretch; gap: var(--luci-space-4); color: var(--luci-color-ink); }
 .field-label { font-size: var(--luci-type-small-size); line-height: var(--luci-type-small-line); font-weight: 600; color: var(--luci-color-ink); }
-.field-stack select { width: 100%; }
+.field-stack .select, .field-stack select { width: 100%; }
 .settings-appearance { display: flex; flex-direction: column; gap: var(--luci-space-12); }
 .setting-row { display: flex; align-items: center; justify-content: space-between; gap: var(--luci-space-12); flex-wrap: wrap; }
 .setting-copy { display: flex; flex-direction: column; gap: 2px; }

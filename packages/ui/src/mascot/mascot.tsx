@@ -3,6 +3,7 @@
  * layered SVGs are inlined unchanged so luci-animations.css can move their named parts. Only the
  * root's size, accessibility attributes and (per instance) clip-path ids are rewritten.
  */
+import { useMemo } from 'preact/hooks';
 import { FACE_SVG, POSE_SVG } from './art.js';
 
 /** brand/BRAND.md section 5. "hello" is the sitting pose with the slow-blink greeting. */
@@ -68,15 +69,20 @@ export interface MascotProps extends MascotArtOptions {
   class?: string;
 }
 
+/*
+ * The SVG is built once per instance and kept while the pose stays the same. Building it on every
+ * render would give it new ids, so Preact would replace the SVG each time: Luci's loops would restart
+ * on every state change, and a fresh (running) copy would undo Feedback's Pause.
+ */
 export function Mascot(props: MascotProps) {
   const { pose, size = 96, animated, label } = props;
-  const html = mascotSvg(pose, { ...(animated === undefined ? {} : { animated }), ...(label ? { label } : {}) });
+  const html = useMemo(() => mascotSvg(pose, { ...(animated === undefined ? {} : { animated }), ...(label ? { label } : {}) }), [pose, animated, label]);
   return <span class={`mascot${props.class ? ` ${props.class}` : ''}`} data-pose={pose} style={{ width: `${size}px` }} dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
 export function Face(props: { face: MascotFace; size?: number; label?: string; animated?: boolean }) {
   const { face, size = 48, label, animated } = props;
-  const html = faceSvg(face, { ...(animated === undefined ? {} : { animated }), ...(label ? { label } : {}) });
+  const html = useMemo(() => faceSvg(face, { ...(animated === undefined ? {} : { animated }), ...(label ? { label } : {}) }), [face, animated, label]);
   return <span class="mascot face" data-face={face} style={{ width: `${size}px` }} dangerouslySetInnerHTML={{ __html: html }} />;
 }
 

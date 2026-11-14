@@ -26,7 +26,13 @@ export {
   CircleCheck as IconSuccess,
   TriangleAlert as IconWarning,
   CircleX as IconError,
-  Info as IconInfo
+  Info as IconInfo,
+  List as IconNotes,
+  MousePointerClick as IconSelect,
+  FilePlus as IconNewPage,
+  Redo2 as IconRedo,
+  RotateCcw as IconReset,
+  ChevronDown as IconChevron
 } from 'lucide-preact';
 export type { LucideIcon } from 'lucide-preact';
 
@@ -57,7 +63,13 @@ export const ICON_NAMES = {
   "success": "circle-check",
   "warning": "triangle-alert",
   "error": "circle-x",
-  "info": "info"
+  "info": "info",
+  "notes": "list",
+  "select": "mouse-pointer-click",
+  "new-page": "file-plus",
+  "redo": "redo-2",
+  "reset": "rotate-ccw",
+  "chevron": "chevron-down"
 } as const;
 /** Stroke, colour and sizes (px) for every icon. */
 export const ICON_STYLE = {

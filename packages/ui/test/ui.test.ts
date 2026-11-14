@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { COPY, FACE_SVG, ICON_NAMES, Icon, IconColour, PALETTE, POSE_SVG, ROLES_BAR, ROLES_DARK, ROLES_LIGHT, faceSvg, mascotSvg } from '@luci/ui';
+import { COPY, FACE_SVG, ICON_NAMES, Icon, IconColour, PALETTE, POSE_SVG, ROLES_BAR, ROLES_DARK, ROLES_LIGHT, faceSvg, mascotSvg, shortcutFor } from '@luci/ui';
 
 const brand = (file: string) => readFileSync(fileURLToPath(new URL(`../../../brand/${file}`, import.meta.url)), 'utf8');
 
@@ -134,6 +134,23 @@ describe('icons (brand/DESIGN.md section 7)', () => {
     };
     walk(root);
     expect(offenders).toEqual([]);
+  });
+});
+
+describe('shortcuts', () => {
+  const key = (k: string, extra: Partial<KeyboardEvent> = {}, target: object = { tagName: 'BODY' }) =>
+    ({ key: k, ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, repeat: false, defaultPrevented: false, composedPath: () => [target], ...extra }) as unknown as KeyboardEvent;
+  const list = [{ key: 'C', run: () => {} }, { key: 'T', run: () => {}, enabled: false }];
+  it('a plain letter runs its shortcut, in either case', () => {
+    expect(shortcutFor(key('c'), list)?.key).toBe('C');
+    expect(shortcutFor(key('C'), list)?.key).toBe('C');
+  });
+  it('never while typing, with a modifier, on repeat, or when switched off', () => {
+    expect(shortcutFor(key('c', {}, { tagName: 'INPUT' }), list)).toBeUndefined();
+    expect(shortcutFor(key('c', {}, { tagName: 'TEXTAREA' }), list)).toBeUndefined();
+    expect(shortcutFor(key('c', {}, { tagName: 'DIV', isContentEditable: true }), list)).toBeUndefined();
+    for (const m of ['ctrlKey', 'metaKey', 'altKey', 'shiftKey', 'repeat'] as const) expect(shortcutFor(key('c', { [m]: true }), list), m).toBeUndefined();
+    expect(shortcutFor(key('t'), list)).toBeUndefined();
   });
 });
 

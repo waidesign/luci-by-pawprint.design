@@ -198,6 +198,12 @@ Only use the icons in this table (also in `luci-icons.json`). If a screen needs 
 | `warning` | `triangle-alert` | Warning status |
 | `error` | `circle-x` | Error status |
 | `info` | `info` | Info status |
+| `notes` | `list` | Feedback notes list |
+| `select` | `mouse-pointer-click` | Select an element to change its layout |
+| `new-page` | `file-plus` | Sketch a new page |
+| `redo` | `redo-2` | Redo |
+| `reset` | `rotate-ccw` | Put the page back as the code has it |
+| `chevron` | `chevron-down` | Dropdowns and menus that open |
 
 **Rules**
 

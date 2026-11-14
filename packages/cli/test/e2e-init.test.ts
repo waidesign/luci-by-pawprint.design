@@ -10,7 +10,9 @@ import { tempDir } from './helpers.js';
 const BIN = fileURLToPath(new URL('../dist/bin.js', import.meta.url));
 const FIXTURE = fileURLToPath(new URL('./fixtures/sample-react-project/', import.meta.url));
 
-it('luci init on the sample React project: memory, agent files, onboarding answers, doctor clean', () => {
+// Runs several CLI processes one after another: about 6 s alone, over 30 s when the whole suite runs
+// in parallel, so it gets its own limit
+it('luci init on the sample React project: memory, agent files, onboarding answers, doctor clean', { timeout: 90_000 }, () => {
   const dir = tempDir('luci-e2e-');
   const home = tempDir('luci-e2e-home-');
   fs.cpSync(FIXTURE, dir, { recursive: true });
