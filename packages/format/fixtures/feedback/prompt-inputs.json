@@ -1,4 +1,27 @@
 {
+  "design-check.standard.prompt.md": {
+    "options": { "detail": "standard" },
+    "items": [
+      {
+        "id": "itm-check-1", "ref": "P1-A1",
+        "page": { "url": "http://localhost:5173/checkout", "route": "/checkout", "title": "Checkout", "source": "src/pages/Checkout.jsx" },
+        "target": { "kind": "element", "selector": "form > button", "element": "button", "text": "Pay now", "components": ["App", "Checkout", "Button"], "source": { "file": "src/components/Button.jsx", "line": 3, "column": 10 } },
+        "comment": "Its background-color is #2563eb; the design says #0f62fe (--color-primary).",
+        "check": { "design": ".luci/design/example-com.component.primary-button.design.md", "part": "container", "property": "background-color", "expected": "#0f62fe (--color-primary)", "actual": "#2563eb" },
+        "intent": "fix", "priority": "medium", "status": "pending",
+        "createdAt": "2026-11-14T10:00:00.000Z", "updatedAt": "2026-11-14T10:00:00.000Z", "thread": []
+      },
+      {
+        "id": "itm-check-2", "ref": "P1-A2",
+        "page": { "url": "http://localhost:5173/checkout", "route": "/checkout", "title": "Checkout", "source": "src/pages/Checkout.jsx" },
+        "target": { "kind": "element", "selector": "form > button", "element": "button", "text": "Pay now", "components": ["App", "Checkout", "Button"], "source": { "file": "src/components/Button.jsx", "line": 3, "column": 10 } },
+        "comment": "On hover, its background-color changes to #1d4ed8; the design says #0353e9.",
+        "check": { "design": ".luci/design/example-com.component.primary-button.design.md", "part": "container", "state": "hover", "property": "background-color", "expected": "#0353e9", "actual": "#1d4ed8" },
+        "intent": "fix", "priority": "medium", "status": "pending",
+        "createdAt": "2026-11-14T10:00:01.000Z", "updatedAt": "2026-11-14T10:00:01.000Z", "thread": []
+      }
+    ]
+  },
   "three-pages.standard.prompt.md": {
     "options": { "detail": "standard" },
     "items": [

@@ -2,7 +2,18 @@
  * What each toolbar tool produces from a pick. The view (toolbar.tsx) calls these; they hold no UI state.
  * Every tool offers two outputs (FR5): this one item, or the whole system on the page.
  */
-import { captureFileName, formatCapture, type Capture, type CaptureSettings, type ComponentCapture } from '@luci/format/capture';
+import {
+  captureFileName,
+  checkComponent,
+  formatCapture,
+  readComponentFile,
+  type Capture,
+  type CaptureSettings,
+  type CheckDifference,
+  type CheckResult,
+  type ComponentCapture,
+  type ComponentSpec
+} from '@luci/format/capture';
 import { colorToken, colorUses, colorSystem } from '../color.js';
 import { componentCapture, componentType, stateParts, type ComponentImageInput } from '../component.js';
 import { imagesInside, readImage } from '../image.js';
@@ -160,6 +171,49 @@ export async function readComponentStates(live: LiveSnapshot, entry: ElementSnap
     restore();
   }
 }
+
+/** A design file to check against: what the toolbar shows, where it came from, and its text. */
+export interface DesignChoice {
+  /** "primary-button (button) from example.com". */
+  label: string;
+  /** Its path in the project (".luci/design/x.design.md") or its file name. */
+  file: string;
+  markdown: string;
+}
+
+export type CheckOutcome =
+  | { ok: true; result: CheckResult; design: ComponentSpec; built: Output; note: string | null }
+  | { ok: false; message: string };
+
+/**
+ * The design check (v0.3): capture the built component the way the Component tool does (states
+ * included), write it as a file, read both files back and compare them. The built side is written
+ * in px and hex; the design can use any unit and color setting.
+ */
+export async function checkAgainst(live: LiveSnapshot, entry: ElementSnapshot, design: DesignChoice, readForced?: ForcedStatesReader): Promise<CheckOutcome> {
+  const want = readComponentFile(design.markdown);
+  if (!want.ok) return { ok: false, message: want.error };
+  const { states, note } = await readComponentStates(live, entry, readForced);
+  const r = captureComponent(live, entry, {}, { states });
+  if (!r.ok) return r;
+  const have = readComponentFile(r.output.markdown);
+  if (!have.ok) return { ok: false, message: `Luci could not read its own capture of the built component: ${have.error}` };
+  const result = checkComponent(want.value, have.value, { knownTokens: Object.keys(live.snapshot.customProperties) });
+  return { ok: true, result, design: want.value, built: r.output, note };
+}
+
+/** A difference as a note for the dev toolbar to pin on the built component. */
+export interface CheckNote {
+  comment: string;
+  priority: CheckDifference['priority'];
+  check: { design: string; part: string; state?: CheckDifference['state']; property: string; expected: string; actual: string };
+}
+
+export const checkNote = (d: CheckDifference, designFile: string): CheckNote => ({
+  comment: d.comment,
+  priority: d.priority,
+  check: { design: designFile, part: d.part, ...(d.state ? { state: d.state } : {}), property: d.property, expected: d.expected, actual: d.actual }
+});
 
 /** "This one": one item from the picked element. */
 export function captureOne(tool: ToolId, live: LiveSnapshot, entry: ElementSnapshot, settings: CaptureSettings, choice = ALL_SPACING): Result {

@@ -65,6 +65,14 @@ pre { margin: 0; overflow: auto; padding: 10px; background: #09090b; border: 1px
 select { padding: 4px 6px; background: #27272a; border: 1px solid var(--line); border-radius: 6px; }
 label { display: inline-flex; gap: 4px; align-items: center; color: var(--muted); }
 @media (prefers-reduced-motion: no-preference) { .highlight { transition: top 60ms, left 60ms, width 60ms, height 60ms; } }
+[data-part="check-summary"] { margin: 0; }
+.diffs { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; overflow: auto; min-height: 60px; }
+.diffs li { display: flex; flex-direction: column; gap: 2px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; }
+.diffs li.high { border-color: var(--blocked); }
+.diffs label { align-items: flex-start; gap: 8px; color: var(--ink); }
+.diffs input { flex: none; margin: 3px 0 0; accent-color: var(--accent); }
+.diffs .dim { padding-left: 21px; }
+.files li > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .modes { margin-right: 4px; }
 .modes button { padding: 4px 10px; color: var(--muted); }
 .modes button[aria-pressed="true"] { color: var(--ink); }

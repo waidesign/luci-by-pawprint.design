@@ -7,6 +7,7 @@ import { Toolbar } from './toolbar.js';
 import type { ForcedStatesReader, Output } from './tools.js';
 import { memoryBasketStore, type BasketStore } from './basket.js';
 import type { ModeSwitchProps } from './modeSwitch.js';
+import type { AddCheckNotes, DesignSource } from './check.js';
 
 export const TOOLBAR_TAG = 'luci-toolbar';
 const REPLACE_EVENT = 'luci-toolbar-replace';
@@ -29,6 +30,12 @@ export interface MountOptions {
   modes?: ModeSwitchProps;
   /** Saves a file into the project (the dev toolbar, through luci serve); adds "Save to project". */
   saveToProject?: (fileName: string, markdown: string) => Promise<{ path: string; replaced: boolean }>;
+  /** Design files saved in the project, for the design check (the dev toolbar). */
+  designs?: DesignSource;
+  /** Pins a design check's differences as feedback notes (the dev toolbar). */
+  addCheckNotes?: AddCheckNotes;
+  /** Where those notes go: "your project" or "this browser". */
+  checkNotesWhere?: string;
 }
 
 export interface ToolbarHandle {
@@ -86,6 +93,9 @@ export function mountToolbar(options: MountOptions = {}): ToolbarHandle {
     ...(options.onHelp ? { onHelp: options.onHelp } : {}),
     ...(options.modes ? { modes: options.modes } : {}),
     ...(options.saveToProject ? { saveToProject: options.saveToProject } : {}),
+    ...(options.designs ? { designs: options.designs } : {}),
+    ...(options.addCheckNotes ? { addCheckNotes: options.addCheckNotes } : {}),
+    ...(options.checkNotesWhere ? { checkNotesWhere: options.checkNotesWhere } : {}),
     onClose: () => { destroy(); options.onClose?.(); },
     registerPixelInput: (pick: (hex: string) => void) => { pixelInput = pick; }
   }), mountPoint);

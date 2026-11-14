@@ -150,6 +150,26 @@ export const wireframeSchema = z.object({
 });
 export type Wireframe = z.infer<typeof wireframeSchema>;
 
+/**
+ * A difference found by a design check (v0.3, added 14 Nov 2026): the built component compared with
+ * its design file. One item per difference; the comment says it in words, this says it exactly.
+ */
+export const designCheckSchema = z.object({
+  /** The design file: its path in the project (.luci/design/...) or its file name. */
+  design: z.string().min(1),
+  /** The part, as the design file names it ("container", "label", "icon"). */
+  part: z.string().min(1),
+  /** For a change in a state. */
+  state: z.enum(['hover', 'focus', 'focus-visible', 'active', 'disabled']).optional(),
+  /** The CSS property, "transition <property>", "part", or an accessibility check ("text contrast"). */
+  property: z.string().min(1),
+  /** As the design file writes it, with its token; "not set", "none" or "no change" when it has none. */
+  expected: z.string().min(1),
+  /** As Luci measured it on the built component. */
+  actual: z.string().min(1)
+});
+export type DesignCheck = z.infer<typeof designCheckSchema>;
+
 export const feedbackItemSchema = z.object({
   /** The item's own id (its file name); never shown to agents. */
   id: z.string().regex(/^[A-Za-z0-9_-]{6,64}$/, 'letters, digits, "-" and "_"'),
@@ -188,6 +208,8 @@ export const feedbackItemSchema = z.object({
   layout: layoutSchema.optional(),
   /** A new page sketched in Layout mode (the target is the page it was sketched on). */
   wireframe: wireframeSchema.optional(),
+  /** A difference from a design check: what the design says and what was built. */
+  check: designCheckSchema.optional(),
   intent: z.enum(FEEDBACK_INTENTS),
   priority: z.enum(FEEDBACK_PRIORITIES),
   status: z.enum(FEEDBACK_STATUSES),

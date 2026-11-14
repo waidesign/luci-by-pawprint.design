@@ -18,6 +18,7 @@ import {
   type FeedbackItem,
   type FeedbackPriority,
   type FeedbackStatus,
+  type DesignCheck,
   type LayoutPlan,
   type Wireframe
 } from '@luci/format/feedback';
@@ -34,6 +35,8 @@ export interface NewFeedback {
   layout?: LayoutPlan;
   /** A new page sketched in Layout mode. */
   wireframe?: Wireframe;
+  /** A difference found by a design check. */
+  check?: DesignCheck;
 }
 
 export class FeedbackError extends Error {}
@@ -125,6 +128,7 @@ export class FeedbackStore {
       comment: input.comment,
       ...(input.layout ? { layout: input.layout } : {}),
       ...(input.wireframe ? { wireframe: input.wireframe } : {}),
+      ...(input.check ? { check: input.check } : {}),
       intent: input.intent,
       priority: input.priority,
       status: 'pending',

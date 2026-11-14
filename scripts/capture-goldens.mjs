@@ -15,6 +15,18 @@ for (const file of ['inputs.json', 'component-inputs.json']) {
     console.log(`wrote ${name}`);
   }
 }
+// Design check (v0.3): the built button against the primary-button design (packages/format/fixtures/check/)
+{
+  const checkDir = fileURLToPath(new URL('../packages/format/fixtures/check/', import.meta.url));
+  const { readComponentFile, checkComponent, formatCheckReport } = await import(new URL('../packages/format/dist/capture/index.js', import.meta.url).href);
+  const spec = (file) => { const r = readComponentFile(fs.readFileSync(file, 'utf8')); if (!r.ok) throw new Error(`${file}: ${r.error}`); return r.value; };
+  const design = spec(path.join(dir, 'example-com.component.primary-button.design.md'));
+  const built = spec(path.join(checkDir, 'localhost-5173.component.primary-button.design.md'));
+  const result = checkComponent(design, built, { knownTokens: ['--radius-md'] });
+  const report = formatCheckReport(result, { selector: built.meta.selector, page: built.meta.source, designFile: '.luci/design/example-com.component.primary-button.design.md' });
+  fs.writeFileSync(path.join(checkDir, 'primary-button.check.md'), report, 'utf8');
+  console.log('wrote check/primary-button.check.md');
+}
 // Feedback prompts (packages/format/fixtures/feedback/)
 const feedbackDir = fileURLToPath(new URL('../packages/format/fixtures/feedback/', import.meta.url));
 const { formatFeedbackPrompt, formatLayoutPrompt, formatWireframePrompt, feedbackItemSchema, wireframeSchema } = await import(new URL('../packages/format/dist/feedback/index.js', import.meta.url).href);

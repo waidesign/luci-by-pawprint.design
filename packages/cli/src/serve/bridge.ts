@@ -15,7 +15,7 @@ import { z } from 'zod';
 import { DesignError, DesignStore, FeedbackError, FeedbackStore } from '@luci/brain';
 import { serverResolver } from './resolve.js';
 import { PRODUCT } from '@luci/format';
-import { DETAIL_LEVELS, FEEDBACK_INTENTS, FEEDBACK_PRIORITIES, feedbackItemSchema, formatFeedbackPrompt, layoutSchema, wireframeSchema } from '@luci/format/feedback';
+import { DETAIL_LEVELS, FEEDBACK_INTENTS, FEEDBACK_PRIORITIES, designCheckSchema, feedbackItemSchema, formatFeedbackPrompt, layoutSchema, wireframeSchema } from '@luci/format/feedback';
 
 export const DEFAULT_PORT = 4545;
 /** The header every write must carry (a page cannot send it without passing the CORS check). */
@@ -67,6 +67,7 @@ const newItemSchema = z.object({
   comment: z.string().trim().min(1),
   layout: layoutSchema.optional(),
   wireframe: wireframeSchema.optional(),
+  check: designCheckSchema.optional(),
   intent: z.enum(FEEDBACK_INTENTS),
   priority: z.enum(FEEDBACK_PRIORITIES)
 });
@@ -203,6 +204,15 @@ export function startBridge(options: BridgeOptions): Promise<Bridge> {
         return;
       }
       if (route === '/design' && req.method === 'GET') { send(200, { files: design.list() }); return; }
+      // One saved file's text (a design check reads its design file); only names in .luci/design/
+      const designFile = /^\/design\/([^/]+)$/.exec(route)?.[1];
+      if (designFile && req.method === 'GET') {
+        const file = decodeURIComponent(designFile);
+        const markdown = design.read(file);
+        if (markdown === null) throw new HttpError(404, `No design file ${file} in ${PRODUCT.projectDir}/design/.`);
+        send(200, { file, markdown });
+        return;
+      }
       if (route === '/design' && req.method === 'POST') {
         const body = parse(designSchema, await readBody(req));
         send(201, design.save(body.fileName, body.markdown));

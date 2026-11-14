@@ -90,6 +90,11 @@ describe('luci serve: the bridge (M6.3)', () => {
     expect((await request(bridge, 'POST', '/design', { body: { fileName: '../../evil.design.md', markdown: golden } })).status).toBe(400);
     expect((await request(bridge, 'POST', '/design', { body: { fileName: 'a.component.b.design.md', markdown: 'hello' } })).status).toBe(400);
     expect((await request(bridge, 'GET', '/design')).json().files).toHaveLength(1);
+    // One file's text, for a design check (v0.3.1); only names inside .luci/design/
+    expect((await request(bridge, 'GET', '/design/example-com.component.card.design.md')).json()).toEqual({ file: 'example-com.component.card.design.md', markdown: golden });
+    expect((await request(bridge, 'GET', '/design/example-com.component.nope.design.md')).status).toBe(404);
+    expect((await request(bridge, 'GET', `/design/${encodeURIComponent('../../package.json')}`)).status).toBe(404);
+    expect((await request(bridge, 'GET', `/design/${encodeURIComponent('..\\..\\luci.json')}`)).status).toBe(404);
   });
 
   it('answers only pages on this machine, by its own name, and only writes with JSON and the X-Luci header', async () => {

@@ -5,13 +5,14 @@
  * agent reads them through luci-mcp; without it, feedback stays in this browser and the bar says
  * how to connect.
  */
-import { LUCI_UI_ATTRIBUTE, mountToolbar, type BasketStore } from '@luci/capture';
+import { LUCI_UI_ATTRIBUTE, mountToolbar, type BasketStore, type CheckNote } from '@luci/capture';
 import { basketItemSchema, type BasketItem, type CaptureSettings } from '@luci/format/capture';
 import {
   DEFAULT_FEEDBACK_SETTINGS,
   bridgeBackend,
   bridgeReachable,
   browserBackend,
+  describeTarget,
   mountFeedback,
   mountLayout,
   type BridgeHealth,
@@ -80,6 +81,20 @@ export function storageBasket(storage: KeyValue, key: string = KEYS.basket): Bas
     },
     save: async (items) => storage.setItem(key, JSON.stringify(items))
   };
+}
+
+/**
+ * A design check's differences as feedback notes on the built component (intent fix): one note per
+ * difference, each with what the design says and what was built, so the page-grouped prompt and
+ * watch_feedback carry them like any note. Returns their IDs.
+ */
+export async function addCheckNotes(backend: FeedbackBackend, doc: Document, el: Element, notes: readonly CheckNote[]): Promise<string[]> {
+  const { target, pageSource } = await describeTarget(el, backend.resolveFrames ? { serverResolve: backend.resolveFrames } : {});
+  const page = { url: doc.location.href, title: doc.title, ...(pageSource ? { source: pageSource } : {}) };
+  const refs: string[] = [];
+  // One after another: each note's ID is the next on this page
+  for (const n of notes) refs.push((await backend.add({ page, target, comment: n.comment, intent: 'fix', priority: n.priority, check: n.check })).ref);
+  return refs;
 }
 
 export const CONNECTING_TAG = 'luci-connecting';
@@ -185,6 +200,10 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
         basket: storageBasket(storage),
         modes: modeSwitch(),
         ...(backend.saveCapture ? { saveToProject: backend.saveCapture } : {}),
+        // Design check (v0.3): the project's design files, and each difference as a feedback note
+        ...(backend.listCaptures && backend.readCapture ? { designs: { list: backend.listCaptures, read: backend.readCapture } } : {}),
+        addCheckNotes: (el, notes) => addCheckNotes(backend, doc, el, notes),
+        checkNotesWhere: connected ? 'your project' : 'this browser',
         onClose: () => { current = null; showLauncher(); }
       });
     }

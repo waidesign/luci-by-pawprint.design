@@ -50,4 +50,6 @@ Try layout changes on the live page, then copy them as one prompt for your agent
 
 ## Capture
 
-**Capture** shows the capture tools of the browser extension (Component, Text, Color, Spacing, Whole page, Basket). **Save to project** writes a file, or a basket export, into `.luci/design/`; the agent lists them with `list_captures`.
+**Capture** shows the capture tools of the browser extension (Component, Text, Color, Spacing, Whole page, Check, Basket). **Save to project** writes a file, or a basket export, into `.luci/design/`; the agent lists them with `list_captures`.
+
+**Check** (v0.3) compares a component you (or your agent) built with its design file. Choose the design from the project's `.luci/design/` (read through `luci serve`), the basket or a pasted file; click the built component and press **Check against the design**. Luci captures it the same way and lists what matches and each difference. **Add as feedback notes** pins the ticked differences on the built element as Feedback notes (intent fix, each with the design file, part, property, what the design says and what was built), saved in the project with `luci serve` (else in this browser); they go into the page-grouped prompt and `watch_feedback` like any note. **Copy as a prompt** copies them instead.

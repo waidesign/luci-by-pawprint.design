@@ -14,11 +14,15 @@ import { elementAt, eligibilityOf, eventTarget, firstChildOf, hoverLabel, parent
 import { ButtonSpinner, Loading, nextPaint } from './loading.js';
 import { ModeSwitch, type ModeSwitchProps } from './modeSwitch.js';
 import { zip } from './zip.js';
+import { CheckResultPanel, DesignChooser, type AddCheckNotes, type DesignSource } from './check.js';
 import {
   ALL_SPACING,
   TOOLS,
   TOOL_LABELS,
   captureComponent,
+  checkAgainst,
+  type CheckOutcome,
+  type DesignChoice,
   capturePageInSteps,
   captureSection,
   captureDistance,
@@ -58,6 +62,12 @@ export interface ToolbarProps {
   modes?: ModeSwitchProps;
   /** Saves a file into the project's .luci/design/ (the dev toolbar, through luci serve); adds "Save to project". */
   saveToProject?: (fileName: string, markdown: string) => Promise<{ path: string; replaced: boolean }>;
+  /** Design files saved in the project, for the design check (the dev toolbar, through luci serve). */
+  designs?: DesignSource;
+  /** Pins a design check's differences as feedback notes (the dev toolbar); without it they are copied as a prompt. */
+  addCheckNotes?: AddCheckNotes;
+  /** Where those notes go, as the result says it: "your project" or "this browser". */
+  checkNotesWhere?: string;
 }
 
 /** "Save to project", then where it went (or why not). */
@@ -224,8 +234,27 @@ export function Toolbar(props: ToolbarProps) {
     show({ ok: false, message: `Luci could not read this page (${reason.slice(0, 200)}). The details are in the browser console (F12).` });
   };
 
+  // The design check (v0.3): choose a design, pick the built component, see the differences
+  const [checkOpen, setCheckOpen] = useState(false);
+  const [checkDesign, setCheckDesign] = useState<DesignChoice | null>(null);
+  const [checkOutcome, setCheckOutcome] = useState<Extract<CheckOutcome, { ok: true }> | null>(null);
+  const runCheck = async () => {
+    if (!picked || !checkDesign) return;
+    setBusy('Reading the built component and its states, then comparing it with the design…');
+    try {
+      const outcome = await checkAgainst(picked.live, picked.entry, checkDesign, props.readForcedStates);
+      if (outcome.ok) setCheckOutcome(outcome);
+      else show(outcome);
+    } catch (err) {
+      failed(err);
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const produce = async (system: boolean, section = false) => {
     if (!picked || !tool) return;
+    if (checkDesign) { await runCheck(); return; }
     if (section) {
       // "This section": the section file plus its component files (v0.2)
       setComponentCtx(null);
@@ -322,6 +351,33 @@ export function Toolbar(props: ToolbarProps) {
   // Bumped when another action starts, so a page read still running does not show its result over it
   const pageRun = useRef(0);
   const [wholePage, setWholePage] = useState(false);
+  const endCheck = () => {
+    setCheckOpen(false);
+    setCheckDesign(null);
+    setCheckOutcome(null);
+  };
+  /** The bar's "Check": choose the design first. */
+  const openCheck = () => {
+    cancelCapture();
+    pageRun.current++;
+    setPageBusy(false);
+    setWholePage(false);
+    setPicking(false);
+    setPicked(null);
+    setResult(null);
+    setNotice(null);
+    setBasketOpen(false);
+    setPixelMode(false);
+    aim(null);
+    setCheckOutcome(null);
+    setCheckOpen(true);
+    // The basket's components can be designs
+    if (store) void store.load().then(setBasket);
+  };
+  const chooseDesign = (d: DesignChoice) => {
+    setCheckDesign(d);
+    startPicking('component');
+  };
   const captureWholePage = () => {
     cancelCapture();
     setTool(null);
@@ -335,6 +391,7 @@ export function Toolbar(props: ToolbarProps) {
     setPixelMode(false);
     setPixelHover(null);
     setInstructions('');
+    endCheck();
     aim(null);
     setWholePage(true);
     setPageBusy(true);
@@ -357,6 +414,9 @@ export function Toolbar(props: ToolbarProps) {
     setPageBusy(false);
     setPageStep(null);
     setWholePage(false);
+    // A design check keeps its design while picking the built component; its last result goes
+    setCheckOutcome(null);
+    setCheckOpen(false);
     setTool(t);
     setPicking(true);
     setPicked(null);
@@ -415,7 +475,8 @@ export function Toolbar(props: ToolbarProps) {
     const c = pickedTrail.current.pop() ?? firstChildOf(picked.el);
     if (c) reselect(c);
   };
-  const choosing = !picking && !basketOpen && Boolean(picked) && !result && !busy;
+  const choosing = !picking && !basketOpen && Boolean(picked) && !result && !busy && !checkOutcome;
+  const checking = checkOpen || checkDesign !== null;
   useLayoutEffect(() => {
     if (!choosing) return;
     const onKey = (e: KeyboardEvent) => {
@@ -531,11 +592,11 @@ export function Toolbar(props: ToolbarProps) {
   useLayoutEffect(() => {
     if (picking) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && (picked || result)) { setPicked(null); setResult(null); }
+      if (e.key === 'Escape' && (picked || result || checkOutcome || checkOpen)) { setPicked(null); setResult(null); endCheck(); }
     };
     doc.addEventListener('keydown', onKey, true);
     return () => doc.removeEventListener('keydown', onKey, true);
-  }, [picking, picked, result]);
+  }, [picking, picked, result, checkOutcome, checkOpen]);
 
   const changeSettings = (next: CaptureSettings) => {
     setSettings(next);
@@ -635,6 +696,7 @@ export function Toolbar(props: ToolbarProps) {
     saveBasket(next);
   };
   const openBasket = () => {
+    endCheck();
     setPicking(false);
     aim(null);
     setBasketOpen(true);
@@ -770,9 +832,10 @@ export function Toolbar(props: ToolbarProps) {
         <span class="brand">Luci</span>
         {props.modes && <ModeSwitch {...props.modes} />}
         {TOOLS.map(t => (
-          <button type="button" aria-pressed={tool === t && (picking || dropperOpen || Boolean(picked) || Boolean(result))} data-tool={t} onClick={() => startPicking(t)}>{TOOL_LABELS[t]}</button>
+          <button type="button" aria-pressed={!checking && tool === t && (picking || dropperOpen || Boolean(picked) || Boolean(result))} data-tool={t} onClick={() => { setCheckDesign(null); startPicking(t); }}>{TOOL_LABELS[t]}</button>
         ))}
         <button type="button" aria-pressed={wholePage && !basketOpen && (pageBusy || Boolean(result))} data-action="whole-page" title="One file for this whole page: its typography, colors, spacing and every kind of component" onClick={captureWholePage}>Whole page</button>
+        <button type="button" aria-pressed={checking && !basketOpen} data-action="check" title="Check a component you built against its design file" onClick={openCheck}>Check</button>
         <button type="button" aria-pressed={basketOpen} data-action="basket" onClick={() => (basketOpen ? setBasketOpen(false) : openBasket())}>Basket ({basket.length})</button>
         {props.onHelp && <button type="button" aria-label="How to use Luci" title="How to use Luci" data-action="help" onClick={props.onHelp}>?</button>}
         <button type="button" aria-label="Close Luci" data-action="close" onClick={props.onClose}>×</button>
@@ -840,6 +903,7 @@ export function Toolbar(props: ToolbarProps) {
           )}
           <p class="hint" data-part="hint">
             {pixelMode ? 'Hover the page to see the color under the pointer, and click to pick it. Over Luci\'s own panels nothing is picked.'
+              : checkDesign ? `Click the component you built, to check it against ${checkDesign.label}.`
               : `${TOOL_HINTS[tool]}${tool === 'color' && !canPickPixels ? ' (This browser cannot pick pixels.)' : ''}`}
           </p>
           <p class="keys">{pixelMode ? 'Esc goes back to Element' : 'After clicking, you can make the selection wider or narrower · Esc cancels'}</p>
@@ -902,7 +966,48 @@ export function Toolbar(props: ToolbarProps) {
         <div class="panel" role="status"><p class="error" data-part="notice">{notice}</p></div>
       )}
 
-      {!picking && !basketOpen && picked && !result && tool && (
+      {checkOpen && !basketOpen && (
+        <DesignChooser {...(props.designs ? { designs: props.designs } : {})} basket={basket} onChoose={chooseDesign} onCancel={endCheck} />
+      )}
+
+      {!picking && !basketOpen && checkOutcome && checkDesign && picked && (
+        <CheckResultPanel
+          key={`${picked.entry.selector} ${checkDesign.file}`}
+          outcome={checkOutcome}
+          design={checkDesign}
+          el={picked.el}
+          selector={picked.entry.selector}
+          {...(props.addCheckNotes ? { addNotes: props.addCheckNotes } : {})}
+          {...(props.checkNotesWhere ? { notesWhere: props.checkNotesWhere } : {})}
+          onCopy={copyText}
+          onAgain={() => startPicking('component')}
+          onChangeDesign={openCheck}
+        />
+      )}
+
+      {!picking && !basketOpen && picked && checkDesign && !checkOutcome && !result && (
+        <div class="panel" role="dialog" aria-label="Design check" data-part="check-selected">
+          <h2>Built: <span data-part="selected-name">{elementName(picked.entry.tag, picked.entry.role)}</span> <span class="dim">{Math.round(picked.el.getBoundingClientRect().width)} × {Math.round(picked.el.getBoundingClientRect().height)}</span></h2>
+          <div class="row">
+            <button type="button" data-action="widen" disabled={!widerOf(picked.el)} onClick={widen} title="Select the element around this one (↑)">↑ Wider</button>
+            <button type="button" data-action="narrow" disabled={!narrowerOf(picked.el)} onClick={narrow} title="Select the element inside this one (↓)">↓ Narrower</button>
+            <span class="dim">or the ↑ ↓ keys</span>
+          </div>
+          {picked.eligibility.status !== 'allowed' && <p class="error" data-part="notice">{picked.eligibility.reason} Make the selection wider or narrower.</p>}
+          {busy ? <Loading text={busy} /> : (
+            <>
+              <div class="row">
+                <button type="button" class="primary" data-action="check-run" disabled={picked.eligibility.status !== 'allowed'} onClick={() => void runCheck()}>Check against the design</button>
+                <button type="button" onClick={() => startPicking('component')}>Pick again</button>
+                <button type="button" data-action="check-design" onClick={openCheck}>Change design</button>
+              </div>
+              <p class="dim" data-part="check-against">Design: {checkDesign.label}</p>
+            </>
+          )}
+        </div>
+      )}
+
+      {!picking && !basketOpen && picked && !checkDesign && !result && tool && (
         <div class="panel" role="dialog" aria-label="Capture">
           <h2>Selected: <span data-part="selected-name">{elementName(picked.entry.tag, picked.entry.role)}</span> <span class="dim">{Math.round(picked.el.getBoundingClientRect().width)} × {Math.round(picked.el.getBoundingClientRect().height)}</span></h2>
           <div class="row">

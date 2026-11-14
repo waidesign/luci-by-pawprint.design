@@ -59,6 +59,10 @@ function itemLines(item: FeedbackItem, detail: DetailLevel): string[] {
     lines.push(`  layout, planned in a ${item.layout.viewport.width}px wide window (keep it working at other widths):`);
     for (const c of item.layout.changes) lines.push(`    - ${layoutChangeText(c)}`);
   }
+  if (item.check) {
+    const c = item.check;
+    lines.push(`  design check against ${c.design}: ${c.part}${c.state ? ` on ${c.state}` : ''}, ${c.property}: the design says ${c.expected}; built: ${c.actual}`);
+  }
   if (item.wireframe) {
     lines.push(`  new page ${item.wireframe.route}, sketched in a ${item.wireframe.viewport.width}px wide window (create it with the project's own components; heights are rough), top to bottom:`);
     lines.push(...wireframeLines(item.wireframe, '    '));

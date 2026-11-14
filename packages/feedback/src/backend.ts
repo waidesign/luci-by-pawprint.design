@@ -10,6 +10,7 @@ import {
   formatFeedbackPrompt,
   nextRef,
   routeOf,
+  type DesignCheck,
   type DetailLevel,
   type FeedbackIntent,
   type FeedbackItem,
@@ -30,6 +31,8 @@ export interface NewItem {
   layout?: LayoutPlan;
   /** A new page sketched in Layout mode. */
   wireframe?: Wireframe;
+  /** A difference found by a design check. */
+  check?: DesignCheck;
 }
 
 /** A design capture saved in the project (.luci/design/), as `luci serve` lists it. */
@@ -67,6 +70,8 @@ export interface FeedbackBackend {
   saveCapture?(fileName: string, markdown: string): Promise<{ path: string; replaced: boolean }>;
   /** The captures saved in .luci/design/ (project only). */
   listCaptures?(): Promise<SavedCapture[]>;
+  /** One saved capture's text (project only). */
+  readCapture?(file: string): Promise<string>;
   /** Map server-side positions (server components) to the project's files (project only). */
   resolveFrames?: ServerResolver;
 }
@@ -100,6 +105,7 @@ export function bridgeBackend(url: string, fetchImpl: typeof fetch = (...a) => f
     clear: async (which) => (await call<{ removed: string[] }>('POST', '/feedback/clear', { which })).removed,
     saveCapture: (fileName, markdown) => call('POST', '/design', { fileName, markdown }),
     listCaptures: async () => (await call<{ files: SavedCapture[] }>('GET', '/design')).files,
+    readCapture: async (file) => (await call<{ markdown: string }>('GET', `/design/${encodeURIComponent(file)}`)).markdown,
     resolveFrames: async (frames) => (await call<{ locations: (SourceLocation | null)[] }>('POST', '/resolve', { frames })).locations
   };
 }
@@ -180,7 +186,7 @@ export function browserBackend(storage: KeyValue, key = 'luci.feedback'): Feedba
       const at = now();
       const item = feedbackItemSchema.parse({
         id: randomId(), ref: nextRef(items, route), page: { ...input.page, route }, target: input.target,
-        comment: input.comment, ...(input.layout ? { layout: input.layout } : {}), ...(input.wireframe ? { wireframe: input.wireframe } : {}), intent: input.intent, priority: input.priority, status: 'pending', createdAt: at, updatedAt: at, thread: []
+        comment: input.comment, ...(input.layout ? { layout: input.layout } : {}), ...(input.wireframe ? { wireframe: input.wireframe } : {}), ...(input.check ? { check: input.check } : {}), intent: input.intent, priority: input.priority, status: 'pending', createdAt: at, updatedAt: at, thread: []
       });
       save([...items, item]);
       return item;
