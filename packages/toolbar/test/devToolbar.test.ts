@@ -20,6 +20,7 @@ import { refsIn } from '@luci/format/feedback';
 import { handleTool } from '../../mcp/src/index.js';
 import { startBridge, type Bridge } from '../../cli/src/serve/bridge.js';
 import { serveApp, type AppServer } from '../../feedback/test/app.js';
+import { captureBundle } from '../../capture/test/browser.js';
 
 /** A project that lives for the whole file (the cli helper's projects are removed after each test). */
 const projects: string[] = [];
@@ -126,6 +127,39 @@ describe('dev toolbar placement and descriptions (user request, 2026-11-15)', { 
     expect(Math.round(left.x)).toBe(12);
     await page.click('luci-toolbar [data-action="close"]');
     expect(Math.round((await box('[data-action="open-luci"]')).x)).toBe(12);
+    await ctx.close();
+  });
+});
+
+describe('one Luci on the page at a time (bug report, 2026-11-15)', { timeout: 60_000 }, () => {
+  it('the extension opening closes the dev toolbar to its button, in any mode; the button brings it back and closes the extension', async () => {
+    const capture = await captureBundle();
+    const ctx = await context('http://127.0.0.1:9');
+    const page = await open(ctx, '/pricing');
+    // The extension's toolbar: the same Capture code, from another script (in Chrome, another world)
+    const openExtension = async () => {
+      if (!(await page.evaluate(() => 'LuciCapture' in window))) await page.addScriptTag({ content: capture });
+      await page.evaluate(() => { (window as unknown as { LuciCapture: { mountToolbar(): unknown } }).LuciCapture.mountToolbar(); });
+    };
+    const extension = page.locator('luci-toolbar:not(:has([data-part="modes"]))');
+    const launcher = page.locator('[data-action="open-luci"]');
+
+    for (const mode of ['feedback', 'layout', 'capture'] as const) {
+      if (mode !== 'feedback') {
+        await page.click(`[data-mode="${mode}"]`);
+        await page.locator(`[data-mode="${mode}"][aria-pressed="true"]`).waitFor();
+      }
+      await openExtension();
+      // The dev toolbar stepped aside: no bar, Luci's button in the corner; the extension's toolbar is open
+      expect(await page.locator('luci-feedback, luci-layout, luci-toolbar:has([data-part="modes"])').count(), mode).toBe(0);
+      expect(await launcher.isVisible(), mode).toBe(true);
+      expect(await extension.count(), mode).toBe(1);
+      // The button reopens the dev toolbar, in the same mode, and the extension's toolbar closes
+      await launcher.click();
+      await page.locator(`[data-mode="${mode}"][aria-pressed="true"]`).waitFor();
+      expect(await extension.count(), mode).toBe(0);
+      expect(await launcher.count(), mode).toBe(0);
+    }
     await ctx.close();
   });
 });

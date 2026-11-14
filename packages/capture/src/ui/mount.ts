@@ -12,7 +12,12 @@ import type { AddCheckNotes, DesignSource } from './check.js';
 import type { ViewportWidth } from '../responsive.js';
 
 export const TOOLBAR_TAG = 'luci-toolbar';
-const REPLACE_EVENT = 'luci-toolbar-replace';
+/**
+ * Sent on the page when a Capture toolbar opens: an older one closes itself. DOM events reach every
+ * JavaScript world, so the extension's toolbar and the dev toolbar both hear it (one Luci at a time).
+ */
+export const TOOLBAR_REPLACE_EVENT = 'luci-toolbar-replace';
+const REPLACE_EVENT = TOOLBAR_REPLACE_EVENT;
 
 export interface MountOptions {
   doc?: Document;

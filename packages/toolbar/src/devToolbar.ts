@@ -5,7 +5,7 @@
  * agent reads them through luci-mcp; without it, feedback stays in this browser and the bar says
  * how to connect.
  */
-import { LUCI_UI_ATTRIBUTE, mountToolbar, readUiPrefs, type BasketStore, type CheckNote } from '@luci/capture';
+import { LUCI_UI_ATTRIBUTE, TOOLBAR_REPLACE_EVENT, mountToolbar, readUiPrefs, type BasketStore, type CheckNote } from '@luci/capture';
 import { basketItemSchema, type BasketItem, type CaptureSettings } from '@luci/format/capture';
 import { ANIMATIONS_CSS, COPY, TOKENS_CSS, mascotSvg } from '@luci/ui';
 import {
@@ -192,9 +192,33 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
   /** The same switch on every mode's bar. */
   const modeSwitch = () => ({ current: mode, modes: MODES, onSelect: (id: string) => show(id as Mode) });
 
+  /*
+   * One Luci on the page at a time. Another Capture toolbar opening (the extension's) sends the
+   * replace signal: the dev toolbar then closes to its launcher, the way its own close does, so Luci's
+   * button stays in the corner. Opening the dev toolbar sends the signal itself, which closes the
+   * extension's toolbar; while it does (and while its own Capture mounts), it ignores the signal.
+   */
+  let opening = false;
+  const stepAside = () => {
+    if (opening || !current) return;
+    current.destroy();
+    current = null;
+    showLauncher();
+  };
+  doc.addEventListener(TOOLBAR_REPLACE_EVENT, stepAside);
+
   const show = (next: Mode, how: { grow?: boolean } = {}) => {
+    opening = true;
+    try {
+      openMode(next, how);
+    } finally {
+      opening = false;
+    }
+  };
+  const openMode = (next: Mode, how: { grow?: boolean }) => {
     current?.destroy();
     removeLauncher();
+    doc.dispatchEvent(new CustomEvent(TOOLBAR_REPLACE_EVENT));
     mode = next;
     try { session?.setItem(KEYS.mode, mode); } catch { /* not available */ }
     if (mode === 'feedback') {
@@ -248,6 +272,6 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
     connect,
     mode: () => mode,
     show,
-    destroy: () => { current?.destroy(); current = null; removeLauncher(); }
+    destroy: () => { doc.removeEventListener(TOOLBAR_REPLACE_EVENT, stepAside); current?.destroy(); current = null; removeLauncher(); }
   };
 }

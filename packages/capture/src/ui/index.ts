@@ -2,7 +2,7 @@ export * from './tools.js';
 export * from './picker.js';
 export * from './basket.js';
 export * from './zip.js';
-export { TOOLBAR_TAG, mountToolbar, type MountOptions, type ToolbarHandle } from './mount.js';
+export { TOOLBAR_REPLACE_EVENT, TOOLBAR_TAG, mountToolbar, type MountOptions, type ToolbarHandle } from './mount.js';
 export { Toolbar, type ProposedRule, type ToolbarProps } from './toolbar.js';
 export { TOOLBAR_CSS } from './styles.js';
 export { ButtonSpinner, Loading, nextPaint } from './loading.js';
