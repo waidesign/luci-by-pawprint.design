@@ -23,8 +23,8 @@
   h1 { font: var(--luci-type-display-weight) var(--luci-type-display-size)/var(--luci-type-display-line) var(--luci-font-display); margin: var(--luci-space-24) 0 var(--luci-space-8); }
   h2 { font: var(--luci-type-heading-weight) var(--luci-type-heading-size)/var(--luci-type-heading-line) var(--luci-font-body); margin: var(--luci-space-32) 0 var(--luci-space-8); }
   p, li { color: var(--luci-color-ink-secondary); }
-  strong, kbd { color: var(--luci-color-ink); }
-  kbd { font: var(--luci-type-code-weight) var(--luci-type-code-size) var(--luci-font-code); padding: 1px var(--luci-space-8); border-radius: 6px; background: var(--luci-color-surface-sunken); }
+  strong, kbd, code { color: var(--luci-color-ink); }
+  kbd, code { font: var(--luci-type-code-weight) var(--luci-type-code-size) var(--luci-font-code); padding: 1px var(--luci-space-8); border-radius: 6px; background: var(--luci-color-surface-sunken); }
   ol, ul { padding-left: var(--luci-space-20); }
   .lead { font-size: var(--luci-type-heading-size); line-height: var(--luci-type-heading-line); }
   @media (prefers-color-scheme: dark) { .logo-light { display: none; } .logo-dark { display: block; } }
@@ -85,7 +85,15 @@
     <li>A bare image, video or canvas is greyed out: press ↑ to take the component around it. Its file describes how the image is shown; Luci never copies the image itself.</li>
     <li>Chrome's own pages and the Web Store can't be captured by any extension.</li>
     <li>After you update or reload Luci, reload the page and click Luci's icon again.</li>
+    <li>Luci's bar covering something? Drag it by its edge or Luci's head. It stays there on that site; <strong>Right</strong> or <strong>Left</strong> in the menu puts it back.</li>
   </ul>
+
+  <h2 id="take-luci-home">Take Luci home</h2>
+  <p>This extension is the part of Luci that travels. In your own project, Luci also takes notes on your running app, plans layouts on the live page, and remembers your project's rules and decisions for your coding agent. Free and open source. Nothing leaves your machine.</p>
+  <ol>
+    <li>In your project's folder: <code>luci init</code>. Say yes to the dev toolbar.</li>
+    <li><code>luci serve</code>, then open your app on this machine. Luci waits in the bottom corner.</li>
+  </ol>
 </main>
 </body>
 </html>

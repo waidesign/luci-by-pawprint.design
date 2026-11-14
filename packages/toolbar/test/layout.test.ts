@@ -75,6 +75,9 @@ describe('Layout mode', { timeout: 120_000 }, () => {
     expect(await page.locator('luci-layout [data-part="hint"] .mascot').getAttribute('data-pose')).toBe('arrange');
     // Insert opens from the bar: just above it (bug report, 2026-11-15)
     await page.click('luci-layout [data-action="insert"]');
+    // Measured once the panel has risen into place
+    await page.waitForFunction(() => (document.querySelector('luci-layout')?.shadowRoot?.getAnimations() ?? [])
+      .every(a => (a as CSSAnimation).animationName !== 'luci-rise' || a.playState !== 'running'));
     const [bar, panel] = await Promise.all([page.locator('luci-layout .bar').boundingBox(), page.locator('[data-part="inspector"]').boundingBox()]);
     expect(bar!.y - (panel!.y + panel!.height)).toBeGreaterThan(0);
     expect(bar!.y - (panel!.y + panel!.height)).toBeLessThan(24);

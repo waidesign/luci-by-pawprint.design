@@ -209,6 +209,10 @@ export type { LucideIcon } from '${iconKit.packages.preact}';
 export const ICON_NAMES = ${json(Object.fromEntries(icons.map(([name, v]) => [name, v.lucide])))} as const;
 /** Stroke, colour and sizes (px) for every icon. */
 export const ICON_STYLE = ${json(iconKit.style)} as const;
+/** Approved icons that are files in the kit, not Lucide (brand/icons/): inline SVG, currentColor. */
+export const ICON_SVG = ${json(Object.fromEntries(Object.entries(iconKit.icons)
+  .filter(([, v]) => v.file && v.file.startsWith('icons/'))
+  .map(([name, v]) => [name, readFileSync(join(brand, v.file), 'utf8').trim()])))} as const;
 `);
 
 // --- Fonts: the kit's three families, self-hosted (SIL OFL; CLAUDE-CODE-GUIDE.md section 4). The

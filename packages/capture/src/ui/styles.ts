@@ -95,27 +95,42 @@ ${UI_CSS}
 .modes { margin-right: var(--luci-space-4); }
 
 /*
- * The dev toolbar sits at the bottom, in its launcher's corner (host attribute data-place="bottom";
- * the extension keeps the top). Everything opens from the bar: hints and panels sit just above it
- * and rise into place, tooltips open upwards. A panel takes the hint's place while it is open.
+ * The dev toolbar is placed by its host: data-h and data-v name the corner it is nearest, --luci-x and
+ * --luci-y its distances from that corner's edges (default bottom right, 12 px, by its button; the
+ * person can drag it anywhere). Everything opens from the bar, on the side with room: cards just above
+ * a bar in the bottom half, just below one in the top half, aligned to its side. A panel takes the
+ * hint's place while it is open. The extension sets none of this (its bar keeps its own place).
  */
-:host([data-place="bottom"]) .shell { top: auto; bottom: var(--luci-space-12); flex-direction: column-reverse; }
-:host([data-place="bottom"]) .bar { top: auto; bottom: var(--luci-space-12); }
-:host([data-place="bottom"]) .shell > .bar { bottom: auto; }
-:host([data-place="bottom"]) .sub { top: auto; bottom: 84px; }
-:host([data-place="bottom"]) .panel:not(.shell > .panel) { top: auto; bottom: 84px; max-height: min(72vh, calc(100vh - 108px)); }
-:host([data-place="bottom"]) .layout-panel:not(.shell > .panel) { max-height: min(80vh, calc(100vh - 108px)); }
-:host([data-place="bottom"]) .luci-theme:has(> .panel) > .sub:not([role="alert"]) { display: none; }
-:host([data-place="bottom"]) .menu { top: auto; bottom: 76px; }
-:host([data-place="bottom"]) :is(.sub, .panel, .menu) { animation: luci-rise var(--luci-motion-base, 200ms) both; }
+:host([data-h="right"]) :is(.shell, .bar:not(.shell > .bar), .sub:not(.shell > .sub), .panel:not(.shell > .panel), .menu) { left: auto; right: var(--luci-x, 12px); }
+:host([data-h="left"]) :is(.shell, .bar:not(.shell > .bar), .sub:not(.shell > .sub), .panel:not(.shell > .panel), .menu) { right: auto; left: var(--luci-x, 12px); }
+:host([data-h="right"]) .shell { align-items: flex-end; }
+:host([data-h="left"]) .shell { align-items: flex-start; }
+:host([data-v="bottom"]) :is(.shell, .bar:not(.shell > .bar)) { top: auto; bottom: var(--luci-y, 12px); }
+:host([data-v="bottom"]) .shell { flex-direction: column-reverse; }
+:host([data-v="bottom"]) :is(.sub:not(.shell > .sub), .panel:not(.shell > .panel)) { top: auto; bottom: calc(var(--luci-y, 12px) + 72px); }
+:host([data-v="bottom"]) .menu { top: auto; bottom: calc(var(--luci-y, 12px) + 64px); }
+:host([data-v="top"]) :is(.shell, .bar:not(.shell > .bar)) { bottom: auto; top: var(--luci-y, 12px); }
+:host([data-v="top"]) :is(.sub:not(.shell > .sub), .panel:not(.shell > .panel)) { bottom: auto; top: calc(var(--luci-y, 12px) + 72px); }
+:host([data-v="top"]) .menu { bottom: auto; top: calc(var(--luci-y, 12px) + 64px); }
+:host([data-v]) .shell { max-height: calc(100vh - var(--luci-y, 12px) - 12px); }
+:host([data-v]) .panel:not(.shell > .panel) { max-height: min(72vh, calc(100vh - var(--luci-y, 12px) - 96px)); }
+:host([data-v]) .layout-panel:not(.shell > .panel) { max-height: min(80vh, calc(100vh - var(--luci-y, 12px) - 96px)); }
+:host([data-v]) .luci-theme:has(> .panel) > .sub:not([role="alert"]) { display: none; }
+:host([data-v="bottom"]) :is(.sub, .panel, .menu) { animation: luci-rise var(--luci-motion-base, 200ms) both; }
+:host([data-v="top"]) :is(.sub, .panel, .menu) { animation: luci-drop var(--luci-motion-base, 200ms) both; }
 @keyframes luci-rise { from { opacity: 0; transform: translateY(8px); } }
-@media (prefers-reduced-motion: reduce) { :host([data-place="bottom"]) :is(.sub, .panel, .menu) { animation: none; } }
-/* New page's canvas covers the window: its tools need no room for a top bar, its panel sits above the bar */
-:host([data-place="bottom"]) .wf { padding-bottom: 88px; }
-:host([data-place="bottom"]) .wf-tools { padding-top: var(--luci-space-12); }
-:host([data-place="bottom"]) [data-part="sketch-panel"] { top: auto; bottom: 84px; }
-:host([data-place="bottom"]) .bar [data-tip]::after { top: auto; bottom: calc(100% + var(--luci-space-8)); transform: translate(-50%, 4px); }
-:host([data-place="bottom"]) .bar [data-tip]:is(:hover, :focus-visible)::after { transform: translate(-50%, 0); }
+@keyframes luci-drop { from { opacity: 0; transform: translateY(-8px); } }
+@media (prefers-reduced-motion: reduce) { :host([data-v]) :is(.sub, .panel, .menu) { animation: none; } }
+:host([data-v="bottom"]) .bar [data-tip]::after { top: auto; bottom: calc(100% + var(--luci-space-8)); transform: translate(-50%, 4px); }
+:host([data-v="bottom"]) .bar [data-tip]:is(:hover, :focus-visible)::after { transform: translate(-50%, 0); }
+/* The dev toolbar's bar can be dragged by its own background, a separator or Luci */
+:host([data-v]) .bar { cursor: grab; touch-action: none; }
+:host([data-moving]) .bar, :host([data-moving]) .bar * { cursor: grabbing; user-select: none; }
+/* New page's canvas covers the window: its tools and its panel keep clear of the bar */
+:host([data-v="bottom"]) .wf { padding-bottom: calc(var(--luci-y, 12px) + 76px); }
+:host([data-v="bottom"]) .wf-tools { padding-top: var(--luci-space-12); }
+:host([data-v="top"]) .wf-tools { padding-top: calc(var(--luci-y, 12px) + 76px); }
+:host([data-v="top"]) .panel[data-part="sketch-panel"]:not(.shell > .panel) { top: auto; bottom: var(--luci-space-12); }
 
 /* Cards under the pill: the hint while picking, and every panel (radius-xl, float shadow, no stroke) */
 .sub, .panel { background: var(--luci-color-surface); border-radius: var(--luci-radius-xl); box-shadow: var(--luci-shadow-float); }
@@ -162,6 +177,16 @@ ${UI_CSS}
 
 /* The menu: who Luci is, help, then settings */
 .menu-head { display: flex; align-items: center; gap: var(--luci-space-16); }
+.menu-head > .repo-btn { align-self: flex-start; margin-left: auto; }
+.settings-head { display: flex; align-items: center; justify-content: space-between; gap: var(--luci-space-12); }
+.settings-head h2 { margin: 0; }
+/* The extension's invitation: the rest of Luci lives in the person's project. A tint, no stroke, no pop-up */
+.invite { display: flex; flex-direction: column; align-items: flex-start; gap: var(--luci-space-4); padding: var(--luci-space-12) var(--luci-space-16);
+  border-radius: var(--luci-radius-lg); background: var(--luci-color-primary-soft); }
+.invite p { margin: 0; }
+.invite-title { font: var(--luci-type-display-weight) var(--luci-type-heading-size)/var(--luci-type-heading-line) var(--luci-font-display); color: var(--luci-color-ink); }
+.invite-body { color: var(--luci-color-ink); }
+.luci-theme .invite-action { margin-top: var(--luci-space-4); }
 .brand-stack { display: flex; flex-direction: column; gap: var(--luci-space-4); min-width: 0; }
 .brand-title-line { display: flex; align-items: baseline; gap: var(--luci-space-8); flex-wrap: wrap; }
 .brand-title { font: var(--luci-type-title-weight) var(--luci-type-title-size)/var(--luci-type-title-line) var(--luci-font-display); color: var(--luci-color-ink); }
@@ -243,8 +268,10 @@ label { display: inline-flex; gap: var(--luci-space-4); align-items: center; col
 .field-label { font-size: var(--luci-type-small-size); line-height: var(--luci-type-small-line); font-weight: 600; color: var(--luci-color-ink); }
 .field-stack .select, .field-stack select { width: 100%; }
 .settings-appearance { display: flex; flex-direction: column; gap: var(--luci-space-12); }
-.setting-row { display: flex; align-items: center; justify-content: space-between; gap: var(--luci-space-12); flex-wrap: wrap; }
-.setting-copy { display: flex; flex-direction: column; gap: 2px; }
+/* The words wrap beside the control; the control keeps its place on the right */
+.setting-row { display: flex; align-items: center; justify-content: space-between; gap: var(--luci-space-12); }
+.setting-copy { display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; min-width: 0; }
+.setting-row > .seg { flex: none; align-self: center; }
 .settings-divider { height: 1px; margin: var(--luci-space-4) 0; border: 0; background: var(--luci-color-stroke-subtle); }
 .shortcut-list { display: grid; grid-template-columns: auto 1fr; gap: var(--luci-space-8) var(--luci-space-12); align-items: center; padding: var(--luci-space-12);
   border-radius: var(--luci-radius-md); background: var(--luci-color-surface-sunken); font-size: var(--luci-type-small-size); }

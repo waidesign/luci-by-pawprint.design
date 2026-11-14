@@ -329,7 +329,16 @@ describe('the extension\'s bar moves anywhere in the window (user request, 2026-
     // A plain click on Luci's head still opens the menu
     await page.click('[data-action="settings"]');
     await page.locator('[data-part="settings"]').waitFor();
-    expect(await page.locator('[data-part="appearance-settings"]').innerText()).toContain('Drag the bar anywhere');
+    expect(await page.locator('[data-part="appearance-settings"]').innerText()).toContain('Drag the bar by its edge or Luci.');
+    // Panel position: the Right/Left switch stays on its row, beside the words (bug, 2026-11-15)
+    const row = page.locator('[data-part="appearance-settings"] .setting-row').nth(1);
+    const [words, seg] = await Promise.all([row.locator('.setting-copy').boundingBox(), row.locator('.seg').boundingBox()]);
+    expect(seg!.x).toBeGreaterThan(words!.x + words!.width - 1);
+    expect(seg!.y).toBeLessThan(words!.y + words!.height);
+    // The menu: Luci's version with GitHub's mark, and the invitation to take Luci home (the extension only)
+    expect(await page.locator('[data-part="repo"]').innerText()).toBe('v0.3.0');
+    expect(await page.locator('[data-part="repo"] svg path').count()).toBe(1);
+    expect(await page.locator('[data-part="invite"]').innerText()).toContain('Take Luci home.');
     await page.click('[data-action="settings"]');
 
     // Drag by the bar's own edge (its padding) to the bottom left

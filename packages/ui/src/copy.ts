@@ -36,7 +36,17 @@ export const COPY = {
       inBasket: 'View in basket',
       pickAgain: 'Pick again'
     },
-    readingPage: 'Reading the page.'
+    readingPage: 'Reading the page.',
+    /** The extension's menu: the rest of Luci lives in your project. */
+    invite: {
+      title: 'Take Luci home.',
+      body: 'In your project, Luci also takes notes, plans layouts and remembers your rules. Free. Nothing leaves your machine.',
+      action: 'Set up Luci'
+    }
+  },
+  repo: {
+    link: 'Luci on GitHub',
+    soon: 'GitHub link coming soon'
   },
   feedback: {
     notesEmpty: { title: 'No notes yet.', body: 'Annotate, then click an element. Or select text.' }

@@ -5,7 +5,10 @@
  * agent reads them through luci-mcp; without it, feedback stays in this browser and the bar says
  * how to connect.
  */
-import { LUCI_UI_ATTRIBUTE, TOOLBAR_REPLACE_EVENT, mountToolbar, readUiPrefs, type BasketStore, type CheckNote } from '@luci/capture';
+import {
+  LUCI_UI_ATTRIBUTE, TOOLBAR_REPLACE_EVENT, UI_PREFS_EVENT, mountToolbar, readUiPrefs, writeUiPrefs,
+  type BarPlace, type BasketStore, type CheckNote
+} from '@luci/capture';
 import { basketItemSchema, type BasketItem, type CaptureSettings } from '@luci/format/capture';
 import { ANIMATIONS_CSS, COPY, TOKENS_CSS, mascotSvg } from '@luci/ui';
 import {
@@ -100,14 +103,21 @@ export async function addCheckNotes(backend: FeedbackBackend, doc: Document, el:
 
 export const CONNECTING_TAG = 'luci-connecting';
 
+/** Keep at least this much of the window between a dragged bar and its edges. */
+const EDGE = 8;
+const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(v, Math.max(min, max)));
+/** CSS that puts something in a place's corner (the launcher, the connecting pill), never off screen. */
+const cornerCss = (p: BarPlace, size: number) =>
+  `${p.h}:min(${p.x}px, calc(100vw - ${size + EDGE}px));${p.v}:min(${p.y}px, calc(100vh - ${size + EDGE}px))`;
+
 /** "Connecting to your project…" with a spinner, where the bar will appear. */
-function connectingPill(doc: Document): HTMLElement {
+function connectingPill(doc: Document, place: BarPlace): HTMLElement {
   const host = doc.createElement(CONNECTING_TAG);
   host.setAttribute(LUCI_UI_ATTRIBUTE, '');
   const root = host.attachShadow({ mode: 'open' });
   // The Charcoal pill (brand/DESIGN.md, On-page toolbar), with a ginger ring turning
   root.innerHTML = `<style>${TOKENS_CSS}
-    div{position:fixed;bottom:12px;${readUiPrefs(doc).dock === 'left' ? 'left' : 'right'}:12px;z-index:2147483647;display:flex;gap:8px;align-items:center;padding:8px 16px 8px 12px;border-radius:var(--luci-radius-full);
+    div{position:fixed;${cornerCss(place, 40)};z-index:2147483647;display:flex;gap:8px;align-items:center;padding:8px 16px 8px 12px;border-radius:var(--luci-radius-full);
       background:var(--luci-color-bar);color:var(--luci-color-bar-ink);font:500 var(--luci-type-small-size)/var(--luci-type-small-line) var(--luci-font-body);box-shadow:var(--luci-shadow-float)}
     i{width:14px;height:14px;border-radius:50%;border:2px solid var(--luci-color-bar-stroke);border-top-color:var(--luci-color-tool-active);animation:s .8s linear infinite}
     @keyframes s{to{transform:rotate(360deg)}}
@@ -127,8 +137,17 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
   const noteFor = (h: BridgeHealth) => (h.ok
     ? `luci serve is running, but ${h.project ?? 'its folder'} has no .luci/ yet: run \`luci init\` there. Until then, notes stay in this browser.`
     : `Not connected to your project (${bridge}: ${h.reason ?? 'no answer'}). Run \`luci serve\` in it to save notes where your agent reads them, then click here. Until then, they stay in this browser.`);
+  /*
+   * Where the bar is: its dock's bottom corner by default (next to Luci's button), or where the person
+   * dragged it (kept in the UI preferences as devPlace: the nearest corner and the distances from its
+   * edges). Each mode's host gets data-h, data-v, --luci-x and --luci-y; the shared styles place the bar
+   * and open its cards from there, on the side with room.
+   */
+  const homePlace = (): BarPlace => ({ h: readUiPrefs(doc).dock === 'left' ? 'left' : 'right', v: 'bottom', x: 12, y: 12 });
+  let place: BarPlace = readUiPrefs(doc).devPlace ?? homePlace();
+
   // The bar's place says what Luci is doing while it looks for `luci serve` (up to a few seconds)
-  const connecting = connectingPill(doc);
+  const connecting = connectingPill(doc, place);
   let health: BridgeHealth;
   try {
     health = await bridgeReachable(bridge);
@@ -164,9 +183,9 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
     launcher.setAttribute(LUCI_UI_ATTRIBUTE, '');
     const root = launcher.attachShadow({ mode: 'open' });
     // Luci's head in a Ginger circle: the 48 px menu button (brand/DESIGN.md, On-page toolbar), in the
-    // corner the bar opens from (the dock side, at the bottom)
+    // corner of the bar's place, where the bar grows from
     root.innerHTML = `<style>${TOKENS_CSS}${ANIMATIONS_CSS}
-      button{position:fixed;${readUiPrefs(doc).dock === 'left' ? 'left' : 'right'}:12px;bottom:12px;z-index:2147483647;display:flex;align-items:center;justify-content:center;width:48px;height:48px;padding:0;border:0;
+      button{position:fixed;${cornerCss(place, 48)};z-index:2147483647;display:flex;align-items:center;justify-content:center;width:48px;height:48px;padding:0;border:0;
         border-radius:var(--luci-radius-full);background:var(--luci-color-primary);cursor:pointer;box-shadow:var(--luci-shadow-float);transition:background-color var(--luci-motion-fast)}
       button:hover{background:var(--luci-color-primary-hover)}
       button:focus-visible{outline:2px solid var(--luci-color-focus);outline-offset:2px}
@@ -182,12 +201,106 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
   const grow = (host: HTMLElement) => {
     const bar = host.shadowRoot?.querySelector<HTMLElement>('.bar');
     if (!bar || reducedMotion() || typeof bar.animate !== 'function') return;
-    const origin = `${readUiPrefs(doc).dock === 'left' ? 'left' : 'right'} bottom`;
+    const origin = `${place.h} ${place.v}`;
     bar.animate([
-      { opacity: 0, transform: 'translateY(8px) scale(0.3)', transformOrigin: origin },
+      { opacity: 0, transform: `translateY(${place.v === 'top' ? -8 : 8}px) scale(0.3)`, transformOrigin: origin },
       { opacity: 1, transform: 'none', transformOrigin: origin }
     ], { duration: 220, easing: 'cubic-bezier(0.2, 0, 0, 1)' });
   };
+
+  /** Put a mode's host in the bar's place, kept inside the window. */
+  const applyPlace = (host: HTMLElement) => {
+    const bar = host.shadowRoot?.querySelector<HTMLElement>('.bar');
+    const x = clamp(place.x, EDGE, win.innerWidth - EDGE - (bar?.offsetWidth ?? 0));
+    const y = clamp(place.y, EDGE, win.innerHeight - EDGE - (bar?.offsetHeight ?? 0));
+    host.setAttribute('data-h', place.h);
+    host.setAttribute('data-v', place.v);
+    host.style.setProperty('--luci-x', `${x}px`);
+    host.style.setProperty('--luci-y', `${y}px`);
+  };
+
+  /*
+   * Dragging: by the bar's own background, a separator or Luci's head (4 px before it counts, so a
+   * click on Luci still opens the menu). While it moves it keeps its corner; dropped, it takes the
+   * nearest one, so its cards open on the side with room.
+   */
+  let drag: { id: number; x0: number; y0: number; rect: DOMRect; bar: HTMLElement; host: HTMLElement; moved: boolean } | null = null;
+  let justMoved = false;
+  const stopDrag = () => {
+    doc.removeEventListener('pointermove', dragMove, true);
+    doc.removeEventListener('pointerup', dragEnd, true);
+    doc.removeEventListener('pointercancel', dragEnd, true);
+    drag?.host.removeAttribute('data-moving');
+    drag = null;
+  };
+  const dragMove = (e: PointerEvent) => {
+    const d = drag;
+    if (!d || e.pointerId !== d.id) return;
+    if (!d.moved && !(e.buttons & 1)) { stopDrag(); return; }
+    const dx = e.clientX - d.x0, dy = e.clientY - d.y0;
+    if (!d.moved && Math.hypot(dx, dy) < 4) return;
+    if (!d.moved) {
+      d.moved = true;
+      d.bar.setPointerCapture?.(e.pointerId);
+      d.host.setAttribute('data-moving', '');
+    }
+    const left = clamp(d.rect.left + dx, EDGE, win.innerWidth - EDGE - d.rect.width);
+    const top = clamp(d.rect.top + dy, EDGE, win.innerHeight - EDGE - d.rect.height);
+    place = {
+      ...place,
+      x: place.h === 'left' ? left : win.innerWidth - left - d.rect.width,
+      y: place.v === 'top' ? top : win.innerHeight - top - d.rect.height
+    };
+    applyPlace(d.host);
+  };
+  const dragEnd = (e: PointerEvent) => {
+    const d = drag;
+    if (!d || e.pointerId !== d.id) return;
+    stopDrag();
+    if (!d.moved) return;
+    // The click that ends a drag is not a click on Luci's head
+    justMoved = true;
+    win.setTimeout(() => { justMoved = false; }, 0);
+    const r = d.bar.getBoundingClientRect();
+    const vw = win.innerWidth, vh = win.innerHeight;
+    const h = r.left + r.width / 2 < vw / 2 ? 'left' : 'right';
+    const v = r.top + r.height / 2 < vh / 2 ? 'top' : 'bottom';
+    place = { h, v, x: Math.round(h === 'left' ? r.left : vw - r.right), y: Math.round(v === 'top' ? r.top : vh - r.bottom) };
+    applyPlace(d.host);
+    writeUiPrefs(doc, { ...readUiPrefs(doc), devPlace: place });
+  };
+  const draggable = (host: HTMLElement) => {
+    const root = host.shadowRoot;
+    if (!root) return;
+    root.addEventListener('pointerdown', (ev) => {
+      const e = ev as PointerEvent;
+      const t = e.composedPath()[0] as Element | undefined;
+      const bar = t?.closest?.('.bar') as HTMLElement | null;
+      if (e.button !== 0 || !t || !bar || (t !== bar && !t.closest('.menu-btn, .bar-sep, .brand'))) return;
+      drag = { id: e.pointerId, x0: e.clientX, y0: e.clientY, rect: bar.getBoundingClientRect(), bar, host, moved: false };
+      doc.addEventListener('pointermove', dragMove, true);
+      doc.addEventListener('pointerup', dragEnd, true);
+      doc.addEventListener('pointercancel', dragEnd, true);
+    });
+    root.addEventListener('click', (e) => {
+      if (!justMoved) return;
+      justMoved = false;
+      e.stopPropagation();
+      e.preventDefault();
+    }, true);
+  };
+
+  // Dock Right or Left (in any menu) puts a dragged bar back in that corner; resizing keeps it inside
+  const followPrefs = () => {
+    const next = readUiPrefs(doc).devPlace ?? homePlace();
+    if (JSON.stringify(next) === JSON.stringify(place)) return;
+    place = next;
+    if (current) applyPlace(current.host);
+    else if (launcher) showLauncher();
+  };
+  const onResize = () => { if (current) applyPlace(current.host); };
+  doc.addEventListener(UI_PREFS_EVENT, followPrefs);
+  win.addEventListener('resize', onResize);
 
   /** The same switch on every mode's bar. */
   const modeSwitch = () => ({ current: mode, modes: MODES, onSelect: (id: string) => show(id as Mode) });
@@ -261,8 +374,9 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
         onClose: () => { current = null; showLauncher(); }
       });
     }
-    // At the bottom, where the launcher is (each mode's styles mirror their cards for it)
-    current.host.setAttribute('data-place', 'bottom');
+    // In the bar's place (by its button unless the person dragged it), and draggable
+    applyPlace(current.host);
+    draggable(current.host);
     if (how.grow) grow(current.host);
   };
 
@@ -272,6 +386,14 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
     connect,
     mode: () => mode,
     show,
-    destroy: () => { doc.removeEventListener(TOOLBAR_REPLACE_EVENT, stepAside); current?.destroy(); current = null; removeLauncher(); }
+    destroy: () => {
+      doc.removeEventListener(TOOLBAR_REPLACE_EVENT, stepAside);
+      doc.removeEventListener(UI_PREFS_EVENT, followPrefs);
+      win.removeEventListener('resize', onResize);
+      stopDrag();
+      current?.destroy();
+      current = null;
+      removeLauncher();
+    }
   };
 }

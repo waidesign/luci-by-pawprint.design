@@ -169,6 +169,15 @@ export const COMPONENTS_CSS = `
 .field-error { display: flex; gap: var(--luci-space-4); align-items: center; margin: 0; color: var(--luci-color-danger);
   font-size: var(--luci-type-small-size); line-height: var(--luci-type-small-line); }
 
+/* The repository pill: GitHub's mark and Luci's version, in the code font (a link once the repository is public) */
+.luci-theme .repo-btn { position: relative; display: inline-flex; flex: none; align-items: center; gap: 6px; height: 32px; padding: 0 var(--luci-space-12);
+  border: 1px solid var(--luci-color-stroke-subtle); border-radius: var(--luci-radius-full); background: var(--luci-color-surface-raised);
+  color: var(--luci-color-ink); font: 600 13px/1 var(--luci-font-code); text-decoration: none; white-space: nowrap; }
+.luci-theme a.repo-btn:hover { background: var(--luci-color-ghost-hover); }
+.luci-theme a.repo-btn:focus-visible { outline: 2px solid var(--luci-color-focus); outline-offset: 2px; }
+.luci-theme .repo-btn .gh-mark { display: block; width: 16px; height: 16px; line-height: 0; }
+.luci-theme .repo-btn .gh-mark svg { display: block; width: 16px; height: 16px; }
+
 /* Tooltip: the text in data-tip; below the element, or above with data-tip-pos="above". Shows after 300 ms. */
 .luci-theme [data-tip]::after { content: attr(data-tip); position: absolute; left: 50%; top: calc(100% + var(--luci-space-8)); z-index: 3;
   width: max-content; max-width: 240px; padding: 6px 10px; border-radius: var(--luci-radius-md); background: var(--luci-color-ink);

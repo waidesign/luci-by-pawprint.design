@@ -20,7 +20,7 @@ import {
   type FeedbackItem,
   type FeedbackPriority
 } from '@luci/format/feedback';
-import { Button, COPY, EmptyState, IconAnnotate, IconChevron, IconClose, IconCopy, IconNotes, IconPause, Mascot, PALETTE, Select, useShortcuts } from '@luci/ui';
+import { Button, COPY, EmptyState, IconAnnotate, IconChevron, IconClose, IconCopy, IconNotes, IconPause, Mascot, PALETTE, RepoButton, Select, useShortcuts } from '@luci/ui';
 
 /** Feedback's single-key shortcuts (in each tooltip). */
 export const FEEDBACK_KEYS = { annotate: 'A', notes: 'N', pause: 'P', menu: 'M' } as const;
@@ -620,8 +620,8 @@ function SettingsPanel(props: { settings: FeedbackSettings; onChange: (s: Feedba
   const validHook = !hook || /^https?:\/\/\S+$/.test(hook);
   return (
     <div class="panel" role="dialog" aria-label="Feedback settings" data-part="settings">
-      <h2>Settings</h2>
-      <AppearanceControls prefs={props.uiPrefs} onChange={props.onUiPrefsChange} />
+      <div class="settings-head"><h2>Settings</h2><RepoButton /></div>
+      <AppearanceControls prefs={props.uiPrefs} onChange={props.onUiPrefsChange} movable moved={Boolean(props.uiPrefs.devPlace)} />
       <hr class="settings-divider" />
       <div class="stack">
         <span>Marker color</span>

@@ -16,7 +16,7 @@ import { ButtonSpinner, Loading, nextPaint } from './loading.js';
 import { ModeSwitch, type ModeSwitchProps } from './modeSwitch.js';
 import {
   Button, COPY, EmptyState, Icon, IconBasket, IconCheck, IconClose, IconColour, IconComponent, IconCopy, IconDownload, IconInfo, IconPage,
-  IconSpacing, IconSuccess, IconText, Mascot, Select, useShortcuts, type LucideIcon, type MascotPose
+  IconSpacing, IconSuccess, IconText, LUCI_REPO_URL, Mascot, RepoButton, Select, useShortcuts, type LucideIcon, type MascotPose
 } from '@luci/ui';
 import { AppearanceControls, LuciLogo, useUiPrefs } from './theme.js';
 import { zip } from './zip.js';
@@ -62,8 +62,8 @@ export interface ToolbarProps {
   basket?: BasketStore;
   /** A screenshot of the visible page as a data URL (the extension); Pixel mode reads colors from it. */
   captureScreen?: () => Promise<string>;
-  /** Opens a help page; the "?" button shows only when the shell has one. */
-  onHelp?: () => void;
+  /** Opens a help page (at a section, when given); the "?" button shows only when the shell has one. */
+  onHelp?: (section?: string) => void;
   /** The dev toolbar's mode switch (Feedback, Capture, ...), first after "Luci". */
   modes?: ModeSwitchProps;
   /** Saves a file into the project's .luci/design/ (the dev toolbar, through luci serve); adds "Save to project". */
@@ -1145,11 +1145,23 @@ export function Toolbar(props: ToolbarProps) {
                   <span class="brand-sub" data-part="brand-sub">{props.modes ? COPY.capture.devByline : COPY.capture.byline}</span>
                 </div>
                 <p class="brand-desc">{props.modes ? COPY.capture.devDescription : COPY.capture.description}</p>
-                {props.onHelp && <div class="row"><Button variant="secondary" icon={IconInfo} data-action="help" onClick={props.onHelp}>{COPY.common.help}</Button></div>}
+                {props.onHelp && <div class="row"><Button variant="secondary" icon={IconInfo} data-action="help" onClick={() => props.onHelp!()}>{COPY.common.help}</Button></div>}
               </div>
+              <RepoButton />
             </div>
+            {/* The extension is the small part of Luci: the rest lives in your project (no pop-up, here only) */}
+            {!props.modes && (
+              <div class="invite" data-part="invite">
+                <p class="invite-title">{COPY.capture.invite.title}</p>
+                <p class="invite-body">{COPY.capture.invite.body}</p>
+                {LUCI_REPO_URL
+                  ? <a class="btn-link invite-action" data-action="take-home" href={LUCI_REPO_URL} target="_blank" rel="noopener noreferrer">{COPY.capture.invite.action}</a>
+                  : props.onHelp && <Button variant="link" class="invite-action" data-action="take-home" onClick={() => props.onHelp!('take-luci-home')}>{COPY.capture.invite.action}</Button>}
+              </div>
+            )}
             <hr class="settings-divider" />
-            <AppearanceControls prefs={uiPrefs} onChange={setUiPrefs} {...(props.movable ? { movable: true } : {})} />
+            <AppearanceControls prefs={uiPrefs} onChange={setUiPrefs} movable={Boolean(props.movable || props.modes)}
+              moved={props.movable ? Boolean(place) : Boolean(props.modes && uiPrefs.devPlace)} />
             <hr class="settings-divider" />
             <div class="stack">
               <span class="field-label">Default file format</span>

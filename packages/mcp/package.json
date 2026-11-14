@@ -1,6 +1,6 @@
 {
   "name": "@luci/mcp",
-  "version": "0.1.0-dev",
+  "version": "0.3.0",
   "private": true,
   "description": "The Luci MCP server (luci-mcp): project memory and skills for agents over stdio. Local only.",
   "type": "module",

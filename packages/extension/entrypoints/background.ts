@@ -52,10 +52,12 @@ export default defineBackground(() => {
   });
 
   browser.runtime.onMessage.addListener((message: unknown, sender, sendResponse: (reply: ReadStatesReply | CaptureReply) => void) => {
-    const m = message as { type?: string; count?: number; options?: CdpReadOptions };
+    const m = message as { type?: string; count?: number; options?: CdpReadOptions; section?: string };
     const tabId = sender.tab?.id;
     if (m?.type === OPEN_HELP) {
-      void browser.tabs.create({ url: browser.runtime.getURL('/help.html') });
+      // At a section of the help page when one is asked for (a plain id only)
+      const section = typeof m.section === 'string' && /^[a-z][a-z0-9-]{0,40}$/.test(m.section) ? `#${m.section}` : '';
+      void browser.tabs.create({ url: `${browser.runtime.getURL('/help.html')}${section}` });
       sendResponse({ ok: true, dataUrl: '' });
       return false;
     }

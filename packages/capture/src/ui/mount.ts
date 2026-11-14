@@ -32,7 +32,7 @@ export interface MountOptions {
   /** A screenshot of the visible page (data URL) for Pixel mode; without it, the browser's eyedropper is used. */
   captureScreen?: () => Promise<string>;
   /** Opens a help page (the extension opens its own); adds a "?" button. */
-  onHelp?: () => void;
+  onHelp?: (section?: string) => void;
   /** The dev toolbar's mode switch (Feedback, Capture, ...), first after "Luci". */
   modes?: ModeSwitchProps;
   /** Saves a file into the project (the dev toolbar, through luci serve); adds "Save to project". */

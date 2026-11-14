@@ -1,7 +1,9 @@
 /** Shared components (brand/DESIGN.md section 6). */
 import type { ComponentChildren, JSX } from 'preact';
 import { Icon, type IconSize } from './icon.js';
-import { IconChevron, IconError, IconInfo, IconSuccess, IconWarning, type LucideIcon } from './icons.js';
+import { ICON_SVG, IconChevron, IconError, IconInfo, IconSuccess, IconWarning, type LucideIcon } from './icons.js';
+import { LUCI_REPO_URL, LUCI_VERSION } from './about.js';
+import { COPY } from './copy.js';
 import { Mascot, type MascotPose } from './mascot/mascot.js';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'link';
@@ -64,6 +66,23 @@ export function Button(props: ButtonProps) {
       {badge !== undefined && badge !== '' && badge !== 0 && <span class="btn-badge" aria-hidden="true">{badge}</span>}
     </button>
   );
+}
+
+/**
+ * GitHub's mark and Luci's version ("v0.3.0"), top right in every menu. A link to the repository once
+ * it is public (LUCI_REPO_URL); until then the same pill, saying the link is coming.
+ */
+export function RepoButton() {
+  const inner = (
+    <>
+      <span class="gh-mark" aria-hidden="true" dangerouslySetInnerHTML={{ __html: ICON_SVG.github }} />
+      <span class="repo-version">v{LUCI_VERSION}</span>
+    </>
+  );
+  return LUCI_REPO_URL
+    ? <a class="repo-btn" data-part="repo" href={LUCI_REPO_URL} target="_blank" rel="noopener noreferrer"
+      aria-label={`${COPY.repo.link}, version ${LUCI_VERSION}`} data-tip={COPY.repo.link}>{inner}</a>
+    : <span class="repo-btn" data-part="repo" role="img" aria-label={`Luci version ${LUCI_VERSION}. ${COPY.repo.soon}`} data-tip={COPY.repo.soon}>{inner}</span>;
 }
 
 export type SelectProps = Omit<JSX.SelectHTMLAttributes<HTMLSelectElement>, 'class'> & { class?: string; children?: ComponentChildren };

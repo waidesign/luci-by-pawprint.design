@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { COLLAR_NAME_MIN_SIZE, COPY, FACE_SVG, ICON_NAMES, Icon, IconColour, PALETTE, POSE_SVG, ROLES_BAR, ROLES_DARK, ROLES_LIGHT, faceSvg, mascotSvg, shortcutFor } from '@luci/ui';
+import { COLLAR_NAME_MIN_SIZE, COPY, FACE_SVG, ICON_NAMES, ICON_SVG, LUCI_VERSION, Icon, IconColour, PALETTE, POSE_SVG, ROLES_BAR, ROLES_DARK, ROLES_LIGHT, faceSvg, mascotSvg, shortcutFor } from '@luci/ui';
 
 const brand = (file: string) => readFileSync(fileURLToPath(new URL(`../../../brand/${file}`, import.meta.url)), 'utf8');
 
@@ -21,6 +21,21 @@ const ratio = (a: string, b: string) => {
   const [x, y] = [lum(hexOf(a)), lum(hexOf(b))];
   return Math.round(((Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05)) * 100) / 100;
 };
+
+describe('Luci\'s version and repository', () => {
+  it('has one version: LUCI_VERSION is the root\'s and every shipped package\'s', () => {
+    const version = (rel: string) => (JSON.parse(readFileSync(fileURLToPath(new URL(`../../../${rel}`, import.meta.url)), 'utf8')) as { version?: string }).version;
+    for (const rel of ['package.json', 'packages/cli/package.json', 'packages/extension/package.json', 'packages/mcp/package.json']) {
+      expect(version(rel), rel).toBe(LUCI_VERSION);
+    }
+    expect(LUCI_VERSION).toMatch(/^\d+\.\d+\.\d+$/);
+  });
+  it('carries GitHub\'s mark from the kit, filled in the text colour', () => {
+    expect(ICON_SVG.github).toBe(brand('icons/github-mark.svg').trim());
+    expect(ICON_SVG.github).toMatch(/fill="currentColor"/);
+    expect(ICON_SVG.github).not.toMatch(/#[0-9a-f]{3,6}\b/i);
+  });
+});
 
 describe('@luci/ui is generated from the brand kit', () => {
   it('has every palette colour of brand/luci-tokens.json, unchanged', () => {

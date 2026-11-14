@@ -145,6 +145,11 @@
     "menu": {
       "file": "logo/luci-mark-tile.svg",
       "use": "Toolbar menu button"
+    },
+    "github": {
+      "file": "icons/github-mark.svg",
+      "use": "Luci on GitHub (the repository link with the version)",
+      "source": "GitHub's mark, Octicons mark-github (MIT); GitHub allows it for linking to GitHub. Filled, currentColor, never recoloured or altered."
     }
   }
 }

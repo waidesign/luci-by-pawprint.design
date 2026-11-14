@@ -80,7 +80,12 @@ describe('dev toolbar placement and descriptions (user request, 2026-11-15)', { 
   it('sits at the bottom in its launcher\'s corner, grows out of it, centres the mode switch and says what each mode is for', async () => {
     const ctx = await context('http://127.0.0.1:9');
     const page = await open(ctx, '/pricing');
-    const box = async (sel: string) => (await page.locator(sel).first().boundingBox())!;
+    // Measured once cards have risen (or dropped) into place
+    const box = async (sel: string) => {
+      await page.waitForFunction(() => ['luci-feedback', 'luci-layout', 'luci-toolbar'].every(tag => (document.querySelector(tag)?.shadowRoot?.getAnimations() ?? [])
+        .every(a => !/^luci-(rise|drop)$/.test((a as CSSAnimation).animationName ?? '') || a.playState !== 'running')));
+      return (await page.locator(sel).first().boundingBox())!;
+    };
     const middle = (b: { y: number; height: number }) => b.y + b.height / 2;
 
     // At the bottom right, where the launcher is
@@ -132,12 +137,52 @@ describe('dev toolbar placement and descriptions (user request, 2026-11-15)', { 
     });
     expect(growing).toBe(1);
 
+    // Dragged anywhere, by the bar's edge, in any mode (user request, 2026-11-15): to the top left
+    const before = await box('luci-toolbar .bar');
+    await page.mouse.move(before.x + before.width / 2, before.y + 3);
+    await page.mouse.down();
+    await page.mouse.move(500, 400, { steps: 4 });
+    await page.mouse.move(before.width / 2 + 60, 120, { steps: 6 });
+    await page.mouse.up();
+    const dragged = await box('luci-toolbar .bar');
+    const near = (a: number, b: number) => expect(Math.abs(a - b)).toBeLessThan(4);
+    near(dragged.x, 60);
+    near(dragged.y, 117);
+    // Feedback opens in the same place; in the top half its cards open below the bar
+    await page.click('luci-toolbar [data-mode="feedback"]');
+    const fb = await box('luci-feedback .bar');
+    near(fb.x, dragged.x);
+    near(fb.y, dragged.y);
+    const below = await box('luci-feedback [data-part="intro"]');
+    expect(below.y).toBeGreaterThan(fb.y + fb.height);
+    // Dragged from Luci's head: it moves, and the menu does not open
+    const head = await box('luci-feedback [data-action="settings"]');
+    await page.mouse.move(head.x + head.width / 2, head.y + head.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(head.x + head.width / 2 + 100, head.y + head.height / 2 + 50, { steps: 5 });
+    await page.mouse.up();
+    expect(await page.locator('luci-feedback [data-part="settings"]').count()).toBe(0);
+    const second = await box('luci-feedback .bar');
+    near(second.x, fb.x + 100);
+    // Closed, Luci's button waits in that corner; the menu's Right puts the bar back by its button
+    await page.click('luci-feedback [data-action="close"]');
+    const waiting = await box('[data-action="open-luci"]');
+    near(waiting.x, second.x);
+    near(waiting.y, second.y);
+    await page.click('[data-action="open-luci"]');
+    await page.click('luci-feedback [data-action="settings"]');
+    await page.click('luci-feedback [data-dock-choice="right"]');
+    const home = await box('luci-feedback .bar');
+    expect(Math.round(1280 - (home.x + home.width))).toBe(12);
+    expect(Math.round(900 - (home.y + home.height))).toBe(12);
+    expect(await page.locator('luci-feedback [data-part="repo"]').innerText()).toBe('v0.3.0');
+
     // Docked left, both are in the bottom-left corner
     await page.evaluate(() => localStorage.setItem('luci.ui', JSON.stringify({ theme: 'system', dock: 'left', greeted: true })));
     await page.reload();
-    const left = await box('luci-toolbar .bar');
+    const left = await box('luci-feedback .bar');
     expect(Math.round(left.x)).toBe(12);
-    await page.click('luci-toolbar [data-action="close"]');
+    await page.click('luci-feedback [data-action="close"]');
     expect(Math.round((await box('[data-action="open-luci"]')).x)).toBe(12);
     await ctx.close();
   });

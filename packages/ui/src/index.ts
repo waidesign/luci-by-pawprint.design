@@ -8,3 +8,4 @@ export * from './icons.js';
 export * from './icon.js';
 export { loadFonts, FONT_FAMILIES } from './fonts.js';
 export * from './shortcuts.js';
+export { LUCI_REPO_URL, LUCI_VERSION } from './about.js';

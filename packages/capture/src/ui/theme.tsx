@@ -26,6 +26,8 @@ export interface UiPrefs {
   greeted?: boolean;
   /** The dragged bar's place (the extension); none: the dock's top corner. */
   place?: BarPlace | null;
+  /** The dev toolbar's dragged place; none: the dock's bottom corner, next to its button. */
+  devPlace?: BarPlace | null;
 }
 
 const validPlace = (p: unknown): BarPlace | null => {
@@ -42,7 +44,8 @@ export const DEFAULT_UI_PREFS: UiPrefs = {
 };
 
 export const UI_PREFS_KEY = 'luci.ui';
-const UI_PREFS_EVENT = 'luci-ui-prefs';
+/** Sent on the document when the preferences change, so every Luci on the page follows. */
+export const UI_PREFS_EVENT = 'luci-ui-prefs';
 
 export const THEME_OPTIONS: readonly { id: ThemeChoice; label: string; title: string }[] = [
   { id: 'system', label: 'System', title: 'Match your operating system or browser appearance' },
@@ -64,7 +67,8 @@ export function readUiPrefs(doc: Document): UiPrefs {
     const theme: ThemeChoice = parsed.theme === 'light' || parsed.theme === 'dark' || parsed.theme === 'system' ? parsed.theme : 'system';
     const dock: DockChoice = parsed.dock === 'left' || parsed.dock === 'right' ? parsed.dock : 'right';
     const place = validPlace(parsed.place);
-    return { theme, dock, greeted: parsed.greeted === true, ...(place ? { place } : {}) };
+    const devPlace = validPlace(parsed.devPlace);
+    return { theme, dock, greeted: parsed.greeted === true, ...(place ? { place } : {}), ...(devPlace ? { devPlace } : {}) };
   } catch {
     return DEFAULT_UI_PREFS;
   }
@@ -106,7 +110,11 @@ export function LuciLogo(props: { compact?: boolean; size?: number }) {
 }
 
 /** Reusable Theme (System / Light / Dark) and Panel position (Right / Left) controls for Settings panels. */
-export function AppearanceControls(props: { prefs: UiPrefs; onChange: (patch: Partial<UiPrefs>) => void; movable?: boolean }) {
+/**
+ * `movable`: the bar can be dragged (the hint says how); `moved`: it is where it was dropped, so
+ * neither side is chosen. Right or Left puts a dragged bar back in that side's corner.
+ */
+export function AppearanceControls(props: { prefs: UiPrefs; onChange: (patch: Partial<UiPrefs>) => void; movable?: boolean; moved?: boolean }) {
   const { prefs, onChange } = props;
   return (
     <div class="settings-appearance" data-part="appearance-settings">
@@ -126,11 +134,11 @@ export function AppearanceControls(props: { prefs: UiPrefs; onChange: (patch: Pa
       <div class="setting-row">
         <div class="setting-copy">
           <span class="field-label">Panel position</span>
-          <span class="dim">{props.movable ? 'Drag the bar anywhere by its edge or Luci. Right or Left puts it back in a top corner.' : 'Move Luci to the other side if it covers an element'}</span>
+          <span class="dim">{props.movable ? 'Drag the bar by its edge or Luci. Right or Left resets it.' : 'Move Luci to the other side if it covers an element'}</span>
         </div>
         <div class="seg" role="group" aria-label="Panel position">
           {DOCK_OPTIONS.map(d => (
-            <button type="button" data-dock-choice={d.id} aria-pressed={(!props.movable || !prefs.place) && prefs.dock === d.id} title={d.title} onClick={() => onChange({ dock: d.id, place: null })}>
+            <button type="button" data-dock-choice={d.id} aria-pressed={!props.moved && prefs.dock === d.id} title={d.title} onClick={() => onChange({ dock: d.id, place: null, devPlace: null })}>
               {d.label}
             </button>
           ))}
