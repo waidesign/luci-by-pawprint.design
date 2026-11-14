@@ -30,8 +30,8 @@ export interface FeedbackSettings {
   /** Where "Send to webhook" posts the prompt; nothing is sent until the person presses it. */
   webhookUrl?: string;
 }
-export const DEFAULT_FEEDBACK_SETTINGS: FeedbackSettings = { markerColor: '#a78bfa', detail: 'standard' };
-export const MARKER_COLORS = ['#a78bfa', '#f472b6', '#38bdf8', '#4ade80', '#fb923c'] as const;
+export const DEFAULT_FEEDBACK_SETTINGS: FeedbackSettings = { markerColor: '#2b2b2b', detail: 'standard' };
+export const MARKER_COLORS = ['#2b2b2b', '#f472b6', '#38bdf8', '#4ade80', '#fb923c'] as const;
 
 export interface FeedbackProps {
   doc: Document;

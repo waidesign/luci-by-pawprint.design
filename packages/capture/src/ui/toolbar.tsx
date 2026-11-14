@@ -949,7 +949,7 @@ export function Toolbar(props: ToolbarProps) {
                   <span class="brand-title" data-part="brand-title">DESIGN.md Extractor</span>
                   <span class="brand-sub" data-part="brand-sub">by Luci</span>
                 </div>
-                <span class="brand-desc">Turn any live component, text, color or page into a design.md for your AI agent.</span>
+                <span class="brand-desc">Component-level DESIGN.md extractor to connect with Luci's agentic workflow for design & front-end development.</span>
               </div>
             </div>
           )}
@@ -1238,7 +1238,7 @@ export function Toolbar(props: ToolbarProps) {
                       <div class="stack" data-part="states-summary">
                         <span class="field-label">States in this file</span>
                         <div class="states-list">
-                          <span class="state detected" data-state="default" title="Default resting state">Default ✓</span>
+                          <span class="state default detected" data-state="default" title="Default resting state">Default ✓</span>
                           {componentCtx.states.map(s => (
                             <span class={s.detected ? 'state detected' : 'state missing'} data-state={s.state}
                               title={s.detected ? (s.trigger ? `In the file: triggered by the ${s.trigger.element} around it` : 'In the file')

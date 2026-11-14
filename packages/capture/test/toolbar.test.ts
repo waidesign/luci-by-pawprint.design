@@ -428,11 +428,12 @@ describe('toolbar inside web components (FR6)', () => {
   }, 60_000);
 });
 
-describe('extension branding, settings panel, theme switcher, and off-white/charcoal palette', { timeout: 30_000 }, () => {
-  it('shows DESIGN.md Extractor by Luci in extension mode, switches System/Light/Dark and Right/Left dock in Settings, and never uses pure #fff or #000', async () => {
+describe('extension branding, settings panel, theme switcher, and Muzzle White / #2b2b2b palette', { timeout: 30_000 }, () => {
+  it('shows DESIGN.md Extractor by Luci in extension mode, switches System/Light/Dark and Right/Left dock in Settings, and uses #f5efea / #2b2b2b with no pure #fff/#000 or purple slop', async () => {
     const page = await open('css-variables');
     expect(await page.locator('.brand-title').innerText()).toBe('DESIGN.md Extractor');
     expect(await page.locator('.brand-sub').innerText()).toBe('by Luci');
+    expect(await page.locator('.brand-desc').innerText()).toContain('Component-level DESIGN.md extractor');
 
     // Open Settings panel and switch between Light, Dark, and System
     await page.click('[data-action="settings"]');
@@ -440,12 +441,14 @@ describe('extension branding, settings panel, theme switcher, and off-white/char
     await page.click('[data-theme-choice="light"]');
     expect(await page.locator('.luci').getAttribute('data-theme')).toBe('light');
     const lightBg = await page.locator('.luci').evaluate(el => getComputedStyle(el).getPropertyValue('--bg').trim());
-    expect(lightBg).toBe('#faf9f5');
+    const lightAccent = await page.locator('.luci').evaluate(el => getComputedStyle(el).getPropertyValue('--accent').trim());
+    expect(lightBg).toBe('#f5efea');
+    expect(lightAccent).toBe('#2b2b2b');
 
     await page.click('[data-theme-choice="dark"]');
     expect(await page.locator('.luci').getAttribute('data-theme')).toBe('dark');
     const darkBg = await page.locator('.luci').evaluate(el => getComputedStyle(el).getPropertyValue('--bg').trim());
-    expect(darkBg).toBe('#18181b');
+    expect(darkBg).toBe('#1f1f1f');
 
     // Switch panel dock position
     await page.click('[data-dock-choice="left"]');
@@ -453,9 +456,9 @@ describe('extension branding, settings panel, theme switcher, and off-white/char
     await page.click('[data-dock-choice="right"]');
     expect(await page.locator('.luci').getAttribute('data-dock')).toBe('right');
 
-    // Enforce no pure white (#fff/#ffffff) or pure black (#000/#000000) in toolbar CSS
+    // Enforce no pure white (#fff/#ffffff), pure black (#000/#000000), or purple slop in toolbar CSS
     const { TOOLBAR_CSS } = await import('../src/ui/styles.js');
-    expect(TOOLBAR_CSS).not.toMatch(/#(?:fff(?:fff)?|000(?:000)?)\b/i);
+    expect(TOOLBAR_CSS).not.toMatch(/#(?:fff(?:fff)?|000(?:000)?|6d28d9|a78bfa|7c3aed|ede9fe)\b/i);
     expect(TOOLBAR_CSS).not.toMatch(/rgb\(\s*(?:0\s+0\s+0|255\s+255\s+255)\b/i);
 
     await page.context().close();

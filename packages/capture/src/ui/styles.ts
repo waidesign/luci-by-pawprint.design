@@ -3,22 +3,22 @@ export const TOOLBAR_CSS = `
 :host { all: initial; }
 * { box-sizing: border-box; }
 .luci {
-  --ink: #f4f4f5;
-  --muted: #a1a1aa;
-  --bg: #18181b;
-  --bg-subtle: #141417;
-  --bg-elevated: #202024;
-  --bg-field: #27272a;
-  --bg-hover: #2e2e33;
-  --bg-code: #121215;
-  --line: #323238;
-  --line-strong: #3f3f46;
-  --accent: #a78bfa;
-  --accent-hover: #c4b5fd;
-  --accent-soft: rgb(167 139 250 / 0.18);
-  --accent-ink: #18181b;
-  --active-bg: #2e2648;
-  --active-border: #a78bfa;
+  --ink: #f5efea;
+  --muted: #a39d96;
+  --bg: #1f1f1f;
+  --bg-subtle: #181818;
+  --bg-elevated: #262626;
+  --bg-field: #2b2b2b;
+  --bg-hover: #353535;
+  --bg-code: #141414;
+  --line: #333333;
+  --line-strong: #45423e;
+  --accent: #f5efea;
+  --accent-hover: #e5ddd3;
+  --accent-soft: rgb(245 239 234 / 0.14);
+  --accent-ink: #2b2b2b;
+  --active-bg: #333333;
+  --active-border: transparent;
   --blocked: #f87171;
   --shadow: 0 12px 36px rgb(18 18 21 / 0.48), 0 2px 8px rgb(18 18 21 / 0.28);
   font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -26,63 +26,63 @@ export const TOOLBAR_CSS = `
 }
 @media (prefers-color-scheme: light) {
   .luci:not([data-theme="dark"]) {
-    --ink: #18181b;
-    --muted: #52525b;
-    --bg: #faf9f5;
-    --bg-subtle: #f1efe9;
-    --bg-elevated: #f6f5f0;
-    --bg-field: #efede6;
-    --bg-hover: #e5e3db;
-    --bg-code: #faf9f5;
-    --line: #e2e0d8;
-    --line-strong: #d4d2c8;
-    --accent: #6d28d9;
-    --accent-hover: #5b21b6;
-    --accent-soft: rgb(109 40 217 / 0.12);
-    --accent-ink: #faf9f5;
-    --active-bg: #e4e1dc;
-    --active-border: #6d28d9;
+    --ink: #2b2b2b;
+    --muted: #6e675f;
+    --bg: #f5efea;
+    --bg-subtle: #ebe4dc;
+    --bg-elevated: #faf6f2;
+    --bg-field: #faf6f2;
+    --bg-hover: #e4dcd3;
+    --bg-code: #faf6f2;
+    --line: #dfd7ce;
+    --line-strong: #cbbeb0;
+    --accent: #2b2b2b;
+    --accent-hover: #3d3d3d;
+    --accent-soft: rgb(43 43 43 / 0.1);
+    --accent-ink: #f5efea;
+    --active-bg: #ded5cb;
+    --active-border: transparent;
     --blocked: #dc2626;
-    --shadow: 0 12px 36px rgb(24 24 27 / 0.12), 0 2px 8px rgb(24 24 27 / 0.06);
+    --shadow: 0 12px 36px rgb(43 43 43 / 0.14), 0 2px 8px rgb(43 43 43 / 0.08);
   }
 }
 .luci[data-theme="light"] {
-  --ink: #18181b;
-  --muted: #52525b;
-  --bg: #faf9f5;
-  --bg-subtle: #f1efe9;
-  --bg-elevated: #f6f5f0;
-  --bg-field: #efede6;
-  --bg-hover: #e5e3db;
-  --bg-code: #faf9f5;
-  --line: #e2e0d8;
-  --line-strong: #d4d2c8;
-  --accent: #6d28d9;
-  --accent-hover: #5b21b6;
-  --accent-soft: rgb(109 40 217 / 0.12);
-  --accent-ink: #faf9f5;
-  --active-bg: #e4e1dc;
-  --active-border: #6d28d9;
+  --ink: #2b2b2b;
+  --muted: #6e675f;
+  --bg: #f5efea;
+  --bg-subtle: #ebe4dc;
+  --bg-elevated: #faf6f2;
+  --bg-field: #faf6f2;
+  --bg-hover: #e4dcd3;
+  --bg-code: #faf6f2;
+  --line: #dfd7ce;
+  --line-strong: #cbbeb0;
+  --accent: #2b2b2b;
+  --accent-hover: #3d3d3d;
+  --accent-soft: rgb(43 43 43 / 0.1);
+  --accent-ink: #f5efea;
+  --active-bg: #ded5cb;
+  --active-border: transparent;
   --blocked: #dc2626;
-  --shadow: 0 12px 36px rgb(24 24 27 / 0.12), 0 2px 8px rgb(24 24 27 / 0.06);
+  --shadow: 0 12px 36px rgb(43 43 43 / 0.14), 0 2px 8px rgb(43 43 43 / 0.08);
 }
 .luci[data-theme="dark"] {
-  --ink: #f4f4f5;
-  --muted: #a1a1aa;
-  --bg: #18181b;
-  --bg-subtle: #141417;
-  --bg-elevated: #202024;
-  --bg-field: #27272a;
-  --bg-hover: #2e2e33;
-  --bg-code: #121215;
-  --line: #323238;
-  --line-strong: #3f3f46;
-  --accent: #a78bfa;
-  --accent-hover: #c4b5fd;
-  --accent-soft: rgb(167 139 250 / 0.18);
-  --accent-ink: #18181b;
-  --active-bg: #2e2648;
-  --active-border: #a78bfa;
+  --ink: #f5efea;
+  --muted: #a39d96;
+  --bg: #1f1f1f;
+  --bg-subtle: #181818;
+  --bg-elevated: #262626;
+  --bg-field: #2b2b2b;
+  --bg-hover: #353535;
+  --bg-code: #141414;
+  --line: #333333;
+  --line-strong: #45423e;
+  --accent: #f5efea;
+  --accent-hover: #e5ddd3;
+  --accent-soft: rgb(245 239 234 / 0.14);
+  --accent-ink: #2b2b2b;
+  --active-bg: #333333;
+  --active-border: transparent;
   --blocked: #f87171;
   --shadow: 0 12px 36px rgb(18 18 21 / 0.48), 0 2px 8px rgb(18 18 21 / 0.28);
 }
@@ -143,7 +143,7 @@ export const TOOLBAR_CSS = `
   border-radius: 9px;
   background: var(--bg-field);
   border: 1px solid var(--line-strong);
-  color: var(--accent);
+  color: var(--ink);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -320,6 +320,11 @@ button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); o
   border-radius: 8px;
 }
 .seg button { padding: 4px 10px; font-size: 12px; }
+.seg button[aria-pressed="true"] {
+  background: var(--bg-field);
+  border-color: var(--line-strong);
+  box-shadow: 0 1px 2px rgb(43 43 43 / 0.08);
+}
 .items { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; overflow: auto; }
 .items li { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; align-items: center; padding: 8px 10px; background: var(--bg-elevated); border: 1px solid var(--line-strong); border-radius: 8px; }
 .files { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
@@ -348,7 +353,7 @@ textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; 
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 9px;
+  padding: 4px 10px;
   border-radius: 7px;
   border: 1px solid var(--line-strong);
   background: var(--bg-field);
@@ -356,9 +361,14 @@ textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; 
   font-weight: 500;
   color: var(--ink);
 }
-.state.detected {
+.state.default {
   background: var(--active-bg);
-  border-color: var(--active-border);
+  border-color: var(--line-strong);
+  font-weight: 600;
+}
+.state.detected:not(.default) {
+  background: var(--bg-field);
+  border-color: var(--line-strong);
 }
 .state.missing {
   color: var(--muted);
@@ -529,8 +539,8 @@ textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; 
   color: var(--ink);
 }
 
-.highlight.locked { border-width: 2px; border-style: solid; background: var(--accent-soft); box-shadow: 0 0 0 2px rgb(24 24 27 / 0.6); }
-.highlight { position: fixed; z-index: 2147483646; pointer-events: none; border: 2px solid var(--accent); background: rgb(167 139 250 / 0.12); border-radius: 2px; }
+.highlight.locked { border-width: 2px; border-style: solid; background: var(--accent-soft); box-shadow: 0 0 0 2px rgb(43 43 43 / 0.45); }
+.highlight { position: fixed; z-index: 2147483646; pointer-events: none; border: 2px solid var(--accent); background: var(--accent-soft); border-radius: 2px; }
 .highlight.blocked { border-color: var(--blocked); background: rgb(120 120 120 / 0.35); }
 .label { position: fixed; z-index: 2147483647; pointer-events: none; max-width: 360px; padding: 3px 7px; border-radius: 5px;
   background: var(--bg); border: 1px solid var(--line-strong); font: 12px/1.35 ui-monospace, monospace; white-space: pre-wrap; box-shadow: var(--shadow); }
@@ -594,7 +604,7 @@ label { display: inline-flex; gap: 4px; align-items: center; color: var(--muted)
 .loading { display: flex; gap: 10px; align-items: center; margin: 0; color: var(--ink); }
 .loading .steps { color: var(--muted); font-size: 12px; }
 /* Spins with transform only: the browser keeps it moving off the page's main thread, even while Luci reads a heavy page */
-.spinner { flex: none; width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgb(167 139 250 / 0.25); border-top-color: var(--accent);
+.spinner { flex: none; width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--line-strong); border-top-color: var(--accent);
   animation: luci-spin 0.8s linear infinite; will-change: transform; }
 button .spinner { display: inline-block; width: 12px; height: 12px; margin-right: 6px; vertical-align: -2px; }
 @keyframes luci-spin { to { transform: rotate(360deg); } }

@@ -161,7 +161,7 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
     launcher = doc.createElement(LAUNCHER_TAG);
     launcher.setAttribute(LUCI_UI_ATTRIBUTE, '');
     const root = launcher.attachShadow({ mode: 'open' });
-    root.innerHTML = '<style>button{position:fixed;right:12px;bottom:12px;z-index:2147483647;padding:6px 12px;border-radius:999px;border:1px solid #3f3f46;background:#18181b;color:#f4f4f5;font:600 12px system-ui,sans-serif;cursor:pointer;box-shadow:0 4px 16px rgb(18 18 21 / .3)}</style><button type="button" data-action="open-luci" title="Open Luci">Luci</button>';
+    root.innerHTML = '<style>button{position:fixed;right:12px;bottom:12px;z-index:2147483647;padding:6px 12px;border-radius:999px;border:1px solid #45423e;background:#2b2b2b;color:#f5efea;font:600 12px system-ui,sans-serif;cursor:pointer;box-shadow:0 4px 16px rgb(43 43 43 / .28)}</style><button type="button" data-action="open-luci" title="Open Luci">Luci</button>';
     root.querySelector('button')!.addEventListener('click', (e) => { e.stopPropagation(); show(mode); });
     doc.documentElement.appendChild(launcher);
   };
