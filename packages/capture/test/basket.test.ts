@@ -92,7 +92,7 @@ describe('items from two sites export as one file (M5 Done when)', () => {
     await target();
     await page.click('[data-output="one"]');
     await page.click('[data-action="add-to-basket"]');
-    expect(await page.locator('[data-action="add-to-basket"]').innerText()).toBe('Added to basket');
+    expect(await page.locator('[data-action="add-to-basket"]').innerText()).toBe('View in Basket');
   };
 
   it('collects on two origins, keeps items across pages, renames, and exports one collection file', async () => {

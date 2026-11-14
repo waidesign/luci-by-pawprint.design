@@ -1242,6 +1242,7 @@ export function Toolbar(props: ToolbarProps) {
                   {stateNote && <p class="hint" data-part="state-note">{stateNote}</p>}
                   {componentCtx && result.output.capture.meta.scope === 'component' && (
                     <div class="stack" data-part="manual-state">
+                      <hr class="settings-divider" />
                       <div class="stack" data-part="states-summary">
                         <span class="field-label">States in this file</span>
                         <div class="states-list">
@@ -1256,6 +1257,7 @@ export function Toolbar(props: ToolbarProps) {
                           ))}
                         </div>
                       </div>
+                      <hr class="settings-divider" />
                       {countdown !== null && capturing ? (
                         <div class="row">
                           <p class="hint" data-part="countdown">
@@ -1265,7 +1267,10 @@ export function Toolbar(props: ToolbarProps) {
                         </div>
                       ) : (
                         <div class="manual-row">
-                          <label class="field-label" for="luci-manual-state">Capture manually</label>
+                          <div class="section-copy">
+                            <label class="field-label" for="luci-manual-state">Capture manually</label>
+                            <span class="dim">Trigger hover, focus or active yourself during a 3s countdown.</span>
+                          </div>
                           <div class="manual-actions">
                             <select id="luci-manual-state" data-setting="manual-state" value={manualTarget} onChange={e => setManualTarget((e.currentTarget as HTMLSelectElement).value as ManualTarget)}>
                               {missingStates(componentCtx.states).length > 0 && <option value={ALL_MISSING}>All missing states ({missingStates(componentCtx.states).length})</option>}
@@ -1279,16 +1284,23 @@ export function Toolbar(props: ToolbarProps) {
                   )}
                   {picked && (result.output.capture.meta.scope === 'component' || result.output.capture.meta.scope === 'section') && result.output.capture.meta.selector === picked.entry.selector && (
                     <div class="stack" data-part="responsive">
+                      <hr class="settings-divider" />
                       {widthBusy ? <Loading text={widthBusy} /> : (
-                        <span class="row">
-                          <button type="button" class="btn-outline" data-action="responsive" title="Read it at the widths where the site's media queries change it (2 or 3), and add what changes to the file"
-                            onClick={() => void addResponsive()}>{responsiveRef.current ? 'Read the widths again' : 'How it changes by width'}</button>
-                          {!widthNote && <span class="dim">{responsiveRef.current ? 'In the file under Responsive.' : 'At the site\'s own breakpoints, 2 or 3 widths.'}</span>}
-                        </span>
+                        <div class="manual-row">
+                          <div class="section-copy">
+                            <span class="field-label">Responsive breakpoints</span>
+                            {!widthNote && <span class="dim">{responsiveRef.current ? 'In the file under Responsive.' : 'At the site\'s own breakpoints, 2 or 3 widths.'}</span>}
+                          </div>
+                          <div class="manual-actions">
+                            <button type="button" class="btn-outline" data-action="responsive" title="Read it at the widths where the site's media queries change it (2 or 3), and add what changes to the file"
+                              onClick={() => void addResponsive()}>{responsiveRef.current ? 'Read the widths again' : 'How it changes by width'}</button>
+                          </div>
+                        </div>
                       )}
                       {widthNote && <p class={widthNote.error ? 'error' : 'hint'} data-part="responsive-note">{widthNote.text}</p>}
                     </div>
                   )}
+                  <hr class="settings-divider" />
                   <label class="field-stack">
                     <span class="field-label">Your instructions for agent <span class="dim">(optional)</span></span>
                     <textarea data-part="instructions" rows={2} value={instructions}
@@ -1318,7 +1330,7 @@ export function Toolbar(props: ToolbarProps) {
                     {props.makeRule && output && output.capture.meta.scope === 'component' && (
                       <RuleButton make={() => props.makeRule!(output.fileName, markdown)} key={`rule ${output.fileName}`} />
                     )}
-                    <button type="button" class="btn-outline btn-with-ico" data-action="add-to-basket" disabled={added} onClick={() => void addCurrent()}><BasketIcon added={added} />{added ? 'Added to basket' : 'Add to basket'}</button>
+                    <button type="button" class="btn-outline btn-with-ico" data-action="add-to-basket" onClick={() => { if (added) openBasket(); else void addCurrent(); }}><BasketIcon added={added} />{added ? 'View in Basket' : 'Add to basket'}</button>
                     {tool && <button type="button" class="btn-outline btn-with-ico" data-action="pick-again" onClick={() => startPicking(tool)}><PickAgainIcon />Pick again</button>}
                   </div>
                 </div>

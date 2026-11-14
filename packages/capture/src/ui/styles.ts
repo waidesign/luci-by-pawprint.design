@@ -19,10 +19,10 @@ export const TOOLBAR_CSS = `
   --accent-ink: #2b2b2b;
   --active-bg: #333333;
   --active-border: transparent;
-  --danger-bg: #3d2424;
-  --danger-hover: #4f2d2d;
-  --danger-border: #854648;
-  --danger-ink: #fca5a5;
+  --danger-bg: #c34545;
+  --danger-hover: #ae3b3b;
+  --danger-border: transparent;
+  --danger-ink: #f5efea;
   --blocked: #f87171;
   --shadow: 0 12px 36px rgb(18 18 21 / 0.48), 0 2px 8px rgb(18 18 21 / 0.28);
   font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -46,10 +46,10 @@ export const TOOLBAR_CSS = `
     --accent-ink: #f5efea;
     --active-bg: #ded5cb;
     --active-border: transparent;
-    --danger-bg: #f8d7d5;
-    --danger-hover: #f2c2bf;
-    --danger-border: #e4ada9;
-    --danger-ink: #6e1f1d;
+    --danger-bg: #c34545;
+    --danger-hover: #ae3b3b;
+    --danger-border: transparent;
+    --danger-ink: #f5efea;
     --blocked: #dc2626;
     --shadow: 0 12px 36px rgb(43 43 43 / 0.14), 0 2px 8px rgb(43 43 43 / 0.08);
   }
@@ -71,10 +71,10 @@ export const TOOLBAR_CSS = `
   --accent-ink: #f5efea;
   --active-bg: #ded5cb;
   --active-border: transparent;
-  --danger-bg: #f8d7d5;
-  --danger-hover: #f2c2bf;
-  --danger-border: #e4ada9;
-  --danger-ink: #6e1f1d;
+  --danger-bg: #c34545;
+  --danger-hover: #ae3b3b;
+  --danger-border: transparent;
+  --danger-ink: #f5efea;
   --blocked: #dc2626;
   --shadow: 0 12px 36px rgb(43 43 43 / 0.14), 0 2px 8px rgb(43 43 43 / 0.08);
 }
@@ -95,10 +95,10 @@ export const TOOLBAR_CSS = `
   --accent-ink: #2b2b2b;
   --active-bg: #333333;
   --active-border: transparent;
-  --danger-bg: #3d2424;
-  --danger-hover: #4f2d2d;
-  --danger-border: #854648;
-  --danger-ink: #fca5a5;
+  --danger-bg: #c34545;
+  --danger-hover: #ae3b3b;
+  --danger-border: transparent;
+  --danger-ink: #f5efea;
   --blocked: #f87171;
   --shadow: 0 12px 36px rgb(18 18 21 / 0.48), 0 2px 8px rgb(18 18 21 / 0.28);
 }
@@ -449,13 +449,20 @@ textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; 
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding-top: 4px;
+  gap: 12px;
+}
+.section-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
 }
 .manual-actions {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  flex: none;
 }
 
 /* 3-column settings grid (Wireframe 1) */

@@ -266,7 +266,10 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
     expect(md).toContain('| brand accent |');
 
     await page.click('[data-action="add-to-basket"]');
-    await page.click('[data-action="basket"]');
+    expect(await page.locator('[data-action="add-to-basket"]').innerText()).toBe('View in Basket');
+    expect(await page.locator('[data-action="add-to-basket"]').isDisabled()).toBe(false);
+    await page.click('[data-action="add-to-basket"]');
+    await page.locator('[data-part="basket"]').waitFor();
     await page.locator('[data-item-export]').last().click();
     expect(await preview(page)).toContain('| brand accent |');
     await page.click('[data-action="basket-back"]');
@@ -454,7 +457,7 @@ describe('extension branding, settings panel, theme switcher, and Muzzle White /
     const lightDanger = await page.locator('.luci').evaluate(el => getComputedStyle(el).getPropertyValue('--danger-bg').trim());
     expect(lightBg).toBe('#f5efea');
     expect(lightAccent).toBe('#2b2b2b');
-    expect(lightDanger).toBe('#f8d7d5');
+    expect(lightDanger).toBe('#c34545');
 
     await page.click('[data-theme-choice="dark"]');
     expect(await page.locator('.luci').getAttribute('data-theme')).toBe('dark');
