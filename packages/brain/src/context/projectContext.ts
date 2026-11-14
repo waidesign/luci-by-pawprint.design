@@ -15,7 +15,7 @@ import {
 } from '@luci/format';
 import { SkillRegistry, addedPacks, missingSkillWarnings, projectSkillSet, readLock, trustLevel, type Skill, type SkillSource, type TrustLevel } from '@luci/skills';
 import { mapFreshness, type MapFreshness } from '../codemap/codeMap.js';
-import { GRAPH_JSON, detectProject } from '../detect/detector.js';
+import { GRAPH_JSON, detectProject, type WorkspacePackage } from '../detect/detector.js';
 import { suggestPacks, type PackSuggestion } from '../init/initProject.js';
 import { memoryDir, memoryPath, readBrainJson } from '../layout/brainLayout.js';
 import { readActiveTask, type ActiveTask } from '../memory/activeTask.js';
@@ -60,7 +60,11 @@ export interface ContextSkill {
 
 export interface ProjectContext {
   version: number;
-  project: { name: string; path: string; framework: string; languages: string[]; packageManager: string; uiLibraries: string[] };
+  project: {
+    name: string; path: string; framework: string; languages: string[]; packageManager: string; uiLibraries: string[];
+    /** A monorepo's packages: path, name, kind and stack. */
+    packages?: WorkspacePackage[];
+  };
   initialized: boolean;
   layout: number | null;
   goal: string | null;
@@ -145,7 +149,8 @@ export async function loadProjectContext(projectDir: string = process.cwd(), opt
       framework: info.framework,
       languages: info.languages,
       packageManager: info.packageManager,
-      uiLibraries: info.uiLibraries
+      uiLibraries: info.uiLibraries,
+      ...(info.packages.length ? { packages: info.packages } : {})
     },
     initialized,
     layout: brainJson?.layout ?? null,

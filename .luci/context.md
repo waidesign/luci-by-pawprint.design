@@ -6,10 +6,21 @@ _Sections marked (auto-detected) come from the project's files and are refreshed
 Luci: a local-first toolkit for AI coding agents with memory, skill selection, design capture and feedback. Full requirements in docs/PRD.md.
 
 ## Stack (auto-detected)
-- Framework: node
+- Framework: monorepo
 - Languages: TypeScript
 - Package manager: pnpm
+- UI libraries: none detected
 - Testing: vitest
+- Packages (9; each has its own stack, so work in the one the task is about):
+  - `packages/brain` (@luci/brain): library
+  - `packages/capture` (@luci/capture): library, preact
+  - `packages/cli` (luci): command line
+  - `packages/extension` (@luci/extension): browser extension
+  - `packages/feedback` (@luci/feedback): library, preact
+  - `packages/format` (@luci/format): library
+  - `packages/mcp` (@luci/mcp): MCP server
+  - `packages/skills` (@luci/skills): library
+  - `packages/toolbar` (@luci/toolbar): library
 
 ## Commands (auto-detected)
 - Dev: not found

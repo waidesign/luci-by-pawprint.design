@@ -3,11 +3,16 @@ export { readJsonFile, isRecord } from './fs/readJson.js';
 export {
   type ProjectInfo,
   type PackageManager,
+  type PackageKind,
+  type WorkspacePackage,
+  PACKAGE_KIND_LABEL,
   UI_FRAMEWORKS,
   GRAPH_JSON,
   detectProject,
   detectCommands,
-  hasSourceFiles
+  hasSourceFiles,
+  workspaceFolders,
+  workspacePatterns
 } from './detect/detector.js';
 export {
   type ProjectFacts,

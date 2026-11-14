@@ -9,5 +9,5 @@
 - Code map: ./graphify-out/GRAPH_REPORT.md and graph.json, if present. `luci map` says whether it is current; when it is not, read changed files directly.
 - Luci over MCP (luci-mcp, if connected): get_project_context first (get_active_task when resuming), load_project_skills for the skills the current task needs; get_feedback_prompt when the user mentions UI feedback (read only: report every ID in your answer), watch_feedback when they ask you to watch for new notes, list_captures before building UI from a design.
 - Precedence: Safety rules > user request > ./.luci/rules.md > Global Brain (~/.luci/brain) > skills > tool defaults.
-- Framework: node
+- Framework: monorepo of 9 packages (node, preact, browser extension); each package's kind and stack: Stack in ./.luci/context.md
 <!-- END LUCI -->

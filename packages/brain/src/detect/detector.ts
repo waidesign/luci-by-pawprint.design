@@ -27,12 +27,34 @@ export interface ProjectInfo {
   hasProjectBrain: boolean;
   /** A Graphify code map exists in graphify-out/. */
   hasGraphify: boolean;
+  /**
+   * The packages of a monorepo (pnpm, npm, yarn or bun workspaces), each with its own stack. Empty
+   * for a single project. A monorepo's framework is "monorepo" unless its root is an app itself, and
+   * its UI, React, test signals and dependencies are those of all its packages together.
+   */
+  packages: WorkspacePackage[];
+}
+
+/** What a package in a monorepo is. */
+export type PackageKind = 'app' | 'library' | 'cli' | 'mcp-server' | 'server' | 'browser-extension';
+
+export interface WorkspacePackage {
+  name: string;
+  /** Relative to the project, with forward slashes: "packages/cli". */
+  path: string;
+  kind: PackageKind;
+  /** Its own framework ("node" when it has none). */
+  framework: string;
 }
 
 export type PackageManager = 'npm' | 'pnpm' | 'yarn' | 'bun';
 
 interface PackageJson {
   name?: string;
+  /** It installs a command (a "bin" entry). */
+  bin: boolean;
+  /** Workspace patterns from "workspaces" (an array, or { packages: [...] }). */
+  workspaces: string[];
   scripts: Record<string, unknown>;
   deps: Record<string, unknown>;
   /** What the app itself runs on: dependencies and peerDependencies (not devDependencies). */
@@ -46,8 +68,14 @@ const LOCKFILES = [
   'poetry.lock', 'Pipfile.lock', 'uv.lock', 'Cargo.lock', 'go.sum', 'composer.lock', 'Gemfile.lock'
 ];
 export const UI_FRAMEWORKS: ReadonlySet<string> = new Set([
-  'nextjs', 'remix', 'react-vite', 'react', 'vue', 'nuxt', 'svelte', 'angular', 'plain-frontend'
+  'nextjs', 'remix', 'react-vite', 'react', 'preact', 'vue', 'nuxt', 'svelte', 'angular', 'plain-frontend'
 ]);
+/** Frameworks that are a whole app (the others can also be a component library). */
+const APP_FRAMEWORKS: ReadonlySet<string> = new Set(['nextjs', 'remix', 'react-vite', 'nuxt', 'angular', 'plain-frontend']);
+/** Tools that build browser extensions. */
+const EXTENSION_TOOLS = ['wxt', 'plasmo', '@crxjs/vite-plugin', 'webextension-polyfill'];
+/** At most this many packages are read in a monorepo. */
+export const MAX_PACKAGES = 60;
 const PYTHON_FILES = ['pyproject.toml', 'requirements.txt', 'setup.py', 'Pipfile'];
 const SERVER_FRAMEWORKS = ['@nestjs/core', 'express', 'fastify', 'koa', 'hono'];
 export const GRAPH_JSON = path.join('graphify-out', 'graph.json');
@@ -59,8 +87,12 @@ function readPackageJson(dir: string): PackageJson | null {
     const pkg = readJsonFile(file);
     if (!isRecord(pkg)) return null;
     const record = (v: unknown) => (isRecord(v) ? v : {});
+    const ws = pkg['workspaces'];
+    const patterns = Array.isArray(ws) ? ws : isRecord(ws) && Array.isArray(ws['packages']) ? ws['packages'] : [];
     return {
       ...(typeof pkg['name'] === 'string' && pkg['name'] ? { name: pkg['name'] } : {}),
+      bin: typeof pkg['bin'] === 'string' || (isRecord(pkg['bin']) && Object.keys(pkg['bin']).length > 0),
+      workspaces: patterns.filter((p): p is string => typeof p === 'string'),
       scripts: record(pkg['scripts']),
       deps: { ...record(pkg['dependencies']), ...record(pkg['devDependencies']) },
       runtime: { ...record(pkg['peerDependencies']), ...record(pkg['dependencies']) }
@@ -147,8 +179,82 @@ export function detectCommands(
   return commands;
 }
 
-/** Inspect a project folder. Reads files only; never writes. */
-export function detectProject(targetDir: string = process.cwd()): ProjectInfo {
+/** Workspace patterns: pnpm-workspace.yaml's "packages" list, else package.json's "workspaces". */
+export function workspacePatterns(dir: string, pkg: Pick<PackageJson, 'workspaces'> | null): string[] {
+  const yaml = path.join(dir, 'pnpm-workspace.yaml');
+  if (fs.existsSync(yaml)) {
+    const out: string[] = [];
+    let inPackages = false;
+    for (const raw of fs.readFileSync(yaml, 'utf8').split(/\r?\n/)) {
+      const line = raw.replace(/\s+#.*$/, '');
+      if (/^packages\s*:/.test(line)) { inPackages = true; continue; }
+      if (inPackages && /^\S/.test(line)) break;
+      const item = inPackages ? /^\s*-\s*['"]?([^'"]+?)['"]?\s*$/.exec(line) : null;
+      if (item) out.push(item[1]!);
+    }
+    if (out.length) return out;
+  }
+  return pkg?.workspaces ?? [];
+}
+
+/**
+ * The package folders the patterns name (each with a package.json): "packages/*" (one level),
+ * "packages/**" (any depth, up to 3), or a folder; "!pattern" leaves folders out.
+ */
+export function workspaceFolders(dir: string, patterns: readonly string[]): string[] {
+  const norm = (p: string) => p.replace(/\\/g, '/').replace(/^\.\//, '').replace(/\/+$/, '');
+  const found = new Set<string>();
+  const subfolders = (rel: string): string[] => {
+    try {
+      return fs.readdirSync(path.join(dir, rel), { withFileTypes: true })
+        .filter(e => e.isDirectory() && !e.name.startsWith('.') && e.name !== 'node_modules')
+        .map(e => (rel ? `${rel}/${e.name}` : e.name));
+    } catch {
+      return [];
+    }
+  };
+  const expand = (pattern: string): string[] => {
+    const parts = norm(pattern).split('/');
+    let current = [''];
+    for (const part of parts) {
+      const next: string[] = [];
+      for (const base of current) {
+        if (part === '**') {
+          // Any depth up to 3 below here
+          let level = [base];
+          next.push(base);
+          for (let d = 0; d < 3; d++) { level = level.flatMap(subfolders); next.push(...level); }
+        } else if (part.includes('*')) {
+          const re = new RegExp(`^${part.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*')}$`);
+          next.push(...subfolders(base).filter(f => re.test(f.split('/').pop()!)));
+        } else {
+          next.push(base ? `${base}/${part}` : part);
+        }
+      }
+      current = next;
+    }
+    return current;
+  };
+  for (const p of patterns.filter(p => !p.startsWith('!'))) {
+    for (const f of expand(p)) if (f && fs.existsSync(path.join(dir, f, 'package.json'))) found.add(f);
+  }
+  const excluded = new Set(patterns.filter(p => p.startsWith('!')).flatMap(p => expand(p.slice(1))));
+  return [...found].filter(f => !excluded.has(f)).sort().slice(0, MAX_PACKAGES);
+}
+
+/** What a package is, from its manifest and stack. */
+function packageKind(info: ProjectInfo, pkg: PackageJson | null, has: (f: string) => boolean): PackageKind {
+  const deps = pkg?.deps ?? {};
+  if (EXTENSION_TOOLS.some(t => deps[t]) || info.framework === 'browser-extension') return 'browser-extension';
+  if (pkg?.bin) return deps['@modelcontextprotocol/sdk'] ? 'mcp-server' : 'cli';
+  if (SERVER_FRAMEWORKS.some(s => deps[s])) return 'server';
+  if (APP_FRAMEWORKS.has(info.framework)) return 'app';
+  if (UI_FRAMEWORKS.has(info.framework) && (has('index.html') || typeof pkg?.scripts['dev'] === 'string')) return 'app';
+  return 'library';
+}
+
+/** Inspect a project folder. Reads files only; never writes. A monorepo's packages are read too. */
+export function detectProject(targetDir: string = process.cwd(), options: { packages?: boolean } = {}): ProjectInfo {
   const dir = path.resolve(targetDir);
   const has = (file: string) => fs.existsSync(path.join(dir, file));
   const pkg = readPackageJson(dir);
@@ -201,6 +307,10 @@ export function detectProject(targetDir: string = process.cwd()): ProjectInfo {
     framework = 'svelte';
   } else if (uses(['@angular/core'], () => has('angular.json'))) {
     framework = 'angular';
+  } else if (uses(['preact'], () => hasSourceFiles(dir, /\.(jsx|tsx)$/i))) {
+    framework = 'preact';
+  } else if (EXTENSION_TOOLS.some(dep) || /"manifest_version"/.test(readLower(dir, has('manifest.json') ? ['manifest.json'] : []))) {
+    framework = 'browser-extension';
   } else if (has('index.html') || dep('vite') || dep('webpack') || dep('parcel') || viteConfig || has('webpack.config.js')) {
     framework = 'plain-frontend';
   } else if (pkg) {
@@ -237,7 +347,7 @@ export function detectProject(targetDir: string = process.cwd()): ProjectInfo {
   if (has('GEMINI.md')) aiConfigs.push('gemini-cli');
   if (has(path.join('.github', 'copilot-instructions.md'))) aiConfigs.push('github-copilot');
 
-  return {
+  const info: ProjectInfo = {
     projectPath: dir,
     projectName: pkg?.name ?? path.basename(dir),
     os: os.platform(),
@@ -255,6 +365,38 @@ export function detectProject(targetDir: string = process.cwd()): ProjectInfo {
     dependencies: Object.keys(deps),
     aiConfigs,
     hasProjectBrain: has(PRODUCT.projectDir),
-    hasGraphify: has(GRAPH_JSON)
+    hasGraphify: has(GRAPH_JSON),
+    packages: []
+  };
+  if (options.packages === false) return info;
+
+  // A monorepo: each package's own stack, and the whole project's signals from all of them
+  const folders = workspaceFolders(dir, workspacePatterns(dir, pkg));
+  if (!folders.length) return info;
+  const read = folders.map(rel => {
+    const pkgDir = path.join(dir, rel);
+    const sub = detectProject(pkgDir, { packages: false });
+    const subPkg = readPackageJson(pkgDir);
+    const kind = packageKind(sub, subPkg, f => fs.existsSync(path.join(pkgDir, f)));
+    return { sub, entry: { name: sub.projectName, path: rel, kind, framework: sub.framework } satisfies WorkspacePackage };
+  });
+  const all = [info, ...read.map(r => r.sub)];
+  const union = (pick: (i: ProjectInfo) => readonly string[]) => [...new Set(all.flatMap(pick))];
+  return {
+    ...info,
+    // The root keeps its own framework when it is an app itself (a Next.js app with workspaces)
+    framework: ['node', 'unknown', 'plain-frontend'].includes(info.framework) ? 'monorepo' : info.framework,
+    languages: union(i => i.languages).sort((a, b) => Number(b === 'TypeScript') - Number(a === 'TypeScript')),
+    isReact: all.some(i => i.isReact),
+    uiLibraries: union(i => i.uiLibraries),
+    hasUi: all.some(i => i.hasUi),
+    testingFrameworks: union(i => i.testingFrameworks),
+    dependencies: union(i => i.dependencies),
+    packages: read.map(r => r.entry)
   };
 }
+
+/** "command line", "MCP server", "browser extension"...: how a package kind reads in Markdown. */
+export const PACKAGE_KIND_LABEL: Readonly<Record<PackageKind, string>> = {
+  app: 'app', library: 'library', cli: 'command line', 'mcp-server': 'MCP server', server: 'server', 'browser-extension': 'browser extension'
+};

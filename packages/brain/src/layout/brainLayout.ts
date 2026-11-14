@@ -24,7 +24,7 @@ import {
   type ProjectCommands
 } from '@luci/format';
 import { isRecord } from '../fs/readJson.js';
-import type { ProjectInfo } from '../detect/detector.js';
+import { PACKAGE_KIND_LABEL, type ProjectInfo, type WorkspacePackage } from '../detect/detector.js';
 
 /** templates/luci/, next to src/ and dist/. */
 export const TEMPLATES_DIR = fileURLToPath(new URL('../../templates/luci/', import.meta.url));
@@ -87,7 +87,8 @@ function stackRule(facts: ProjectFacts): string {
   const { info } = facts;
   const parts: string[] = [];
   const framework = ['unknown', 'node'].includes(info.framework) ? null : info.framework;
-  parts.push(framework ? `${code(framework)} with ${list(info.languages)}` : list(info.languages));
+  const inside = info.packages.length ? ` (packages: ${[...new Set(info.packages.map(p => p.framework))].map(code).join(', ')})` : '';
+  parts.push(framework ? `${code(framework)}${inside} with ${list(info.languages)}` : list(info.languages));
   if (facts.hasUi) {
     const libs = info.uiLibraries.map(l => STYLING_LABEL[l] ?? l);
     parts.push(libs.length ? `UI libraries: ${libs.join(', ')}` : 'styling: plain CSS (no UI or styling library detected)');
@@ -116,15 +117,33 @@ function checkCommands(facts: ProjectFacts): string {
   return found.length ? found.map(code).join(', ') : "the project's checks (none detected yet: add the commands to `context.md`)";
 }
 
+/** One package of a monorepo: "`packages/cli` (luci): command line", "...: library, preact". */
+export function packageLine(p: WorkspacePackage): string {
+  const kind = PACKAGE_KIND_LABEL[p.kind];
+  const stack = ['node', 'unknown', p.kind].includes(p.framework) ? '' : `, ${p.framework}`;
+  return `${code(p.path)} (${p.name}): ${kind}${stack}`;
+}
+
 function stackSection(facts: ProjectFacts): string {
   const { info } = facts;
+  const packages = info.packages.length
+    ? [`- Packages (${info.packages.length}; each has its own stack, so work in the one the task is about):`, ...info.packages.map(p => `  - ${packageLine(p)}`)]
+    : [];
   return [
     `- Framework: ${info.framework === 'unknown' ? 'not detected' : info.framework}`,
     `- Languages: ${list(info.languages)}`,
     `- Package manager: ${info.packageManager}`,
     ...(facts.hasUi ? [`- UI libraries: ${list(info.uiLibraries)}`] : []),
-    `- Testing: ${list(info.testingFrameworks)}`
+    `- Testing: ${list(info.testingFrameworks)}`,
+    ...packages
   ].join('\n');
+}
+
+/** The framework as agent files say it: a monorepo names its packages' stacks and points to the list. */
+export function frameworkLine(info: Pick<ProjectInfo, 'framework' | 'packages'>): string {
+  if (!info.packages.length) return `- Framework: ${info.framework}`;
+  const stacks = [...new Set(info.packages.map(p => (p.framework === 'browser-extension' ? 'browser extension' : p.framework)))];
+  return `- Framework: ${info.framework} of ${info.packages.length} packages (${stacks.join(', ')}); each package's kind and stack: Stack in ./${PRODUCT.projectDir}/${MEMORY_FILES.context}`;
 }
 
 function commandsSection(facts: ProjectFacts): string {
@@ -224,7 +243,8 @@ export function buildBrainJson(facts: ProjectFacts, existing: Readonly<Record<st
       hasUi: facts.hasUi,
       uiLibraries: info.uiLibraries,
       testing: info.testingFrameworks,
-      commands: facts.commands
+      commands: facts.commands,
+      ...(info.packages.length ? { packages: info.packages } : {})
     },
     precedence,
     files: { ...BRAIN_JSON_FILES },

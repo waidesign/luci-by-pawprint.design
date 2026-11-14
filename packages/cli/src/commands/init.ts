@@ -55,7 +55,7 @@ export const initCommand: Command = async (rawArgs, ctx) => {
   const info = report.projectInfo;
 
   ctx.out(`${PRODUCT.name} init${dryRun ? ' (dry run: nothing is written)' : ''}: ${report.projectPath}`);
-  ctx.out(`Project:      ${info.projectName} (${info.framework === 'unknown' ? 'framework not detected' : info.framework}; ${info.languages.join(', ') || 'no language detected'}; ${info.packageManager})`);
+  ctx.out(`Project:      ${info.projectName} (${info.framework === 'unknown' ? 'framework not detected' : info.framework}${info.packages.length ? ` of ${info.packages.length} packages` : ''}; ${info.languages.join(', ') || 'no language detected'}; ${info.packageManager})`);
   ctx.out(`Global Brain: ${report.globalBrainDir}`);
 
   const section = (title: string, items: readonly string[], mark: string) => {

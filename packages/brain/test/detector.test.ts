@@ -18,6 +18,44 @@ describe('detector', () => {
     expect(detectProject(tempProject({ 'package.json': deps({ next: '^14' }) })).framework).toBe('nextjs');
   });
 
+  it('a monorepo: each package with its kind and stack; the whole project from all of them', () => {
+    const dir = tempProject({
+      'package.json': pkg({ private: true, devDependencies: { vitest: '5' } }),
+      'pnpm-workspace.yaml': "packages:\n  - 'packages/*'\n  - apps/web # the site\n  - '!packages/old'\nallowBuilds:\n  esbuild: false\n",
+      'packages/cli/package.json': pkg({ name: 'tool', bin: { tool: 'dist/bin.js' } }),
+      'packages/mcp/package.json': pkg({ name: '@x/mcp', bin: 'dist/bin.js', dependencies: { '@modelcontextprotocol/sdk': '1' } }),
+      'packages/ui/package.json': pkg({ name: '@x/ui', dependencies: { preact: '10', tailwindcss: '4' } }),
+      'packages/ext/package.json': pkg({ name: '@x/ext', devDependencies: { wxt: '0.20' } }),
+      'packages/old/package.json': pkg({ name: '@x/old' }),
+      'packages/notes/readme.md': '',
+      'apps/web/package.json': pkg({ name: 'web', dependencies: { next: '15', react: '19' }, devDependencies: { '@playwright/test': '1' } })
+    });
+    const info = detectProject(dir);
+    expect(info.framework).toBe('monorepo');
+    expect(info.packages).toEqual([
+      { name: 'web', path: 'apps/web', kind: 'app', framework: 'nextjs' },
+      { name: 'tool', path: 'packages/cli', kind: 'cli', framework: 'node' },
+      { name: '@x/ext', path: 'packages/ext', kind: 'browser-extension', framework: 'browser-extension' },
+      { name: '@x/mcp', path: 'packages/mcp', kind: 'mcp-server', framework: 'node' },
+      { name: '@x/ui', path: 'packages/ui', kind: 'library', framework: 'preact' }
+    ]);
+    // Signals of all packages together: the site's React and UI, the UI library's Tailwind, every test runner
+    expect(info.hasUi).toBe(true);
+    expect(info.isReact).toBe(true);
+    expect(info.uiLibraries).toEqual(['tailwindcss']);
+    expect(info.testingFrameworks).toEqual(['vitest', 'playwright']);
+    expect(info.dependencies).toEqual(expect.arrayContaining(['vitest', 'preact', 'next', 'wxt']));
+    // npm and yarn workspaces in package.json; a root that is an app keeps its framework
+    const npm = tempProject({
+      'package.json': pkg({ workspaces: { packages: ['libs/*'] }, dependencies: { next: '15' } }),
+      'next.config.js': '',
+      'libs/a/package.json': pkg({ name: 'a' })
+    });
+    expect(detectProject(npm)).toMatchObject({ framework: 'nextjs', packages: [{ path: 'libs/a', kind: 'library' }] });
+    // One project: no packages
+    expect(detectProject(tempProject({ 'package.json': pkg() })).packages).toEqual([]);
+  });
+
   it('a framework only in devDependencies counts when the project\'s own files show it', () => {
     const dev = (devDependencies: Record<string, string>) => pkg({ devDependencies });
     // A tool that installs React only to test against it (Luci's own repository) is not a React app

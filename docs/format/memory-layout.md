@@ -28,6 +28,8 @@ Later milestones add `design/` (M4, M5) and `feedback/` (M6).
 
 ### Who owns a section
 
+**Monorepos** (added 14 Nov 2026): when `pnpm-workspace.yaml`, or `workspaces` in `package.json`, lists packages, each package is read on its own: its kind (`app`, `library`, `cli`, `mcp-server`, `server`, `browser-extension`) and its stack. The project's framework is then `monorepo` (unless the root is an app itself), and its UI, React, test and dependency signals are those of all packages together. The Stack section of `context.md` lists the packages (`` `packages/cli` (luci): command line ``), `brain.json` has them under `project.packages`, `get_project_context` returns them, and agent files say `Framework: monorepo of 9 packages (node, preact, browser extension)`. A framework counts when the app runs on it (`dependencies`, `peerDependencies`); one only in `devDependencies` counts when the project's own files show it (`.jsx`/`.tsx`, `.vue`, `.svelte` files, or the framework's config).
+
 A `## heading` ending in `(auto-detected)` is rewritten from the project's files by `luci update`. Renaming it to `(confirmed)` keeps it as written. Every other section belongs to the team and is never overwritten. `brain.json` is Luci's own record: it is rewritten every time, and top-level keys someone added are kept.
 
 ### Precedence

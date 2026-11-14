@@ -23,7 +23,9 @@ export const brainJsonSchema = z.looseObject({
     hasUi: z.boolean(),
     uiLibraries: z.array(z.string()),
     testing: z.array(z.string()),
-    commands: commandsSchema
+    commands: commandsSchema,
+    /** A monorepo's packages, each with its kind and stack (added 14 Nov 2026; absent for one project). */
+    packages: z.array(z.object({ name: z.string().min(1), path: z.string().min(1), kind: z.string().min(1), framework: z.string().min(1) })).optional()
   }),
   precedence: z.array(z.string().min(1)).min(1),
   files: z.record(z.string(), z.string())
