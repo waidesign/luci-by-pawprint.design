@@ -78,7 +78,13 @@ export interface ToolbarProps {
   makeRule?: (fileName: string, markdown: string) => Promise<ProposedRule>;
   /** Resizes the window for reading other widths (the extension, through the debugger); without it, a hidden frame of the page is used. */
   setViewportWidth?: ViewportWidth;
+  /** The bar can be dragged anywhere in the window, and stays there on this site (the extension). */
+  movable?: boolean;
 }
+
+const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(v, Math.max(min, max)));
+/** Keep at least this much of the window between the dragged bar and its edges. */
+const EDGE = 8;
 
 /** "Save to project", then where it went (or why not). */
 function SaveButton(props: { save: () => Promise<{ path: string; replaced: boolean }> }) {
@@ -244,6 +250,12 @@ export function Toolbar(props: ToolbarProps) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [uiPrefs, setUiPrefs] = useUiPrefs(doc);
   const [, setTick] = useState(0);
+  // A movable bar (the extension): dragged by its own background or Luci's head, then kept where it was dropped
+  const shellRef = useRef<HTMLDivElement>(null);
+  const barRef = useRef<HTMLDivElement>(null);
+  const moveRef = useRef<{ id: number; x: number; y: number; shell: DOMRect; bar: DOMRect; moved: boolean } | null>(null);
+  const justMoved = useRef(false);
+  const [moving, setMoving] = useState<{ left: number; top: number } | null>(null);
   const trail = useRef<Element[]>([]);
   const drag = useRef<{ el: Element; x: number; y: number } | null>(null);
   const lastPointer = useRef<{ x: number; y: number } | null>(null);
@@ -990,6 +1002,85 @@ export function Toolbar(props: ToolbarProps) {
   const greeting = idle && !uiPrefs.greeted;
   useEffect(() => { if (!idle && !uiPrefs.greeted) setUiPrefs({ greeted: true }); }, [idle]);
 
+  // ---- Moving the bar (the extension): anywhere in the window, kept per site ----------------
+  const place = props.movable ? uiPrefs.place ?? null : null;
+  useEffect(() => {
+    if (!place) return;
+    const onResize = () => setTick(t => t + 1);
+    win.addEventListener('resize', onResize);
+    return () => win.removeEventListener('resize', onResize);
+  }, [Boolean(place)]);
+  const startMove = (e: PointerEvent) => {
+    const bar = barRef.current, shell = shellRef.current;
+    if (!props.movable || e.button !== 0 || !bar || !shell) return;
+    // The bar's own background, its separators or Luci's head: the tools stay plain buttons
+    const t = e.target as Element;
+    if (t !== bar && !t.closest?.('.menu-btn, .bar-sep')) return;
+    moveRef.current = { id: e.pointerId, x: e.clientX, y: e.clientY, shell: shell.getBoundingClientRect(), bar: bar.getBoundingClientRect(), moved: false };
+    // Follow the pointer wherever it goes (a quick drag leaves the bar before it counts as one)
+    const onUp = (ev: PointerEvent) => {
+      endMove(ev);
+      if (moveRef.current) return;
+      doc.removeEventListener('pointermove', doMove, true);
+      doc.removeEventListener('pointerup', onUp, true);
+      doc.removeEventListener('pointercancel', onUp, true);
+    };
+    doc.addEventListener('pointermove', doMove, true);
+    doc.addEventListener('pointerup', onUp, true);
+    doc.addEventListener('pointercancel', onUp, true);
+  };
+  const doMove = (e: PointerEvent) => {
+    const m = moveRef.current;
+    if (!m || m.id !== e.pointerId) return;
+    // Released outside the bar before a drag began: nothing to move
+    if (!m.moved && !(e.buttons & 1)) { moveRef.current = null; return; }
+    const rawX = e.clientX - m.x, rawY = e.clientY - m.y;
+    // A few pixels first, so a click on Luci's head still opens the menu
+    if (!m.moved && Math.hypot(rawX, rawY) < 4) return;
+    // Only now take the pointer: capturing on press would turn a click on Luci's head into a click on the bar
+    if (!m.moved) barRef.current?.setPointerCapture?.(e.pointerId);
+    m.moved = true;
+    const dx = clamp(rawX, EDGE - m.bar.left, win.innerWidth - EDGE - m.bar.right);
+    const dy = clamp(rawY, EDGE - m.bar.top, win.innerHeight - EDGE - m.bar.bottom);
+    setMoving({ left: m.shell.left + dx, top: m.shell.top + dy });
+  };
+  const endMove = (e: PointerEvent) => {
+    const m = moveRef.current;
+    if (!m || m.id !== e.pointerId) return;
+    moveRef.current = null;
+    barRef.current?.releasePointerCapture?.(e.pointerId);
+    if (!m.moved || !barRef.current) return;
+    // The click that ends a drag is not a click on Luci's head
+    justMoved.current = true;
+    win.setTimeout(() => { justMoved.current = false; }, 0);
+    const r = barRef.current.getBoundingClientRect();
+    const vw = win.innerWidth, vh = win.innerHeight;
+    const h = r.left + r.width / 2 < vw / 2 ? 'left' : 'right';
+    const v = r.top + r.height / 2 < vh / 2 ? 'top' : 'bottom';
+    setMoving(null);
+    setUiPrefs({ place: { h, v, x: Math.round(h === 'left' ? r.left : vw - r.right), y: Math.round(v === 'top' ? r.top : vh - r.bottom) } });
+  };
+  const swallowDragClick = (e: MouseEvent) => {
+    if (!justMoved.current) return;
+    justMoved.current = false;
+    e.stopPropagation();
+    e.preventDefault();
+  };
+  // Where the shell goes: under the pointer while dragging, else the saved corner, kept inside the window.
+  // Cards open on the side with room: below a bar in the top half, above one in the bottom half.
+  const shellStyle: Record<string, string> | undefined = (() => {
+    if (moving) return { left: `${moving.left}px`, top: `${moving.top}px`, right: 'auto', bottom: 'auto', maxHeight: `calc(100vh - ${EDGE * 2}px)` };
+    if (!place) return undefined;
+    const barW = barRef.current?.offsetWidth ?? 0, barH = barRef.current?.offsetHeight ?? 0;
+    const x = clamp(place.x, EDGE, win.innerWidth - EDGE - barW);
+    const y = clamp(place.y, EDGE, win.innerHeight - EDGE - barH);
+    return {
+      [place.h]: `${x}px`, [place.h === 'left' ? 'right' : 'left']: 'auto',
+      [place.v]: `${y}px`, [place.v === 'top' ? 'bottom' : 'top']: 'auto',
+      maxHeight: `calc(100vh - ${y + EDGE}px)`
+    };
+  })();
+
   const hovered = picking ? candidate : null;
   const hoverElig = hovered ? eligibilityOf(hovered) : null;
   const rect = hovered?.getBoundingClientRect();
@@ -997,8 +1088,11 @@ export function Toolbar(props: ToolbarProps) {
 
   return (
     <div class="luci luci-theme" data-theme={uiPrefs.theme} data-dock={uiPrefs.dock}>
-      <div class="shell" data-part="shell">
-        <div class="bar" role="toolbar" aria-label={props.modes ? COPY.capture.devTitle : COPY.capture.title}>
+      <div class="shell" data-part="shell" ref={shellRef} style={shellStyle}
+        {...(props.movable ? { 'data-movable': '' } : {})} {...(moving ? { 'data-moving': '' } : {})}
+        {...(place ? { 'data-h': place.h, 'data-v': place.v } : {})}>
+        <div class="bar" role="toolbar" aria-label={props.modes ? COPY.capture.devTitle : COPY.capture.title} ref={barRef}
+          onPointerDown={startMove} onClickCapture={swallowDragClick}>
           <button type="button" class="menu-btn" data-action="settings" aria-label={COPY.common.menu} aria-pressed={settingsOpen} aria-keyshortcuts={KEYS.menu}
             data-tip={`${COPY.common.menu}  ${KEYS.menu}`} onClick={toggleMenu}><LuciLogo size={48} /></button>
           {props.modes && <ModeSwitch {...props.modes} />}
@@ -1055,7 +1149,7 @@ export function Toolbar(props: ToolbarProps) {
               </div>
             </div>
             <hr class="settings-divider" />
-            <AppearanceControls prefs={uiPrefs} onChange={setUiPrefs} />
+            <AppearanceControls prefs={uiPrefs} onChange={setUiPrefs} {...(props.movable ? { movable: true } : {})} />
             <hr class="settings-divider" />
             <div class="stack">
               <span class="field-label">Default file format</span>

@@ -309,6 +309,74 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
   });
 });
 
+describe('the extension\'s bar moves anywhere in the window (user request, 2026-11-15)', { timeout: 30_000 }, () => {
+  it('drags by its edge or Luci\'s head, opens cards on the side with room, stays on this site, and Dock puts it back', async () => {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
+    page.setDefaultTimeout(8000);
+    await page.goto(`${server.origin}/css-variables/`);
+    const mount = async () => {
+      await page.addScriptTag({ content: bundle });
+      await page.evaluate(() => { (window as unknown as { LuciCapture: { mountToolbar(o: object): unknown } }).LuciCapture.mountToolbar({ movable: true }); });
+    };
+    await mount();
+    const bar = page.locator('luci-toolbar .bar');
+    const box = async () => (await bar.boundingBox())!;
+    const start = await box();
+    expect(Math.round(1280 - (start.x + start.width))).toBe(12);
+    expect(Math.round(start.y)).toBe(12);
+
+    // A plain click on Luci's head still opens the menu
+    await page.click('[data-action="settings"]');
+    await page.locator('[data-part="settings"]').waitFor();
+    expect(await page.locator('[data-part="appearance-settings"]').innerText()).toContain('Drag the bar anywhere');
+    await page.click('[data-action="settings"]');
+
+    // Drag by the bar's own edge (its padding) to the bottom left
+    await page.mouse.move(start.x + start.width / 2, start.y + 3);
+    await page.mouse.down();
+    await page.mouse.move(600, 500, { steps: 4 });
+    await page.mouse.move(start.width / 2 + 40, 900 - 40, { steps: 6 });
+    await page.mouse.up();
+    const dropped = await box();
+    expect(Math.round(dropped.x)).toBeGreaterThanOrEqual(8);
+    expect(dropped.y + dropped.height).toBeLessThanOrEqual(900 - 8);
+    expect(dropped.y).toBeGreaterThan(700);
+    // In the bottom half, cards open above the bar, and tooltips too
+    expect(await page.locator('luci-toolbar .shell').getAttribute('data-v')).toBe('bottom');
+    await page.click('button[data-tool="text"]');
+    const hint = (await page.locator('[data-part="tool-hint"]').boundingBox())!;
+    expect(hint.y + hint.height).toBeLessThanOrEqual(dropped.y);
+    await page.keyboard.press('Escape');
+
+    // Dragging from Luci's head moves the bar without opening the menu
+    const head = (await page.locator('[data-action="settings"]').boundingBox())!;
+    await page.mouse.move(head.x + head.width / 2, head.y + head.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(head.x + head.width / 2 + 200, head.y + head.height / 2 - 300, { steps: 6 });
+    await page.mouse.up();
+    expect(await page.locator('[data-part="settings"]').count()).toBe(0);
+    const moved = await box();
+    expect(Math.round(moved.x - dropped.x)).toBe(200);
+
+    // The place is kept on this site, relative to its nearest corner
+    await page.reload();
+    await mount();
+    const again = await box();
+    expect(Math.abs(again.x - moved.x)).toBeLessThan(2);
+    expect(Math.abs(again.y - moved.y)).toBeLessThan(2);
+
+    // Dock: Right puts it back in the top right corner
+    await page.click('[data-action="settings"]');
+    await page.click('[data-dock-choice="right"]');
+    await page.click('[data-action="settings"]');
+    const back = await box();
+    expect(Math.round(1280 - (back.x + back.width))).toBe(12);
+    expect(Math.round(back.y)).toBe(12);
+    await context.close();
+  });
+});
+
 describe('tool hints and the Color tool\'s two ways to pick (user feedback, M4)', { timeout: 30_000 }, () => {
   it('each tool says what to do; Color offers Element and Pixel side by side, Pixel off without an eyedropper', async () => {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });

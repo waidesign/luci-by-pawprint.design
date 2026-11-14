@@ -42,6 +42,8 @@ export default defineUnlistedScript(async () => {
     settings: (stored[SETTINGS_KEY] as CaptureSettings | undefined) ?? {},
     onSettingsChange: (settings) => { void browser.storage.local.set({ [SETTINGS_KEY]: settings }); },
     onClose: () => { holder.__luciToolbar = undefined; },
+    // The bar can be dragged anywhere, off the page's own header buttons and links
+    movable: true,
     // Pixel mode reads colors from a screenshot of this tab, taken by the background
     captureScreen: () => ask<string>({ type: 'luci:capture-screen' }),
     // The basket lives in extension storage: every tab and site sees the same items, across restarts

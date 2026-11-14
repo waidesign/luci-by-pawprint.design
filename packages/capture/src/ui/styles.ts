@@ -55,6 +55,17 @@ ${UI_CSS}
 .shell > .bar { position: relative; z-index: 2; }
 /* In the column the shell is what is placed: the bar's own offsets would move it a second time */
 .luci-theme .shell > .bar { inset: auto; }
+/*
+ * The extension's bar, dragged anywhere (data-h and data-v: the corner it is nearest). Cards open on
+ * the side with room: below a bar in the top half, above one in the bottom half, aligned to its side.
+ */
+.luci-theme .shell[data-v="bottom"] { flex-direction: column-reverse; }
+.luci-theme .shell[data-h="left"] { align-items: flex-start; }
+.luci-theme .shell[data-h="right"] { align-items: flex-end; }
+.luci-theme .shell[data-movable] > .bar { cursor: grab; touch-action: none; }
+.luci-theme .shell[data-moving] > .bar, .luci-theme .shell[data-moving] > .bar * { cursor: grabbing; user-select: none; }
+.luci-theme .shell[data-v="bottom"] > .bar [data-tip]::after { top: auto; bottom: calc(100% + var(--luci-space-8)); transform: translate(-50%, 4px); }
+.luci-theme .shell[data-v="bottom"] > .bar [data-tip]:is(:hover, :focus-visible)::after { transform: translate(-50%, 0); }
 .luci-theme .bar button { --luci-btn-h: 40px; color: var(--luci-color-bar-ink); }
 .luci-theme .bar .tool, .luci-theme .bar .menu-btn { --luci-btn-h: 48px; }
 .luci-theme .bar button:hover:not(:disabled) { background: var(--luci-color-bar-hover); }

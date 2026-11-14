@@ -47,6 +47,8 @@ export interface MountOptions {
   makeRule?: (fileName: string, markdown: string) => Promise<ProposedRule>;
   /** Resizes the window for reading other widths (the extension, through the debugger). */
   setViewportWidth?: ViewportWidth;
+  /** The bar can be dragged anywhere in the window and stays there on this site (the extension). */
+  movable?: boolean;
 }
 
 export interface ToolbarHandle {
@@ -110,6 +112,7 @@ export function mountToolbar(options: MountOptions = {}): ToolbarHandle {
     ...(options.checkNotesWhere ? { checkNotesWhere: options.checkNotesWhere } : {}),
     ...(options.makeRule ? { makeRule: options.makeRule } : {}),
     ...(options.setViewportWidth ? { setViewportWidth: options.setViewportWidth } : {}),
+    ...(options.movable ? { movable: true } : {}),
     onClose: () => { destroy(); options.onClose?.(); },
     registerPixelInput: (pick: (hex: string) => void) => { pixelInput = pick; }
   }), mountPoint);
