@@ -106,7 +106,7 @@ function connectingPill(doc: Document): HTMLElement {
   const root = host.attachShadow({ mode: 'open' });
   root.innerHTML = `<style>
     div{position:fixed;top:12px;right:12px;z-index:2147483647;display:flex;gap:8px;align-items:center;padding:8px 12px;border-radius:10px;border:1px solid #3f3f46;
-      background:#18181b;color:#f4f4f5;font:13px/1.4 system-ui,sans-serif;box-shadow:0 6px 24px rgb(0 0 0 / .35)}
+      background:#18181b;color:#f4f4f5;font:13px/1.4 system-ui,sans-serif;box-shadow:0 6px 24px rgb(18 18 21 / .35)}
     i{width:14px;height:14px;border-radius:50%;border:2px solid rgb(167 139 250 / .25);border-top-color:#a78bfa;animation:s .8s linear infinite}
     @keyframes s{to{transform:rotate(360deg)}} @keyframes p{50%{opacity:.35}}
     @media (prefers-reduced-motion: reduce){i{animation:p 1.6s ease-in-out infinite;border-color:#a78bfa}}
@@ -161,7 +161,7 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
     launcher = doc.createElement(LAUNCHER_TAG);
     launcher.setAttribute(LUCI_UI_ATTRIBUTE, '');
     const root = launcher.attachShadow({ mode: 'open' });
-    root.innerHTML = '<style>button{position:fixed;right:12px;bottom:12px;z-index:2147483647;padding:6px 12px;border-radius:999px;border:1px solid #3f3f46;background:#18181b;color:#f4f4f5;font:600 12px system-ui,sans-serif;cursor:pointer;box-shadow:0 4px 16px rgb(0 0 0 / .3)}</style><button type="button" data-action="open-luci" title="Open Luci">Luci</button>';
+    root.innerHTML = '<style>button{position:fixed;right:12px;bottom:12px;z-index:2147483647;padding:6px 12px;border-radius:999px;border:1px solid #3f3f46;background:#18181b;color:#f4f4f5;font:600 12px system-ui,sans-serif;cursor:pointer;box-shadow:0 4px 16px rgb(18 18 21 / .3)}</style><button type="button" data-action="open-luci" title="Open Luci">Luci</button>';
     root.querySelector('button')!.addEventListener('click', (e) => { e.stopPropagation(); show(mode); });
     doc.documentElement.appendChild(launcher);
   };

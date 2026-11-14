@@ -427,3 +427,38 @@ describe('toolbar inside web components (FR6)', () => {
     await page.context().close();
   }, 60_000);
 });
+
+describe('extension branding, settings panel, theme switcher, and off-white/charcoal palette', { timeout: 30_000 }, () => {
+  it('shows DESIGN.md Extractor by Luci in extension mode, switches System/Light/Dark and Right/Left dock in Settings, and never uses pure #fff or #000', async () => {
+    const page = await open('css-variables');
+    expect(await page.locator('.brand-title').innerText()).toBe('DESIGN.md Extractor');
+    expect(await page.locator('.brand-sub').innerText()).toBe('by Luci');
+
+    // Open Settings panel and switch between Light, Dark, and System
+    await page.click('[data-action="settings"]');
+    expect(await page.locator('[data-part="settings"]').count()).toBe(1);
+    await page.click('[data-theme-choice="light"]');
+    expect(await page.locator('.luci').getAttribute('data-theme')).toBe('light');
+    const lightBg = await page.locator('.luci').evaluate(el => getComputedStyle(el).getPropertyValue('--bg').trim());
+    expect(lightBg).toBe('#faf9f5');
+
+    await page.click('[data-theme-choice="dark"]');
+    expect(await page.locator('.luci').getAttribute('data-theme')).toBe('dark');
+    const darkBg = await page.locator('.luci').evaluate(el => getComputedStyle(el).getPropertyValue('--bg').trim());
+    expect(darkBg).toBe('#18181b');
+
+    // Switch panel dock position
+    await page.click('[data-dock-choice="left"]');
+    expect(await page.locator('.luci').getAttribute('data-dock')).toBe('left');
+    await page.click('[data-dock-choice="right"]');
+    expect(await page.locator('.luci').getAttribute('data-dock')).toBe('right');
+
+    // Enforce no pure white (#fff/#ffffff) or pure black (#000/#000000) in toolbar CSS
+    const { TOOLBAR_CSS } = await import('../src/ui/styles.js');
+    expect(TOOLBAR_CSS).not.toMatch(/#(?:fff(?:fff)?|000(?:000)?)\b/i);
+    expect(TOOLBAR_CSS).not.toMatch(/rgb\(\s*(?:0\s+0\s+0|255\s+255\s+255)\b/i);
+
+    await page.context().close();
+  });
+});
+

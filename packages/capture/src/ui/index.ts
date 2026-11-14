@@ -8,3 +8,4 @@ export { TOOLBAR_CSS } from './styles.js';
 export { ButtonSpinner, Loading, nextPaint } from './loading.js';
 export { ModeSwitch, type Mode, type ModeSwitchProps } from './modeSwitch.js';
 export { CHECK_HINT, CheckResultPanel, DesignChooser, type AddCheckNotes, type DesignSource, type SavedDesign } from './check.js';
+export * from './theme.js';

@@ -7,7 +7,7 @@
  * adding the plan to Feedback notes) puts the page back as it was.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import { ButtonSpinner, ModeSwitch, elementAt, isLuciUi, parentOf, scrollableAncestor, selectorFor, type ModeSwitchProps } from '@luci/capture';
+import { ButtonSpinner, LuciLogo, ModeSwitch, elementAt, isLuciUi, parentOf, scrollableAncestor, selectorFor, useUiPrefs, type ModeSwitchProps } from '@luci/capture';
 import { formatLayoutPrompt, layoutChangeText, routeOf, type LayoutPromptElement, type Part } from '@luci/format/feedback';
 import type { FeedbackBackend } from '../backend.js';
 import { startSize } from '../layout/catalog.js';
@@ -148,6 +148,7 @@ export function Layout(props: LayoutProps) {
   const [insertSel, setInsertSel] = useState<number | null>(null);
   // Step 3: sketching a new page (over the app; the plan for this page stays as it is)
   const [sketching, setSketching] = useState(false);
+  const [uiPrefs] = useUiPrefs(doc);
   const [, setTick] = useState(0);
   const bump = () => setTick(t => t + 1);
 
@@ -564,9 +565,9 @@ export function Layout(props: LayoutProps) {
   };
 
   return (
-    <div class="luci">
+    <div class="luci" data-theme={uiPrefs.theme} data-dock={uiPrefs.dock}>
       <div class="bar" role="toolbar" aria-label="Luci layout">
-        <span class="brand">Luci</span>
+        <span class="brand" data-part="brand-title"><LuciLogo compact />Luci</span>
         {props.modes && <ModeSwitch {...props.modes} />}
         {!sketching && (
           <>

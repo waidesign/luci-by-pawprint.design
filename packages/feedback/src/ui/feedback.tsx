@@ -6,7 +6,7 @@
  * Notes live in a FeedbackBackend.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import { ButtonSpinner, ModeSwitch, elementAt, isLuciUi, scrollableAncestor, type ModeSwitchProps } from '@luci/capture';
+import { AppearanceControls, ButtonSpinner, LuciLogo, ModeSwitch, elementAt, isLuciUi, scrollableAncestor, useUiPrefs, type ModeSwitchProps, type UiPrefs } from '@luci/capture';
 import {
   DETAIL_LEVELS,
   FEEDBACK_INTENTS,
@@ -103,6 +103,7 @@ export function Feedback(props: FeedbackProps) {
   const [paused, setPaused] = useState(false);
   const [checking, setChecking] = useState(false);
   const [copyMenu, setCopyMenu] = useState(false);
+  const [uiPrefs, setUiPrefs] = useUiPrefs(doc);
   const [, setTick] = useState(0);
 
   const reload = async () => {
@@ -289,9 +290,9 @@ export function Feedback(props: FeedbackProps) {
   const hoverName = annotating && candidate ? `${nameOf(candidate)}${innermost ? ` · ${innermost}` : ''}` : '';
 
   return (
-    <div class="luci" style={{ '--marker': settings.markerColor }}>
+    <div class="luci" data-theme={uiPrefs.theme} data-dock={uiPrefs.dock} style={{ '--marker': settings.markerColor }}>
       <div class="bar" role="toolbar" aria-label="Luci feedback">
-        <span class="brand">Luci</span>
+        <span class="brand" data-part="brand-title"><LuciLogo compact />Luci</span>
         {props.modes && <ModeSwitch {...props.modes} />}
         <button type="button" aria-pressed={annotating} data-action="annotate" title="Click elements on the page to leave a note (Esc to stop). Or select text." onClick={() => { setAnnotating(a => !a); setCandidate(null); setDraft(null); }}>Annotate</button>
         <span class="split">
@@ -404,7 +405,7 @@ export function Feedback(props: FeedbackProps) {
         </div>
       )}
 
-      {panel === 'settings' && <SettingsPanel settings={settings} onChange={changeSettings} count={items.length} onClearAll={() => void act(() => backend.clear('all'))} />}
+      {panel === 'settings' && <SettingsPanel settings={settings} onChange={changeSettings} uiPrefs={uiPrefs} onUiPrefsChange={setUiPrefs} count={items.length} onClearAll={() => void act(() => backend.clear('all'))} />}
 
       {error && (
         <div class="sub" role="alert" data-part="error" style={{ top: 'auto', bottom: '12px', left: '12px', right: 'auto' }}>
@@ -566,7 +567,7 @@ function NotesPanel(props: {
   );
 }
 
-function SettingsPanel(props: { settings: FeedbackSettings; onChange: (s: FeedbackSettings) => void; count: number; onClearAll: () => void }) {
+function SettingsPanel(props: { settings: FeedbackSettings; onChange: (s: FeedbackSettings) => void; uiPrefs: UiPrefs; onUiPrefsChange: (patch: Partial<UiPrefs>) => void; count: number; onClearAll: () => void }) {
   const s = props.settings;
   const [hook, setHook] = useState(s.webhookUrl ?? '');
   const [confirm, setConfirm] = useState(false);
@@ -574,6 +575,8 @@ function SettingsPanel(props: { settings: FeedbackSettings; onChange: (s: Feedba
   return (
     <div class="panel" role="dialog" aria-label="Feedback settings" data-part="settings">
       <h2>Settings</h2>
+      <AppearanceControls prefs={props.uiPrefs} onChange={props.onUiPrefsChange} />
+      <hr class="settings-divider" />
       <div class="stack">
         <span>Marker color</span>
         <div class="swatches" role="group" aria-label="Marker color">

@@ -341,6 +341,7 @@ describe('dev toolbar with luci serve (M6 Done when, automated)', { timeout: 90_
     expect(await page.locator('[data-mode="feedback"]').getAttribute('aria-pressed')).toBe('true');
     await page.click('[data-mode="capture"]');
     await page.locator('button[data-tool="component"]').waitFor();
+    expect(await page.locator('luci-toolbar .brand').innerText()).toBe('Luci');
     expect(await page.locator('luci-toolbar [data-mode="capture"]').getAttribute('aria-pressed')).toBe('true');
     expect(await page.locator('luci-toolbar [data-part="modes"] button').allInnerTexts()).toEqual(['Feedback', 'Layout', 'Capture']);
     // The mode is remembered in this tab
@@ -374,6 +375,9 @@ describe('dev toolbar with luci serve (M6 Done when, automated)', { timeout: 90_
     await page.click('luci-feedback [data-action="close"]');
     await page.click('[data-action="open-luci"]');
     await page.locator('[data-action="annotate"]').waitFor();
+    const { FEEDBACK_CSS } = await import('../../feedback/src/ui/styles.js');
+    expect(FEEDBACK_CSS).not.toMatch(/#(?:fff(?:fff)?|000(?:000)?)\b/i);
+    expect(FEEDBACK_CSS).not.toMatch(/rgb\(\s*(?:0\s+0\s+0|255\s+255\s+255)\b/i);
     await ctx.close();
   });
 });
