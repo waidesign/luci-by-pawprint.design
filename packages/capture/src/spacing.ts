@@ -2,7 +2,7 @@
  * The Spacing tool (FR15, FR16): padding, margin and gap of one element (authored), the distance
  * between two elements (measured), and the page's spacing system: scale, base unit, outliers.
  */
-import { pxValue, round, toCaptureName, type SpacingSet, type SpacingSystem, type SpacingToken } from '@luci/format/capture';
+import { findBaseUnit, isMultipleOf, pxValue, round, toCaptureName, type SpacingSet, type SpacingSystem, type SpacingToken } from '@luci/format/capture';
 import { tokenOf, type ElementSnapshot, type PageSnapshot, type Rect, type SnapshotProperty } from './model.js';
 import { elementName } from './naming.js';
 
@@ -41,45 +41,9 @@ export function spacingUses(el: ElementSnapshot): SpacingUse[] {
   return out;
 }
 
-/** Sub-pixel rounding only: 10.5px is not a multiple of 2px. */
-export const MULTIPLE_TOLERANCE = 0.25;
-const isMultiple = (v: number, unit: number) => {
-  const n = Math.round(v / unit);
-  return n >= 1 && Math.abs(v - n * unit) <= MULTIPLE_TOLERANCE;
-};
-
-/** Candidate base units, largest first. */
-export const BASE_UNITS = [16, 12, 10, 8, 6, 5, 4, 3, 2] as const;
-/** A base unit must fit at least this share of uses, and at least this many distinct values. */
-export const BASE_UNIT_SHARE = 0.75;
-export const BASE_UNIT_MIN_STEPS = 3;
-
-/** A smaller unit replaces the chosen one when it explains at least this much more of the uses... */
-export const BASE_UNIT_REFINE = 0.1;
-/** ...and is at least this large (2px and 3px explain almost anything). */
-export const BASE_UNIT_REFINE_MIN = 4;
-
-/**
- * The unit most spacing uses are multiples of, or null when none fits well enough: the largest
- * candidate that fits at least 75% of uses and 3 distinct values; then a smaller divisor (4px or
- * more) that explains 10 points more of the uses wins, so a 4px scale with a few 12px values is
- * not read as 8px.
- */
-export function findBaseUnit(values: readonly { px: number; count: number }[]): { px: number; share: number } | null {
-  const total = values.reduce((n, v) => n + v.count, 0);
-  if (!total) return null;
-  const shareOf = (unit: number) => values.filter(v => isMultiple(v.px, unit)).reduce((n, v) => n + v.count, 0) / total;
-  const steps = (unit: number) => values.filter(v => isMultiple(v.px, unit)).length;
-  let best: number | null = null;
-  for (const unit of BASE_UNITS) {
-    if (shareOf(unit) >= BASE_UNIT_SHARE && steps(unit) >= Math.min(BASE_UNIT_MIN_STEPS, values.length)) { best = unit; break; }
-  }
-  if (best === null) return null;
-  for (const unit of BASE_UNITS) {
-    if (unit < best && unit >= BASE_UNIT_REFINE_MIN && best % unit === 0 && shareOf(unit) >= shareOf(best) + BASE_UNIT_REFINE) best = unit;
-  }
-  return { px: best, share: Number(shareOf(best).toFixed(2)) };
-}
+// The base unit finder moved to @luci/format in v0.3.3 (site-level systems use it too); same names here
+export { BASE_UNITS, BASE_UNIT_MIN_STEPS, BASE_UNIT_REFINE, BASE_UNIT_REFINE_MIN, BASE_UNIT_SHARE, MULTIPLE_TOLERANCE, findBaseUnit } from '@luci/format/capture';
+const isMultiple = isMultipleOf;
 
 /** The spacing system of the page (FR16). Null when nothing on the page sets spacing. */
 export function spacingSystem(snapshot: PageSnapshot, options: { captured?: string } = {}): SpacingSystem | null {

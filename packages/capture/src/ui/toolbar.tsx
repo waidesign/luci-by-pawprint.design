@@ -4,8 +4,8 @@
  * Rendered by mount.ts inside a shadow root.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import { formatCapture, groupOf, withInstructions, type BasketItem, type CaptureSettings, type ComponentCapture } from '@luci/format/capture';
-import { addToBasket, exportBasket, exportItem, noteInBasket, removeFromBasket, renameInBasket, sourceLabel, type BasketStore } from './basket.js';
+import { formatCapture, groupOf, mergeGroups, withInstructions, type BasketItem, type CaptureSettings, type ComponentCapture } from '@luci/format/capture';
+import { addToBasket, exportBasket, exportItem, mergeInBasket, noteInBasket, removeFromBasket, renameInBasket, sourceLabel, type BasketStore } from './basket.js';
 import type { Eligibility } from '../eligibility.js';
 import type { ElementSnapshot } from '../model.js';
 import { manualState, type ComputedMap, type StateName } from '../states.js';
@@ -733,6 +733,7 @@ export function Toolbar(props: ToolbarProps) {
   };
   const openBasket = () => {
     endCheck();
+    setMergedNote(null);
     setPicking(false);
     aim(null);
     setBasketOpen(true);
@@ -741,6 +742,14 @@ export function Toolbar(props: ToolbarProps) {
     setCopied(false);
     // The latest items, in case another tab added some
     if (store) void store.load().then(setBasket);
+  };
+  // Multi-page system merge (v0.3.3): systems of one site from several pages, as one site-level system
+  const mergeable = mergeGroups(basket);
+  const [mergedNote, setMergedNote] = useState<string | null>(null);
+  const mergeSystemsNow = () => {
+    const { items, merged } = mergeInBasket(basket);
+    saveBasket(items);
+    setMergedNote(`Added to the basket: ${merged.map(m => `${m.name} (${sourceLabel(m)})`).join(', ')}. The page systems stay; export the site system${merged.length === 1 ? '' : 's'} like any item.`);
   };
   const exported = basketExport
     ? (basketExport.item ? exportItem(basketExport.item, settings) : basket.length ? exportBasket(basket, settings) : null)
@@ -917,6 +926,13 @@ export function Toolbar(props: ToolbarProps) {
                   ))}
                 </ul>
               )}
+              {mergeable.length > 0 && (
+                <div class="stack" data-part="merge">
+                  <span class="dim">Systems from more than one page of a site can become one site-level system: {mergeable.map(g => `${g.type} from ${g.pages.length} pages of ${g.site}`).join(', ')}. Rows say which pages use them; values that differ between pages are listed as conflicts.</span>
+                  <span class="row"><button type="button" data-action="merge-systems" onClick={mergeSystemsNow}>Merge into site system{mergeable.length === 1 ? '' : 's'} ({mergeable.length})</button></span>
+                </div>
+              )}
+              {mergedNote && <p class="hint" data-part="merged">{mergedNote}</p>}
               <div class="row">
                 <button type="button" class="primary" data-action="export-all" disabled={!basket.length} onClick={() => setBasketExport({ title: `All ${basket.length} items, one file` })}>Export all as one file</button>
                 {basket.length > 0 && (confirmClear

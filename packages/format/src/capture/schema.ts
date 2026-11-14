@@ -81,7 +81,24 @@ export const metaSchema = z.object({
 export type CaptureMeta = z.infer<typeof metaSchema>;
 
 const tokenMeta = (type: (typeof TOKEN_TYPES)[number]) => metaSchema.extend({ scope: z.literal('token'), type: z.literal(type) });
-const systemMeta = (type: (typeof SYSTEM_TYPES)[number]) => metaSchema.extend({ scope: z.literal('system'), type: z.literal(type), selector: z.undefined().optional() });
+/**
+ * A site-level system (v0.3.3) merges one system from several pages of a site: `pages` lists them
+ * (origin and path), the source is the site's root, and each row says which pages use it.
+ */
+const systemMeta = (type: (typeof SYSTEM_TYPES)[number]) => metaSchema.extend({
+  scope: z.literal('system'), type: z.literal(type), selector: z.undefined().optional(), pages: z.array(z.url()).min(2).optional()
+});
+/** The pages (origin and path) that use a row of a site-level system. */
+const pagesField = z.array(z.url()).min(1).optional();
+/**
+ * In a site-level system: the same role or token with different values on different pages, each
+ * value with the pages that use it ("role heading-2": 32px on /pricing, 28px on /blog).
+ */
+export const conflictSchema = z.object({
+  what: z.string().min(1),
+  values: z.array(z.object({ value: z.string().min(1), pages: z.array(z.url()).min(1) })).min(2)
+});
+export type SystemConflict = z.infer<typeof conflictSchema>;
 
 /** WCAG 2.2 levels a check meets: AAA, AA, or neither. */
 export const WCAG_LEVELS = ['AAA', 'AA', 'fail'] as const;
@@ -173,10 +190,12 @@ export const typographySystemSchema = z.object({
     role: slug,
     style: textStyleSchema,
     count: z.number().int().positive(),
-    elements: z.array(z.string().min(1))
+    elements: z.array(z.string().min(1)),
+    pages: pagesField
   })).min(1),
   families: z.array(z.object({ family: z.string().min(1), count: z.number().int().positive() })),
-  scale: z.array(z.object({ size: valueSchema, count: z.number().int().positive() }))
+  scale: z.array(z.object({ size: valueSchema, count: z.number().int().positive() })),
+  conflicts: z.array(conflictSchema).optional()
 });
 
 export const colorSystemSchema = z.object({
@@ -186,18 +205,21 @@ export const colorSystemSchema = z.object({
     role: z.enum(COLOR_ROLES),
     value: valueSchema,
     count: z.number().int().positive(),
-    properties: z.array(z.string().min(1))
+    properties: z.array(z.string().min(1)),
+    pages: pagesField
   })).min(1),
-  tokens: z.array(z.object({ token: z.string().regex(/^--[\w-]+$/), value: z.string().min(1), count: z.number().int().nonnegative() }))
+  tokens: z.array(z.object({ token: z.string().regex(/^--[\w-]+$/), value: z.string().min(1), count: z.number().int().nonnegative(), pages: pagesField })),
+  conflicts: z.array(conflictSchema).optional()
 });
 
 export const spacingSystemSchema = z.object({
   meta: systemMeta('spacing'),
   instructions: instructionsField,
-  scale: z.array(z.object({ value: valueSchema, count: z.number().int().positive() })).min(1),
+  scale: z.array(z.object({ value: valueSchema, count: z.number().int().positive(), pages: pagesField })).min(1),
   /** The unit most values are multiples of. `share` is the fraction of uses that fit it. */
   baseUnit: z.object({ px: z.number().positive(), share: z.number().min(0).max(1) }).nullable(),
-  outliers: z.array(z.object({ value: valueSchema, count: z.number().int().positive() }))
+  outliers: z.array(z.object({ value: valueSchema, count: z.number().int().positive() })),
+  conflicts: z.array(conflictSchema).optional()
 });
 
 export const COMPONENT_STATES = ['hover', 'focus', 'focus-visible', 'active', 'disabled'] as const;

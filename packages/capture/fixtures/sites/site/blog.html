@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Blog</title>
+  <!-- The second page of the site (see index.html): h2, --brand and one spacing value differ. -->
+  <style>
+    :root { --brand: #0043ce; --text: #161616; }
+    body { margin: 0; font-family: Arial, sans-serif; color: var(--text); background: #ffffff; }
+    main { padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+    h1 { margin: 0; font-size: 40px; line-height: 48px; font-weight: 700; }
+    h2 { margin: 0; font-size: 32px; line-height: 40px; font-weight: 600; }
+    p { margin: 0; font-size: 16px; line-height: 24px; }
+    article { padding: 32px; border: 1px solid #e0e0e0; }
+    a { color: var(--brand); margin: 8px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Blog</h1>
+    <article><h2>Shipping weekly</h2><p>How we release every Friday.</p><a href="#">Read more</a></article>
+    <article><h2>Design tokens</h2><p>One source for colors and spacing.</p><a href="#">Read more</a></article>
+  </main>
+</body>
+</html>

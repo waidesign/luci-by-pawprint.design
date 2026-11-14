@@ -8,11 +8,16 @@ import {
   collectionFileName,
   formatCapture,
   formatCollection,
+  isSystem,
+  mergeGroups,
+  mergeSystems,
+  siteName,
   toCaptureName,
   withInstructions,
   type BasketItem,
   type Capture,
-  type CaptureSettings
+  type CaptureSettings,
+  type SystemCapture
 } from '@luci/format/capture';
 
 export interface BasketStore {
@@ -65,6 +70,28 @@ export function noteInBasket(items: readonly BasketItem[], id: string, note: str
 
 export const removeFromBasket =(items: readonly BasketItem[], id: string): BasketItem[] => items.filter(i => i.id !== id);
 
+/** "Site typography": the name a merged site system starts with (its file's name is "site-typography"). */
+export const siteSystemName = (type: string) => `Site ${type}`;
+
+/**
+ * "Merge into site systems" (v0.3.3): for each system type captured on two or more pages of one site,
+ * one site-level system, added to the basket after the page systems (which stay). Merging again
+ * replaces that site's earlier merged item of the type. Returns the basket and the merged items.
+ */
+export function mergeInBasket(items: readonly BasketItem[]): { items: BasketItem[]; merged: BasketItem[] } {
+  let next = [...items];
+  const merged: BasketItem[] = [];
+  for (const group of mergeGroups(items)) {
+    const capture = mergeSystems(group.items.map(i => i.capture as SystemCapture), { captured: today() });
+    const item: BasketItem = { id: newId(), name: siteSystemName(group.type), addedAt: today(), capture };
+    const earlier = next.findIndex(i => isSystem(i.capture) && i.capture.meta.pages && i.capture.meta.type === group.type && siteName(i.capture.meta.source) === group.site);
+    if (earlier === -1) next = [...next, item];
+    else next = next.map((i, n) => (n === earlier ? item : i));
+    merged.push(item);
+  }
+  return { items: next, merged };
+}
+
 /** The default name of a basket export, e.g. "basket-2026-11-13". */
 export const defaultBasketName = () => `basket-${today()}`;
 
@@ -80,8 +107,10 @@ export function exportItem(item: BasketItem, settings: CaptureSettings): { fileN
   return { fileName: captureFileName(capture.meta), markdown: item.edited ?? formatCapture(capture, settings) };
 }
 
-/** Where an item came from, for the basket list: "example.com/pricing". */
+/** Where an item came from, for the basket list: "example.com/pricing", or "example.com, 3 pages" for a site system. */
 export function sourceLabel(item: BasketItem): string {
+  const pages = isSystem(item.capture) ? item.capture.meta.pages : undefined;
+  if (pages) return `${siteName(item.capture.meta.source)}, ${pages.length} pages`;
   try {
     const u = new URL(item.capture.meta.source);
     return `${u.host}${u.pathname === '/' ? '' : u.pathname}`;

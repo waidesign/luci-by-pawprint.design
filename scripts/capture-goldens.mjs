@@ -41,6 +41,18 @@ for (const file of ['inputs.json', 'component-inputs.json']) {
     console.log(`wrote rule/${name}.proposal.md`);
   }
 }
+// Multi-page system merge (v0.3.3): /pricing (the system goldens' inputs) + /blog (packages/format/fixtures/merge/)
+{
+  const mergeDir = fileURLToPath(new URL('../packages/format/fixtures/merge/', import.meta.url));
+  const { mergeSystems } = await import(new URL('../packages/format/dist/capture/index.js', import.meta.url).href);
+  const pageInputs = read('inputs.json');
+  for (const [name, { settings, base, others }] of Object.entries(JSON.parse(fs.readFileSync(path.join(mergeDir, 'inputs.json'), 'utf8')))) {
+    const merged = mergeSystems([pageInputs[base].capture, ...others], { captured: '2026-11-14' });
+    if (captureFileName(merged.meta) !== name) throw new Error(`${name}: the formatter names it ${captureFileName(merged.meta)}`);
+    fs.writeFileSync(path.join(mergeDir, name), formatCapture(merged, settings), 'utf8');
+    console.log(`wrote merge/${name}`);
+  }
+}
 // Feedback prompts (packages/format/fixtures/feedback/)
 const feedbackDir = fileURLToPath(new URL('../packages/format/fixtures/feedback/', import.meta.url));
 const { formatFeedbackPrompt, formatLayoutPrompt, formatWireframePrompt, feedbackItemSchema, wireframeSchema } = await import(new URL('../packages/format/dist/feedback/index.js', import.meta.url).href);

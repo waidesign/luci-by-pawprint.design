@@ -23,11 +23,12 @@ import {
   type SpacingSet,
   type SpacingSystem,
   type SpacingToken,
+  type SystemConflict,
   type TextStyle,
   type TextToken,
   type TypographySystem
 } from './schema.js';
-import { formatColor, formatLength, formatShadow, formatTransform, resolveSettings, round, withoutUrls } from './values.js';
+import { formatColor, formatLength, formatShadow, formatTransform, parseColor, resolveSettings, round, withoutUrls } from './values.js';
 
 export const CAPTURE_EXTENSION = '.design.md';
 
@@ -74,9 +75,12 @@ export function siteSlug(url: string): string {
   return slug || 'local';
 }
 
-/** Flat file name: example-com.token.color-primary.design.md, example-com.system.typography.design.md. */
-export function captureFileName(meta: Pick<CaptureMeta, 'source' | 'scope' | 'name' | 'type'>): string {
-  const part = meta.scope === 'system' ? meta.type : meta.name;
+/**
+ * Flat file name: example-com.token.color-primary.design.md, example-com.system.typography.design.md;
+ * a site-level system (v0.3.3, with pages): example-com.system.site-typography.design.md.
+ */
+export function captureFileName(meta: Pick<CaptureMeta, 'source' | 'scope' | 'name' | 'type'> & { pages?: readonly string[] | undefined }): string {
+  const part = meta.scope === 'system' ? `${meta.pages ? 'site-' : ''}${meta.type}` : meta.name;
   return `${siteSlug(meta.source)}.${meta.scope}.${part}${CAPTURE_EXTENSION}`;
 }
 
@@ -90,13 +94,36 @@ const yaml = (value: string) =>
     ? value
     : JSON.stringify(value);
 
-function frontmatter(meta: CaptureMeta, settings: CaptureSettings): string {
+function frontmatter(meta: CaptureMeta & { pages?: readonly string[] | undefined }, settings: CaptureSettings): string {
   const m = metaSchema.parse(meta);
   const rows: [string, string | undefined][] = [
     ['name', m.name], ['scope', m.scope], ['type', m.type], ['source', sourceText(m.source, settings)],
     ['selector', m.selector], ['captured', m.captured], ['method', m.method], ['extends', m.extends]
   ];
-  return ['---', ...rows.filter(([, v]) => v !== undefined).map(([k, v]) => `${k}: ${yaml(v!)}`), '---'].join('\n');
+  const lines = rows.filter(([, v]) => v !== undefined).map(([k, v]) => `${k}: ${yaml(v!)}`);
+  // A site-level system: the pages it was merged from, by path (the source is the site)
+  if (meta.pages) lines.push(`pages: [${meta.pages.map(p => JSON.stringify(pagePath(p))).join(', ')}]`);
+  return ['---', ...lines, '---'].join('\n');
+}
+
+/** "https://example.com/pricing" -> "/pricing". */
+const pagePath = (url: string) => { try { return new URL(url).pathname || '/'; } catch { return url; } };
+/** Which pages use a row of a site-level system: "all", or their paths. */
+const pagesCell = (pages: readonly string[] | undefined, all: readonly string[]) =>
+  (!pages ? '' : all.every(p => pages.includes(p)) ? 'all' : pages.map(pagePath).join(', '));
+
+export const CONFLICTS_NOTE = '- The same role or token has different values on these pages. Decide which one the site means before building with it.';
+
+/** Conflicts of a site-level system: each role or token with its values, and the pages that use each. */
+function conflictsSection(conflicts: readonly SystemConflict[] | undefined, s: CaptureSettings): string[] {
+  const value = (v: string) => (parseColor(v) ? formatColor(v, s) : show({ computed: v }, 'length', s));
+  return [
+    '## Conflicts',
+    conflicts?.length
+      ? table(['What', 'Values by page'], conflicts.map(c => [c.what, c.values.map(v => `${value(v.value)} on ${v.pages.map(pagePath).join(', ')}`).join('; ')]))
+      : '- None: every role and token has one value on every page.',
+    ...(conflicts?.length ? ['', CONFLICTS_NOTE] : [])
+  ];
 }
 
 const cell = (text: string) => text.replace(/\|/g, '\\|').replace(/\s*\n\s*/g, ' ').trim();
@@ -199,30 +226,40 @@ function spacingSet(c: SpacingSet, s: CaptureSettings): string[] {
   ];
 }
 
+/** A site-level system's tables get a Pages column, and the file a Conflicts section. */
+const sitePages = (c: { meta: { pages?: string[] | undefined } }) => c.meta.pages;
+const withPages = (head: readonly string[], pages: readonly string[] | undefined) => (pages ? [...head, 'Pages'] : [...head]);
+const pageCol = (row: { pages?: string[] | undefined }, pages: readonly string[] | undefined) => (pages ? [pagesCell(row.pages, pages)] : []);
+
 function typographySystem(c: TypographySystem, s: CaptureSettings): string[] {
+  const all = sitePages(c);
   const roles = c.roles.map(r => [
     r.role, r.style.family.computed, show(r.style.size, 'length', s), r.style.weight.computed,
     show(r.style.lineHeight, 'length', s), show(r.style.letterSpacing, 'length', s), show(r.style.color, 'color', s),
-    String(r.count), r.elements.join(', ')
+    String(r.count), r.elements.join(', '), ...pageCol(r, all)
   ]);
   return [
-    '## Roles', table(['Role', 'Family', 'Size', 'Weight', 'Line height', 'Letter spacing', 'Color', 'Uses', 'Elements'], roles),
+    '## Roles', table(withPages(['Role', 'Family', 'Size', 'Weight', 'Line height', 'Letter spacing', 'Color', 'Uses', 'Elements'], all), roles),
     '', '## Families', table(['Family', 'Uses'], c.families.map(f => [f.family, String(f.count)])),
-    '', '## Scale', table(['Size', 'Token', 'Uses'], c.scale.map(x => [show(x.size, 'length', s), code(x.size.token), String(x.count)]))
+    '', '## Scale', table(['Size', 'Token', 'Uses'], c.scale.map(x => [show(x.size, 'length', s), code(x.size.token), String(x.count)])),
+    ...(all ? ['', ...conflictsSection(c.conflicts, s)] : [])
   ];
 }
 
 function colorSystem(c: ColorSystem, s: CaptureSettings): string[] {
+  const all = sitePages(c);
   const tokens = c.tokens.length
-    ? table(['Token', 'Value', 'Uses'], c.tokens.map(t => [code(t.token), formatColor(t.value, s), String(t.count)]))
-    : '- The page defines no color custom properties.';
+    ? table(withPages(['Token', 'Value', 'Uses'], all), c.tokens.map(t => [code(t.token), formatColor(t.value, s), String(t.count), ...pageCol(t, all)]))
+    : `- The ${all ? 'site' : 'page'} defines no color custom properties.`;
   return [
-    '## Roles', table(['Role', 'Value', 'Authored', 'Token', 'Uses', 'Properties'], c.roles.map(r => [r.role, show(r.value, 'color', s), authored(r.value), code(r.value.token), String(r.count), r.properties.join(', ')])),
-    '', '## Tokens', tokens
+    '## Roles', table(withPages(['Role', 'Value', 'Authored', 'Token', 'Uses', 'Properties'], all), c.roles.map(r => [r.role, show(r.value, 'color', s), authored(r.value), code(r.value.token), String(r.count), r.properties.join(', '), ...pageCol(r, all)])),
+    '', '## Tokens', tokens,
+    ...(all ? ['', ...conflictsSection(c.conflicts, s)] : [])
   ];
 }
 
 function spacingSystem(c: SpacingSystem, s: CaptureSettings): string[] {
+  const all = sitePages(c);
   const base = c.baseUnit
     ? `- ${formatLength(`${c.baseUnit.px}px`, s)}: ${Math.round(c.baseUnit.share * 100)}% of spacing uses are multiples of it.`
     : '- None: the spacing values share no common unit.';
@@ -230,8 +267,9 @@ function spacingSystem(c: SpacingSystem, s: CaptureSettings): string[] {
     ? table(['Value', 'Uses'], c.outliers.map(o => [show(o.value, 'length', s), String(o.count)]))
     : '- None.';
   return [
-    '## Scale', table(['Value', 'Authored', 'Token', 'Uses'], c.scale.map(x => [show(x.value, 'length', s), authored(x.value), code(x.value.token), String(x.count)])),
-    '', '## Base unit', base, '', '## Outliers', outliers
+    '## Scale', table(withPages(['Value', 'Authored', 'Token', 'Uses'], all), c.scale.map(x => [show(x.value, 'length', s), authored(x.value), code(x.value.token), String(x.count), ...pageCol(x, all)])),
+    '', '## Base unit', base, '', '## Outliers', outliers,
+    ...(all ? ['', ...conflictsSection(c.conflicts, s)] : [])
   ];
 }
 

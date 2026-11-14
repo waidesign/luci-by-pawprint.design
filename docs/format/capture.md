@@ -57,6 +57,10 @@ One file per capture, flat: `<site>.<scope>.<name>.design.md`, where `<site>` is
 
 `parseCapture` checks a file's frontmatter and that every section its scope and type need is present.
 
+### Site-level systems (v0.3.3)
+
+`mergeSystems` (`merge.ts`) merges one system type captured on two or more pages of one site into a site-level system: `name: site-<type>`, the site's root as `source`, and `pages: ["/pricing", "/blog"]` in the frontmatter; the file is `<site>.system.site-<type>.design.md`, so it never replaces a page's own system file. Rows are unified by what they are, not by how a page named them: text styles by their look (first font, size, weight, line height, letter spacing, color), color roles by role and `colorKey`, spacing values by px; uses are summed, a token or authored value is kept only when every page agrees, and families with the same first font are one row (written as the most used stack). The Roles tables (typography and color), color Tokens and the spacing Scale gain a **Pages** column: `all`, or the paths of the pages that use the row. A style that keeps the most uses takes a role name; another style with the same name is numbered (`heading-2-2`). The spacing base unit and outliers are found again over all pages. A **Conflicts** section lists, as `What | Values by page`, each text role (heading levels and named roles; page-local numbering such as `body-2` is ignored) and each token with different values on different pages, then a line asking to decide which one the site means; with none it says so. `mergeGroups` says which basket items can merge (single-page systems of one type and site, from two pages or more; a page captured twice counts once, the latest). Goldens: `fixtures/merge/` (the system goldens' /pricing inputs plus a /blog page with a heading-2, a `--color-primary` and a `--space-4` that differ).
+
 ## Components
 
 `scope: component`, with `type` naming what it is (`button`, `link`, `card`...) and `selector` required. Sections:

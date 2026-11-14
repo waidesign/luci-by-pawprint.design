@@ -6,3 +6,5 @@ export * from './collection.js';
 export * from './read.js';
 export * from './check.js';
 export * from './rule.js';
+export * from './spacingUnit.js';
+export * from './merge.js';
