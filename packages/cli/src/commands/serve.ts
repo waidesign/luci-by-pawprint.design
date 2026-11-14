@@ -4,6 +4,8 @@ import { PRODUCT } from '@luci/format';
 import { DEFAULT_PORT, startBridge } from '../serve/bridge.js';
 import type { Command } from '../context.js';
 import { cliVersion } from '../version.js';
+import { findToolbarTarget, manualToolbarHelp, toolbarInstalledIn } from '../toolbarSetup.js';
+import { offerToolbar } from './toolbar.js';
 
 export const SERVE_HELP = `serve [--port <n>]      Connect the dev toolbar to this project (feedback and captures in ${PRODUCT.projectDir}/)`;
 
@@ -48,8 +50,15 @@ export const serveCommand: Command = async (args, ctx) => {
 
   ctx.out(`${PRODUCT.name} is connected to ${ctx.cwd}: ${bridge.url}`);
   if (!fs.existsSync(`${ctx.cwd}/${PRODUCT.projectDir}`)) ctx.out(`No ${PRODUCT.projectDir}/ here yet: run \`${PRODUCT.command} init\` first, or feedback cannot be saved.`);
-  ctx.out('Add the dev toolbar to your app while developing, in index.html (or your root layout):');
-  ctx.out(`  <script src="${bridge.url}/toolbar.js"></script>`);
+  // The second chance to add the toolbar (missed or skipped at init): ask in a terminal, else say how
+  const servedOn = Number(new URL(bridge.url).port);
+  const installed = toolbarInstalledIn(ctx.cwd);
+  if (installed) ctx.out(`Dev toolbar: in ${installed.rel}. Open your app on this machine; Luci's button is in the bottom corner.`);
+  else if (ctx.isTTY && findToolbarTarget(ctx.cwd)) await offerToolbar(ctx, servedOn);
+  else {
+    ctx.out(`The dev toolbar is not in your app yet. Add it with \`${PRODUCT.command} toolbar${servedOn === DEFAULT_PORT ? '' : ` --port ${servedOn}`}\`, or by hand:`);
+    for (const line of manualToolbarHelp(servedOn).slice(1, 2)) ctx.out(line);
+  }
   ctx.out(`Feedback goes to ${PRODUCT.projectDir}/feedback/, captures you save to ${PRODUCT.projectDir}/design/. Your agent reads them with ${PRODUCT.mcpServer}.`);
   ctx.out('Only pages on this machine can reach it. Press Ctrl+C to stop.');
 

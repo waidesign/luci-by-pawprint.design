@@ -4,12 +4,16 @@ Luci inside your own app while you develop it: leave notes on the running app fo
 
 ## Set up
 
-1. In the project: `luci init` (once), then `luci serve`. It prints the line to add.
-2. Add it to your app while developing, in `index.html` or the root layout:
+1. In your app's folder: `luci init` (once). It asks **Add Luci's dev toolbar to your app?**; press Enter.
+2. `luci serve`, then open your app on this machine. Luci's button is in the bottom corner.
 
-   ```html
-   <script src="http://127.0.0.1:4545/toolbar.js"></script>
-   ```
+Missed it, or said no? `luci serve` asks again while the toolbar is not in the app, and `luci toolbar` adds it any time. Or ask your agent to add Luci's dev toolbar: the project's agent files tell it to run `luci toolbar`.
+
+What it adds: a few lines between `luci:toolbar` comments, before `</body>` of the app's root file (Next.js `app/layout` or `pages/_document`, SvelteKit `src/app.html`, an Astro layout, or `index.html` for Vite, Create React App, Angular and plain sites). The loader only runs on `localhost` (Next.js: in development), so a deployed site is unchanged and nothing is installed. `luci toolbar remove` takes it out again; `luci toolbar --dry-run` shows what it would add. Without a root file Luci knows, add the line yourself:
+
+```html
+<script src="http://127.0.0.1:4545/toolbar.js"></script>
+```
 
 3. Optional: connect your agent to `luci-mcp` (for example `claude mcp add luci -- node <luci>/packages/mcp/dist/bin.js`), so it can read the notes and saved captures itself. Copying the prompt works without it.
 
@@ -31,7 +35,7 @@ With React, Vue 3 or Svelte 4/5 in development mode, each note records the compo
 
 ## Modes
 
-The switch first in the bar, **Feedback · Layout · Capture**, is in the same place in every mode.
+The switch first in the bar, **Feedback · Layout · Capture**, is in the same place in every mode. The bar sits at the bottom of the window, in the corner of Luci's button (right, or left with **Dock: Left**), and grows out of the button when you open it. While nothing in a mode is active, a card above the bar says what the mode is for and its keys.
 
 ## Layout
 

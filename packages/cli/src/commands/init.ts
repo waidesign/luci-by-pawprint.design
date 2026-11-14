@@ -4,12 +4,15 @@ import { SkillRegistry } from '@luci/skills';
 import { parseFlags, type Command } from '../context.js';
 import { createLineAsker, runOnboarding } from '../onboarding.js';
 import { cliVersion } from '../version.js';
+import { toolbarInstalledIn } from '../toolbarSetup.js';
+import { offerToolbar, toolbarCommand } from './toolbar.js';
 
-export const INIT_FLAGS = ['--dry-run', '--force', '--yes', '--non-interactive', '-i', '--interactive'] as const;
+export const INIT_FLAGS = ['--dry-run', '--force', '--yes', '--non-interactive', '-i', '--interactive', '--toolbar'] as const;
 
-export const INIT_HELP = `init [--dry-run] [--force] [--yes | -i] [--agents <list>]
+export const INIT_HELP = `init [--dry-run] [--force] [--yes | -i] [--agents <list>] [--toolbar]
                         Set up this project: ${PRODUCT.projectDir}/, your Global Brain, starter skills and the
-                        agent files. In a terminal it asks for the goal, matching skills, packs and rules.
+                        agent files. In a terminal it asks for the goal, matching skills, packs and rules,
+                        and offers to add the dev toolbar to your app (--toolbar adds it without asking).
                         Agent files: Claude Code and Cursor, any agent whose file the project has, and
                         --agents codex,gemini,copilot,generic (or all).`;
 
@@ -86,6 +89,11 @@ export const initCommand: Command = async (rawArgs, ctx) => {
     }
     ctx.out(`  Add with: ${PRODUCT.command} packs add ${report.packsSuggested.map(p => p.name).join(' ')}`);
   }
+
+  // The dev toolbar: added on request, offered in a terminal, else one line on how to add it later
+  if (flags.has('--toolbar')) await toolbarCommand([], ctx);
+  else if (interactive) await offerToolbar(ctx);
+  else if (!toolbarInstalledIn(ctx.cwd)) ctx.out(`\nDev toolbar (notes, layout plans and captures in your running app): ${PRODUCT.command} toolbar`);
 
   const files = (Object.keys(report.agents) as AgentId[]).map(id => AGENT_FILES[id]);
   ctx.out(`\nDone. Your agents read ${PRODUCT.projectDir}/ through ${files.slice(0, -1).join(', ')}${files.length > 1 ? ' and ' : ''}${files[files.length - 1]}.`);
