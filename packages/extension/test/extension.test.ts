@@ -52,7 +52,10 @@ describe.runIf(process.env['LUCI_EXTENSION_E2E'] === '1')('extension in Chromium
     context = await chromium.launchPersistentContext(userData, {
       channel: 'chromium',
       headless: true,
-      args: [`--disable-extensions-except=${dir}`, `--load-extension=${dir}`]
+      // A real window, as in Chrome, not Playwright's viewport: Playwright sets that with the same
+      // debugger command responsive capture uses, so putting the tab back would also remove it
+      viewport: null,
+      args: [`--disable-extensions-except=${dir}`, `--load-extension=${dir}`, '--window-size=1280,900']
     });
     const worker = context.serviceWorkers()[0] ?? await context.waitForEvent('serviceworker', { timeout: 30_000 });
     extensionId = new URL(worker.url()).host;
