@@ -177,6 +177,9 @@ export const COMPONENTS_CSS = `
 .luci-theme a.repo-btn:focus-visible { outline: 2px solid var(--luci-color-focus); outline-offset: 2px; }
 .luci-theme .repo-btn .gh-mark { display: block; width: 16px; height: 16px; line-height: 0; }
 .luci-theme .repo-btn .gh-mark svg { display: block; width: 16px; height: 16px; }
+/* It sits at a panel's right edge: its tooltip opens leftwards, so the panel never scrolls sideways */
+.luci-theme .repo-btn[data-tip]::after { left: auto; right: 0; transform: translate(0, -4px); }
+.luci-theme .repo-btn[data-tip]:is(:hover, :focus-visible)::after { transform: translate(0, 0); }
 
 /* Tooltip: the text in data-tip; below the element, or above with data-tip-pos="above". Shows after 300 ms. */
 .luci-theme [data-tip]::after { content: attr(data-tip); position: absolute; left: 50%; top: calc(100% + var(--luci-space-8)); z-index: 3;

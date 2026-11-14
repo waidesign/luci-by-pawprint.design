@@ -188,6 +188,40 @@ describe('dev toolbar placement and descriptions (user request, 2026-11-15)', { 
   });
 });
 
+describe('Luci\'s button moves on its own (user request, 2026-11-15)', { timeout: 60_000 }, () => {
+  it('drags without opening the bar, stays there after a reload, and the bar grows from where it is', async () => {
+    const ctx = await context('http://127.0.0.1:9');
+    const page = await open(ctx, '/pricing');
+    await page.click('luci-feedback [data-action="close"]');
+    const button = page.locator('[data-action="open-luci"]');
+    const start = (await button.boundingBox())!;
+    await page.mouse.move(start.x + 24, start.y + 24);
+    await page.mouse.down();
+    await page.mouse.move(600, 400, { steps: 4 });
+    await page.mouse.move(100 + 24, 150 + 24, { steps: 6 });
+    await page.mouse.up();
+    // Moved, and the bar did not open
+    expect(await page.locator('luci-feedback').count()).toBe(0);
+    const dropped = (await button.boundingBox())!;
+    expect(Math.abs(dropped.x - 100)).toBeLessThan(3);
+    expect(Math.abs(dropped.y - 150)).toBeLessThan(3);
+    // It stays there after a reload (closed, the page opens with the bar: closing it shows the button there)
+    await page.reload();
+    await page.locator('luci-feedback [data-action="annotate"]').waitFor();
+    const bar = (await page.locator('luci-feedback .bar').boundingBox())!;
+    // The bar opens in the button's corner (top left), its own left and top edges where the button's were
+    expect(Math.abs(bar.x - dropped.x)).toBeLessThan(3);
+    expect(Math.abs(bar.y - dropped.y)).toBeLessThan(3);
+    await page.click('luci-feedback [data-action="close"]');
+    const again = (await button.boundingBox())!;
+    expect(Math.abs(again.x - dropped.x)).toBeLessThan(3);
+    // A plain click still opens the bar
+    await button.click();
+    await page.locator('luci-feedback [data-action="annotate"]').waitFor();
+    await ctx.close();
+  });
+});
+
 describe('one Luci on the page at a time (bug report, 2026-11-15)', { timeout: 60_000 }, () => {
   it('the extension opening closes the dev toolbar to its button, in any mode; the button brings it back and closes the extension', async () => {
     const capture = await captureBundle();

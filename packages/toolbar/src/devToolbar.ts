@@ -192,7 +192,63 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
       button span{display:block;width:38px;line-height:0} svg{display:block;width:100%;height:auto}
       @media (prefers-reduced-motion: reduce){button{transition:none}}
     </style><button type="button" data-action="open-luci" aria-label="${COPY.devToolbar.open}" title="${COPY.devToolbar.open}"><span>${mascotSvg('head')}</span></button>`;
-    root.querySelector('button')!.addEventListener('click', (e) => { e.stopPropagation(); show(mode, { grow: true }); });
+    const button = root.querySelector('button')!;
+    button.style.cursor = 'grab';
+    button.style.touchAction = 'none';
+    /*
+     * The button moves on its own, without opening the bar (user request, 2026-11-15): 4 px before a
+     * press counts as a drag, so a click still opens it. Dropped, it takes the nearest corner, which is
+     * also where the bar will grow from (they share one place).
+     */
+    let press: { id: number; x0: number; y0: number; rect: DOMRect; moved: boolean } | null = null;
+    let moved = false;
+    const move = (e: PointerEvent) => {
+      const p = press;
+      if (!p || e.pointerId !== p.id) return;
+      if (!p.moved && !(e.buttons & 1)) { release(); return; }
+      const dx = e.clientX - p.x0, dy = e.clientY - p.y0;
+      if (!p.moved && Math.hypot(dx, dy) < 4) return;
+      if (!p.moved) { p.moved = true; button.setPointerCapture?.(e.pointerId); button.style.cursor = 'grabbing'; }
+      const left = clamp(p.rect.left + dx, EDGE, win.innerWidth - EDGE - p.rect.width);
+      const top = clamp(p.rect.top + dy, EDGE, win.innerHeight - EDGE - p.rect.height);
+      Object.assign(button.style, { left: `${left}px`, top: `${top}px`, right: 'auto', bottom: 'auto' });
+    };
+    const up = (e: PointerEvent) => {
+      const p = press;
+      if (!p || e.pointerId !== p.id) return;
+      release();
+      if (!p.moved) return;
+      moved = true;
+      win.setTimeout(() => { moved = false; }, 0);
+      const r = button.getBoundingClientRect();
+      const vw = win.innerWidth, vh = win.innerHeight;
+      const h = r.left + r.width / 2 < vw / 2 ? 'left' : 'right';
+      const v = r.top + r.height / 2 < vh / 2 ? 'top' : 'bottom';
+      place = { h, v, x: Math.round(h === 'left' ? r.left : vw - r.right), y: Math.round(v === 'top' ? r.top : vh - r.bottom) };
+      // Anchored to that corner from now on (so it keeps its place when the window resizes)
+      Object.assign(button.style, { left: '', top: '', right: '', bottom: '', cursor: 'grab', [h]: `${place.x}px`, [v]: `${place.y}px`,
+        [h === 'left' ? 'right' : 'left']: 'auto', [v === 'top' ? 'bottom' : 'top']: 'auto' });
+      writeUiPrefs(doc, { ...readUiPrefs(doc), devPlace: place });
+    };
+    const release = () => {
+      doc.removeEventListener('pointermove', move, true);
+      doc.removeEventListener('pointerup', up, true);
+      doc.removeEventListener('pointercancel', up, true);
+      press = null;
+    };
+    button.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      press = { id: e.pointerId, x0: e.clientX, y0: e.clientY, rect: button.getBoundingClientRect(), moved: false };
+      doc.addEventListener('pointermove', move, true);
+      doc.addEventListener('pointerup', up, true);
+      doc.addEventListener('pointercancel', up, true);
+    });
+    button.addEventListener('click', (e) => {
+      e.stopPropagation();
+      // The click that ends a drag only drops the button
+      if (moved) { moved = false; return; }
+      show(mode, { grow: true });
+    });
     doc.documentElement.appendChild(launcher);
   };
 

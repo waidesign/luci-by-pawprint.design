@@ -335,6 +335,11 @@ describe('the extension\'s bar moves anywhere in the window (user request, 2026-
     const [words, seg] = await Promise.all([row.locator('.setting-copy').boundingBox(), row.locator('.seg').boundingBox()]);
     expect(seg!.x).toBeGreaterThan(words!.x + words!.width - 1);
     expect(seg!.y).toBeLessThan(words!.y + words!.height);
+    // Left, then Right, as they sit on screen; Right is the default (user correction, 2026-11-15)
+    expect(await row.locator('[data-dock-choice]').allInnerTexts()).toEqual(['Left', 'Right']);
+    expect(await row.locator('[data-dock-choice="right"]').getAttribute('aria-pressed')).toBe('true');
+    // Nothing in the menu (a hidden tooltip included) makes it scroll sideways
+    expect(await page.locator('[data-part="settings"]').evaluate(el => el.scrollWidth - el.clientWidth)).toBe(0);
     // The menu: Luci's version with GitHub's mark, and the invitation to take Luci home (the extension only)
     expect(await page.locator('[data-part="repo"]').innerText()).toBe('v0.3.0');
     expect(await page.locator('[data-part="repo"] svg path').count()).toBe(1);

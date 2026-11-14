@@ -54,8 +54,9 @@ export const THEME_OPTIONS: readonly { id: ThemeChoice; label: string; title: st
 ];
 
 export const DOCK_OPTIONS: readonly { id: DockChoice; label: string; title: string }[] = [
-  { id: 'right', label: 'Right', title: 'Keep Luci docked on the right side of the window' },
-  { id: 'left', label: 'Left', title: 'Move Luci to the left side when inspecting elements on the right' }
+  // In the order they sit on screen: Left, then Right (the default)
+  { id: 'left', label: 'Left', title: 'Move Luci to the left side when inspecting elements on the right' },
+  { id: 'right', label: 'Right', title: 'Keep Luci docked on the right side of the window' }
 ];
 
 /** Read saved UI preferences from localStorage (with safe fallback in sandboxed frames). */
@@ -134,7 +135,7 @@ export function AppearanceControls(props: { prefs: UiPrefs; onChange: (patch: Pa
       <div class="setting-row">
         <div class="setting-copy">
           <span class="field-label">Panel position</span>
-          <span class="dim">{props.movable ? 'Drag the bar by its edge or Luci. Right or Left resets it.' : 'Move Luci to the other side if it covers an element'}</span>
+          <span class="dim">{props.movable ? 'Drag the bar by its edge or Luci. Left or Right resets it.' : 'Move Luci to the other side if it covers an element'}</span>
         </div>
         <div class="seg" role="group" aria-label="Panel position">
           {DOCK_OPTIONS.map(d => (
