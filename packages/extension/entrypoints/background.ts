@@ -5,6 +5,33 @@ import { readStatesViaCdp, type CdpReadOptions, type ForcedReading } from '@luci
 export const READ_STATES = 'luci:read-states';
 export const CAPTURE_SCREEN = 'luci:capture-screen';
 export const OPEN_HELP = 'luci:open-help';
+export const SET_VIEWPORT = 'luci:set-viewport';
+
+/** Tabs whose width Luci is emulating right now (the debugger stays attached until it is put back). */
+const emulating = new Set<number>();
+
+/**
+ * Set a tab's window width for a responsive reading (height unchanged), or put it back with null:
+ * the debugger is attached for the first width and detached when the width is put back.
+ */
+async function setViewport(tabId: number, width: number | null): Promise<void> {
+  const target = { tabId };
+  if (width === null) {
+    if (!emulating.has(tabId)) return;
+    emulating.delete(tabId);
+    try {
+      await browser.debugger.sendCommand(target, 'Emulation.clearDeviceMetricsOverride');
+    } finally {
+      await browser.debugger.detach(target).catch(() => undefined);
+    }
+    return;
+  }
+  if (!emulating.has(tabId)) {
+    await browser.debugger.attach(target, '1.3');
+    emulating.add(tabId);
+  }
+  await browser.debugger.sendCommand(target, 'Emulation.setDeviceMetricsOverride', { width, height: 0, deviceScaleFactor: 0, mobile: false });
+}
 type ReadStatesReply = { ok: true; reading: ForcedReading } | { ok: false; error: string };
 type CaptureReply = { ok: true; dataUrl: string } | { ok: false; error: string };
 
@@ -37,6 +64,12 @@ export default defineBackground(() => {
       browser.tabs.captureVisibleTab(sender.tab.windowId, { format: 'png' })
         .then(dataUrl => sendResponse({ ok: true, dataUrl }))
         .catch((err: unknown) => sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) }));
+      return true;
+    }
+    // Responsive capture (v0.3.4): the tab's width set through the debugger for each reading, then put back
+    if (m?.type === SET_VIEWPORT && tabId !== undefined) {
+      const width = (message as { width?: number | null }).width ?? null;
+      void setViewport(tabId, width).then(() => sendResponse({ ok: true, dataUrl: '' }), (err: unknown) => sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) }));
       return true;
     }
     if (m?.type !== READ_STATES || tabId === undefined || typeof m.count !== 'number') return false;

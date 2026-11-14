@@ -266,6 +266,26 @@ export const componentImageSchema = z.object({
 });
 export type ComponentImage = z.infer<typeof componentImageSchema>;
 
+/**
+ * How a component or section changes by window width (v0.3.4): read at 2 or 3 widths chosen from the
+ * site's own media queries that style it, each width with the page's own styles. One row per part
+ * and property that differs between the widths; a value is null where the property is not set, and
+ * the property `shown` ("yes"/"no") says a part is only there at some widths.
+ */
+export const responsiveSchema = z.object({
+  /** Window widths in CSS px, narrowest first. */
+  widths: z.array(z.number().int().positive()).min(2).max(3),
+  /** The media query conditions that style it ("(min-width: 768px)"). */
+  queries: z.array(z.string().min(1)),
+  changes: z.array(z.object({
+    part: z.string().min(1),
+    property: z.string().min(1),
+    /** One per width, in the order of `widths`. */
+    values: z.array(z.string().nullable()).min(2).max(3)
+  }))
+});
+export type Responsive = z.infer<typeof responsiveSchema>;
+
 export const componentSchema = z.object({
   meta: metaSchema.extend({ scope: z.literal('component'), type: slug, selector: z.string().min(1) }),
   instructions: instructionsField,
@@ -306,6 +326,8 @@ export const componentSchema = z.object({
   images: z.array(componentImageSchema).optional(),
   /** Accessibility notes computed from the capture (v0.2). */
   accessibility: accessibilitySchema.optional(),
+  /** How it changes by window width (v0.3.4), when the person asked for it. */
+  responsive: responsiveSchema.optional(),
   /** "The whole system": similar elements on the page, grouped by how they differ from this one. */
   variants: z.array(z.object({
     name: slug,
@@ -349,7 +371,9 @@ export const sectionSchema = z.object({
     /** Placed inside another component of this section (a button in a card): that component's name. */
     inside: slug.optional()
   })),
-  accessibility: accessibilitySchema.optional()
+  accessibility: accessibilitySchema.optional(),
+  /** How its layout changes by window width (v0.3.4), when the person asked for it. */
+  responsive: responsiveSchema.optional()
 });
 export type SectionCapture = z.infer<typeof sectionSchema>;
 

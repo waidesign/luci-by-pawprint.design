@@ -32,6 +32,17 @@ method: measured
 | `plan-card` | card | 3 | 2 | `example-com.component.plan-card.design.md` |
 | `primary-button` | button | 3, inside `plan-card` | 1 | `example-com.component.primary-button.design.md` |
 
+## Responsive
+| Part | Property | 375px | 768px | 1280px |
+| --- | --- | --- | --- | --- |
+| container | padding | 48px 16px | 96px 24px | 96px 24px |
+| heading | font-size | 28px | 40px | 40px |
+| description | shown | no | yes | yes |
+| grid | grid-template-columns | 1 column | 2 columns | 3 columns |
+
+- Media queries that style it: `(min-width: 768px)`, `(min-width: 1024px)`.
+- Read at each width with the page's own styles: values as rendered there, – where it is not set. Each width stands for its range, up to the next media query listed.
+
 ## Accessibility
 | Check | Part | Measured | Result |
 | --- | --- | --- | --- |

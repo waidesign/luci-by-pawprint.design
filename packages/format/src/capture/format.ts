@@ -19,6 +19,7 @@ import {
   type ComponentCapture,
   type ElementRef,
   type PageCapture,
+  type Responsive,
   type SectionCapture,
   type SpacingSet,
   type SpacingSystem,
@@ -371,6 +372,7 @@ function componentBody(c: ComponentCapture, s: CaptureSettings, noStates = '- No
   const out = ['## Tokens', tokens, '', '## Anatomy', ...anatomy];
   if (c.images?.length) out.push('', '## Images', ...imagesSection(c.images, s));
   out.push('', '## States', states, '', '## Motion', ...motion);
+  if (c.responsive) out.push('', ...responsiveSection(c.responsive, s));
   if (c.accessibility) out.push('', ...accessibilitySection(c.accessibility, s));
   if (c.variants) {
     out.push('', '## Variants', c.variants.length
@@ -378,6 +380,23 @@ function componentBody(c: ComponentCapture, s: CaptureSettings, noStates = '- No
       : '- No similar elements on this page.');
   }
   return out;
+}
+
+export const RESPONSIVE_NOTE = '- Read at each width with the page\'s own styles: values as rendered there, – where it is not set. Each width stands for its range, up to the next media query listed.';
+
+/** How it changes by width: one row per part and property that differs, then the media queries. */
+export function responsiveSection(r: Responsive, s: CaptureSettings): string[] {
+  const widths = r.widths.map(w => `${w}px`);
+  const queries = r.queries.length
+    ? `- Media queries that style it: ${r.queries.map(q => code(q)).join(', ')}.`
+    : '- No media query in the site\'s stylesheets styles it; the widths are common ones.';
+  if (!r.changes.length) return ['## Responsive', `- Nothing in it changes at ${widths.slice(0, -1).join(', ')} and ${widths[widths.length - 1]}.`, queries];
+  const value = (property: string, v: string | null) => (v === null ? '–' : property === 'shown' ? v : show({ computed: v }, kindOf(property), s));
+  return [
+    '## Responsive',
+    table(['Part', 'Property', ...widths], r.changes.map(ch => [ch.part, ch.property, ...ch.values.map(v => value(ch.property, v))])),
+    '', queries, RESPONSIVE_NOTE
+  ];
 }
 
 export const SECTION_NOTE = '- Each component is described once, in its own file (listed under Components); this file places them. A button or field inside another component has its own file too, for its states. Text parts give their text style only, never the text.';
@@ -404,6 +423,7 @@ function sectionBody(c: SectionCapture, s: CaptureSettings): string[] {
     ? table(['Component', 'Type', 'Uses here', 'Variants', 'File'], c.components.map(k => [code(k.name), k.type, `${k.count}${k.inside ? `, inside ${code(k.inside)}` : ''}`, String(k.variants), code(k.file)]))
     : '- No components inside: the structure describes everything.';
   const out = ['## Tokens', tokens, '', '## Structure', ...structure, '', SECTION_NOTE, '', '## Components', components];
+  if (c.responsive) out.push('', ...responsiveSection(c.responsive, s));
   if (c.accessibility) out.push('', ...accessibilitySection(c.accessibility, s));
   return out;
 }

@@ -18,6 +18,7 @@ import type { ComponentCapture } from '@luci/format/capture';
 import { colorKey, parseColor } from '@luci/format/capture';
 import { selectorFor, specificity } from './dom.js';
 import { elementName, implicitRole } from './naming.js';
+import { hasRules, isMediaRule, isStyleRule, mediaMatches, windowOf } from './realm.js';
 
 export type StateName = ComponentCapture['states'][number]['state'];
 export type ComponentState = ComponentCapture['states'][number];
@@ -150,11 +151,12 @@ const STATE_PSEUDO = /:(hover|focus-visible|focus|active)(?![\w-])/g;
 /** Every style rule of a tree's readable sheets (nested @media/@supports that apply included). */
 function rulesOf(root: Document | ShadowRoot): CSSStyleRule[] {
   const out: CSSStyleRule[] = [];
+  const win = windowOf(root);
   const walk = (rules: CSSRuleList) => {
     for (const r of Array.from(rules)) {
-      if (r instanceof CSSStyleRule) out.push(r);
-      else if (r instanceof CSSMediaRule) { if (matchMedia(r.conditionText).matches) walk(r.cssRules); }
-      else if ('cssRules' in r) walk((r as CSSGroupingRule).cssRules);
+      if (isStyleRule(r)) out.push(r);
+      else if (isMediaRule(r)) { if (mediaMatches(win, r.conditionText)) walk(r.cssRules); }
+      else if (hasRules(r)) walk(r.cssRules);
     }
   };
   for (const sheet of [...Array.from(root.styleSheets), ...(root.adoptedStyleSheets ?? [])]) {

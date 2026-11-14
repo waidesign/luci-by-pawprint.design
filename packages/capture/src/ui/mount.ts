@@ -8,6 +8,7 @@ import type { ForcedStatesReader, Output } from './tools.js';
 import { memoryBasketStore, type BasketStore } from './basket.js';
 import type { ModeSwitchProps } from './modeSwitch.js';
 import type { AddCheckNotes, DesignSource } from './check.js';
+import type { ViewportWidth } from '../responsive.js';
 
 export const TOOLBAR_TAG = 'luci-toolbar';
 const REPLACE_EVENT = 'luci-toolbar-replace';
@@ -38,6 +39,8 @@ export interface MountOptions {
   checkNotesWhere?: string;
   /** Saves a component capture into the project and proposes a rule from it (the dev toolbar). */
   makeRule?: (fileName: string, markdown: string) => Promise<ProposedRule>;
+  /** Resizes the window for reading other widths (the extension, through the debugger). */
+  setViewportWidth?: ViewportWidth;
 }
 
 export interface ToolbarHandle {
@@ -99,6 +102,7 @@ export function mountToolbar(options: MountOptions = {}): ToolbarHandle {
     ...(options.addCheckNotes ? { addCheckNotes: options.addCheckNotes } : {}),
     ...(options.checkNotesWhere ? { checkNotesWhere: options.checkNotesWhere } : {}),
     ...(options.makeRule ? { makeRule: options.makeRule } : {}),
+    ...(options.setViewportWidth ? { setViewportWidth: options.setViewportWidth } : {}),
     onClose: () => { destroy(); options.onClose?.(); },
     registerPixelInput: (pick: (hex: string) => void) => { pixelInput = pick; }
   }), mountPoint);

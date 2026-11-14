@@ -12,10 +12,12 @@ import {
   type CheckDifference,
   type CheckResult,
   type ComponentCapture,
-  type ComponentSpec
+  type ComponentSpec,
+  type Responsive
 } from '@luci/format/capture';
 import { colorToken, colorUses, colorSystem } from '../color.js';
-import { componentCapture, componentType, stateParts, type ComponentImageInput } from '../component.js';
+import { anatomyOf, componentCapture, componentType, stateParts, type ComponentImageInput } from '../component.js';
+import { DESKTOP_WIDTH, PHONE_WIDTH, chooseThresholds, mediaQueriesFor, mediaThresholds, readAtWidths, responsiveChanges, uniqueParts, widthsFor, type PartReading, type ViewportWidth } from '../responsive.js';
 import { imagesInside, readImage } from '../image.js';
 import { focusDepthOf, prepareTargets, readComputed, readDisabled, readStatesFromRules, statesFromForced, type CdpReadOptions, type ComputedMap, type ForcedReading, type StateTarget } from '../states.js';
 import { snapshotPage, type RuleCache } from '../dom.js';
@@ -331,6 +333,55 @@ export function captureSection(live: LiveSnapshot, entry: ElementSnapshot, setti
   const inputs = groups.map(g => readPageComponent(live, g.example, skipped, rules));
   const { section, components } = sectionCapture(live.snapshot, entry, inside, groups, inputs, { captured: options.captured ?? CAPTURED() });
   return { ok: true, output: { ...toOutput(section, settings), files: components.map(c => toOutput(c, settings)) } };
+}
+
+/** Widths read when no media query styles the component: a phone and a desktop. */
+export const COMMON_WIDTHS = [PHONE_WIDTH, DESKTOP_WIDTH] as const;
+
+/**
+ * One width's reading of a component or section (v0.3.4): its parts and their styles, found by its
+ * element in this page, or by its selector in another (a frame). Null while it is not there yet.
+ */
+export function partsAt(doc: Document, kind: 'component' | 'section', target: Element | string): PartReading[] | null {
+  const el = typeof target === 'string' ? doc.querySelector(target) : target;
+  if (!el) return null;
+  const live = liveSnapshot(doc);
+  let entry: ElementSnapshot | null = null;
+  for (let n: Element | null = el; n && !entry; n = n.parentElement) entry = live.entryFor(n);
+  if (!entry) return null;
+  const inside = insideOf(live, entry);
+  if (kind === 'component') return anatomyOf(live.snapshot, entry, inside).map(p => ({ part: p.part, styles: p.styles }));
+  const groups = sectionGroups(live.snapshot, entry, inside);
+  const inputs = groups.map(g => ({ entry: g.example, inside: insideOf(live, g.example), states: [], images: [] }));
+  const { section } = sectionCapture(live.snapshot, entry, inside, groups, inputs, { captured: CAPTURED() });
+  return uniqueParts(section.structure.map(n => ({ part: n.part, styles: n.styles })));
+}
+
+/**
+ * How a picked component or section changes by width: the widths from the media queries that style
+ * it (or a phone and a desktop), each read with the page's own styles, and what differs.
+ */
+export async function readResponsive(
+  live: LiveSnapshot,
+  entry: ElementSnapshot,
+  kind: 'component' | 'section',
+  options: { setWidth?: ViewportWidth; onWidth?: (width: number, index: number, total: number) => void; timeoutMs?: number } = {}
+): Promise<Responsive> {
+  const node = live.nodes[entry.id]!;
+  const doc = node.ownerDocument;
+  const queries = mediaQueriesFor(node);
+  const thresholds = queries.flatMap(q => mediaThresholds(q.condition).map(px => ({ px, weight: q.rules, condition: q.condition })));
+  const chosen = chooseThresholds(thresholds);
+  const widths = chosen.length ? widthsFor(chosen) : [...COMMON_WIDTHS];
+  // The queries behind the chosen breakpoints (one left out is not listed)
+  const conditions = [...new Set(thresholds.filter(t => chosen.includes(t.px)).map(t => t.condition))];
+  const selector = entry.selector;
+  const readings = await readAtWidths(doc, widths, d => partsAt(d, kind, d === doc ? node : selector), {
+    ...(options.setWidth ? { setWidth: options.setWidth } : {}),
+    ...(options.timeoutMs ? { timeoutMs: options.timeoutMs } : {}),
+    onWidth: (w, i) => options.onWidth?.(w, i, widths.length)
+  });
+  return { widths, queries: conditions, changes: responsiveChanges(readings) };
 }
 
 /** The color of a pixel from the eyedropper. */

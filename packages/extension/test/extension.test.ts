@@ -186,6 +186,36 @@ describe.runIf(process.env['LUCI_EXTENSION_E2E'] === '1')('extension in Chromium
     await page.close();
   });
 
+  it('responsive capture resizes the tab through the debugger for each width, then puts it back and detaches (v0.3.4)', async () => {
+    const page = await context.newPage();
+    page.setDefaultTimeout(20_000);
+    const url = `${server.origin}/responsive/`;
+    await page.goto(url);
+    const before = await page.evaluate(() => innerWidth);
+    await inject(url);
+    await page.click('button[data-tool="component"]');
+    await page.click('#pricing > h2', { force: true });
+    await page.click('[data-action="widen"]');
+    await page.click('[data-output="section"]');
+    await page.click('[data-action="responsive"]');
+    await page.locator('[data-part="responsive-note"]').waitFor();
+    const md = await page.locator('[data-part="preview"]').evaluate(el => (el as HTMLTextAreaElement).value);
+    expect(md).toContain('| Part | Property | 375px | 768px | 1280px |');
+    expect(md).toMatch(/\| \S+ \| grid-template-columns \| 1 column \| 2 columns \| 3 columns \|/);
+    // Read in the tab itself, not in frames; the window is as it was, and the debugger is free again
+    expect(await page.locator('[data-part="responsive-note"]').innerText()).not.toContain('hidden frame');
+    expect(await page.evaluate(() => innerWidth)).toBe(before);
+    const attached = await api(async (pageUrl: string) => {
+      const c = (globalThis as unknown as { chrome: Chrome }).chrome;
+      const [tab] = ((await c.tabs.query({ url: pageUrl })) as { id: number }[]).sort((a, b) => b.id - a.id);
+      await c.debugger.attach({ tabId: tab!.id }, '1.3');
+      await c.debugger.detach({ tabId: tab!.id });
+      return true;
+    }, url);
+    expect(attached).toBe(true);
+    await page.close();
+  });
+
   it('Pixel mode reads colors from a screenshot of the tab; Luci\'s own panels are not picked (FR13)', async () => {
     const page = await context.newPage();
     page.setDefaultTimeout(10_000);

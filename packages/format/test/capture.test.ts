@@ -83,7 +83,8 @@ describe('component and collection files: golden files are the spec (M5.1)', () 
     const page = {
       meta: { name: 'pricing', scope: 'page', type: 'page', source: 'https://www.example.com/pricing', captured: '2026-11-12', method: 'measured' },
       typography: sys('typography'), color: sys('color'), spacing: sys('spacing'),
-      components: [componentInputs['example-com.component.primary-button.design.md']!.capture, componentInputs['example-com.component.nav-link.design.md']!.capture]
+      // A whole-page capture never reads other widths (v0.3.4): the nav-link input's Responsive stays out
+      components: [componentInputs['example-com.component.primary-button.design.md']!.capture, { ...componentInputs['example-com.component.nav-link.design.md']!.capture, responsive: undefined }]
     } as unknown as Capture;
     const golden = fs.readFileSync(path.join(dir, file), 'utf8').replace(/\r\n/g, '\n');
     expect(captureFileName(page.meta)).toBe(file);

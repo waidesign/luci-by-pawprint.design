@@ -4,7 +4,8 @@
  * Rendered by mount.ts inside a shadow root.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import { formatCapture, groupOf, mergeGroups, withInstructions, type BasketItem, type CaptureSettings, type ComponentCapture } from '@luci/format/capture';
+import type { ViewportWidth } from '../responsive.js';
+import { formatCapture, groupOf, mergeGroups, withInstructions, type Responsive, type BasketItem, type CaptureSettings, type ComponentCapture } from '@luci/format/capture';
 import { addToBasket, exportBasket, exportItem, mergeInBasket, noteInBasket, removeFromBasket, renameInBasket, sourceLabel, type BasketStore } from './basket.js';
 import type { Eligibility } from '../eligibility.js';
 import type { ElementSnapshot } from '../model.js';
@@ -21,6 +22,7 @@ import {
   TOOL_LABELS,
   captureComponent,
   checkAgainst,
+  readResponsive,
   type CheckOutcome,
   type DesignChoice,
   capturePageInSteps,
@@ -70,6 +72,8 @@ export interface ToolbarProps {
   checkNotesWhere?: string;
   /** Saves a component capture into the project and proposes a rule from it (the dev toolbar, through luci serve). */
   makeRule?: (fileName: string, markdown: string) => Promise<ProposedRule>;
+  /** Resizes the window for reading other widths (the extension, through the debugger); without it, a hidden frame of the page is used. */
+  setViewportWidth?: ViewportWidth;
 }
 
 /** "Save to project", then where it went (or why not). */
@@ -228,7 +232,17 @@ export function Toolbar(props: ToolbarProps) {
     };
   }, []);
 
-  const show = (r: Result) => {
+  // Responsive (v0.3.4): read at other widths on request; kept on this pick's later files (a state captured by hand)
+  const responsiveRef = useRef<{ selector: string; data: Responsive } | null>(null);
+  const withResponsive = (o: Output): Output => {
+    const r = responsiveRef.current;
+    const c = o.capture;
+    if (!r || (c.meta.scope !== 'component' && c.meta.scope !== 'section') || c.meta.selector !== r.selector) return o;
+    return { ...o, capture: { ...c, responsive: r.data } as Output['capture'] };
+  };
+
+  const show = (given: Result) => {
+    const r: Result = given.ok ? { ok: true, output: withResponsive(given.output) } : given;
     setResult(r);
     setCopied(false);
     setAdded(false);
@@ -452,6 +466,8 @@ export function Toolbar(props: ToolbarProps) {
     setWholePage(false);
     // A design check keeps its design while picking the built component; its last result goes
     setCheckOutcome(null);
+    responsiveRef.current = null;
+    setWidthNote(null);
     setCheckOpen(false);
     setTool(t);
     setPicking(true);
@@ -479,6 +495,8 @@ export function Toolbar(props: ToolbarProps) {
     const live = liveSnapshot(doc);
     const entry = entryFor(live, el);
     if (!entry) return;
+    responsiveRef.current = null;
+    setWidthNote(null);
     // Widening while hovering carries over, so ↓ can walk back down after the click
     pickedTrail.current = [...trail.current];
     setPicked({ el, entry, live, eligibility: elig });
@@ -678,6 +696,37 @@ export function Toolbar(props: ToolbarProps) {
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  const [widthBusy, setWidthBusy] = useState<string | null>(null);
+  const [widthNote, setWidthNote] = useState<{ error?: boolean; text: string } | null>(null);
+  /** "How it changes by width": read at the site's own breakpoints, then add Responsive to the file. */
+  const addResponsive = async () => {
+    if (!picked || !output) return;
+    const kind = output.capture.meta.scope === 'section' ? 'section' : 'component';
+    const onWidth = (w: number, i: number, n: number) => setWidthBusy(`Reading it at ${w}px (${i + 1} of ${n})…`);
+    setWidthNote(null);
+    setWidthBusy('Finding the widths in the site\'s media queries…');
+    await nextPaint(win);
+    try {
+      let data: Responsive;
+      let note: string | null = null;
+      try {
+        data = await readResponsive(picked.live, picked.entry, kind, { ...(props.setViewportWidth ? { setWidth: props.setViewportWidth } : {}), onWidth });
+      } catch (err) {
+        if (!props.setViewportWidth) throw err;
+        // The window could not be resized (the debugger was refused): a frame of the page instead
+        data = await readResponsive(picked.live, picked.entry, kind, { onWidth });
+        note = `The window could not be resized (${err instanceof Error ? err.message : String(err)}), so Luci read the page in a hidden frame instead.`;
+      }
+      responsiveRef.current = { selector: output.capture.meta.selector!, data };
+      show({ ok: true, output });
+      setWidthNote({ text: note ?? `${data.changes.length ? `${data.changes.length} change${data.changes.length === 1 ? '' : 's'}` : 'Nothing changes'} at ${data.widths.map(w => `${w}px`).join(', ')}: see Responsive in the file.` });
+    } catch (err) {
+      setWidthNote({ error: true, text: `Luci could not read other widths: ${err instanceof Error ? err.message : String(err)}.` });
+    } finally {
+      setWidthBusy(null);
+    }
   };
 
   const copy = () => copyText(markdown);
@@ -1164,6 +1213,18 @@ export function Toolbar(props: ToolbarProps) {
                       <button type="button" data-action="capture-state" onClick={captureCurrentState}>{manualTarget === ALL_MISSING ? 'Capture them' : 'Capture this state'}</button>
                     </div>
                   )}
+                </div>
+              )}
+              {picked && (result.output.capture.meta.scope === 'component' || result.output.capture.meta.scope === 'section') && result.output.capture.meta.selector === picked.entry.selector && (
+                <div class="stack" data-part="responsive">
+                  {widthBusy ? <Loading text={widthBusy} /> : (
+                    <span class="row">
+                      <button type="button" data-action="responsive" title="Read it at the widths where the site's media queries change it (2 or 3), and add what changes to the file"
+                        onClick={() => void addResponsive()}>{responsiveRef.current ? 'Read the widths again' : 'How it changes by width'}</button>
+                      {!widthNote && <span class="dim">{responsiveRef.current ? 'In the file under Responsive.' : 'At the site\'s own breakpoints, 2 or 3 widths.'}</span>}
+                    </span>
+                  )}
+                  {widthNote && <p class={widthNote.error ? 'error' : 'hint'} data-part="responsive-note">{widthNote.text}</p>}
                 </div>
               )}
               <label class="stack">

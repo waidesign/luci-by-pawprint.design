@@ -5,6 +5,7 @@
  */
 import { SNAPSHOT_PROPERTIES, type ElementSnapshot, type PageSnapshot, type SnapshotProperty } from './model.js';
 import { implicitRole } from './naming.js';
+import { hasRules, isDocument, isMediaRule, isShadowRoot, isStyleRule, isSupportsRule, mediaMatches, windowOf } from './realm.js';
 
 /** Elements the toolbar adds to the page carry this attribute; the reader skips them. */
 export const LUCI_UI_ATTRIBUTE = 'data-luci-ui';
@@ -100,13 +101,13 @@ export function specificity(selector: string): number {
 interface Match { style: CSSStyleDeclaration; specificity: number; order: number }
 
 /** Every readable style rule of these sheets, with nested @media/@supports/@layer rules that apply. */
-function collectRules(sheets: Iterable<CSSStyleSheet>, out: CSSStyleRule[], state: { allReadable: boolean }): void {
+function collectRules(sheets: Iterable<CSSStyleSheet>, out: CSSStyleRule[], state: { allReadable: boolean }, win: Window): void {
   const walk = (rules: CSSRuleList) => {
     for (const rule of Array.from(rules)) {
-      if (rule instanceof CSSStyleRule) out.push(rule);
-      else if (rule instanceof CSSMediaRule) { if (matchMedia(rule.conditionText).matches) walk(rule.cssRules); }
-      else if (rule instanceof CSSSupportsRule) { if (CSS.supports(rule.conditionText)) walk(rule.cssRules); }
-      else if ('cssRules' in rule && (rule as CSSGroupingRule).cssRules) walk((rule as CSSGroupingRule).cssRules);
+      if (isStyleRule(rule)) out.push(rule);
+      else if (isMediaRule(rule)) { if (mediaMatches(win, rule.conditionText)) walk(rule.cssRules); }
+      else if (isSupportsRule(rule)) { if (CSS.supports(rule.conditionText)) walk(rule.cssRules); }
+      else if (hasRules(rule)) walk(rule.cssRules);
     }
   };
   for (const sheet of sheets) {
@@ -120,9 +121,9 @@ const sheetsOf = (root: Document | ShadowRoot): CSSStyleSheet[] => [...Array.fro
 /** Which rules match which elements in one tree (document or shadow root). */
 function matchRules(root: Document | ShadowRoot, state: { allReadable: boolean; order: number }): Map<Element, Match[]> {
   const rules: CSSStyleRule[] = [];
-  collectRules(sheetsOf(root), rules, state);
+  collectRules(sheetsOf(root), rules, state, windowOf(root));
   const map = new Map<Element, Match[]>();
-  const host = root instanceof ShadowRoot ? root.host : null;
+  const host = isShadowRoot(root) ? root.host : null;
   for (const rule of rules) {
     const order = state.order++;
     for (const part of rule.selectorText.split(/,(?![^(]*\))/).map(p => p.trim()).filter(Boolean)) {
@@ -170,7 +171,7 @@ export function authoredFor(el: Element, props: readonly string[], cache?: RuleC
   let rules = cache?.get(root);
   if (!rules) {
     rules = [];
-    collectRules(sheetsOf(root), rules, { allReadable: true });
+    collectRules(sheetsOf(root), rules, { allReadable: true }, windowOf(root));
     cache?.set(root, rules);
   }
   const matches: Match[] = [];
@@ -297,7 +298,7 @@ export function snapshotPage(doc: Document = document, options: SnapshotOptions 
       for (const child of Array.from(el.children)) visit(child, snapshot, childrenCanShow);
       if (options.shadow !== false && el.shadowRoot) walkTree(el.shadowRoot, snapshot.selector, snapshot);
     };
-    const top = root instanceof Document ? root.documentElement : null;
+    const top = isDocument(root) ? root.documentElement : null;
     if (top) visit(top, null, true);
     else for (const child of Array.from(root.children)) visit(child, null, true);
   };
@@ -306,7 +307,7 @@ export function snapshotPage(doc: Document = document, options: SnapshotOptions 
   // Custom properties declared for the root element, resolved
   const names = new Set<string>();
   const rootRules: CSSStyleRule[] = [];
-  collectRules(sheetsOf(doc), rootRules, { allReadable: true });
+  collectRules(sheetsOf(doc), rootRules, { allReadable: true }, windowOf(doc));
   for (const rule of rootRules) {
     if (!rule.selectorText.split(',').some(s => { try { return doc.documentElement.matches(s.trim()); } catch { return false; } })) continue;
     for (const name of Array.from(rule.style)) if (name.startsWith('--')) names.add(name);

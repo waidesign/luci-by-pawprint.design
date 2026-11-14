@@ -24,6 +24,15 @@ method: measured
 ## Motion
 - None.
 
+## Responsive
+| Part | Property | 375px | 1280px |
+| --- | --- | --- | --- |
+| container | font-size | 16px (1rem) | 14px (0.875rem) |
+| container | padding | 12px 16px (0.75rem 1rem) | – |
+
+- Media queries that style it: `(max-width: 1023px)`.
+- Read at each width with the page's own styles: values as rendered there, – where it is not set. Each width stands for its range, up to the next media query listed.
+
 ## Variants
 | Variant | Uses | Differences from this one | Example |
 | --- | --- | --- | --- |

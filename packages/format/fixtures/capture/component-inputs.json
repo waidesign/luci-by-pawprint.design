@@ -120,6 +120,14 @@
         { "state": "active", "detected": true, "method": "rules", "changes": [] }
       ],
       "motion": [],
+      "responsive": {
+        "widths": [375, 1280],
+        "queries": ["(max-width: 1023px)"],
+        "changes": [
+          { "part": "container", "property": "font-size", "values": ["16px", "14px"] },
+          { "part": "container", "property": "padding", "values": ["12px 16px", null] }
+        ]
+      },
       "variants": [
         { "name": "nav-link", "count": 3, "selector": "header nav > a:nth-of-type(1)", "differences": [] },
         { "name": "nav-link-2", "count": 1, "selector": "header nav > a:nth-of-type(4)", "differences": [
@@ -165,7 +173,17 @@
         { "name": "plan-card", "type": "card", "file": "example-com.component.plan-card.design.md", "count": 3, "variants": 2 },
         { "name": "primary-button", "type": "button", "file": "example-com.component.primary-button.design.md", "count": 3, "variants": 1, "inside": "plan-card" }
       ],
-      "accessibility": { "contrast": [{ "part": "heading", "text": "rgb(22, 22, 22)", "background": "rgb(244, 244, 244)", "ratio": 16.45, "large": true, "level": "AAA" }] }
+      "accessibility": { "contrast": [{ "part": "heading", "text": "rgb(22, 22, 22)", "background": "rgb(244, 244, 244)", "ratio": 16.45, "large": true, "level": "AAA" }] },
+      "responsive": {
+        "widths": [375, 768, 1280],
+        "queries": ["(min-width: 768px)", "(min-width: 1024px)"],
+        "changes": [
+          { "part": "container", "property": "padding", "values": ["48px 16px", "96px 24px", "96px 24px"] },
+          { "part": "heading", "property": "font-size", "values": ["28px", "40px", "40px"] },
+          { "part": "description", "property": "shown", "values": ["no", "yes", "yes"] },
+          { "part": "grid", "property": "grid-template-columns", "values": ["1 column", "2 columns", "3 columns"] }
+        ]
+      }
     }
   }
 }
