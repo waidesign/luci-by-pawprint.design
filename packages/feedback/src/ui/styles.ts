@@ -17,8 +17,8 @@ export const FEEDBACK_CSS = `${TOOLBAR_CSS}
 .luci-theme button.conn { display: inline-flex; padding-block: 0; }
 .luci-theme button.conn::before { position: static; inset: auto; }
 
-/* Note markers on the page */
-.marker { position: fixed; z-index: 2147483644; min-width: 24px; height: 24px; min-height: 24px; padding: 0 6px; transform: translate(-50%, -50%);
+/* Note markers on the page (as specific as the base button rule, which would make them relative, transparent) */
+.luci-theme .marker { position: fixed; z-index: 2147483644; min-width: 24px; height: 24px; min-height: 24px; padding: 0 6px; transform: translate(-50%, -50%);
   display: inline-flex; align-items: center; justify-content: center; gap: 2px; border-radius: var(--luci-radius-full); border: 0;
   background: var(--marker); color: var(--marker-ink); font: 600 11px/1 var(--luci-font-body); cursor: pointer; box-shadow: var(--luci-shadow-float); }
 .marker::before { inset: -10px; }
@@ -44,7 +44,7 @@ export const FEEDBACK_CSS = `${TOOLBAR_CSS}
   background: var(--luci-color-surface-sunken); color: var(--luci-color-ink); font-size: var(--luci-type-micro-size); font-weight: var(--luci-type-micro-weight); }
 .status.new { background: var(--luci-color-primary-soft); color: var(--luci-color-link); }
 .status.done { background: var(--luci-color-success-bg); color: var(--luci-color-success); }
-.chip-add { position: fixed; z-index: 2147483647; }
+.luci-theme .chip-add { position: fixed; z-index: 2147483647; }
 .swatches { display: flex; gap: var(--luci-space-8); }
 .luci-theme .swatches button { width: 28px; min-height: 28px; height: 28px; padding: 0; border-radius: 50%; }
 .luci-theme .swatches button::before { inset: -8px; }

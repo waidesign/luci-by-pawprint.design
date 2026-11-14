@@ -97,6 +97,18 @@ describe('dev toolbar placement and descriptions (user request, 2026-11-15)', { 
     expect(introBox.y + introBox.height).toBeLessThan(bar.y);
     await page.click('[data-action="annotate"]');
     expect(await intro.count()).toBe(0);
+    // Panels open from the bar too: just above it, in place of the hint (bug report, 2026-11-15)
+    await page.click('[data-action="items"]');
+    const panel = await box('luci-feedback [data-part="items"]');
+    expect(bar.y - (panel.y + panel.height)).toBeGreaterThan(0);
+    expect(bar.y - (panel.y + panel.height)).toBeLessThan(24);
+    expect(await page.locator('luci-feedback [data-part="hint"]').isVisible()).toBe(false);
+    await page.click('[data-action="items"]');
+    expect(await page.locator('luci-feedback [data-part="hint"]').isVisible()).toBe(true);
+    await page.click('[data-action="settings"]');
+    const settings = await box('luci-feedback [data-part="settings"]');
+    expect(bar.y - (settings.y + settings.height)).toBeLessThan(24);
+    await page.click('[data-action="settings"]');
     await page.click('[data-action="annotate"]');
     expect(await intro.count()).toBe(1);
 
@@ -180,9 +192,16 @@ describe('dev toolbar without luci serve (this browser only)', { timeout: 60_000
     await annotate(page, '.plan:nth-of-type(2) button', 'Label wraps on mobile', { priority: 'high' });
     const marker = page.locator('[data-marker="P1-A1"]');
     expect(await marker.getAttribute('data-status')).toBe('new');
-    // The marker sits on the button's top-right corner
+    // The marker floats on the button's top-right corner, in its colour (not in the page's flow: bug, 2026-11-15)
     const [m, b] = await Promise.all([marker.boundingBox(), page.locator('.plan:nth-of-type(2) button').boundingBox()]);
     expect(Math.abs(m!.x + m!.width / 2 - (b!.x + b!.width))).toBeLessThan(2);
+    expect(Math.abs(m!.y + m!.height / 2 - b!.y)).toBeLessThan(2);
+    expect(await marker.evaluate(el => [getComputedStyle(el).position, getComputedStyle(el).backgroundColor])).toEqual(['fixed', 'rgb(43, 43, 43)']);
+    // So does "Add feedback" for selected text
+    expect(await page.evaluate(() => {
+      const css = (document.querySelector('luci-feedback')!.shadowRoot!.querySelector('style')!.textContent ?? '');
+      return /\.luci-theme \.chip-add \{ position: fixed/.test(css);
+    })).toBe(true);
 
     // Select a typo: "Add feedback" appears by the selection
     await page.keyboard.press('Escape');

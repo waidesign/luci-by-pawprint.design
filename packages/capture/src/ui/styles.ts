@@ -85,15 +85,20 @@ ${UI_CSS}
 
 /*
  * The dev toolbar sits at the bottom, in its launcher's corner (host attribute data-place="bottom";
- * the extension keeps the top). Mirrored: hints stack just above the bar, the big panels go to the
- * top edge, tooltips open upwards.
+ * the extension keeps the top). Everything opens from the bar: hints and panels sit just above it
+ * and rise into place, tooltips open upwards. A panel takes the hint's place while it is open.
  */
 :host([data-place="bottom"]) .shell { top: auto; bottom: var(--luci-space-12); flex-direction: column-reverse; }
 :host([data-place="bottom"]) .bar { top: auto; bottom: var(--luci-space-12); }
 :host([data-place="bottom"]) .shell > .bar { bottom: auto; }
 :host([data-place="bottom"]) .sub { top: auto; bottom: 84px; }
-:host([data-place="bottom"]) .panel { bottom: auto; top: var(--luci-space-12); }
+:host([data-place="bottom"]) .panel:not(.shell > .panel) { top: auto; bottom: 84px; max-height: min(72vh, calc(100vh - 108px)); }
+:host([data-place="bottom"]) .layout-panel:not(.shell > .panel) { max-height: min(80vh, calc(100vh - 108px)); }
+:host([data-place="bottom"]) .luci-theme:has(> .panel) > .sub:not([role="alert"]) { display: none; }
 :host([data-place="bottom"]) .menu { top: auto; bottom: 76px; }
+:host([data-place="bottom"]) :is(.sub, .panel, .menu) { animation: luci-rise var(--luci-motion-base, 200ms) both; }
+@keyframes luci-rise { from { opacity: 0; transform: translateY(8px); } }
+@media (prefers-reduced-motion: reduce) { :host([data-place="bottom"]) :is(.sub, .panel, .menu) { animation: none; } }
 /* New page's canvas covers the window: its tools need no room for a top bar, its panel sits above the bar */
 :host([data-place="bottom"]) .wf { padding-bottom: 88px; }
 :host([data-place="bottom"]) .wf-tools { padding-top: var(--luci-space-12); }

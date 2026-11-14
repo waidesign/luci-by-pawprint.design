@@ -73,6 +73,11 @@ describe('Layout mode', { timeout: 120_000 }, () => {
   it('Luci in each tool\'s pose: arranging for Select (brand/BRAND.md section 5)', async () => {
     const page = await open('/pricing');
     expect(await page.locator('luci-layout [data-part="hint"] .mascot').getAttribute('data-pose')).toBe('arrange');
+    // Insert opens from the bar: just above it (bug report, 2026-11-15)
+    await page.click('luci-layout [data-action="insert"]');
+    const [bar, panel] = await Promise.all([page.locator('luci-layout .bar').boundingBox(), page.locator('[data-part="inspector"]').boundingBox()]);
+    expect(bar!.y - (panel!.y + panel!.height)).toBeGreaterThan(0);
+    expect(bar!.y - (panel!.y + panel!.height)).toBeLessThan(24);
     await page.context().close();
   });
 
