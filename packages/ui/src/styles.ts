@@ -183,9 +183,9 @@ export const COMPONENTS_CSS = `
 
 /* Tooltip: the text in data-tip; below the element, or above with data-tip-pos="above". Shows after 300 ms. */
 .luci-theme [data-tip]::after { content: attr(data-tip); position: absolute; left: 50%; top: calc(100% + var(--luci-space-8)); z-index: 3;
-  width: max-content; max-width: 240px; padding: 6px 10px; border-radius: var(--luci-radius-md); background: var(--luci-color-ink);
+  width: max-content; max-width: 340px; box-sizing: border-box; padding: 6px 10px; border-radius: var(--luci-radius-md); background: var(--luci-color-ink);
   color: var(--luci-color-surface); font-size: var(--luci-type-small-size); line-height: var(--luci-type-small-line); font-weight: var(--luci-type-small-weight);
-  white-space: pre; text-align: left; pointer-events: none; opacity: 0; transform: translate(-50%, -4px);
+  white-space: pre-wrap; word-break: normal; overflow-wrap: break-word; text-align: left; pointer-events: none; opacity: 0; transform: translate(-50%, -4px);
   transition: opacity var(--luci-motion-exit), transform var(--luci-motion-exit); }
 .luci-theme [data-tip][data-tip-pos="above"]::after { top: auto; bottom: calc(100% + var(--luci-space-8)); transform: translate(-50%, 4px); }
 .luci-theme [data-tip]:is(:hover, :focus-visible)::after { opacity: 1; transform: translate(-50%, 0);
