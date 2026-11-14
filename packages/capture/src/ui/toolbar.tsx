@@ -1236,15 +1236,16 @@ export function Toolbar(props: ToolbarProps) {
                   <ul class="items">
                     {basket.map(item => (
                       <li data-item={item.id}>
+                        {/* What it is first; then its name and its actions in one row; then the note */}
+                        <span class="meta">{groupOf(item.capture)} · {sourceLabel(item)}</span>
                         <input type="text" aria-label="Name" data-item-name value={item.name}
                           onChange={e => saveBasket(renameInBasket(basket, item.id, (e.currentTarget as HTMLInputElement).value))} />
-                        <span class="meta">{groupOf(item.capture)} · {sourceLabel(item)}</span>
-                        <textarea data-item-note aria-label={`Note for your agent about ${item.name}`} placeholder="Note for your agent (optional). What to use it for, what to change." value={item.capture.instructions ?? ''}
-                          onChange={e => saveBasket(noteInBasket(basket, item.id, (e.currentTarget as HTMLTextAreaElement).value))} />
                         <span class="row">
                           <button type="button" class="btn-secondary" data-item-export onClick={() => setBasketExport({ title: item.name, item })}>Export</button>
                           <button class="btn-danger" type="button" data-item-remove aria-label={`Remove ${item.name}`} onClick={() => saveBasket(removeFromBasket(basket, item.id))}>Remove</button>
                         </span>
+                        <textarea data-item-note aria-label={`Note for your agent about ${item.name}`} placeholder="Note for your agent (optional). What to use it for, what to change." value={item.capture.instructions ?? ''}
+                          onChange={e => saveBasket(noteInBasket(basket, item.id, (e.currentTarget as HTMLTextAreaElement).value))} />
                       </li>
                     ))}
                   </ul>

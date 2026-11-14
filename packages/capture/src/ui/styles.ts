@@ -212,8 +212,9 @@ ${UI_CSS}
 .files code, [data-part="file-view-box"] code { font: var(--luci-type-code-weight) 12px/1.5 var(--luci-font-code); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .items textarea { grid-column: 1 / -1; min-height: 40px; font-size: var(--luci-type-small-size); line-height: var(--luci-type-small-line); }
 .items input { min-width: 0; }
-.items .meta { grid-column: 1; color: var(--luci-color-ink-secondary); font-size: var(--luci-type-small-size); }
-.items .row { grid-column: 2; grid-row: 1 / span 2; }
+/* A basket item: what it is, then its name with Export and Remove in one row, then its note */
+.items .meta { grid-column: 1 / -1; color: var(--luci-color-ink-secondary); font-size: var(--luci-type-small-size); }
+.items .row { grid-column: 2; flex-wrap: nowrap; }
 .stack { display: flex; flex-direction: column; align-items: stretch; gap: var(--luci-space-8); }
 
 /* The file preview: code you can edit and drag taller */
