@@ -43,6 +43,8 @@ Recorded in `brain.json` and repeated in every agent file:
 5. Skills
 6. Tool and framework defaults
 
+**Conflict detection** (v0.3, B12): `luci doctor` and `get_project_context` check `.luci/rules.md` against `~/.luci/brain/*.md` (and within `rules.md` itself) for known mutually exclusive pairs (indentation, quotes, semicolons, package manager, exports, modules, components) and opposite statements (`always`/`use`/`must` vs `never`/`don't use`/`must not`/`no`/`forbid`) on the same subject. Each warning names both files and line numbers, quotes both rules, and states which rule wins by the precedence order above.
+
 ## Global memory: `~/.luci/`
 
 One per person, shared by every project. `LUCI_HOME` moves it, for example into a synced folder.

@@ -19,6 +19,7 @@ import { GRAPH_JSON, detectProject, type WorkspacePackage } from '../detect/dete
 import { suggestPacks, type PackSuggestion } from '../init/initProject.js';
 import { memoryDir, memoryPath, readBrainJson } from '../layout/brainLayout.js';
 import { readActiveTask, type ActiveTask } from '../memory/activeTask.js';
+import { detectProjectRuleConflicts } from '../memory/conflicts.js';
 import { GLOBAL_PREFERENCE_FILES } from '../memory/globalLink.js';
 import { userBrainDir } from '../memory/paths.js';
 
@@ -137,6 +138,12 @@ export async function loadProjectContext(projectDir: string = process.cwd(), opt
   if (task && task.status !== 'active') warnings.push(`${task.file} has status "${task.status}", so it is ignored. Run ${run('task done')} to archive it.`);
 
   const goal = initialized ? readProjectGoal(dir) : null;
+  const globalBrain = options.globalBrainDir ?? userBrainDir();
+  if (initialized) {
+    for (const conflict of detectProjectRuleConflicts(dir, globalBrain)) {
+      warnings.push(`Rule conflict: ${conflict.summary}`);
+    }
+  }
   const graphJson = path.join(dir, GRAPH_JSON);
   const freshness = mapFreshness(dir);
   if (freshness.status === 'stale') warnings.push(`The code map is out of date (${freshness.changedFiles} code files changed since it was built). Read changed files directly, or run ${run('map --update')}.`);

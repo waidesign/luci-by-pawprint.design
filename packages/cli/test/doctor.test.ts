@@ -118,6 +118,23 @@ describe('every problem has a fix', () => {
     expect(find(checks, 'Global Brain')).toMatchObject({ status: 'warn', fix: expect.stringContaining('luci init') });
   });
 
+  it('a rule in .luci/rules.md that contradicts the Global Brain (B12, v0.3.5)', async () => {
+    const dir = await setUp();
+    const globalBrain = tempDir();
+    fs.writeFileSync(path.join(globalBrain, 'coding-preferences.md'), '# Coding\n\n- Always use semicolons.\n', 'utf8');
+    fs.appendFileSync(path.join(dir, '.luci', 'rules.md'), '- Never use semicolons.\n', 'utf8');
+
+    const { checks } = await diagnose(dir, { globalBrainDir: globalBrain });
+    const conflict = find(checks, 'Rule conflict');
+    expect(conflict).toMatchObject({
+      status: 'warn',
+      detail: expect.stringContaining('Precedence: .luci/rules.md wins over Global Brain (~/.luci/brain).'),
+      fix: expect.stringContaining('.luci/rules.md')
+    });
+    expect(conflict?.detail).toContain('.luci/rules.md:');
+    expect(conflict?.detail).toContain('~/.luci/brain/coding-preferences.md:3');
+  });
+
   it('every warn and fail names a fix', async () => {
     const dir = await setUp();
     fs.rmSync(path.join(dir, '.luci', 'local', '.gitignore'));

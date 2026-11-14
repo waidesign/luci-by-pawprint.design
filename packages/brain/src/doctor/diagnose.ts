@@ -24,6 +24,7 @@ import { mapFreshness } from '../codemap/codeMap.js';
 import { readProjectGoal, readProjectRules } from '../context/projectContext.js';
 import { detectProject } from '../detect/detector.js';
 import { TEMPLATES_DIR, memoryDir, memoryPath, readBrainJson } from '../layout/brainLayout.js';
+import { detectProjectRuleConflicts } from '../memory/conflicts.js';
 import { DEFAULT_BRAIN_DIR, userBrainDir } from '../memory/paths.js';
 
 export type CheckStatus = 'ok' | 'info' | 'warn' | 'fail';
@@ -122,7 +123,7 @@ async function skillChecks(dir: string, registry: SkillSource, add: (status: Che
   return set.selected.length + set.own.length;
 }
 
-async function projectChecks(dir: string, registry: SkillSource): Promise<{ checks: Check[]; project: ProjectSummary | null }> {
+async function projectChecks(dir: string, registry: SkillSource, globalBrainDir: string): Promise<{ checks: Check[]; project: ProjectSummary | null }> {
   const root = memoryDir(dir);
   const checks: Check[] = [];
   const add = (status: CheckStatus, label: string, detail?: string, fix?: string) =>
@@ -187,6 +188,9 @@ async function projectChecks(dir: string, registry: SkillSource): Promise<{ chec
   const goal = readProjectGoal(dir);
   if (!goal) add('warn', 'Project goal', 'not written yet', `Write one or two sentences under "${PROJECT_GOAL_HEADING.slice(3)}" in ${memoryPath(MEMORY_FILES.context)}.`);
   const projectRules = readProjectRules(dir).length;
+  for (const conflict of detectProjectRuleConflicts(dir, globalBrainDir)) {
+    add('warn', 'Rule conflict', conflict.summary, conflict.fix);
+  }
 
   const map = mapFreshness(dir);
   if (map.status === 'missing') add('info', 'Code map', 'not built (optional)', `${run('map')} explains how to set it up.`);
@@ -234,7 +238,8 @@ function agentCheck(
 
 export async function diagnose(projectDir: string = process.cwd(), options: DiagnoseOptions = {}): Promise<Diagnosis> {
   const dir = path.resolve(projectDir);
-  const project = await projectChecks(dir, options.registry ?? new SkillRegistry({ user: true }));
+  const globalBrainDir = options.globalBrainDir ?? userBrainDir();
+  const project = await projectChecks(dir, options.registry ?? new SkillRegistry({ user: true }), globalBrainDir);
   const checks = [...installChecks(options), ...project.checks];
   return { checks, project: project.project, ok: !checks.some(c => c.status === 'fail') };
 }

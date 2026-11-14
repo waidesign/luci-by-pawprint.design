@@ -136,7 +136,7 @@ Version 0.1 covers all four modules: 56 requirements, 49 of them must-have (P0).
 | B9 | **Active task.** A per-project file with the current task and progress, kept up to date by the tool. | P0 |
 | B10 | **PRD intake.** Take a PRD and supporting docs and fit them into the project's memory in the right places. | P0 |
 | B11 | **Local server.** One MCP server gives agents project context, skills, design captures and pending feedback. | P0 |
-| B12 | **Conflict detection.** Flag rules that contradict each other, across global and project memory. | P1 |
+| B12 | **Conflict detection.** Flag rules that contradict each other, across global and project memory. (Built 14 Nov 2026, v0.3: checks `.luci/rules.md` against `~/.luci/brain/*.md` and within `rules.md` itself for known mutually exclusive pairs — indentation, quotes, semicolons, package manager, exports, modules, components — and opposite statements on the same subject; reported as a warning in `luci doctor` and `get_project_context` with both files, line numbers, quotes and which rule wins by precedence.) | P1 |
 | B13 | **Import.** A one-time command converts a project set up with the earlier prototype into Luci's layout and rewrites its agent files. | P1 |
 
 **Skills**
