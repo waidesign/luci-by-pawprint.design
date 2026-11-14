@@ -204,6 +204,13 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
         ...(backend.listCaptures && backend.readCapture ? { designs: { list: backend.listCaptures, read: backend.readCapture } } : {}),
         addCheckNotes: (el, notes) => addCheckNotes(backend, doc, el, notes),
         checkNotesWhere: connected ? 'your project' : 'this browser',
+        // Capture to rule (v0.3.2): save the capture, then propose a rule that points at it
+        ...(backend.saveCapture && backend.proposeRule ? {
+          makeRule: async (fileName: string, markdown: string) => {
+            await backend.saveCapture!(fileName, markdown);
+            return backend.proposeRule!(fileName);
+          }
+        } : {}),
         onClose: () => { current = null; showLauncher(); }
       });
     }

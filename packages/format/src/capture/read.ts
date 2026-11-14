@@ -25,6 +25,8 @@ export interface SpecCheck { check: 'contrast' | 'target' | 'focus'; part: strin
 
 export interface ComponentSpec {
   meta: Omit<CaptureMeta, 'source'> & { source: string };
+  /** The person's own instructions in the file ("## Your instructions"), when it has them. */
+  instructions?: string;
   tokens: { token: string; value: string }[];
   /** The container first. */
   parts: SpecPart[];
@@ -188,6 +190,7 @@ export function readComponentFile(text: string): ParseResult<ComponentSpec> {
   const tokens = tableRows(sections['Tokens'] ?? '').flatMap(([token = '', value = '']) => (/^`--[\w-]+`$/.test(token) ? [{ token: unquote(token), value }] : []));
   return ok({
     meta: meta as ComponentSpec['meta'],
+    ...(sections['Your instructions'] ? { instructions: sections['Your instructions'] } : {}),
     tokens,
     parts,
     states: readStates(sections['States'] ?? '', names),

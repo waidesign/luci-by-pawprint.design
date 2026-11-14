@@ -68,6 +68,8 @@ export interface ToolbarProps {
   addCheckNotes?: AddCheckNotes;
   /** Where those notes go, as the result says it: "your project" or "this browser". */
   checkNotesWhere?: string;
+  /** Saves a component capture into the project and proposes a rule from it (the dev toolbar, through luci serve). */
+  makeRule?: (fileName: string, markdown: string) => Promise<ProposedRule>;
 }
 
 /** "Save to project", then where it went (or why not). */
@@ -89,6 +91,40 @@ function SaveButton(props: { save: () => Promise<{ path: string; replaced: boole
       </button>
       {state.done && <span class="dim" data-part="saved">{state.done}</span>}
       {state.error && <span class="error" data-part="save-error">{state.error}</span>}
+    </>
+  );
+}
+
+/** What "Make it a rule" gives back: the proposal's path and the rule's line. */
+export interface ProposedRule { path: string; existed: boolean; rule: string }
+
+/**
+ * "Make it a rule" (v0.3.2): the capture is saved into the project, then a rule pointing at it is
+ * proposed in .luci/memory/proposed/; the person keeps it by moving the line into rules.md.
+ */
+function RuleButton(props: { make: () => Promise<ProposedRule> }) {
+  const [state, setState] = useState<{ busy?: boolean; done?: ProposedRule; error?: string }>({});
+  const run = async () => {
+    setState({ busy: true });
+    try {
+      setState({ done: await props.make() });
+    } catch (err) {
+      setState({ error: err instanceof Error ? err.message : String(err) });
+    }
+  };
+  return (
+    <>
+      <button type="button" data-action="make-rule" disabled={state.busy || Boolean(state.done)}
+        title="Save it into the project and propose a rule for .luci/rules.md that points at it; you review the rule before it counts" onClick={() => void run()}>
+        {state.busy ? <><ButtonSpinner />Proposing…</> : state.done ? 'Rule proposed' : 'Make it a rule'}
+      </button>
+      {state.error && <span class="error" data-part="rule-error">{state.error}</span>}
+      {state.done && (
+        <div class="stack rule" data-part="rule">
+          <span class="dim">{state.done.existed ? 'This rule is already waiting for your review' : 'Proposed for your review'} in <code>{state.done.path}</code> (the capture is saved too). To keep it, move this line into <code>.luci/rules.md</code>; Luci never edits rules.md itself.</span>
+          <code data-part="rule-text">{state.done.rule}</code>
+        </div>
+      )}
     </>
   );
 }
@@ -1137,6 +1173,9 @@ export function Toolbar(props: ToolbarProps) {
                   ? <button type="button" data-action="download-zip" title="The section file and its component files in one .zip" onClick={downloadZip}>Download .zip ({sectionFiles.length + 1} files)</button>
                   : <button type="button" data-action="download" onClick={download}>Download .design.md</button>}
                 {props.saveToProject && output && <SaveButton save={saveAll} key={output.fileName} />}
+                {props.makeRule && output && output.capture.meta.scope === 'component' && (
+                  <RuleButton make={() => props.makeRule!(output.fileName, markdown)} key={`rule ${output.fileName}`} />
+                )}
                 <button type="button" data-action="add-to-basket" disabled={added} onClick={() => void addCurrent()}>{added ? 'Added to basket' : 'Add to basket'}</button>
                 {tool && <button type="button" onClick={() => startPicking(tool)}>Pick again</button>}
               </div>

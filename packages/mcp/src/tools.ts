@@ -24,6 +24,7 @@ import {
   loadProjectContext,
   memoryDir,
   memoryPath,
+  proposeCaptureRule,
   readActiveTask,
   startProject
 } from '@luci/brain';
@@ -463,6 +464,20 @@ export const TOOLS: readonly LuciTool[] = [
       if (!store.available) return notInitialized(store.projectDir);
       const content = store.read(args.file);
       return content === null ? error(`No capture named ${args.file}. list_captures shows the saved ones.`) : text(content);
+    }),
+
+  tool('propose_capture_rule',
+    `Propose a project rule from a saved component capture: one line for rules.md ("Build every primary button like ${PRODUCT.projectDir}/${MEMORY_FILES.design}/<file>: ...") with its key values and state changes, written to ${PRODUCT.projectDir}/${MEMORY_FILES.proposedMemory}/ for the user to accept or delete. rules.md is never edited. Only when the user asks to make a capture a rule.`,
+    { file: z.string().min(1).describe('A component capture from list_captures, e.g. example-com.component.primary-button.design.md'), projectPath }, WRITE,
+    (args, deps) => {
+      const dir = target(args, deps);
+      if (!hasMemory(dir)) return notInitialized(dir);
+      try {
+        const rule = proposeCaptureRule(dir, args.file);
+        return text(`${rule.existed ? 'Already waiting for review' : 'Proposed'} in ${rule.path}:\n${rule.proposal.proposed}\nTell the user it is waiting for their review: they keep it by moving the line into rules.md.`);
+      } catch (err) {
+        return error(err instanceof Error ? err.message : String(err));
+      }
     })
 ];
 

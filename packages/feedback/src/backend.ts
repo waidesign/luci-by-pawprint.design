@@ -72,6 +72,8 @@ export interface FeedbackBackend {
   listCaptures?(): Promise<SavedCapture[]>;
   /** One saved capture's text (project only). */
   readCapture?(file: string): Promise<string>;
+  /** Propose a rule from a saved component capture (project only): the proposal's path and the rule's line. */
+  proposeRule?(file: string): Promise<{ path: string; existed: boolean; rule: string }>;
   /** Map server-side positions (server components) to the project's files (project only). */
   resolveFrames?: ServerResolver;
 }
@@ -105,6 +107,7 @@ export function bridgeBackend(url: string, fetchImpl: typeof fetch = (...a) => f
     clear: async (which) => (await call<{ removed: string[] }>('POST', '/feedback/clear', { which })).removed,
     saveCapture: (fileName, markdown) => call('POST', '/design', { fileName, markdown }),
     listCaptures: async () => (await call<{ files: SavedCapture[] }>('GET', '/design')).files,
+    proposeRule: (file) => call('POST', '/rule', { file }),
     readCapture: async (file) => (await call<{ markdown: string }>('GET', `/design/${encodeURIComponent(file)}`)).markdown,
     resolveFrames: async (frames) => (await call<{ locations: (SourceLocation | null)[] }>('POST', '/resolve', { frames })).locations
   };

@@ -3,7 +3,7 @@ import { h, render } from 'preact';
 import type { CaptureSettings } from '@luci/format/capture';
 import { LUCI_UI_ATTRIBUTE } from '../dom.js';
 import { TOOLBAR_CSS } from './styles.js';
-import { Toolbar } from './toolbar.js';
+import { Toolbar, type ProposedRule } from './toolbar.js';
 import type { ForcedStatesReader, Output } from './tools.js';
 import { memoryBasketStore, type BasketStore } from './basket.js';
 import type { ModeSwitchProps } from './modeSwitch.js';
@@ -36,6 +36,8 @@ export interface MountOptions {
   addCheckNotes?: AddCheckNotes;
   /** Where those notes go: "your project" or "this browser". */
   checkNotesWhere?: string;
+  /** Saves a component capture into the project and proposes a rule from it (the dev toolbar). */
+  makeRule?: (fileName: string, markdown: string) => Promise<ProposedRule>;
 }
 
 export interface ToolbarHandle {
@@ -96,6 +98,7 @@ export function mountToolbar(options: MountOptions = {}): ToolbarHandle {
     ...(options.designs ? { designs: options.designs } : {}),
     ...(options.addCheckNotes ? { addCheckNotes: options.addCheckNotes } : {}),
     ...(options.checkNotesWhere ? { checkNotesWhere: options.checkNotesWhere } : {}),
+    ...(options.makeRule ? { makeRule: options.makeRule } : {}),
     onClose: () => { destroy(); options.onClose?.(); },
     registerPixelInput: (pick: (hex: string) => void) => { pixelInput = pick; }
   }), mountPoint);

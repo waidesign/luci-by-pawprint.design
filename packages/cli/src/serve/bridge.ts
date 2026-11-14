@@ -12,7 +12,7 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import path from 'node:path';
 import { z } from 'zod';
-import { DesignError, DesignStore, FeedbackError, FeedbackStore } from '@luci/brain';
+import { DesignError, DesignStore, FeedbackError, FeedbackStore, proposeCaptureRule } from '@luci/brain';
 import { serverResolver } from './resolve.js';
 import { PRODUCT } from '@luci/format';
 import { DETAIL_LEVELS, FEEDBACK_INTENTS, FEEDBACK_PRIORITIES, designCheckSchema, feedbackItemSchema, formatFeedbackPrompt, layoutSchema, wireframeSchema } from '@luci/format/feedback';
@@ -82,6 +82,7 @@ const resolveSchema = z.object({
   frames: z.array(z.object({ url: z.string().min(1).max(4096), line: z.number().int().positive(), column: z.number().int().positive().optional() })).max(20)
 });
 const designSchema = z.object({ fileName: z.string().min(1), markdown: z.string().min(1) });
+const ruleSchema = z.object({ file: z.string().min(1).max(200) });
 
 class HttpError extends Error {
   constructor(readonly status: number, message: string) { super(message); }
@@ -211,6 +212,13 @@ export function startBridge(options: BridgeOptions): Promise<Bridge> {
         const markdown = design.read(file);
         if (markdown === null) throw new HttpError(404, `No design file ${file} in ${PRODUCT.projectDir}/design/.`);
         send(200, { file, markdown });
+        return;
+      }
+      // Capture to rule (v0.3.2): a saved component capture becomes a proposed rule (never rules.md itself)
+      if (route === '/rule' && req.method === 'POST') {
+        const body = parse(ruleSchema, await readBody(req));
+        const rule = proposeCaptureRule(options.projectDir, body.file);
+        send(rule.existed ? 200 : 201, { path: rule.path, existed: rule.existed, rule: rule.proposal.proposed });
         return;
       }
       if (route === '/design' && req.method === 'POST') {

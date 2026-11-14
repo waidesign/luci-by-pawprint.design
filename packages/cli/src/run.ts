@@ -1,4 +1,5 @@
 import { PRODUCT } from '@luci/format';
+import { CAPTURE_HELP, captureCommand } from './commands/capture.js';
 import { DOCTOR_HELP, doctorCommand } from './commands/doctor.js';
 import { INIT_HELP, initCommand } from './commands/init.js';
 import { IMPORT_HELP, importCommand } from './commands/import.js';
@@ -31,6 +32,7 @@ const helpCommand: Command = async (_args, ctx) => {
   ctx.out(`  ${INTAKE_HELP}`);
   ctx.out(`  ${MAP_HELP}`);
   ctx.out(`  ${SERVE_HELP}`);
+  ctx.out(`  ${CAPTURE_HELP}`);
   ctx.out(`  ${IMPORT_HELP}`);
   ctx.out('  version               Show the version');
   ctx.out('  help                  Show this help');
@@ -47,6 +49,8 @@ export const COMMANDS: Readonly<Record<string, Command>> = {
   intake: intakeCommand,
   map: mapCommand,
   serve: serveCommand,
+  capture: captureCommand,
+  captures: captureCommand,
   import: importCommand,
   start: startCommand,
   update: updateCommand,

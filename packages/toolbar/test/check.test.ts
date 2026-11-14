@@ -115,6 +115,36 @@ describe('design check through the dev toolbar (v0.3 Done when)', { timeout: 90_
     await ctx.close();
   });
 
+  it('Make it a rule (v0.3.2): the capture is saved and a rule pointing at it waits for review; rules.md stays as it was', async () => {
+    const rules = fs.readFileSync(path.join(dir, '.luci', 'rules.md'), 'utf8');
+    const ctx = await context(bridge.url);
+    const page = await open(ctx);
+    await page.click('button[data-tool="component"]');
+    await page.click('#design', { force: true });
+    await page.click('[data-output="one"]');
+    const name = await page.locator('[data-part="file-name"]').innerText();
+    await page.click('[data-action="make-rule"]');
+    await page.locator('[data-part="rule"]').waitFor();
+    expect(await page.locator('[data-action="make-rule"]').innerText()).toBe('Rule proposed');
+    const line = await page.locator('[data-part="rule-text"]').innerText();
+    expect(line).toMatch(new RegExp(`^Build every primary button like \`\\.luci/design/${name.replace(/\./g, '\\.')}\` \\(read it first: parts, states, motion, accessibility\\): background-color #0f62fe \\(--brand\\), `));
+    expect(line).toContain('on hover background-color #0353e9');
+    // Saved in the project, and the proposal holds the same line
+    expect(fs.existsSync(path.join(dir, '.luci', 'design', name))).toBe(true);
+    const proposed = fs.readdirSync(path.join(dir, '.luci', 'memory', 'proposed')).filter(f => f !== 'README.md');
+    expect(proposed).toHaveLength(1);
+    expect(fs.readFileSync(path.join(dir, '.luci', 'memory', 'proposed', proposed[0]!), 'utf8')).toContain(`- Proposed: ${line}`);
+    expect(await page.locator('[data-part="rule"] .dim').innerText()).toContain(`.luci/memory/proposed/${proposed[0]}`);
+    expect(fs.readFileSync(path.join(dir, '.luci', 'rules.md'), 'utf8')).toBe(rules);
+    // Only a component can become a rule
+    await page.click('button[data-tool="text"]');
+    await page.click('h2', { force: true });
+    await page.click('[data-output="one"]');
+    await page.locator('[data-part="preview"]').waitFor();
+    expect(await page.locator('[data-action="make-rule"]').count()).toBe(0);
+    await ctx.close();
+  });
+
   it('without luci serve: the basket gives the design, the notes stay in this browser', async () => {
     const ctx = await context('http://127.0.0.1:9'); // nothing listens there
     const page = await open(ctx);
@@ -123,7 +153,8 @@ describe('design check through the dev toolbar (v0.3 Done when)', { timeout: 90_
     await page.click('[data-output="one"]');
     await page.click('[data-action="add-to-basket"]');
     await page.click('[data-action="check"]');
-    // No project to list: only the basket and a pasted file
+    // No project: no "Make it a rule", and only the basket and a pasted file to check against
+    expect(await page.locator('[data-action="make-rule"]').count()).toBe(0);
     expect(await page.locator('[data-part="check-saved"]').count()).toBe(0);
     await page.click('[data-part="check-basket"] [data-design-use]');
     await checkBuilt(page);

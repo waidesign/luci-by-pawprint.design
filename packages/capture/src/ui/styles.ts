@@ -54,7 +54,9 @@ textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; 
 .margin { position: fixed; z-index: 2147483645; pointer-events: none; border-style: solid; border-color: rgb(251 146 60 / 0.3); }
 .panel { position: fixed; right: 12px; bottom: 12px; z-index: 2147483647; width: min(460px, calc(100vw - 24px)); max-height: min(70vh, 640px);
   display: flex; flex-direction: column; gap: 10px; padding: 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px;
-  box-shadow: 0 10px 40px rgb(0 0 0 / 0.45); }
+  box-shadow: 0 10px 40px rgb(0 0 0 / 0.45); overflow-y: auto; overscroll-behavior: contain; }
+.panel > * { flex-shrink: 0; }
+.panel > .items, .panel > .diffs { flex-shrink: 1; }
 .panel h2 { margin: 0; font-size: 14px; font-weight: 600; }
 .hint { margin: 0; color: var(--muted); }
 .error { margin: 0; color: var(--blocked); }
@@ -66,6 +68,8 @@ select { padding: 4px 6px; background: #27272a; border: 1px solid var(--line); b
 label { display: inline-flex; gap: 4px; align-items: center; color: var(--muted); }
 @media (prefers-reduced-motion: no-preference) { .highlight { transition: top 60ms, left 60ms, width 60ms, height 60ms; } }
 [data-part="check-summary"] { margin: 0; }
+.row .rule { order: 1; flex-basis: 100%; max-height: 132px; overflow: auto; padding: 8px; border: 1px solid var(--line); border-radius: 8px; }
+.rule code { font: 12px/1.5 ui-monospace, monospace; white-space: pre-wrap; word-break: break-word; }
 .diffs { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; overflow: auto; min-height: 60px; }
 .diffs li { display: flex; flex-direction: column; gap: 2px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; }
 .diffs li.high { border-color: var(--blocked); }

@@ -40,7 +40,7 @@ describe('luci-mcp tools (B11)', () => {
       'add_skill_packs', 'analyze_project',
       'get_active_task', 'get_capture', 'get_feedback_prompt', 'get_global_brain', 'get_project_context', 'get_project_graph',
       'get_project_skills', 'get_project_status', 'get_skill', 'initialize_project', 'intake_docs', 'list_captures', 'list_feedback',
-      'list_skill_packs', 'list_skills', 'load_project_skills', 'load_skills', 'propose_memory', 'recommend_skills',
+      'list_skill_packs', 'list_skills', 'load_project_skills', 'load_skills', 'propose_capture_rule', 'propose_memory', 'recommend_skills',
       'remove_skill_packs', 'search_skills', 'select_project_skills', 'update_project_memory', 'watch_feedback'
     ]);
     const readOnly = TOOLS.filter(t => t.annotations.readOnlyHint).map(t => t.name);
@@ -104,9 +104,25 @@ describe('luci-mcp tools (B11)', () => {
     expect((await call(dir, 'propose_memory', { ...args, belongsIn: 'README.md' })).isError).toBe(true);
   });
 
+  it('propose_capture_rule proposes a rule from a saved component capture (v0.3.2), never editing rules.md', async () => {
+    const dir = await initialized();
+    const file = 'example-com.component.primary-button.design.md';
+    new DesignStore(dir).save(file, fs.readFileSync(fileURLToPath(new URL(`../../format/fixtures/capture/${file}`, import.meta.url)), 'utf8'));
+    const rules = fs.readFileSync(path.join(dir, '.luci', 'rules.md'), 'utf8');
+    const r = await call(dir, 'propose_capture_rule', { file });
+    expect(r.isError).toBeUndefined();
+    expect(r.text).toMatch(/^Proposed in \.luci\/memory\/proposed\/\S+\.md:\nBuild every primary button like `\.luci\/design\/example-com\.component\.primary-button\.design\.md`/);
+    expect((await call(dir, 'propose_capture_rule', { file })).text).toMatch(/^Already waiting for review/);
+    expect(fs.readFileSync(path.join(dir, '.luci', 'rules.md'), 'utf8')).toBe(rules);
+    const missing = await call(dir, 'propose_capture_rule', { file: 'example-com.component.nope.design.md' });
+    expect(missing.isError).toBe(true);
+    expect(missing.text).toContain('Save the capture into the project first');
+  });
+
   it('write tools never create .luci/ in a project that has none', async () => {
     const bare = tempProject();
     for (const [name, args] of [
+      ['propose_capture_rule', { file: 'example-com.component.card.design.md' }],
       ['select_project_skills', { ids: ['accessibility-baseline'] }],
       ['add_skill_packs', { names: ['ui'] }],
       ['propose_memory', { topic: 't', whatHappened: 'w', proposed: 'p', belongsIn: 'rules.md' }],

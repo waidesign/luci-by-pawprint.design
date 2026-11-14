@@ -27,6 +27,20 @@ for (const file of ['inputs.json', 'component-inputs.json']) {
   fs.writeFileSync(path.join(checkDir, 'primary-button.check.md'), report, 'utf8');
   console.log('wrote check/primary-button.check.md');
 }
+// Capture to rule (v0.3.2): a proposed rule from each component golden (packages/format/fixtures/rule/)
+{
+  const ruleDir = fileURLToPath(new URL('../packages/format/fixtures/rule/', import.meta.url));
+  fs.mkdirSync(ruleDir, { recursive: true });
+  const { readComponentFile, ruleFromComponent } = await import(new URL('../packages/format/dist/capture/index.js', import.meta.url).href);
+  const { formatProposal } = await import(new URL('../packages/format/dist/index.js', import.meta.url).href);
+  for (const name of ['primary-button', 'card']) {
+    const file = `example-com.component.${name}.design.md`;
+    const r = readComponentFile(fs.readFileSync(path.join(dir, file), 'utf8'));
+    if (!r.ok) throw new Error(`${file}: ${r.error}`);
+    fs.writeFileSync(path.join(ruleDir, `${name}.proposal.md`), formatProposal(ruleFromComponent(r.value, `.luci/design/${file}`)), 'utf8');
+    console.log(`wrote rule/${name}.proposal.md`);
+  }
+}
 // Feedback prompts (packages/format/fixtures/feedback/)
 const feedbackDir = fileURLToPath(new URL('../packages/format/fixtures/feedback/', import.meta.url));
 const { formatFeedbackPrompt, formatLayoutPrompt, formatWireframePrompt, feedbackItemSchema, wireframeSchema } = await import(new URL('../packages/format/dist/feedback/index.js', import.meta.url).href);

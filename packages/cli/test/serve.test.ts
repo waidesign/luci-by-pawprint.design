@@ -95,6 +95,16 @@ describe('luci serve: the bridge (M6.3)', () => {
     expect((await request(bridge, 'GET', '/design/example-com.component.nope.design.md')).status).toBe(404);
     expect((await request(bridge, 'GET', `/design/${encodeURIComponent('../../package.json')}`)).status).toBe(404);
     expect((await request(bridge, 'GET', `/design/${encodeURIComponent('..\\..\\luci.json')}`)).status).toBe(404);
+
+    // Capture to rule (v0.3.2): a proposal for rules.md, which stays as it was
+    const rules = fs.readFileSync(path.join(dir, '.luci', 'rules.md'), 'utf8');
+    const rule = await request(bridge, 'POST', '/rule', { body: { file: 'example-com.component.card.design.md' } });
+    expect(rule.status).toBe(201);
+    expect(rule.json()).toEqual({ path: expect.stringMatching(/^\.luci\/memory\/proposed\/.+-build-every-card-like-its-design-file\.md$/), existed: false, rule: expect.stringMatching(/^Build every card like `\.luci\/design\/example-com\.component\.card\.design\.md`/) });
+    expect((await request(bridge, 'POST', '/rule', { body: { file: 'example-com.component.card.design.md' } })).json().existed).toBe(true);
+    expect((await request(bridge, 'POST', '/rule', { body: { file: '../../package.json' } })).status).toBe(400);
+    expect((await request(bridge, 'POST', '/rule', { body: {} })).status).toBe(400);
+    expect(fs.readFileSync(path.join(dir, '.luci', 'rules.md'), 'utf8')).toBe(rules);
   });
 
   it('answers only pages on this machine, by its own name, and only writes with JSON and the X-Luci header', async () => {
