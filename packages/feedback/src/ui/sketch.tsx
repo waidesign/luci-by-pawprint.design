@@ -221,7 +221,7 @@ export function Sketch(props: SketchProps) {
           <button type="button" data-action="wf-add-row" onClick={() => addRow()}>+ Row</button>
           <button type="button" data-action="wf-undo" disabled={!past.length} onClick={undo}>Undo</button>
           <button type="button" data-action="wf-redo" disabled={!future.length} onClick={redo}>Redo</button>
-          <span class="dim">Sketched at {win.innerWidth}px wide. Heights snap to {base}px. Drag a row's bottom handle, or the line between two blocks.</span>
+          <span class="dim">Sketched at {win.innerWidth}px wide. Heights snap to {base}px. Drag a row's bottom edge or the line between blocks.</span>
           <button type="button" data-action="wf-close" onClick={props.onClose}>Back to the page</button>
         </div>
         <div class="wf-page">
@@ -296,7 +296,7 @@ export function Sketch(props: SketchProps) {
         ) : (
           <div class="stack" data-part="wf-summary">
             <h2>New page {normalRoute(route)}</h2>
-            <p class="dim">{rows.length} row{rows.length === 1 ? '' : 's'}, top to bottom. Click a part to choose what it is, say what goes in it, or split it in two.</p>
+            <p class="dim">{rows.length} row{rows.length === 1 ? '' : 's'}, top to bottom. Click a part to name it, describe it or split it.</p>
           </div>
         )}
 

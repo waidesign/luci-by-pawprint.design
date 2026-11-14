@@ -58,9 +58,9 @@
   --luci-space-48: 48px;
   --luci-space-64: 64px;
   --luci-space-80: 80px;
-  --luci-font-display: Fredoka, Inter, sans-serif;
-  --luci-font-body: Inter, system-ui, sans-serif;
-  --luci-font-code: 'JetBrains Mono', ui-monospace, monospace;
+  --luci-font-display: "Luci Fredoka", Fredoka, "Luci Inter", Inter, sans-serif;
+  --luci-font-body: "Luci Inter", Inter, system-ui, sans-serif;
+  --luci-font-code: "Luci JetBrains Mono", 'JetBrains Mono', ui-monospace, monospace;
   --luci-type-display-size: 40px;
   --luci-type-display-line: 44px;
   --luci-type-display-weight: 600;

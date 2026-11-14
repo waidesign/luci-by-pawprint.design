@@ -65,7 +65,7 @@ export function PartPicker(props: { sources: PartSources; onChoose: (c: Chosen) 
               </button>
             ))}
           </div>
-        ) : <p class="dim">None found here. Luci reads React, Vue and Svelte components in a development build.</p>}
+        ) : <p class="dim">None found. Luci reads React, Vue and Svelte components in dev builds.</p>}
       </div>
       <div class="cat-group" data-group="captures">
         <h3>Saved captures <span class="dim">.luci/design/</span></h3>
@@ -81,7 +81,7 @@ export function PartPicker(props: { sources: PartSources; onChoose: (c: Chosen) 
                 </button>
               ))}
             </div>
-          ) : <p class="dim">None saved yet. In Capture mode, take a component and press Save to project.</p>}
+          ) : <p class="dim">None saved yet. In Capture, take a component, then Save to project.</p>}
       </div>
       <div class="cat-group" data-group="blocks">
         <h3>Blocks</h3>

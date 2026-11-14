@@ -12,7 +12,7 @@ import { FEEDBACK_CSS } from '@luci/feedback';
 const root = fileURLToPath(new URL('../../../', import.meta.url));
 const SURFACES = ['packages/ui/src', 'packages/capture/src/ui', 'packages/feedback/src/ui', 'packages/toolbar/src', 'packages/extension/entrypoints'];
 // Generated from the kit: the only files that hold colour values
-const GENERATED = ['packages/ui/src/tokens.ts', 'packages/ui/src/mascot/art.ts'];
+const GENERATED = ['packages/ui/src/tokens.ts', 'packages/ui/src/mascot/art.ts', 'packages/ui/src/fonts.data.ts'];
 
 function files(dir: string): string[] {
   return readdirSync(join(root, dir), { withFileTypes: true }).flatMap(e => {

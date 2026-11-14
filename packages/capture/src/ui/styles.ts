@@ -12,89 +12,122 @@ ${UI_CSS}
 .luci-theme { --luci-btn-h: 32px; --luci-btn-font: var(--luci-type-small-size); --luci-btn-line: var(--luci-type-small-line); --luci-btn-pad: var(--luci-space-12);
   font-size: var(--luci-type-small-size); line-height: var(--luci-type-small-line); }
 
-/* The floating card: header, tools, then the active panel (DESIGN.md: radius-xl, float shadow, no stroke) */
+/* The shell: a column at the window's edge, the toolbar pill first, then cards */
 .shell {
   position: fixed;
   top: var(--luci-space-12);
   right: var(--luci-space-12);
   z-index: 2147483647;
-  width: min(560px, calc(100vw - 24px));
-  max-height: calc(100vh - 24px);
   display: flex;
   flex-direction: column;
-  background: var(--luci-color-surface);
-  border-radius: var(--luci-radius-xl);
-  box-shadow: var(--luci-shadow-float);
-  overflow: hidden;
+  align-items: flex-end;
+  gap: var(--luci-space-8);
+  max-width: calc(100vw - 24px);
+  max-height: calc(100vh - 24px);
+  /* The column itself is see-through: only the pill and the cards take the pointer */
+  pointer-events: none;
 }
-.luci-theme[data-dock="left"] .shell,
+.shell > * { pointer-events: auto; }
+.luci-theme[data-dock="left"] .shell { right: auto; left: var(--luci-space-12); align-items: flex-start; }
 .luci-theme[data-dock="left"] .bar,
 .luci-theme[data-dock="left"] .sub,
-.luci-theme[data-dock="left"] .panel {
-  right: auto;
-  left: var(--luci-space-12);
-}
+.luci-theme[data-dock="left"] .panel { right: auto; left: var(--luci-space-12); }
 
-.header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--luci-space-12);
-  padding: var(--luci-space-16) var(--luci-space-16) var(--luci-space-8) var(--luci-space-20);
-  flex-shrink: 0;
-}
-.header.compact { align-items: center; padding: var(--luci-space-8) var(--luci-space-8) var(--luci-space-4) var(--luci-space-12); }
-.brand-row { display: flex; align-items: flex-start; gap: var(--luci-space-12); min-width: 0; flex: 1; }
-.header.compact .brand-row { align-items: center; gap: var(--luci-space-8); }
-.brand-stack { display: flex; flex-direction: column; gap: var(--luci-space-4); min-width: 0; }
-.brand-title-line { display: flex; align-items: baseline; gap: var(--luci-space-8); flex-wrap: wrap; }
-.brand-title { font: var(--luci-type-title-weight) var(--luci-type-title-size)/var(--luci-type-title-line) var(--luci-font-display); color: var(--luci-color-ink); }
-.brand-sub { font-size: var(--luci-type-small-size); line-height: var(--luci-type-small-line); font-weight: var(--luci-type-small-weight); color: var(--luci-color-ink-secondary); }
-.brand-desc { font-size: var(--luci-type-small-size); line-height: var(--luci-type-small-line); color: var(--luci-color-ink-secondary); }
-.header-actions { display: flex; align-items: center; gap: var(--luci-space-4); flex: none; }
-.btn-icon { color: var(--luci-color-ink-secondary); font-size: 18px; }
-.btn-icon:hover, .btn-icon[aria-pressed="true"] { color: var(--luci-color-ink); }
-
-/* The tools row (and, on their own, the Feedback and Layout bars) */
+/* The toolbar pill (DESIGN.md, On-page toolbar): Charcoal in both themes, float shadow, no stroke */
 .bar {
+  --luci-color-focus: var(--luci-color-muzzle-50);
   position: fixed;
   top: var(--luci-space-12);
   right: var(--luci-space-12);
   z-index: 2147483647;
   display: flex;
   flex-wrap: wrap;
-  gap: var(--luci-space-4);
   align-items: center;
+  gap: 2px;
   max-width: calc(100vw - 24px);
   padding: var(--luci-space-8);
-  background: var(--luci-color-surface);
-  border-radius: var(--luci-radius-xl);
+  border-radius: 32px;
+  background: var(--luci-color-bar);
+  color: var(--luci-color-bar-ink);
   box-shadow: var(--luci-shadow-float);
 }
-.shell > .bar { position: static; max-width: none; padding: var(--luci-space-4) var(--luci-space-12) var(--luci-space-12); border-radius: 0; box-shadow: none; flex-shrink: 0; }
-.bar > button { padding-inline: var(--luci-space-8); }
-.shell > .bar { gap: 2px; }
-.brand { display: inline-flex; align-items: center; gap: var(--luci-space-8); padding: 0 var(--luci-space-8) 0 var(--luci-space-4);
-  font: var(--luci-type-display-weight) var(--luci-type-heading-size)/1 var(--luci-font-display); }
+.shell > .bar { position: static; }
+.luci-theme .bar button { --luci-btn-h: 40px; color: var(--luci-color-bar-ink); }
+.luci-theme .bar .tool, .luci-theme .bar .menu-btn { --luci-btn-h: 48px; }
+.luci-theme .bar button:hover:not(:disabled) { background: var(--luci-color-bar-hover); }
+.luci-theme .bar button:disabled { color: var(--luci-color-muzzle-500); }
+.luci-theme .bar button[aria-pressed="true"] { background: var(--luci-color-tool-active); color: var(--luci-color-on-tool-active); }
+.luci-theme .bar .btn-primary { background: var(--luci-color-primary); color: var(--luci-color-on-primary); }
+.luci-theme .bar .btn-primary:hover:not(:disabled) { background: var(--luci-color-primary-hover); }
+.luci-theme .bar .btn-primary:disabled { background: var(--luci-color-muzzle-800); color: var(--luci-color-muzzle-500); }
+.bar-sep { flex: none; width: 1px; height: 24px; margin: 0 2px; background: var(--luci-color-bar-stroke); }
+/* Luci's head: the menu button */
+.luci-theme .bar .menu-btn { display: inline-flex; align-items: center; justify-content: center; width: 48px; padding: 0; }
+.luci-theme .bar .menu-btn .luci-avatar { transition: background-color var(--luci-motion-fast); }
+.luci-theme .bar .menu-btn:is(:hover, [aria-pressed="true"]) { background: transparent; }
+.luci-theme .bar .menu-btn:hover .luci-avatar { background: var(--luci-color-primary-hover); }
+.luci-theme .bar .menu-btn[aria-pressed="true"] .luci-avatar { background: var(--luci-color-tool-active); }
+/* The basket: a Collar Lime pill with its count */
+.luci-theme .bar .basket-pill { display: inline-flex; align-items: center; gap: var(--luci-space-8); padding: 0 var(--luci-space-16) 0 var(--luci-space-12);
+  background: var(--luci-color-accent); color: var(--luci-color-on-accent); font-weight: 600; }
+.luci-theme .bar .basket-pill:hover:not(:disabled), .luci-theme .bar .basket-pill[aria-pressed="true"] { background: var(--luci-color-collar-lime-300); color: var(--luci-color-on-accent); }
+.brand { display: inline-flex; align-items: center; gap: var(--luci-space-8); padding: 0 var(--luci-space-8) 0 0;
+  font: var(--luci-type-display-weight) var(--luci-type-heading-size)/1 var(--luci-font-display); color: var(--luci-color-bar-ink); }
+/* The dev toolbar's mode switch, on Charcoal */
+.bar .seg { background: var(--luci-color-bar-hover); }
+.luci-theme .bar .seg button { color: var(--luci-color-bar-ink-secondary); }
+.luci-theme .bar .seg button[aria-pressed="true"] { background: var(--luci-color-tool-active); color: var(--luci-color-on-tool-active); }
+.modes { margin-right: var(--luci-space-4); }
 
-/* The hint under the tools while picking */
+/* Cards under the pill: the hint while picking, and every panel (radius-xl, float shadow, no stroke) */
+.sub, .panel { background: var(--luci-color-surface); border-radius: var(--luci-radius-xl); box-shadow: var(--luci-shadow-float); }
 .sub {
   position: fixed;
-  top: 72px;
+  top: 84px;
   right: var(--luci-space-12);
   z-index: 2147483647;
-  width: min(400px, calc(100vw - 24px));
+  width: min(420px, calc(100vw - 24px));
   display: flex;
   flex-direction: column;
   gap: var(--luci-space-8);
   padding: var(--luci-space-12) var(--luci-space-16);
-  background: var(--luci-color-surface);
-  border-radius: var(--luci-radius-lg);
-  box-shadow: var(--luci-shadow-float);
 }
-.shell > .sub { position: static; width: auto; margin: 0 var(--luci-space-12) var(--luci-space-12); background: var(--luci-color-surface-sunken); box-shadow: none; flex-shrink: 0; }
+.shell > .sub { position: static; width: min(560px, calc(100vw - 24px)); }
 .sub p { margin: 0; }
+.sub.with-luci { flex-direction: row; align-items: center; gap: var(--luci-space-16); }
+.sub .sub-body { display: flex; flex-direction: column; gap: var(--luci-space-8); min-width: 0; }
 .keys { color: var(--luci-color-ink-secondary); font-size: var(--luci-type-small-size); line-height: var(--luci-type-small-line); }
+.panel {
+  position: fixed;
+  right: var(--luci-space-12);
+  bottom: var(--luci-space-12);
+  z-index: 2147483647;
+  width: min(480px, calc(100vw - 24px));
+  max-height: min(72vh, 660px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--luci-space-12);
+  padding: var(--luci-space-20);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.shell > .panel { position: static; width: min(560px, calc(100vw - 24px)); max-height: none; flex: 0 1 auto; min-height: 0; }
+.panel > * { flex-shrink: 0; }
+.panel > .items, .panel > .diffs { flex-shrink: 1; }
+.panel h2 { margin: 0; font: var(--luci-type-title-weight) var(--luci-type-title-size)/var(--luci-type-title-line) var(--luci-font-display); }
+.panel.result-panel { padding: 0; gap: 0; }
+.panel-body { display: flex; flex-direction: column; gap: var(--luci-space-12); padding: var(--luci-space-20) var(--luci-space-20) var(--luci-space-16); }
+
+/* The menu: who Luci is, help, then settings */
+.menu-head { display: flex; align-items: center; gap: var(--luci-space-16); }
+.brand-stack { display: flex; flex-direction: column; gap: var(--luci-space-4); min-width: 0; }
+.brand-title-line { display: flex; align-items: baseline; gap: var(--luci-space-8); flex-wrap: wrap; }
+.brand-title { font: var(--luci-type-title-weight) var(--luci-type-title-size)/var(--luci-type-title-line) var(--luci-font-display); color: var(--luci-color-ink); }
+.brand-sub { font-size: var(--luci-type-small-size); line-height: var(--luci-type-small-line); font-weight: var(--luci-type-small-weight); color: var(--luci-color-ink-secondary); }
+.brand-desc { margin: 0; color: var(--luci-color-ink-secondary); }
+/* The first-run greeting */
+.greet { flex-direction: row; align-items: center; gap: var(--luci-space-16); }
+.greet .t-title { margin: 0; }
 
 /* Segmented control */
 .seg { display: inline-flex; align-self: flex-start; gap: var(--luci-space-4); padding: var(--luci-space-4); background: var(--luci-color-surface-sunken); border-radius: var(--luci-radius-full); }
@@ -111,16 +144,15 @@ ${UI_CSS}
   background: var(--luci-color-surface-raised); border: 1px solid var(--luci-color-stroke-subtle); border-radius: var(--luci-radius-md); }
 .files li > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .files code, [data-part="file-view-box"] code { font: var(--luci-type-code-weight) 12px/1.5 var(--luci-font-code); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.items textarea { grid-column: 1 / -1; min-height: 40px; resize: vertical; font-size: var(--luci-type-small-size); line-height: var(--luci-type-small-line); }
+.items textarea { grid-column: 1 / -1; min-height: 40px; font-size: var(--luci-type-small-size); line-height: var(--luci-type-small-line); }
 .items input { min-width: 0; }
 .items .meta { grid-column: 1; color: var(--luci-color-ink-secondary); font-size: var(--luci-type-small-size); }
 .items .row { grid-column: 2; grid-row: 1 / span 2; }
 .stack { display: flex; flex-direction: column; align-items: stretch; gap: var(--luci-space-8); }
 
-/* Text areas: the file preview is code on the sunken surface */
-textarea { resize: vertical; }
-textarea.preview { min-height: 180px; flex: 1; padding: var(--luci-space-12); white-space: pre; overflow: auto; background: var(--luci-color-surface-raised);
-  font: var(--luci-type-code-weight) var(--luci-type-code-size)/var(--luci-type-code-line) var(--luci-font-code); }
+/* The file preview: code you can edit and drag taller */
+textarea.preview { flex: none; height: 280px; min-height: 120px; max-height: 70vh; padding: var(--luci-space-12); white-space: pre; overflow: auto;
+  background: var(--luci-color-surface-raised); font: var(--luci-type-code-weight) var(--luci-type-code-size)/var(--luci-type-code-line) var(--luci-font-code); }
 textarea[data-part="instructions"] { min-height: 64px; }
 pre.preview { margin: 0; max-height: 240px; overflow: auto; white-space: pre-wrap; }
 pre { margin: 0; overflow: auto; padding: var(--luci-space-12); background: var(--luci-color-surface-sunken); border-radius: var(--luci-radius-sm); white-space: pre; min-height: 80px;
@@ -150,6 +182,9 @@ label { display: inline-flex; gap: var(--luci-space-4); align-items: center; col
 .label .reason { display: block; color: var(--luci-color-nose-pink-300); font-family: var(--luci-font-body); }
 .swatch { display: flex; gap: var(--luci-space-8); align-items: center; }
 .chip { width: 16px; height: 16px; border-radius: 4px; box-shadow: inset 0 0 0 1px var(--luci-color-bar-stroke); }
+/* Pixel mode's loupe: the pixels around the pointer, 8 times larger, the picked one framed */
+.loupe { position: fixed; z-index: 2147483647; pointer-events: none; width: 120px; height: 120px; border-radius: 50%; image-rendering: pixelated;
+  background: var(--luci-color-muzzle-900); box-shadow: 0 0 0 3px var(--luci-color-muzzle-50), var(--luci-shadow-float); }
 
 /* State pills */
 .states-list { display: flex; flex-wrap: wrap; gap: var(--luci-space-4); }
@@ -182,35 +217,13 @@ label { display: inline-flex; gap: var(--luci-space-4); align-items: center; col
 .tip-box { margin: 0; padding: var(--luci-space-8) var(--luci-space-12); border-radius: var(--luci-radius-md); background: var(--luci-color-surface-sunken); color: var(--luci-color-ink-secondary);
   font-size: var(--luci-type-small-size); line-height: var(--luci-type-small-line); }
 
-/* Panels */
-.panel {
-  position: fixed;
-  right: var(--luci-space-12);
-  bottom: var(--luci-space-12);
-  z-index: 2147483647;
-  width: min(480px, calc(100vw - 24px));
-  max-height: min(72vh, 660px);
-  display: flex;
-  flex-direction: column;
-  gap: var(--luci-space-12);
-  padding: var(--luci-space-16) var(--luci-space-20);
-  background: var(--luci-color-surface);
-  border-radius: var(--luci-radius-xl);
-  box-shadow: var(--luci-shadow-float);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-.shell > .panel { position: static; width: auto; max-height: none; flex: 1 1 auto; min-height: 0; border-radius: 0; box-shadow: none; padding-top: var(--luci-space-4); }
-.panel > * { flex-shrink: 0; }
-.panel > .items, .panel > .diffs { flex-shrink: 1; }
-.panel h2 { margin: 0; font: var(--luci-type-title-weight) var(--luci-type-title-size)/var(--luci-type-title-line) var(--luci-font-display); }
-.panel.result-panel { padding: 0; gap: 0; }
-.panel-body { display: flex; flex-direction: column; gap: var(--luci-space-12); padding: var(--luci-space-4) var(--luci-space-20) var(--luci-space-16); }
+/* The file and its actions */
 .md-section { display: flex; flex-direction: column; gap: var(--luci-space-12); padding: var(--luci-space-16) var(--luci-space-20) var(--luci-space-20); background: var(--luci-color-surface-sunken); }
 .md-head { display: flex; align-items: center; justify-content: space-between; gap: var(--luci-space-8); flex-wrap: wrap; }
 .md-title { font: var(--luci-type-heading-weight) var(--luci-type-heading-size)/var(--luci-type-heading-line) var(--luci-font-body); color: var(--luci-color-ink); }
 .file-row { display: flex; align-items: center; justify-content: space-between; gap: var(--luci-space-8); padding: var(--luci-space-8) var(--luci-space-12); border-radius: var(--luci-radius-md); background: var(--luci-color-surface-sunken); }
 .scope-pill { flex: none; }
+.actions { gap: var(--luci-space-8); }
 
 /* Design check */
 [data-part="check-summary"] { margin: 0; }
@@ -224,13 +237,11 @@ label { display: inline-flex; gap: var(--luci-space-4); align-items: center; col
 .diffs input { flex: none; margin: 3px 0 0; }
 .diffs .dim { padding-left: 21px; }
 
-/* The dev toolbar's mode switch */
-.modes { margin-right: var(--luci-space-4); }
-
 /* Loading */
 .loading { display: flex; gap: var(--luci-space-12); align-items: center; margin: 0; color: var(--luci-color-ink); }
 .loading .steps { color: var(--luci-color-ink-secondary); font-size: var(--luci-type-small-size); }
-.loading-sleep { display: flex; flex-direction: column; align-items: center; gap: var(--luci-space-8); padding: var(--luci-space-16) 0; text-align: center; }
+.loading-sleep { flex-direction: column; gap: var(--luci-space-8); padding: var(--luci-space-16) 0; text-align: center; }
+.loading-sleep .stack { align-items: center; }
 /* Spins with transform only: the browser keeps it moving off the page's main thread, even while Luci reads a heavy page */
 .spinner { flex: none; width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--luci-color-stroke-strong); border-top-color: var(--luci-color-primary);
   animation: luci-spin 0.8s linear infinite; will-change: transform; }

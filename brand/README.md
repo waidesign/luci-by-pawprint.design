@@ -17,6 +17,7 @@ Everything here is drawn for Luci, the ginger tabby mascot. Colours and art foll
 | `preview.html` | All animations on one page | Open in a browser to see them |
 | `luci-tokens.json` | Colours plus fonts, radii, borders, sizes and motion timings | Code |
 | `luci-colors.css`, `luci-colors.json` | Brand colours as CSS variables and tokens | Code and design tools |
+| `luci-icons.json` | The approved Lucide icons and their Luci names, with size and stroke settings | `pnpm brand:sync` generates `icons.ts` from it |
 
 ## Layer names (in `layered/`)
 

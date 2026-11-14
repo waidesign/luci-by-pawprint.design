@@ -9,6 +9,10 @@
 <link rel="stylesheet" href="/luci-tokens.css">
 <style>
   :root { color-scheme: light dark; }
+  /* Luci's fonts, bundled with the extension (SIL Open Font License) */
+  @font-face { font-family: "Luci Fredoka"; src: url("/fonts/fredoka-latin-wght.woff2") format("woff2"); font-weight: 300 700; font-display: swap; }
+  @font-face { font-family: "Luci Inter"; src: url("/fonts/inter-latin-wght.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
+  @font-face { font-family: "Luci JetBrains Mono"; src: url("/fonts/jetbrains-mono-latin-wght.woff2") format("woff2"); font-weight: 100 800; font-display: swap; }
   body { margin: 0; background: var(--luci-color-surface); color: var(--luci-color-ink);
     font: var(--luci-type-body-weight) var(--luci-type-body-size)/var(--luci-type-body-line) var(--luci-font-body); }
   main { max-width: 720px; margin: 0 auto; padding: var(--luci-space-40) var(--luci-space-16) var(--luci-space-64); }

@@ -12,6 +12,16 @@ The user supplied the Luci brand kit (mascot, logos, tokens, DESIGN.md, BRAND.md
 6. **Page overlays** (pick highlight, padding/margin, layout handles, inserted placeholders) are not components: they use ginger, lime and nose-pink from the palette and are exempt from the stroke rule, which a test enforces for everything else.
 7. **Note markers** use five brand colours (Charcoal, Ginger 500, Collar Lime 500, Nose Pink 500, Info 700) with a readable number colour for each.
 
+## Update, same day: icons, fonts, toolbar, buttons (user's go)
+8. **Icons**: the user approved Lucide and updated the kit (`brand/luci-icons.json`, DESIGN.md section 7). `pnpm brand:sync` generates `packages/ui/src/icons.ts`, the only file allowed to import `lucide-preact` (a test enforces it); `Icon` applies 1.75 stroke, currentColor, 22/20/16 px.
+9. **Fonts**: Fredoka, Inter, JetBrains Mono (Fontsource 5.3.0, variable Latin, OFL) in `packages/ui/src/fonts/`. On pages they are registered with the FontFace API from bytes under "Luci ..." names: no fetch (a page's CSP cannot block them), no clash with the page's fonts, and shadow roots use them. The extension help page uses @font-face from its own files. Cost: about 160 KB in the toolbar bundles.
+10. **Toolbar**: the kit's Charcoal pill. Luci's head is the menu (brand, help, settings); the six tools are 48 px icon-only buttons with tooltips; the active tool is ginger-400 with a Charcoal icon (6.9:1, fixing the weak active-tab contrast); the basket is a Collar Lime pill. Feedback and Layout use the same pill; their buttons keep text labels where no icon is approved (Notes, Select, New page, Redo, Reset).
+11. **Buttons**: `Button` with variants primary, secondary, outline, ghost, danger (kept as the user liked it), link; sizes sm 32 / md 40 / lg 48; icon-only and with-icon; states hover, pressed (1 px nudge), focus ring, disabled, loading (aria-busy), toggled (aria-pressed).
+12. **Luci in motion**: hello greets once on first run; sitting in the menu; measuring beside the Spacing hint; in the box for an empty basket; peeking for no notes; asleep while Whole page reads; annoyed when a capture fails.
+13. **Pixel loupe**: Pixel mode shows the 15 x 15 pixels around the pointer at 8x, the picked one framed.
+14. **Selects** draw their chevron with CSS (two gradients in the text colour), 12 px from the edge everywhere; the kit's icon list has no chevron.
+15. **Copy**: shorter, factual hints and labels across the toolbar, Feedback, Layout and the sketch.
+
 ## Open (asked the user)
 - The kit has no icon set; the Charcoal pill toolbar with 48 px icon buttons waits for one.
 - Fredoka, Inter and JetBrains Mono are not in the kit; fonts fall back to system-ui until the woff2 files are added.

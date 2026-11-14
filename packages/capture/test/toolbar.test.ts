@@ -47,7 +47,8 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
       return { shadow: Boolean(host.shadowRoot), inSnapshot: snap.elements.some((e: { tag: string }) => e.tag === 'luci-toolbar') };
     });
     expect(info).toEqual({ shadow: true, inSnapshot: false });
-    expect(await page.locator('button[data-tool]').allInnerTexts()).toEqual(['Component', 'Text', 'Color', 'Spacing']);
+    // Icon-only tools: the name is the accessible label
+    expect(await page.locator('button[data-tool]').evaluateAll(bs => bs.map(b => b.getAttribute('aria-label')))).toEqual(['Component', 'Text', 'Colour', 'Spacing']);
   });
 
   it('hover shows tag and size; a bare image is greyed, points to the component around it, and cannot be picked (FR2, FR4)', async () => {
@@ -218,7 +219,7 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
     await page.click('#js-hover', { force: true });
     await page.click('[data-output="one"]');
     await page.click('[data-action="capture-state"]');
-    expect(await page.locator('[data-part="countdown"]').innerText()).toMatch(/^1 of \d+: Put the component in its hover state now/);
+    expect(await page.locator('[data-part="countdown"]').innerText()).toMatch(/^1 of \d+: Put it in its hover state now/);
     await page.click('[data-action="cancel-capture"]');
     expect(await page.locator('[data-part="countdown"]').count()).toBe(0);
   });
@@ -266,7 +267,7 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
     expect(md).toContain('| brand accent |');
 
     await page.click('[data-action="add-to-basket"]');
-    expect(await page.locator('[data-action="add-to-basket"]').innerText()).toBe('View in Basket');
+    expect(await page.locator('[data-action="add-to-basket"]').getAttribute('aria-label')).toBe('View in basket');
     expect(await page.locator('[data-action="add-to-basket"]').isDisabled()).toBe(false);
     await page.click('[data-action="add-to-basket"]');
     await page.locator('[data-part="basket"]').waitFor();
@@ -292,16 +293,17 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
     const name = await page.locator('[data-part="file-name"]').innerText();
     const [download] = await Promise.all([page.waitForEvent('download'), page.click('[data-action="download"]')]);
     expect(download.suggestedFilename()).toBe(name);
-    // Meaningful icons on Copy, Download, Add to basket, Pick again
-    expect(await page.locator('[data-action="copy"] svg.btn-ico').count()).toBe(1);
-    expect(await page.locator('[data-action="download"] svg.btn-ico').count()).toBe(1);
-    expect(await page.locator('[data-action="add-to-basket"] svg.btn-ico').count()).toBe(1);
-    expect(await page.locator('[data-action="pick-again"] svg.btn-ico').count()).toBe(1);
+    // Icon-only buttons with a meaningful icon, a name and a tooltip: Copy, Download, Add to basket, Pick again
+    expect(await page.locator('[data-action="copy"] svg.icon').count()).toBe(1);
+    expect(await page.locator('[data-action="download"] svg.icon').count()).toBe(1);
+    expect(await page.locator('[data-action="add-to-basket"] svg.icon').count()).toBe(1);
+    expect(await page.locator('[data-action="pick-again"] svg.icon').count()).toBe(1);
     // Copy works repeatedly (infinite times) as edits or settings change
     await page.click('[data-action="copy"]');
     expect((await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, '\n')).toBe(await preview(page));
     await page.locator('[data-part="instructions"]').fill('Second copy check');
-    expect(await page.locator('[data-action="copy"]').innerText()).toBe('Copy');
+    expect(await page.locator('[data-action="copy"]').getAttribute('aria-label')).toBe('Copy');
+    for (const a of ['copy', 'download', 'add-to-basket', 'pick-again']) expect(await page.locator(`[data-action="${a}"]`).getAttribute('data-tip'), a).toBeTruthy();
     await page.click('[data-action="copy"]');
     expect((await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, '\n')).toContain('Second copy check');
   });
@@ -319,9 +321,9 @@ describe('tool hints and the Color tool\'s two ways to pick (user feedback, M4)'
     await page.evaluate(() => { (window as unknown as { LuciCapture: { mountToolbar(): unknown } }).LuciCapture.mountToolbar(); });
     expect(await page.locator('[data-action="eyedropper"]').count()).toBe(0);
     await page.click('button[data-tool="text"]');
-    expect(await page.locator('[data-part="hint"]').innerText()).toContain('Hover any text');
+    expect(await page.locator('[data-part="hint"]').innerText()).toContain('Click any text');
     await page.click('button[data-tool="spacing"]');
-    expect(await page.locator('[data-part="hint"]').innerText()).toContain('drag from one element to another');
+    expect(await page.locator('[data-part="hint"]').innerText()).toContain('Drag between two elements to measure');
     await page.click('button[data-tool="color"]');
     expect(await page.locator('[data-color-mode]').allInnerTexts()).toEqual(['Element', 'Pixel']);
     expect(await page.locator('[data-color-mode="element"]').getAttribute('aria-pressed')).toBe('true');
@@ -411,6 +413,11 @@ describe('Pixel mode from a screenshot (user feedback)', { timeout: 30_000 }, ()
     const button = (await page.locator('.button').first().boundingBox())!;
     await page.mouse.move(button.x + 6, button.y + button.height / 2);
     expect(await page.locator('[data-part="pixel-swatch"]').innerText()).toBe('#0f62fe');
+    // The loupe: the pixels around the pointer, 8 times larger, the picked one framed in the middle
+    const loupe = page.locator('[data-part="pixel-loupe"]');
+    expect(await loupe.evaluate((c: HTMLCanvasElement) => [c.width, c.height])).toEqual([120, 120]);
+    const middle = await loupe.evaluate((c: HTMLCanvasElement) => Array.from(c.getContext('2d')!.getImageData(60, 60, 1, 1).data.slice(0, 3)));
+    expect(middle).toEqual([15, 98, 254]);
     // Over Luci's bar nothing is picked; back on the page, picking carries on
     const bar = (await page.locator('[data-tool="text"]').boundingBox())!;
     await page.mouse.move(bar.x + 5, bar.y + 5);
@@ -443,24 +450,37 @@ describe('toolbar inside web components (FR6)', () => {
 describe('extension branding, settings panel and the brand kit themes', { timeout: 30_000 }, () => {
   it('shows DESIGN.md Extractor by Luci with Luci\'s head, switches System/Light/Dark and Right/Left dock in Settings, and resolves the kit\'s colours', async () => {
     const page = await open('css-variables');
-    expect(await page.locator('.brand-title').innerText()).toBe('DESIGN.md Extractor');
-    expect(await page.locator('.brand-sub').innerText()).toBe('by Luci');
-    expect(await page.locator('.brand-desc').innerText()).toContain('Component-level DESIGN.md extractor');
-    expect(await page.locator('.header .luci-avatar svg.luci-pose-head').count()).toBe(1);
+    // First run: Luci says hello, once
+    expect(await page.locator('[data-part="greeting"] [data-pose="hello"]').count()).toBe(1);
+    // The Charcoal pill: Luci's head is the menu; every tool is an icon with a name and a tooltip
+    expect(await page.locator('.bar .menu-btn .luci-avatar svg.luci-pose-head').count()).toBe(1);
+    for (const t of ['component', 'text', 'color', 'spacing']) {
+      const b = page.locator(`button[data-tool="${t}"]`);
+      expect(await b.locator('svg.icon').count(), t).toBe(1);
+      expect(await b.getAttribute('aria-label'), t).toBeTruthy();
+      expect(await b.getAttribute('data-tip'), t).toBe(await b.getAttribute('aria-label'));
+    }
+    expect(await page.locator('.bar').evaluate(e => getComputedStyle(e).backgroundColor)).toBe('rgb(43, 43, 43)');
+    // The kit's fonts are loaded into the page under Luci's own names
+    expect(await page.evaluate(async () => { await document.fonts.ready; const s: string[] = []; document.fonts.forEach(f => { if (f.family.includes('Luci')) s.push(f.status); }); return s; })).toEqual(['loaded', 'loaded', 'loaded']);
 
     const theme = page.locator('.luci-theme');
     const colour = (name: string, el = theme) => el.evaluate((e, n) => getComputedStyle(e).getPropertyValue(n), name);
     const bg = (sel: string) => page.locator(sel).first().evaluate(e => getComputedStyle(e).backgroundColor);
     await page.click('[data-action="settings"]');
     expect(await page.locator('[data-part="settings"]').count()).toBe(1);
+    expect(await page.locator('[data-part="greeting"]').count()).toBe(0);
+    expect(await page.locator('.brand-title').innerText()).toBe('DESIGN.md Extractor');
+    expect(await page.locator('.brand-sub').innerText()).toBe('by Luci');
+    expect(await page.locator('.brand-desc').innerText()).toContain('design file your agent can build from');
     await page.click('[data-theme-choice="light"]');
     expect(await theme.getAttribute('data-theme')).toBe('light');
-    expect(await bg('.shell')).toBe('rgb(245, 239, 234)'); // Muzzle White
+    expect(await bg('[data-part="settings"]')).toBe('rgb(245, 239, 234)'); // Muzzle White
     expect(await colour('color')).toBe('rgb(43, 43, 43)'); // Charcoal ink
 
     await page.click('[data-theme-choice="dark"]');
     expect(await theme.getAttribute('data-theme')).toBe('dark');
-    expect(await bg('.shell')).toBe('rgb(43, 43, 43)'); // Charcoal surface
+    expect(await bg('[data-part="settings"]')).toBe('rgb(43, 43, 43)'); // Charcoal surface
     await page.click('[data-theme-choice="system"]');
 
     await page.click('[data-dock-choice="left"]');

@@ -1,6 +1,7 @@
 /** Put the toolbar on a page, inside its own shadow root (FR1). Both shells call this. */
 import { h, render } from 'preact';
 import type { CaptureSettings } from '@luci/format/capture';
+import { loadFonts } from '@luci/ui';
 import { LUCI_UI_ATTRIBUTE } from '../dom.js';
 import { TOOLBAR_CSS } from './styles.js';
 import { Toolbar, type ProposedRule } from './toolbar.js';
@@ -60,6 +61,7 @@ export function mountToolbar(options: MountOptions = {}): ToolbarHandle {
   const host = doc.createElement(TOOLBAR_TAG);
   host.setAttribute(LUCI_UI_ATTRIBUTE, '');
   doc.documentElement.appendChild(host);
+  loadFonts(doc);
   // Open so tests and assistive tools can see inside; styles stay isolated either way
   const root = host.attachShadow({ mode: 'open' });
   // Typing in Luci's own fields must not reach the page (sites react to keys like "/" or "s")

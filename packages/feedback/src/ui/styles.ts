@@ -10,6 +10,9 @@ export const FEEDBACK_CSS = `${TOOLBAR_CSS}
 .conn { display: inline-flex; align-items: center; gap: var(--luci-space-8); padding: 0 var(--luci-space-8); color: var(--luci-color-ink-secondary); font-size: var(--luci-type-small-size); }
 .conn::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--luci-color-warning); }
 .conn.project::before { background: var(--luci-color-success); }
+.bar .conn { color: var(--luci-color-bar-ink-secondary); }
+.bar .conn::before { background: var(--luci-color-iris-gold-300); }
+.bar .conn.project::before { background: var(--luci-color-collar-lime-500); }
 /* As a button ("connect"), the dot keeps its place instead of the touch-target layer */
 .luci-theme button.conn { display: inline-flex; padding-block: 0; }
 .luci-theme button.conn::before { position: static; inset: auto; }
@@ -19,6 +22,9 @@ export const FEEDBACK_CSS = `${TOOLBAR_CSS}
   display: inline-flex; align-items: center; justify-content: center; gap: 2px; border-radius: var(--luci-radius-full); border: 0;
   background: var(--marker); color: var(--marker-ink); font: 600 11px/1 var(--luci-font-body); cursor: pointer; box-shadow: var(--luci-shadow-float); }
 .marker::before { inset: -10px; }
+/* Placed with transform: the buttons' press nudge must not move markers or handles */
+.luci-theme .marker, .luci-theme .marker:active { transform: translate(-50%, -50%); transition: background-color var(--luci-motion-fast); }
+.luci-theme .handle:active, .luci-theme .ins:active { transform: none; }
 .luci-theme .marker:hover { background: var(--marker); filter: brightness(1.08); }
 /* Copied: Muzzle White with a ring in the marker's own colour, so it stays recognisable */
 .luci-theme .marker.copied { background: var(--luci-color-muzzle-50); color: var(--luci-color-muzzle-900); box-shadow: inset 0 0 0 2px var(--marker), var(--luci-shadow-float); }

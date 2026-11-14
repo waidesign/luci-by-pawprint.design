@@ -1,6 +1,7 @@
 /** Put Layout mode on a page, in its own shadow root (the page's preview stylesheet is the only thing it adds outside). */
 import { h, render } from 'preact';
 import { LUCI_UI_ATTRIBUTE, type ModeSwitchProps } from '@luci/capture';
+import { loadFonts } from '@luci/ui';
 import type { FeedbackBackend } from '../backend.js';
 import { FEEDBACK_CSS } from './styles.js';
 import { Layout } from './layout.js';
@@ -21,6 +22,7 @@ export function mountLayout(options: LayoutMountOptions): { host: HTMLElement; d
   const host = doc.createElement(LAYOUT_TAG);
   host.setAttribute(LUCI_UI_ATTRIBUTE, '');
   doc.documentElement.appendChild(host);
+  loadFonts(doc);
   const root = host.attachShadow({ mode: 'open' });
   for (const type of ['keydown', 'keyup', 'keypress'] as const) {
     root.addEventListener(type, (e) => {

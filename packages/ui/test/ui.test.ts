@@ -1,7 +1,8 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { COPY, FACE_SVG, PALETTE, POSE_SVG, ROLES_BAR, ROLES_DARK, ROLES_LIGHT, faceSvg, mascotSvg } from '@luci/ui';
+import { COPY, FACE_SVG, ICON_NAMES, Icon, IconColour, PALETTE, POSE_SVG, ROLES_BAR, ROLES_DARK, ROLES_LIGHT, faceSvg, mascotSvg } from '@luci/ui';
 
 const brand = (file: string) => readFileSync(fileURLToPath(new URL(`../../../brand/${file}`, import.meta.url)), 'utf8');
 
@@ -100,6 +101,39 @@ describe('copy follows the voice rules (brand/BRAND.md section 2)', () => {
       expect(s, s).not.toMatch(/\b(oops|oopsie|yay|buddy)\b/i);
     }
     expect(COPY.common.done(6, 6)).toBe('Done. 6 of 6 applied.');
+  });
+});
+
+describe('icons (brand/DESIGN.md section 7)', () => {
+  const pascal = (s: string) => s.split('-').map(p => p[0]!.toUpperCase() + p.slice(1)).join('');
+  it('icons.ts exports exactly the approved icons of brand/luci-icons.json', async () => {
+    const kit = JSON.parse(brand('luci-icons.json')) as { icons: Record<string, { lucide?: string }> };
+    const ui = await import('@luci/ui') as Record<string, unknown>;
+    const approved = Object.entries(kit.icons).filter(([, v]) => v.lucide);
+    expect(Object.keys(ICON_NAMES).sort()).toEqual(approved.map(([n]) => n).sort());
+    for (const [name] of approved) expect(typeof ui[`Icon${pascal(name)}`], name).toBe('function');
+  });
+  it('the Icon wrapper applies the kit style: 1.75 stroke, currentColor, hidden, 20 px by default', () => {
+    const v = Icon({ icon: IconColour }) as unknown as { type: unknown; props: Record<string, unknown> };
+    expect(v.type).toBe(IconColour);
+    expect(v.props).toMatchObject({ size: 20, strokeWidth: 1.75, color: 'currentColor', 'aria-hidden': 'true' });
+    expect((Icon({ icon: IconColour, size: 'toolbar' }) as unknown as { props: { size: number } }).props.size).toBe(22);
+    expect((Icon({ icon: IconColour, size: 'compact' }) as unknown as { props: { size: number } }).props.size).toBe(16);
+  });
+  it('nothing imports lucide directly: only the generated icons.ts', () => {
+    const root = fileURLToPath(new URL('../../../packages/', import.meta.url));
+    const offenders: string[] = [];
+    const walk = (dir: string): void => {
+      for (const e of readdirSync(dir, { withFileTypes: true })) {
+        if (['node_modules', 'dist', '.output', '.wxt', 'library', 'fixtures'].includes(e.name) || e.name.startsWith('.output')) continue;
+        const p = join(dir, e.name);
+        if (e.isDirectory()) walk(p);
+        else if (/\.(ts|tsx|js|mjs)$/.test(e.name) && !p.replace(/\\/g, '/').endsWith('packages/ui/src/icons.ts')
+          && /from\s+['"]lucide-(preact|react)/.test(readFileSync(p, 'utf8'))) offenders.push(p);
+      }
+    };
+    walk(root);
+    expect(offenders).toEqual([]);
   });
 });
 

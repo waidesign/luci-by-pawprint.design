@@ -107,9 +107,11 @@ const px = (n) => `${n}px`;
 const other = {};
 for (const [k, v] of Object.entries(kit.radius)) other[`radius-${k}`] = px(v);
 for (const v of kit.space) other[`space-${v}`] = px(v);
-other['font-display'] = kit.font.display;
-other['font-body'] = kit.font.body;
-other['font-code'] = kit.font.code;
+// The kit's font stacks, with Luci's bundled copy of each family first (see Fonts below)
+const bundled = (stack) => stack.replace(/'?(Fredoka|Inter|JetBrains Mono)'?/g, (_m, name) => `"Luci ${name}", ${name.includes(' ') ? `'${name}'` : name}`);
+other['font-display'] = bundled(kit.font.display);
+other['font-body'] = bundled(kit.font.body);
+other['font-code'] = bundled(kit.font.code);
 for (const [k, [size, line, weight]] of Object.entries(kit.type)) {
   other[`type-${k}-size`] = px(size);
   other[`type-${k}-line`] = px(line);
@@ -189,6 +191,39 @@ export const LOGO_SVG = ${json(logos)} as const;
 /** brand/luci-animations.css */
 export const ANIMATIONS_CSS = ${JSON.stringify(animations)};
 `);
+
+// --- Icons: the approved Lucide icons under Luci names (brand/luci-icons.json, DESIGN.md section 7).
+// The only file allowed to import from lucide-preact; "menu" is Luci's head, not a Lucide icon.
+const iconKit = JSON.parse(readFileSync(join(brand, 'luci-icons.json'), 'utf8'));
+const pascal = (s) => s.split('-').map(p => p[0].toUpperCase() + p.slice(1)).join('');
+const icons = Object.entries(iconKit.icons).filter(([, v]) => v.lucide);
+write(join(ui, 'icons.ts'), `${HEADER}
+// The approved icons (brand/luci-icons.json). Import icons from here only, never from ${iconKit.packages.preact}.
+export {
+${icons.map(([name, v]) => `  ${pascal(v.lucide)} as Icon${pascal(name)}`).join(',\n')}
+} from '${iconKit.packages.preact}';
+export type { LucideIcon } from '${iconKit.packages.preact}';
+
+/** Luci name to Lucide name, as the kit lists them. */
+export const ICON_NAMES = ${json(Object.fromEntries(icons.map(([name, v]) => [name, v.lucide])))} as const;
+/** Stroke, colour and sizes (px) for every icon. */
+export const ICON_STYLE = ${json(iconKit.style)} as const;
+`);
+
+// --- Fonts: the kit's three families, self-hosted (SIL OFL; CLAUDE-CODE-GUIDE.md section 4). The
+// woff2 files live in packages/ui/src/fonts/ with their licences; here they become bytes the
+// toolbar registers with the FontFace API under "Luci ..." names (no fetch, so a page's CSP can't
+// block them, and they never clash with the page's own fonts).
+const FONTS = [
+  { family: 'Luci Fredoka', kit: 'Fredoka', file: 'fredoka-latin-wght.woff2', weight: '300 700' },
+  { family: 'Luci Inter', kit: 'Inter', file: 'inter-latin-wght.woff2', weight: '100 900' },
+  { family: 'Luci JetBrains Mono', kit: 'JetBrains Mono', file: 'jetbrains-mono-latin-wght.woff2', weight: '100 800' }
+];
+write(join(ui, 'fonts.data.ts'), `${HEADER}
+/** The bundled fonts as base64 woff2 (packages/ui/src/fonts/, SIL Open Font License). */
+export const FONT_FILES = ${json(FONTS.map(f => ({ family: f.family, weight: f.weight, file: f.file, woff2: readFileSync(join(ui, 'fonts', f.file)).toString('base64') })))} as const;
+`);
+for (const f of FONTS) copy(join(ui, 'fonts', f.file), join(root, 'packages/extension/public/fonts', f.file));
 
 // --- Extension icons (brand/favicon/), and the logo for its help page
 copy(join(brand, 'favicon/icon-192.png'), join(root, 'packages/extension/public/icon/192.png'));

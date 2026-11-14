@@ -4,3 +4,6 @@ export * from './mascot/mascot.js';
 export * from './components.js';
 export { BASE_CSS, COMPONENTS_CSS, UI_CSS } from './styles.js';
 export { COPY } from './copy.js';
+export * from './icons.js';
+export * from './icon.js';
+export { loadFonts, FONT_FAMILIES } from './fonts.js';

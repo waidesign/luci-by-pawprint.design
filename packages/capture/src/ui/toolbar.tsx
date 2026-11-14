@@ -14,8 +14,11 @@ import { elementName } from '../naming.js';
 import { elementAt, eligibilityOf, eventTarget, firstChildOf, hoverLabel, parentOf, scrollableAncestor } from './picker.js';
 import { ButtonSpinner, Loading, nextPaint } from './loading.js';
 import { ModeSwitch, type ModeSwitchProps } from './modeSwitch.js';
-import { COPY, EmptyState } from '@luci/ui';
-import { AppearanceControls, BasketIcon, CopyIcon, DownloadIcon, LuciLogo, PickAgainIcon, useUiPrefs } from './theme.js';
+import {
+  Button, COPY, EmptyState, Icon, IconBasket, IconCheck, IconClose, IconColour, IconComponent, IconCopy, IconDownload, IconInfo, IconPage,
+  IconSpacing, IconSuccess, IconText, Mascot, type LucideIcon
+} from '@luci/ui';
+import { AppearanceControls, LuciLogo, useUiPrefs } from './theme.js';
 import { zip } from './zip.js';
 import { CheckResultPanel, DesignChooser, type AddCheckNotes, type DesignSource } from './check.js';
 import {
@@ -145,10 +148,10 @@ const checked = (s: ComponentCapture['states'][number]) => !s.detected && (s.met
 const missingStates = (states: ComponentCapture['states']): StateName[] => states.filter(s => !s.detected && !checked(s) && s.state !== 'disabled').map(s => s.state);
 /** How to put a component in each state, shown during the countdown. */
 const STATE_HOW: Readonly<Record<StateName, string>> = {
-  hover: 'move the pointer onto it',
-  focus: 'click into it, or press Tab until it is focused',
-  'focus-visible': 'press Tab until it is focused',
-  active: 'press and hold the mouse button on it',
+  hover: 'point at it',
+  focus: 'click into it, or Tab to it',
+  'focus-visible': 'Tab to it',
+  active: 'press and hold it',
   disabled: 'disable it'
 };
 const STATE_SECONDS = 3;
@@ -164,21 +167,52 @@ const DRAG_PX = 6;
 
 /** What to do with each tool, shown under the bar while it is picking. */
 export const TOOL_HINTS: Readonly<Record<ToolId, string>> = {
-  component: 'Hover a button, card, link or field, and click it.',
-  text: 'Hover any text (a heading, paragraph, link or label), and click it.',
-  color: 'Click an element to take its color, or switch to Pixel to pick any spot on the page.',
-  spacing: 'Click an element for its padding, margin or gap, or drag from one element to another to measure the distance.'
+  component: 'Click a button, card, link or field.',
+  text: 'Click any text.',
+  color: 'Click an element. Or switch to Pixel for any spot.',
+  spacing: 'Click for padding, margin and gap. Drag between two elements to measure.'
 };
 
 /** What each output gives, shown with the two buttons after a pick. */
 export const OUTPUT_HINTS: Readonly<Record<ToolId, { one: string; system: string }>> = {
-  component: { one: 'this component: its parts, tokens and states', system: 'this component plus every variant of it on the page' },
-  text: { one: 'this text style', system: 'every text style on the page, grouped into roles' },
-  color: { one: 'this color and where it is used', system: 'every color on the page, grouped by role' },
-  spacing: { one: 'every padding, margin and gap of this element, or the one value you choose', system: 'the page\'s spacing scale, base unit and outliers' }
+  component: { one: 'its parts, tokens and states', system: 'it, plus every variant on the page' },
+  text: { one: 'this text style', system: 'every text style, grouped by role' },
+  color: { one: 'this colour and where it is used', system: 'every colour, grouped by role' },
+  spacing: { one: 'its padding, margin and gap, or one value', system: 'the page\'s scale, base unit and outliers' }
 };
 /** "This section" (v0.2), for the Component tool. */
-export const SECTION_HINT = 'its layout in one file, and each kind of component in it in its own file (pick the section with ↑ Wider)';
+export const SECTION_HINT = 'its layout, plus one file per kind of component in it. ↑ Wider takes the whole section';
+/** Pixel mode's loupe: 15 × 15 pixels around the pointer, each drawn 8 px. */
+const LOUPE_CELLS = 15;
+const LOUPE_ZOOM = 8;
+const LOUPE_PX = LOUPE_CELLS * LOUPE_ZOOM;
+
+function Loupe(props: { shot: { ctx: CanvasRenderingContext2D; scale: number }; x: number; y: number; hex: string; left: number; top: number }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useLayoutEffect(() => {
+    const c = ref.current;
+    const g = c?.getContext('2d');
+    if (!c || !g) return;
+    c.width = LOUPE_PX;
+    c.height = LOUPE_PX;
+    g.imageSmoothingEnabled = false;
+    const half = Math.floor(LOUPE_CELLS / 2);
+    const sx = Math.floor(props.x * props.shot.scale) - half;
+    const sy = Math.floor(props.y * props.shot.scale) - half;
+    g.clearRect(0, 0, LOUPE_PX, LOUPE_PX);
+    g.drawImage(props.shot.ctx.canvas, sx, sy, LOUPE_CELLS, LOUPE_CELLS, 0, 0, LOUPE_PX, LOUPE_PX);
+    // Frame the picked pixel in whichever of Charcoal or Muzzle White stands out on it
+    const [r, gr, b] = [1, 3, 5].map(i => parseInt(props.hex.slice(i, i + 2), 16));
+    const light = 0.2126 * r! + 0.7152 * gr! + 0.0722 * b! > 140;
+    g.lineWidth = 2;
+    g.strokeStyle = getComputedStyle(c).getPropertyValue(light ? '--luci-color-muzzle-900' : '--luci-color-muzzle-50').trim();
+    g.strokeRect(half * LOUPE_ZOOM + 1, half * LOUPE_ZOOM + 1, LOUPE_ZOOM - 2, LOUPE_ZOOM - 2);
+  }, [props.x, props.y, props.hex, props.shot]);
+  return <canvas ref={ref} class="loupe" data-part="pixel-loupe" aria-hidden="true" style={{ left: `${props.left}px`, top: `${props.top}px` }} />;
+}
+
+/** Each tool's icon in the toolbar (brand/luci-icons.json). */
+const TOOL_ICONS: Readonly<Record<ToolId, LucideIcon>> = { component: IconComponent, text: IconText, color: IconColour, spacing: IconSpacing };
 const px = (v: string) => parseFloat(v) || 0;
 
 function entryFor(live: LiveSnapshot, el: Element): ElementSnapshot | null {
@@ -934,6 +968,11 @@ export function Toolbar(props: ToolbarProps) {
     }
   };
 
+  // First run: Luci greets once, until the first tool or panel is opened (BRAND.md: first run, slow blink)
+  const idle = !settingsOpen && !basketOpen && !picking && !picked && !result && !pageBusy && !checkOpen && !pixelMode && !dropperOpen;
+  const greeting = idle && !uiPrefs.greeted;
+  useEffect(() => { if (!idle && !uiPrefs.greeted) setUiPrefs({ greeted: true }); }, [idle]);
+
   const hovered = picking ? candidate : null;
   const hoverElig = hovered ? eligibilityOf(hovered) : null;
   const rect = hovered?.getBoundingClientRect();
@@ -942,49 +981,56 @@ export function Toolbar(props: ToolbarProps) {
   return (
     <div class="luci luci-theme" data-theme={uiPrefs.theme} data-dock={uiPrefs.dock}>
       <div class="shell" data-part="shell">
-        <div class={props.modes ? 'header compact' : 'header'} data-part="header">
-          {props.modes ? (
-            <div class="brand-row">
-              <LuciLogo compact />
-              <span class="brand" data-part="brand-title">Luci</span>
-              <ModeSwitch {...props.modes} />
-            </div>
-          ) : (
-            <div class="brand-row">
-              <LuciLogo />
-              <div class="brand-stack">
-                <div class="brand-title-line">
-                  <span class="brand-title" data-part="brand-title">DESIGN.md Extractor</span>
-                  <span class="brand-sub" data-part="brand-sub">by Luci</span>
-                </div>
-                <span class="brand-desc">Component-level DESIGN.md extractor to connect with Luci's agentic workflow for design & front-end development.</span>
-              </div>
-            </div>
-          )}
-          <div class="header-actions">
-            {!props.modes && <span class="badge" data-part="version">v0.3.0</span>}
-            <button type="button" class="btn-icon" aria-pressed={settingsOpen} aria-label="Settings" title="Settings & appearance" data-action="settings" onClick={() => setSettingsOpen(s => !s)}>⚙</button>
-            {props.onHelp && <button type="button" class="btn-icon" aria-label="How to use Luci" title="How to use Luci" data-action="help" onClick={props.onHelp}>?</button>}
-            <button type="button" class="btn-icon" aria-label="Close Luci" title="Close Luci" data-action="close" onClick={props.onClose}>×</button>
-          </div>
+        <div class="bar" role="toolbar" aria-label={props.modes ? COPY.capture.devTitle : COPY.capture.title}>
+          <button type="button" class="menu-btn" data-action="settings" aria-label={COPY.common.menu} aria-pressed={settingsOpen} data-tip={COPY.common.menu}
+            onClick={() => setSettingsOpen(s => !s)}><LuciLogo size={48} /></button>
+          {props.modes && <ModeSwitch {...props.modes} />}
+          <span class="bar-sep" aria-hidden="true" />
+          {TOOLS.map(t => (
+            <Button iconOnly size="lg" class="tool" icon={TOOL_ICONS[t]} label={COPY.capture.tools[t]} data-tool={t}
+              aria-pressed={!checking && !basketOpen && !settingsOpen && tool === t && (picking || dropperOpen || Boolean(picked) || Boolean(result))}
+              onClick={() => { setCheckDesign(null); startPicking(t); }} />
+          ))}
+          <Button iconOnly size="lg" class="tool" icon={IconPage} label={COPY.capture.tools.page} data-action="whole-page"
+            aria-pressed={wholePage && !basketOpen && !settingsOpen && (pageBusy || Boolean(result))} onClick={captureWholePage} />
+          <Button iconOnly size="lg" class="tool" icon={IconCheck} label={COPY.capture.tools.check} data-action="check"
+            aria-pressed={checking && !basketOpen && !settingsOpen} onClick={openCheck} />
+          <span class="bar-sep" aria-hidden="true" />
+          <button type="button" class="basket-pill" data-action="basket" aria-pressed={basketOpen && !settingsOpen} aria-label={COPY.capture.basketLabel(basket.length)}
+            onClick={() => { setSettingsOpen(false); if (basketOpen) setBasketOpen(false); else openBasket(); }}>
+            <Icon icon={IconBasket} />{COPY.capture.basket(basket.length)}
+          </button>
+          <Button iconOnly size="lg" class="tool" icon={IconClose} label={COPY.common.close} data-action="close" onClick={props.onClose} />
         </div>
 
-        <div class="bar" role="toolbar" aria-label="Luci capture">
-          {TOOLS.map(t => (
-            <button type="button" aria-pressed={!checking && !basketOpen && !settingsOpen && tool === t && (picking || dropperOpen || Boolean(picked) || Boolean(result))} data-tool={t} onClick={() => { setCheckDesign(null); startPicking(t); }}>{TOOL_LABELS[t]}</button>
-          ))}
-          <button type="button" aria-pressed={wholePage && !basketOpen && !settingsOpen && (pageBusy || Boolean(result))} data-action="whole-page" title="One file for this whole page: its typography, colors, spacing and every kind of component" onClick={captureWholePage}>Whole page</button>
-          <button type="button" aria-pressed={checking && !basketOpen && !settingsOpen} data-action="check" title="Check a component you built against its design file" onClick={openCheck}>Check</button>
-          <button type="button" aria-pressed={basketOpen && !settingsOpen} data-action="basket" onClick={() => { setSettingsOpen(false); if (basketOpen) setBasketOpen(false); else openBasket(); }}>Basket ({basket.length})</button>
-        </div>
+        {greeting && (
+          <div class="panel greet" role="status" data-part="greeting">
+            <Mascot pose="hello" size={96} />
+            <div class="stack">
+              <p class="t-title">{COPY.capture.greeting.title}</p>
+              <p class="hint">{COPY.capture.greeting.body}</p>
+            </div>
+          </div>
+        )}
 
         {settingsOpen && (
-          <div class="panel" role="dialog" aria-label="Settings" data-part="settings">
-            <h2>Settings</h2>
+          <div class="panel" role="dialog" aria-label={COPY.common.menu} data-part="settings">
+            <div class="menu-head">
+              <Mascot pose="sit" size={96} />
+              <div class="brand-stack">
+                <div class="brand-title-line">
+                  <span class="brand-title" data-part="brand-title">{props.modes ? COPY.capture.devTitle : COPY.capture.title}</span>
+                  <span class="brand-sub" data-part="brand-sub">{props.modes ? COPY.capture.devByline : COPY.capture.byline}</span>
+                </div>
+                <p class="brand-desc">{props.modes ? COPY.capture.devDescription : COPY.capture.description}</p>
+                {props.onHelp && <div class="row"><Button variant="secondary" icon={IconInfo} data-action="help" onClick={props.onHelp}>{COPY.common.help}</Button></div>}
+              </div>
+            </div>
+            <hr class="settings-divider" />
             <AppearanceControls prefs={uiPrefs} onChange={setUiPrefs} />
             <hr class="settings-divider" />
             <div class="stack">
-              <span class="field-label">Default export format</span>
+              <span class="field-label">Default file format</span>
               <div class="settings-grid">
                 <label class="field-stack">
                   <span class="dim">Units</span>
@@ -993,12 +1039,12 @@ export function Toolbar(props: ToolbarProps) {
                   </select>
                 </label>
                 <label class="field-stack">
-                  <span class="dim">Colors</span>
+                  <span class="dim">Colours</span>
                   <select data-setting="colors" value={settings.colors ?? 'hex'} onChange={e => changeSettings({ ...settings, colors: (e.currentTarget as HTMLSelectElement).value as 'hex' })}>
                     <option value="hex">hex</option><option value="rgb">rgb</option><option value="hsl">hsl</option><option value="oklch">oklch</option>
                   </select>
                 </label>
-                <label class="field-stack" title="What the file's source line says: the page's address, or only the site's name">
+                <label class="field-stack" title="The file's source line: the page address, or only the site name">
                   <span class="dim">Source</span>
                   <select data-setting="source" value={settings.source ?? 'page'} onChange={e => changeSettings({ ...settings, source: (e.currentTarget as HTMLSelectElement).value as 'page' })}>
                     <option value="page">page address</option><option value="site">site name only</option>
@@ -1008,21 +1054,21 @@ export function Toolbar(props: ToolbarProps) {
             </div>
             <hr class="settings-divider" />
             <div class="stack">
-              <span class="field-label">Quick keys</span>
+              <span class="field-label">Keys</span>
               <div class="shortcut-list">
                 <span><kbd class="kbd">↑</kbd> <kbd class="kbd">↓</kbd></span>
-                <span class="dim">Widen to parent element or narrow to child</span>
+                <span class="dim">Wider or narrower selection</span>
                 <span><kbd class="kbd">Enter</kbd></span>
-                <span class="dim">Pick hovered element or capture This one</span>
+                <span class="dim">Pick, then take This one</span>
                 <span><kbd class="kbd">Esc</kbd></span>
-                <span class="dim">Stop picking or close active panel</span>
+                <span class="dim">Stop picking, or close the panel</span>
               </div>
             </div>
           </div>
         )}
 
         {!settingsOpen && pageBusy && !basketOpen && (
-          <div class="panel"><Loading sleep text="Reading the whole page: text, colors, spacing and components…" step={pageStep} /></div>
+          <div class="panel"><Loading sleep text={COPY.capture.readingPage} step={pageStep} /></div>
         )}
 
         {!settingsOpen && basketOpen && (
@@ -1032,9 +1078,11 @@ export function Toolbar(props: ToolbarProps) {
                 <h2>{basketExport.title}</h2>
                 <div class="file" data-part="file-name">{exported.fileName}</div>
                 <pre data-part="preview">{exported.markdown}</pre>
-                <div class="row">
-                  <button type="button" class="btn-primary btn-with-ico" data-action="copy" onClick={() => void copyText(exported.markdown)}><CopyIcon copied={copied} />{copied ? 'Copied' : 'Copy'}</button>
-                  <button type="button" class="btn-secondary btn-with-ico" data-action="download" onClick={() => downloadText(exported.fileName, exported.markdown)}><DownloadIcon />Download .design.md</button>
+                <div class="row actions">
+                  <Button variant="primary" size="md" iconOnly tipAbove icon={copied ? IconSuccess : IconCopy} label={copied ? COPY.common.copied : COPY.capture.actions.copy}
+                    data-action="copy" onClick={() => void copyText(exported.markdown)} />
+                  <Button variant="secondary" size="md" iconOnly tipAbove icon={IconDownload} label={COPY.capture.actions.download} data-action="download"
+                    onClick={() => downloadText(exported.fileName, exported.markdown)} />
                   {props.saveToProject && <SaveButton save={() => props.saveToProject!(exported.fileName, exported.markdown)} key={exported.fileName} />}
                   <button type="button" class="btn-secondary" data-action="basket-back" onClick={() => { setBasketExport(null); setCopied(false); }}>Back to the basket</button>
                 </div>
@@ -1051,7 +1099,7 @@ export function Toolbar(props: ToolbarProps) {
                         <input type="text" aria-label="Name" data-item-name value={item.name}
                           onChange={e => saveBasket(renameInBasket(basket, item.id, (e.currentTarget as HTMLInputElement).value))} />
                         <span class="meta">{groupOf(item.capture)} · {sourceLabel(item)}</span>
-                        <textarea data-item-note aria-label={`Note for your agent about ${item.name}`} placeholder="Note for your agent (optional): what to use it for, what to change" value={item.capture.instructions ?? ''}
+                        <textarea data-item-note aria-label={`Note for your agent about ${item.name}`} placeholder="Note for your agent (optional). What to use it for, what to change." value={item.capture.instructions ?? ''}
                           onChange={e => saveBasket(noteInBasket(basket, item.id, (e.currentTarget as HTMLTextAreaElement).value))} />
                         <span class="row">
                           <button type="button" class="btn-secondary" data-item-export onClick={() => setBasketExport({ title: item.name, item })}>Export</button>
@@ -1063,7 +1111,7 @@ export function Toolbar(props: ToolbarProps) {
                 )}
                 {mergeable.length > 0 && (
                   <div class="stack" data-part="merge">
-                    <span class="dim">Systems from more than one page of a site can become one site-level system: {mergeable.map(g => `${g.type} from ${g.pages.length} pages of ${g.site}`).join(', ')}. Rows say which pages use them; values that differ between pages are listed as conflicts.</span>
+                    <span class="dim">One site, several pages: {mergeable.map(g => `${g.type} from ${g.pages.length} pages of ${g.site}`).join(', ')}. Merge them into one site file. Each row says which pages use it; values that differ are listed as conflicts.</span>
                     <span class="row"><button type="button" class="btn-secondary" data-action="merge-systems" onClick={mergeSystemsNow}>Merge into site system{mergeable.length === 1 ? '' : 's'} ({mergeable.length})</button></span>
                   </div>
                 )}
@@ -1080,20 +1128,23 @@ export function Toolbar(props: ToolbarProps) {
         )}
 
         {!settingsOpen && (picking || dropperOpen || pixelMode) && tool && (
-          <div class="sub" data-part="tool-hint" role="note">
-            {tool === 'color' && (
-              <div class="seg" role="group" aria-label="Pick a color from">
-                <button type="button" aria-pressed={!dropperOpen && !pixelMode} data-color-mode="element" onClick={() => { setPixelMode(false); startPicking('color'); }}>Element</button>
-                <button type="button" aria-pressed={dropperOpen || pixelMode} data-color-mode="pixel" data-action="eyedropper" disabled={!canPickPixels}
-                  title={canPickPixels ? 'Pick any spot on the page' : 'This browser cannot pick pixels. Click an element instead.'} onClick={() => void startPixel()}>Pixel</button>
-              </div>
-            )}
-            <p class="hint" data-part="hint">
-              {pixelMode ? 'Hover the page to see the color under the pointer, and click to pick it. Over Luci\'s own panels nothing is picked.'
-                : checkDesign ? `Click the component you built, to check it against ${checkDesign.label}.`
-                : `${TOOL_HINTS[tool]}${tool === 'color' && !canPickPixels ? ' (This browser cannot pick pixels.)' : ''}`}
-            </p>
-            <p class="keys">{pixelMode ? 'Esc goes back to Element' : 'After clicking, you can make the selection wider or narrower · Esc cancels'}</p>
+          <div class={tool === 'spacing' && !pixelMode ? 'sub with-luci' : 'sub'} data-part="tool-hint" role="note">
+            {tool === 'spacing' && !pixelMode && <Mascot pose="measure" size={96} />}
+            <div class="sub-body">
+              {tool === 'color' && (
+                <div class="seg" role="group" aria-label="Pick a colour from">
+                  <button type="button" aria-pressed={!dropperOpen && !pixelMode} data-color-mode="element" onClick={() => { setPixelMode(false); startPicking('color'); }}>Element</button>
+                  <button type="button" aria-pressed={dropperOpen || pixelMode} data-color-mode="pixel" data-action="eyedropper" disabled={!canPickPixels}
+                    title={canPickPixels ? 'Pick any spot on the page' : 'This browser cannot pick pixels. Click an element instead.'} onClick={() => void startPixel()}>Pixel</button>
+                </div>
+              )}
+              <p class="hint" data-part="hint">
+                {pixelMode ? 'Point at any spot. Click to take its colour.'
+                  : checkDesign ? `Click the component you built. Luci checks it against ${checkDesign.label}.`
+                  : `${TOOL_HINTS[tool]}${tool === 'color' && !canPickPixels ? ' This browser cannot pick pixels.' : ''}`}
+              </p>
+              <p class="keys">{pixelMode ? 'Esc: back to Element' : '↑ ↓ after clicking: wider or narrower · Esc: stop'}</p>
+            </div>
           </div>
         )}
 
@@ -1130,9 +1181,9 @@ export function Toolbar(props: ToolbarProps) {
               <div class="row">
                 <button type="button" class="btn-secondary" data-action="widen" disabled={!widerOf(picked.el)} onClick={widen} title="Select the element around this one (↑)">↑ Wider</button>
                 <button type="button" class="btn-secondary" data-action="narrow" disabled={!narrowerOf(picked.el)} onClick={narrow} title="Select the element inside this one (↓)">↓ Narrower</button>
-                <span class="dim">or use the ↑ ↓ keys</span>
+                <span class="dim">or ↑ ↓</span>
               </div>
-              {picked.eligibility.status !== 'allowed' && <p class="error" data-part="notice">{picked.eligibility.reason} Make the selection wider or narrower.</p>}
+              {picked.eligibility.status !== 'allowed' && <p class="error" data-part="notice">{picked.eligibility.reason} Go wider or narrower.</p>}
               {busy ? <Loading text={busy} /> : (
                 <>
                   <div class="row">
@@ -1151,16 +1202,16 @@ export function Toolbar(props: ToolbarProps) {
           <div class="panel" role="dialog" aria-label="Capture">
             <div class="selected-card">
               <div class="selected-head">
-                <h2>Selected item · <span data-part="selected-name">{elementName(picked.entry.tag, picked.entry.role)}</span></h2>
+                <h2>Selected · <span data-part="selected-name">{elementName(picked.entry.tag, picked.entry.role)}</span></h2>
                 <span class="dim">{Math.round(picked.el.getBoundingClientRect().width)} × {Math.round(picked.el.getBoundingClientRect().height)}</span>
               </div>
               <div class="row">
                 <button type="button" class="btn-secondary" data-action="widen" disabled={!widerOf(picked.el)} onClick={widen} title="Select the element around this one (↑)">↑ Wider</button>
                 <button type="button" class="btn-secondary" data-action="narrow" disabled={!narrowerOf(picked.el)} onClick={narrow} title="Select the element inside this one (↓)">↓ Narrower</button>
-                <span class="dim">or use the ↑ ↓ keys</span>
+                <span class="dim">or ↑ ↓</span>
               </div>
               {picked.eligibility.status === 'redirected' && <p class="hint">{picked.eligibility.reason}</p>}
-              {picked.eligibility.status === 'blocked' && <p class="error" data-part="notice">{picked.eligibility.reason} Make the selection wider or narrower.</p>}
+              {picked.eligibility.status === 'blocked' && <p class="error" data-part="notice">{picked.eligibility.reason} Go wider or narrower.</p>}
               {tool === 'spacing' && picked.eligibility.status === 'allowed' && spacingChoices(picked.entry).length > 1 && (
                 <div class="row">
                   <button type="button" class="btn-secondary" aria-pressed={choice === ALL_SPACING} data-choice="all" onClick={() => setChoice(ALL_SPACING)}>All ({spacingChoices(picked.entry).length})</button>
@@ -1202,11 +1253,11 @@ export function Toolbar(props: ToolbarProps) {
                 <div class="panel-body">
                   <div class="file-row">
                     <div class="file" data-part="file-name">{result.output.fileName}</div>
-                    <span class="scope-pill">{result.output.capture.meta.scope}</span>
+                    <span class="scope-pill badge">{result.output.capture.meta.scope}</span>
                   </div>
                   {sectionFiles.length > 0 && (
                     <div class="stack" data-part="section-files">
-                      <span class="dim">With {sectionFiles.length} component file{sectionFiles.length === 1 ? '' : 's'}, each described once (the section file places them):</span>
+                      <span class="dim">Plus {sectionFiles.length} component file{sectionFiles.length === 1 ? '' : 's'}, each described once. The section file places them.</span>
                       <ul class="files">
                         {sectionFiles.map(f => (
                           <li data-file={f.fileName}><code>{f.fileName}</code> <button type="button" class="btn-secondary" data-file-view onClick={() => setViewFile(f)}>View</button></li>
@@ -1228,12 +1279,12 @@ export function Toolbar(props: ToolbarProps) {
                       </select>
                     </label>
                     <label class="field-stack">
-                      <span class="field-label">Colors</span>
+                      <span class="field-label">Colours</span>
                       <select data-setting="colors" value={settings.colors ?? 'hex'} onChange={e => changeSettings({ ...settings, colors: (e.currentTarget as HTMLSelectElement).value as 'hex' })}>
                         <option value="hex">hex</option><option value="rgb">rgb</option><option value="hsl">hsl</option><option value="oklch">oklch</option>
                       </select>
                     </label>
-                    <label class="field-stack" title="What the file's source line says: the page's address, or only the site's name">
+                    <label class="field-stack" title="The file's source line: the page address, or only the site name">
                       <span class="field-label">Source</span>
                       <select data-setting="source" value={settings.source ?? 'page'} onChange={e => changeSettings({ ...settings, source: (e.currentTarget as HTMLSelectElement).value as 'page' })}>
                         <option value="page">page address</option><option value="site">site name only</option>
@@ -1247,12 +1298,12 @@ export function Toolbar(props: ToolbarProps) {
                       <div class="stack" data-part="states-summary">
                         <span class="field-label">States in this file</span>
                         <div class="states-list">
-                          <span class="state default detected" data-state="default" title="Default resting state">Default ✓</span>
+                          <span class="state default detected" data-state="default" title="Resting state">Default ✓</span>
                           {componentCtx.states.map(s => (
                             <span class={s.detected ? 'state detected' : 'state missing'} data-state={s.state}
-                              title={s.detected ? (s.trigger ? `In the file: triggered by the ${s.trigger.element} around it` : 'In the file')
-                                : checked(s) ? 'Luci checked this state in the browser: nothing changes.'
-                                : 'Not detected: it may change through JavaScript. Capture it by hand below.'}>
+                              title={s.detected ? (s.trigger ? `In the file. Set by the ${s.trigger.element} around it.` : 'In the file.')
+                                : checked(s) ? 'Checked in the browser. Nothing changes.'
+                                : 'Not detected. It may change through JavaScript. Capture it by hand below.'}>
                               {s.state} {s.detected ? `✓${s.trigger ? ` (via ${s.trigger.element.split(' ')[0]})` : ''}` : checked(s) ? '– no change' : '– not detected'}
                             </span>
                           ))}
@@ -1262,15 +1313,15 @@ export function Toolbar(props: ToolbarProps) {
                       {countdown !== null && capturing ? (
                         <div class="row">
                           <p class="hint" data-part="countdown">
-                            {capturing.total > 1 ? `${capturing.index} of ${capturing.total}: ` : ''}Put the component in its <strong>{capturing.state}</strong> state now ({STATE_HOW[capturing.state]}). Capturing in {countdown}…
+                            {capturing.total > 1 ? `${capturing.index} of ${capturing.total}: ` : ''}Put it in its <strong>{capturing.state}</strong> state now ({STATE_HOW[capturing.state]}). Capturing in {countdown}…
                           </p>
                           <button type="button" class="btn-secondary" data-action="cancel-capture" onClick={cancelCapture}>Stop</button>
                         </div>
                       ) : (
                         <div class="manual-row">
                           <div class="section-copy">
-                            <label class="field-label" for="luci-manual-state">Capture manually</label>
-                            <span class="dim">Trigger hover, focus or active yourself during a 3s countdown.</span>
+                            <label class="field-label" for="luci-manual-state">Capture by hand</label>
+                            <span class="dim">Set hover, focus or active yourself. 3 second countdown.</span>
                           </div>
                           <div class="manual-actions">
                             <select id="luci-manual-state" data-setting="manual-state" value={manualTarget} onChange={e => setManualTarget((e.currentTarget as HTMLSelectElement).value as ManualTarget)}>
@@ -1289,11 +1340,11 @@ export function Toolbar(props: ToolbarProps) {
                       {widthBusy ? <Loading text={widthBusy} /> : (
                         <div class="manual-row">
                           <div class="section-copy">
-                            <span class="field-label">Responsive breakpoints</span>
-                            {!widthNote && <span class="dim">{responsiveRef.current ? 'In the file under Responsive.' : 'At the site\'s own breakpoints, 2 or 3 widths.'}</span>}
+                            <span class="field-label">Breakpoints</span>
+                            {!widthNote && <span class="dim">{responsiveRef.current ? 'In the file, under Responsive.' : 'The site\'s own breakpoints. 2 or 3 widths.'}</span>}
                           </div>
                           <div class="manual-actions">
-                            <button type="button" class="btn-secondary" data-action="responsive" title="Read it at the widths where the site's media queries change it (2 or 3), and add what changes to the file"
+                            <button type="button" class="btn-secondary" data-action="responsive" title="Read it at the widths where the site's media queries change it, and add the changes to the file"
                               onClick={() => void addResponsive()}>{responsiveRef.current ? 'Read the widths again' : 'How it changes by width'}</button>
                           </div>
                         </div>
@@ -1303,43 +1354,48 @@ export function Toolbar(props: ToolbarProps) {
                   )}
                   <hr class="settings-divider" />
                   <label class="field-stack">
-                    <span class="field-label">Your instructions for agent <span class="dim">(optional)</span></span>
+                    <span class="field-label">Note for your agent <span class="dim">(optional)</span></span>
                     <textarea data-part="instructions" rows={2} value={instructions}
-                      placeholder="e.g. Use this as our primary button, but with our brand blue #1d4ed8 and a 12px radius."
+                      placeholder="e.g. Use this as our primary button, with our brand blue #1d4ed8 and a 12px radius."
                       onInput={e => changeInstructions((e.currentTarget as HTMLTextAreaElement).value)} />
                   </label>
                 </div>
 
                 <div class="md-section">
                   <div class="md-head">
-                    <span class="md-title">Extracted .md <span class="dim">(can be edited)</span></span>
+                    <span class="md-title">The file <span class="dim">(you can edit it)</span></span>
                     {edited !== null && (
                       <span class="row">
-                        <span class="dim" data-part="edited-note">Edited by hand: the unit and color settings no longer change it.</span>
+                        <span class="dim" data-part="edited-note">Edited by hand. Units and colours no longer change it.</span>
                         <button type="button" class="btn-danger" data-action="undo-edits" onClick={() => setEdited(null)}>Undo my edits</button>
                       </span>
                     )}
                   </div>
                   <textarea class="preview" data-part="preview" spellcheck={false} value={markdown}
                     onInput={e => { setEdited((e.currentTarget as HTMLTextAreaElement).value); setCopied(false); }} />
-                  <div class="row">
-                    <button type="button" class="btn-primary btn-with-ico" data-action="copy" onClick={copy}><CopyIcon copied={copied} />{copied ? 'Copied' : sectionFiles.length ? 'Copy section file' : 'Copy'}</button>
+                  <div class="row actions">
+                    <Button variant="primary" size="md" iconOnly tipAbove icon={copied ? IconSuccess : IconCopy} data-action="copy" onClick={copy}
+                      label={copied ? COPY.common.copied : sectionFiles.length ? COPY.capture.actions.copySection : COPY.capture.actions.copy} />
                     {sectionFiles.length
-                      ? <button type="button" class="btn-secondary btn-with-ico" data-action="download-zip" title="The section file and its component files in one .zip" onClick={downloadZip}><DownloadIcon />Download .zip ({sectionFiles.length + 1} files)</button>
-                      : <button type="button" class="btn-secondary btn-with-ico" data-action="download" onClick={download}><DownloadIcon />Download</button>}
+                      ? <Button variant="secondary" size="md" iconOnly tipAbove icon={IconDownload} data-action="download-zip" onClick={downloadZip} label={COPY.capture.actions.downloadZip(sectionFiles.length + 1)} />
+                      : <Button variant="secondary" size="md" iconOnly tipAbove icon={IconDownload} data-action="download" onClick={download} label={COPY.capture.actions.download} />}
+                    <Button variant="secondary" size="md" iconOnly tipAbove icon={added ? IconSuccess : IconBasket} data-action="add-to-basket"
+                      label={added ? COPY.capture.actions.inBasket : COPY.capture.actions.addToBasket} onClick={() => { if (added) openBasket(); else void addCurrent(); }} />
+                    {tool && <Button variant="secondary" size="md" iconOnly tipAbove icon={TOOL_ICONS[tool]} data-action="pick-again" label={COPY.capture.actions.pickAgain} onClick={() => startPicking(tool)} />}
                     {props.saveToProject && output && <SaveButton save={saveAll} key={output.fileName} />}
                     {props.makeRule && output && output.capture.meta.scope === 'component' && (
                       <RuleButton make={() => props.makeRule!(output.fileName, markdown)} key={`rule ${output.fileName}`} />
                     )}
-                    <button type="button" class="btn-secondary btn-with-ico" data-action="add-to-basket" onClick={() => { if (added) openBasket(); else void addCurrent(); }}><BasketIcon added={added} />{added ? 'View in Basket' : 'Add to basket'}</button>
-                    {tool && <button type="button" class="btn-secondary btn-with-ico" data-action="pick-again" onClick={() => startPicking(tool)}><PickAgainIcon />Pick again</button>}
                   </div>
                 </div>
               </>
             ) : (
               <>
-                <p class="error" data-part="error">{result.message}</p>
-                {tool && <div class="row"><button type="button" class="btn-secondary btn-with-ico" data-action="pick-again" onClick={() => startPicking(tool)}><PickAgainIcon />Pick again</button></div>}
+                <div class="greet">
+                  <Mascot pose="annoyed" size={96} />
+                  <p class="error" data-part="error">{result.message}</p>
+                </div>
+                {tool && <div class="row"><Button variant="secondary" icon={TOOL_ICONS[tool]} data-action="pick-again" onClick={() => startPicking(tool)}>{COPY.capture.actions.pickAgain}</Button></div>}
               </>
             )}
           </div>
@@ -1363,11 +1419,19 @@ export function Toolbar(props: ToolbarProps) {
             onPointerMove={e => setPixelHover(samplePixel(e.clientX, e.clientY))}
             onPointerLeave={() => setPixelHover(null)}
             onClick={e => pickPixelAt(e.clientX, e.clientY)} />
-          {pixelHover && (
-            <div class="swatch" data-part="pixel-swatch" style={{ top: `${Math.min(pixelHover.y + 18, win.innerHeight - 40)}px`, left: `${Math.min(pixelHover.x + 18, win.innerWidth - 140)}px` }}>
-              <span class="chip" style={{ background: pixelHover.hex }} />{pixelHover.hex}
-            </div>
-          )}
+          {pixelHover && shot.current && (() => {
+            // The loupe and the hex sit below and right of the pointer, or flip to stay in the window
+            const left = pixelHover.x + 20 + LOUPE_PX > win.innerWidth ? pixelHover.x - 20 - LOUPE_PX : pixelHover.x + 20;
+            const top = pixelHover.y + 20 + LOUPE_PX + 36 > win.innerHeight ? pixelHover.y - 20 - LOUPE_PX - 36 : pixelHover.y + 20;
+            return (
+              <>
+                <Loupe shot={shot.current} x={pixelHover.x} y={pixelHover.y} hex={pixelHover.hex} left={left} top={top} />
+                <div class="swatch" data-part="pixel-swatch" style={{ top: `${top + LOUPE_PX + 8}px`, left: `${left + LOUPE_PX / 2 - 52}px` }}>
+                  <span class="chip" style={{ background: pixelHover.hex }} />{pixelHover.hex}
+                </div>
+              </>
+            );
+          })()}
         </>
       )}
 

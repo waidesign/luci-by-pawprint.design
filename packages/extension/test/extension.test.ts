@@ -151,7 +151,7 @@ describe.runIf(process.env['LUCI_EXTENSION_E2E'] === '1')('extension in Chromium
       const urlB = `${other.origin}/utility/`;
       await b.goto(urlB);
       await inject(urlB);
-      await expect.poll(() => b.locator('[data-action="basket"]').innerText()).toBe('Basket (1)');
+      await expect.poll(() => b.locator('[data-action="basket"]').innerText()).toBe('Basket 1');
       await b.click('[data-action="basket"]');
       await b.click('[data-action="clear-basket"]');
       await b.click('[data-action="clear-basket-confirm"]');

@@ -328,6 +328,9 @@ importers:
 
   packages/ui:
     dependencies:
+      lucide-preact:
+        specifier: 1.72.0
+        version: 1.72.0(preact@10.29.8)
       preact:
         specifier: 10.29.8
         version: 10.29.8
@@ -1445,6 +1448,11 @@ packages:
 
   lodash.merge@4.6.2:
     resolution: {integrity: sha512-0KpjqXRVvrYyCsX1swR/XTK0va6VQkQM6MNo7PqW77ByjAhoARA8EfrP1N4+KlKj8YS0ZUCtRT/YUuhyYDujIQ==}
+
+  lucide-preact@1.72.0:
+    resolution: {integrity: sha512-VgfNlXjlv24CBcuydAByLXiOBA3SjGg5Sn/oCndq+FHQ8q2TDQ3jNV7AtdK2br34aGclukSuO3NP9tc/XSKuug==}
+    peerDependencies:
+      preact: ^10.27.2 || ^11.0.0-0
 
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
@@ -2896,6 +2904,10 @@ snapshots:
   locate-character@3.0.0: {}
 
   lodash.merge@4.6.2: {}
+
+  lucide-preact@1.72.0(preact@10.29.8):
+    dependencies:
+      preact: 10.29.8
 
   magic-string@0.30.21:
     dependencies:

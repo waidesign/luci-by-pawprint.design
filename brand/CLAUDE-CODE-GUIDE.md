@@ -13,6 +13,7 @@ Save the key rules into the project memory once, so later sessions apply them wi
 ## 1. Golden rules
 
 - Use the kit's files as they are. Never redraw, recolour, crop or rename a mascot, logo or icon. If something is missing, stop and ask.
+- Icons come from Lucide, and only the ones listed in `DESIGN.md` section 7 and `luci-icons.json`.
 - Use only the tokens in `luci-tokens.json` and `luci-colors.css`. No other hex values, no framework default palettes, no default component-library looks.
 - No coloured or strong strokes on components. Only the subtle neutral strokes in `DESIGN.md` section 4. The Charcoal outline belongs to the mascot art only.
 - All user-facing text follows the voice rules in `BRAND.md`: short, factual, no exclamation marks, no emoji.
@@ -30,6 +31,7 @@ packages/ui/                    shared UI for every surface
   src/fonts/                    self-hosted Fredoka, Inter, JetBrains Mono (woff2)
   src/mascot/                   layered SVGs copied from brand/layered/ + luci-animations.css
   src/components/               Button, Badge, Toast, Card, Input, Tooltip, EmptyState, Mascot, Toolbar
+  src/icons.ts                  the approved Lucide icons under Luci names, generated from luci-icons.json
   src/copy.ts                   every user-facing string, in one place
 packages/extension/public/      icons copied from brand/favicon/ (icon-192, icon-512) and brand/logo/
 apps/site/public/               everything in brand/favicon/
@@ -51,7 +53,16 @@ The toolbar runs on any website, and many sites block external fonts through the
 - Load them with `@font-face` inside the shadow root.
 - Always keep the fallbacks: `system-ui, sans-serif` and `ui-monospace, monospace`.
 
-## 5. The mascot component
+## 5. Icons
+
+- Install `lucide-preact` in `packages/ui` (and `lucide-react` wherever React is used).
+- Have `pnpm brand:sync` generate `src/icons.ts` from `brand/luci-icons.json`: one export per Luci name, for example `export { Pipette as IconColour } from 'lucide-preact'`. Components import icons only from `icons.ts`, never from `lucide-preact` directly, so only approved icons can appear.
+- Build one `Icon` wrapper that applies the kit style: `strokeWidth={1.75}`, `size` 22, 20 or 16, colour `currentColor`, `aria-hidden="true"`.
+- Import icons one by one so unused icons are left out of the bundle.
+- Keep Lucide's licence notice in the repository's third-party notices.
+- Replace the toolbar's temporary text labels with icon-only buttons, each with an `aria-label` and a tooltip showing the name and shortcut.
+
+## 6. The mascot component
 
 Build one `Mascot` component; never place mascot files ad hoc.
 
@@ -69,9 +80,9 @@ type MascotPose =
 - Decorative use: `aria-hidden="true"`. Meaningful use: `role="img"` and an `aria-label`.
 - Pick the pose from the table in `BRAND.md` section 5. Toast faces come from `brand/mascot/luci-face-*.svg`.
 
-## 6. Components to build first, in this order
+## 7. Components to build first, in this order
 
-1. Tokens, fonts and the `Mascot` component.
+1. Tokens, fonts, the `Icon` wrapper and the `Mascot` component.
 2. `Button` (primary, secondary, ghost, danger, icon).
 3. `Badge` and count.
 4. `Toast` and inline status message.
@@ -83,13 +94,13 @@ type MascotPose =
 
 Each one must match its spec in `DESIGN.md` section 6 exactly: fills, text, stroke, radius, height and hover state.
 
-## 7. Copy
+## 8. Copy
 
 - Put every string in `copy.ts`, grouped by surface and moment.
 - Start from the examples in `BRAND.md` section 2.
 - Add a unit test that fails if any string contains `!`, an emoji, or the words "oops", "yay" or "buddy".
 
-## 8. Checks before you call a UI task done
+## 9. Checks before you call a UI task done
 
 - [ ] No hex value outside `tokens.css` and `tokens.ts`.
 - [ ] No `border` or `outline` using a ginger, lime, pink, gold or status colour, and no solid Charcoal border except the focus ring. Add a lint or test that searches the styles for this.
@@ -97,9 +108,10 @@ Each one must match its spec in `DESIGN.md` section 6 exactly: fills, text, stro
 - [ ] Every interactive element is a real `button`, `a` or `input`, at least 44 px, with a visible `:focus-visible` ring.
 - [ ] Reduced motion stops all loops and makes UI transitions instant.
 - [ ] The toolbar renders correctly on at least three very different host sites (light, dark and a busy page), with its styles fully isolated.
+- [ ] Every icon comes from `icons.ts`; icon-only buttons have an `aria-label` and a tooltip.
 - [ ] The mascot pose matches the moment, per `BRAND.md`.
 - [ ] Copy follows the voice rules.
 
-## 9. When you are unsure
+## 10. When you are unsure
 
 Do not invent new colours, poses, icons or patterns. Describe what is missing and ask. Keeping Luci consistent matters more than finishing a screen quickly.

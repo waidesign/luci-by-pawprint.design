@@ -109,7 +109,7 @@ describe('section scope (v0.2)', () => {
     expect(archive['127-0-0-1.section.pricing.design.md']).toContain('scope: section');
     // The basket gets the section and its component files; its export has a Sections group
     await page.click('[data-action="add-to-basket"]');
-    expect(await page.locator('[data-action="basket"]').innerText()).toBe('Basket (3)');
+    expect(await page.locator('[data-action="basket"]').innerText()).toBe('Basket 3');
     await page.click('[data-action="basket"]');
     await page.click('[data-action="export-all"]');
     const exported = await page.locator('[data-part="preview"]').innerText();

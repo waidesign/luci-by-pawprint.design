@@ -7,6 +7,7 @@
  * adding the plan to Feedback notes) puts the page back as it was.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
+import { Button, IconAdd, IconClose, IconCopy, IconUndo } from '@luci/ui';
 import { ButtonSpinner, LuciLogo, ModeSwitch, elementAt, isLuciUi, parentOf, scrollableAncestor, selectorFor, useUiPrefs, type ModeSwitchProps } from '@luci/capture';
 import { formatLayoutPrompt, layoutChangeText, routeOf, type LayoutPromptElement, type Part } from '@luci/format/feedback';
 import type { FeedbackBackend } from '../backend.js';
@@ -458,14 +459,14 @@ export function Layout(props: LayoutProps) {
   const catalogView = () => (
     <div class="stack" data-part="insert-catalog">
       <h2>Insert</h2>
-      <p class="dim">Pick what to add, then click on the page where it goes.</p>
+      <p class="dim">Pick what to add. Then click where it goes.</p>
       <PartPicker sources={sources} onChoose={choose} />
     </div>
   );
   const placingView = (pl: Chosen) => (
     <div class="stack" data-part="placing">
       <h2>Place: {partName(pl.what)}</h2>
-      <p class="hint">Click on the page where it goes: near an element's top or bottom edge puts it before or after; the middle of a section, card or list puts it inside, at the end. Esc to cancel.</p>
+      <p class="hint">Click where it goes. Near an edge: before or after. The middle of a card or list: inside, at the end. Esc cancels.</p>
       {selected && (
         <div class="stack">
           <span>Or next to {nameWithComponent(selected)}:</span>
@@ -567,29 +568,30 @@ export function Layout(props: LayoutProps) {
   return (
     <div class="luci luci-theme" data-theme={uiPrefs.theme} data-dock={uiPrefs.dock}>
       <div class="bar" role="toolbar" aria-label="Luci layout">
-        <span class="brand" data-part="brand-title"><LuciLogo compact />Luci</span>
+        <span class="brand" data-part="brand-title" aria-label="Luci"><LuciLogo size={48} /></span>
         {props.modes && <ModeSwitch {...props.modes} />}
+        <span class="bar-sep" aria-hidden="true" />
         {!sketching && (
           <>
-            <button type="button" aria-pressed={selecting && !placing} data-action="select" title="Click an element to change its layout (Esc to stop)" onClick={() => { setPlacing(null); setCatalog(false); setSelecting(s => !s); setHovered(null); }}>Select</button>
-            <button type="button" aria-pressed={catalog || Boolean(placing)} data-action="insert" title="Add one of your components, a saved capture or a block, and place it on the page" onClick={openCatalog}>Insert</button>
+            <button type="button" aria-pressed={selecting && !placing} data-action="select" title="Click an element to change its layout. Esc stops." onClick={() => { setPlacing(null); setCatalog(false); setSelecting(s => !s); setHovered(null); }}>Select</button>
+            <Button icon={IconAdd} aria-pressed={catalog || Boolean(placing)} data-action="insert" title="Add a component, a saved capture or a block, then place it" onClick={openCatalog}>Insert</Button>
           </>
         )}
-        <button type="button" aria-pressed={sketching} data-action="new-page" title="Sketch a new page: rows of your components, captures and blocks, copied as one prompt" disabled={!scale}
+        <button type="button" aria-pressed={sketching} data-action="new-page" title="Sketch a new page from your components, captures and blocks" disabled={!scale}
           onClick={() => { setSketching(s => !s); setCatalog(false); setPlacing(null); setPlaceHover(null); setHovered(null); }}>New page</button>
         {!sketching && (
           <>
-            <button type="button" data-action="undo" disabled={!p.canUndo} title="Undo (Ctrl+Z)" onClick={() => { p.undo(); bump(); }}>Undo</button>
-            <button type="button" data-action="redo" disabled={!p.canRedo} title="Redo (Ctrl+Shift+Z)" onClick={() => { p.redo(); bump(); }}>Redo</button>
-            <button type="button" data-action="reset" disabled={!plannedCount && !p.canUndo} title="Put the page back as it is in your code" onClick={() => { p.reset(); bump(); }}>Reset</button>
-            <button type="button" class="btn-primary" data-action="copy-layout-prompt" disabled={!plannedCount || Boolean(busy)} title="Copy every planned change as one prompt for your agent; the page goes back as it was"
-              onClick={() => void copyPrompt()}>{busy === 'copy' ? <><ButtonSpinner />Copying…</> : `Copy prompt${plannedCount ? ` (${plannedCount})` : ''}`}</button>
+            <Button icon={IconUndo} data-action="undo" disabled={!p.canUndo} title="Undo  Ctrl+Z" onClick={() => { p.undo(); bump(); }}>Undo</Button>
+            <button type="button" data-action="redo" disabled={!p.canRedo} title="Redo  Ctrl+Shift+Z" onClick={() => { p.redo(); bump(); }}>Redo</button>
+            <button type="button" data-action="reset" disabled={!plannedCount && !p.canUndo} title="Put the page back as your code has it" onClick={() => { p.reset(); bump(); }}>Reset</button>
+            <Button variant="primary" icon={busy === 'copy' ? undefined : IconCopy} data-action="copy-layout-prompt" disabled={!plannedCount || Boolean(busy)} title="Copy every planned change as one prompt. The page goes back as it was."
+              onClick={() => void copyPrompt()}>{busy === 'copy' ? <><ButtonSpinner />Copying…</> : `Copy prompt${plannedCount ? ` (${plannedCount})` : ''}`}</Button>
           </>
         )}
         <span class={`conn ${backend.kind}`} data-part="connection" title={backend.kind === 'project' ? 'Notes are saved in the project' : props.connectNote ?? ''}>
           {backend.kind === 'project' ? 'Project' : 'This browser'}
         </span>
-        <button type="button" aria-label="Close Luci" data-action="close" onClick={props.onClose}>×</button>
+        <Button iconOnly size="lg" class="tool" icon={IconClose} label="Close Luci" data-action="close" onClick={props.onClose} />
       </div>
 
       {sketching && scale && <Sketch doc={doc} backend={backend} base={scale.base} onClose={() => setSketching(false)} />}
@@ -597,12 +599,12 @@ export function Layout(props: LayoutProps) {
       {!scale && <div class="sub"><p class="loading"><ButtonSpinner />Reading the page's spacing scale…</p></div>}
       {result?.why && (
         <div class="sub" role="status" data-part="reset-note">
-          <p class="hint">Preview cleared: the page shows your code again. Your planned changes are not lost: they are in the {result.prompt ? 'copied prompt' : 'Feedback notes'}.</p>
+          <p class="hint">Preview cleared. Your plan is safe in the {result.prompt ? 'copied prompt' : 'Feedback notes'}.</p>
         </div>
       )}
       {scale && selecting && !selected && !result && !catalog && !placing && (
         <div class="sub" role="note" data-part="hint">
-          <p class="hint">Click an element to change its layout: drag its handles to resize, ⠿ to move it among its neighbors. Insert adds your components, saved captures or blocks. Values snap to this page's {scale.base}px scale. Nothing changes in your code: copy the prompt for your agent.</p>
+          <p class="hint">Click an element. Drag its handles to resize, ⠿ to move it. Values snap to this page's {scale.base}px scale. Your code stays as it is.</p>
         </div>
       )}
 
@@ -747,7 +749,7 @@ export function Layout(props: LayoutProps) {
                 {(isFlex || isGrid) && selectRow(selected, 'Align', 'align-items', ALIGN)}
                 {(isFlex || isGrid) && lengthInput(selected, 'row-gap', { label: 'Row gap' })}
                 {(isFlex || isGrid) && lengthInput(selected, 'column-gap', { label: 'Column gap' })}
-                {!isFlex && !isGrid && <p class="dim">Choose flex or grid to arrange its children in a row, a column or a grid.</p>}
+                {!isFlex && !isGrid && <p class="dim">Flex or grid puts its children in a row, a column or a grid.</p>}
               </details>
 
               {inFlexOrGrid && (
@@ -760,13 +762,13 @@ export function Layout(props: LayoutProps) {
               )}
 
               {changes.some(c => c.op === 'move') && !showMove && (
-                <p class="hint" data-part="move-note">This move cannot be shown here (its neighbors are not in a row, a column or a grid). It is in the prompt.</p>
+                <p class="hint" data-part="move-note">This move cannot be shown here. Its neighbours are not in a row, column or grid. It is in the prompt.</p>
               )}
               <div class="stack">
                 <span>Planned for this element</span>
                 {changes.length
                   ? <ul class="thread" data-part="changes">{changes.map(c => <li>{layoutChangeText(c)}</li>)}</ul>
-                  : <p class="dim">Nothing yet: drag a handle, or change a value above.</p>}
+                  : <p class="dim">Nothing planned yet. Drag a handle or change a value.</p>}
               </div>
             </>
           ) : result ? null : (
@@ -802,7 +804,7 @@ export function Layout(props: LayoutProps) {
                 <button type="button" data-action="add-layout-notes" disabled={Boolean(busy)} title="Keep the plan as Feedback notes, to send with other notes in one prompt"
                   onClick={() => void addToNotes()}>{busy === 'notes' ? <><ButtonSpinner />Adding…</> : 'Add to Feedback notes'}</button>
               </div>
-              <p class="dim">Planned at {win.innerWidth}px wide. Copying puts the page back as it is in your code.</p>
+              <p class="dim">Planned at {win.innerWidth}px wide. Copying puts the page back.</p>
             </div>
           )}
         </div>

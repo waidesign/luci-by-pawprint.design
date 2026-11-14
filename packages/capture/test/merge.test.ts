@@ -41,7 +41,7 @@ async function systemsToBasket(page: Page) {
     await page.click('[data-output="system"]');
     await page.locator('[data-part="preview"]').waitFor();
     await page.click('[data-action="add-to-basket"]');
-    await page.locator('[data-action="add-to-basket"]:text-is("View in Basket")').waitFor();
+    await page.locator('[data-action="add-to-basket"][aria-label="View in basket"]').waitFor();
   }
 }
 

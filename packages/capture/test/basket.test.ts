@@ -92,19 +92,19 @@ describe('items from two sites export as one file (M5 Done when)', () => {
     await target();
     await page.click('[data-output="one"]');
     await page.click('[data-action="add-to-basket"]');
-    expect(await page.locator('[data-action="add-to-basket"]').innerText()).toBe('View in Basket');
+    expect(await page.locator('[data-action="add-to-basket"]').getAttribute('aria-label')).toBe('View in basket');
   };
 
   it('collects on two origins, keeps items across pages, renames, and exports one collection file', async () => {
     const a = await open(`${siteA.origin}/css-variables/`);
     await add(a, 'component', () => a.click('.button >> nth=0', { force: true }));
     await add(a, 'text', () => a.click('h1', { force: true }));
-    await expect.poll(() => a.locator('[data-action="basket"]').innerText()).toBe('Basket (2)');
+    await expect.poll(() => a.locator('[data-action="basket"]').innerText()).toBe('Basket 2');
     await a.context().close();
 
     const b = await open(`${siteB.origin}/web-components/`);
     // The basket came along to the other site (it loads from the store right after the toolbar opens)
-    await expect.poll(() => b.locator('[data-action="basket"]').innerText()).toBe('Basket (2)');
+    await expect.poll(() => b.locator('[data-action="basket"]').innerText()).toBe('Basket 2');
     await add(b, 'color', () => b.locator('plan-card').first().locator('button').click({ force: true }));
     await b.click('[data-action="basket"]');
     expect(await b.locator('[data-item]').count()).toBe(3);

@@ -20,7 +20,7 @@ import {
   type FeedbackItem,
   type FeedbackPriority
 } from '@luci/format/feedback';
-import { COPY, EmptyState, PALETTE } from '@luci/ui';
+import { Button, COPY, EmptyState, IconAnnotate, IconClose, IconCopy, IconPause, PALETTE } from '@luci/ui';
 import type { FeedbackBackend } from '../backend.js';
 import { copyToClipboard } from './clipboard.js';
 import { describeTarget, frameworkInfo, nameOf, selectionElement } from '../target.js';
@@ -297,18 +297,19 @@ export function Feedback(props: FeedbackProps) {
   return (
     <div class="luci luci-theme" data-theme={uiPrefs.theme} data-dock={uiPrefs.dock} style={{ '--marker': settings.markerColor, '--marker-ink': markerInk(settings.markerColor) }}>
       <div class="bar" role="toolbar" aria-label="Luci feedback">
-        <span class="brand" data-part="brand-title"><LuciLogo compact />Luci</span>
+        <button type="button" class="menu-btn" data-action="settings" aria-label="Menu and settings" aria-pressed={panel === 'settings'} data-tip="Menu"
+          onClick={() => setPanel(p => (p === 'settings' ? null : 'settings'))}><LuciLogo size={48} /></button>
         {props.modes && <ModeSwitch {...props.modes} />}
-        <button type="button" aria-pressed={annotating} data-action="annotate" title="Click elements on the page to leave a note (Esc to stop). Or select text." onClick={() => { setAnnotating(a => !a); setCandidate(null); setDraft(null); }}>Annotate</button>
+        <span class="bar-sep" aria-hidden="true" />
+        <Button icon={IconAnnotate} aria-pressed={annotating} data-action="annotate" title="Click an element to leave a note. Or select text. Esc stops." onClick={() => { setAnnotating(a => !a); setCandidate(null); setDraft(null); }}>Annotate</Button>
         <span class="split">
-          <button type="button" data-action="copy-prompt" disabled={!scope.count}
-            title={!scope.count ? 'No notes to send' : scope.includeSent ? 'Copy every note not done yet, as one prompt (they were all sent before)' : 'Copy the new notes as one prompt for your agent'}
-            onClick={() => void copyPrompt(scope.includeSent)}>Copy prompt{scope.count ? ` (${scope.label})` : ''}</button>
+          <Button icon={IconCopy} data-action="copy-prompt" disabled={!scope.count}
+            title={!scope.count ? 'No notes to send' : scope.includeSent ? 'Copy every open note as one prompt. All were sent before.' : 'Copy the new notes as one prompt'}
+            onClick={() => void copyPrompt(scope.includeSent)}>Copy prompt{scope.count ? ` (${scope.label})` : ''}</Button>
           <button type="button" class="caret" data-action="copy-menu" aria-label="Choose what to copy" aria-expanded={copyMenu} disabled={!openCount} onClick={() => setCopyMenu(m => !m)}>▾</button>
         </span>
         <button type="button" aria-pressed={panel === 'items'} data-action="items" onClick={() => { setPanel(p => (p === 'items' ? null : 'items')); setPrompt(null); }}>Notes ({items.length})</button>
-        <button type="button" aria-pressed={paused} data-action="pause" title="Pause animations to annotate one frame" onClick={() => setPaused(p => !p)}>{paused ? 'Resume' : 'Pause'}</button>
-        <button type="button" aria-pressed={panel === 'settings'} data-action="settings" aria-label="Settings" title="Settings" onClick={() => setPanel(p => (p === 'settings' ? null : 'settings'))}>⚙</button>
+        <Button icon={IconPause} aria-pressed={paused} data-action="pause" title="Freeze the page's animations to annotate one frame" onClick={() => setPaused(p => !p)}>{paused ? 'Resume' : 'Pause'}</Button>
         {backend.kind === 'project' || !props.onConnect ? (
           <span class={`conn ${backend.kind}`} data-part="connection" title={backend.kind === 'project' ? 'Notes are saved in the project, where your agent reads them' : props.connectNote ?? ''}>
             {backend.kind === 'project' ? 'Project' : 'This browser'}
@@ -319,7 +320,7 @@ export function Feedback(props: FeedbackProps) {
             {checking ? <><ButtonSpinner />Checking…</> : 'This browser'}
           </button>
         )}
-        <button type="button" aria-label="Close Luci" data-action="close" onClick={props.onClose}>×</button>
+        <Button iconOnly size="lg" class="tool" icon={IconClose} label="Close Luci" data-action="close" onClick={props.onClose} />
       </div>
 
       {copyMenu && (
@@ -328,14 +329,14 @@ export function Feedback(props: FeedbackProps) {
             Only new notes ({fresh})<span class="dim">Notes not sent to the agent yet</span>
           </button>
           <button type="button" role="menuitem" data-copy="open" disabled={!openCount} onClick={() => void copyPrompt(true)}>
-            All notes not done ({openCount})<span class="dim">Includes notes sent before, to send them again</span>
+            All notes not done ({openCount})<span class="dim">Sends earlier notes again too</span>
           </button>
         </div>
       )}
 
       {annotating && !draft && (
         <div class="sub" role="note" data-part="hint">
-          <p class="hint">Click an element to leave a note. Select text (after Esc) to comment on words. Esc stops.</p>
+          <p class="hint">Click an element to leave a note. Esc stops. Then select text to note words.</p>
         </div>
       )}
 
@@ -393,7 +394,7 @@ export function Feedback(props: FeedbackProps) {
               <h2>{prompt.text ? `Prompt with ${plural(prompt.refs.length, 'note')}` : 'Nothing to send'}</h2>
               {prompt.text ? (
                 <>
-                  <p class="hint" data-part="copied">{prompt.copied ? 'Copied. Paste it to your agent.' : 'Copy it from below and paste it to your agent.'}
+                  <p class="hint" data-part="copied">{prompt.copied ? 'Copied. Paste it to your agent.' : 'Copy it below. Paste it to your agent.'}
                     {backend.kind === 'project' ? ' Your agent can also fetch it with get_feedback_prompt.' : ''} These notes are now marked as sent.</p>
                   <pre data-part="prompt">{prompt.text}</pre>
                 </>
@@ -598,7 +599,7 @@ function SettingsPanel(props: { settings: FeedbackSettings; onChange: (s: Feedba
           onInput={e => setHook((e.currentTarget as HTMLInputElement).value.trim())} />
         <div class="row">
           <button type="button" data-action="save-webhook" disabled={!validHook} onClick={() => { const { webhookUrl: _w, ...rest } = s; props.onChange(hook ? { ...rest, webhookUrl: hook } : rest); }}>Save webhook</button>
-          <span class="dim">Notes go there only when you press "Send to webhook".</span>
+          <span class="dim">Sent only when you press Send to webhook.</span>
         </div>
       </div>
       <div class="row danger">

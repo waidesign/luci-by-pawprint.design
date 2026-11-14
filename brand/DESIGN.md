@@ -152,7 +152,58 @@ Centred mascot (Watching, 120 to 160 px), `title`, one `body` line in `ink-secon
 
 ## 7. Icons
 
-Line icons only, 1.75 to 2 px stroke, round caps and joins, 20 px in content and 22 px in the toolbar, coloured with `currentColor`. Never filled icons in ginger; never emoji.
+Luci uses **Lucide** (lucide.dev), a free line-icon set under the ISC licence, which is compatible with MIT. Install `lucide-preact` for the toolbar and extension, or `lucide-react` for React surfaces. Do not draw custom icons, mix in another icon set or use emoji.
+
+**Style**
+
+| Setting | Value |
+| --- | --- |
+| Stroke width | 1.75 (Lucide `strokeWidth={1.75}`), round caps and joins (Lucide default) |
+| Size | 22 px in the toolbar pill, 20 px in content and status messages, 16 px in compact buttons and inputs |
+| Colour | `currentColor` only, so the icon follows the button's text colour |
+| Fill | none; never filled icons, never ginger icons on Muzzle |
+
+An icon is a line drawing, not a component border, so the stroke rules in section 4 do not apply to it.
+
+**Approved icons**
+
+Only use the icons in this table (also in `luci-icons.json`). If a screen needs one that is not listed, stop and ask.
+
+| Luci name | Lucide icon | Use |
+| --- | --- | --- |
+| `menu` | Luci's head (`logo/luci-mark-tile.svg`) | Toolbar menu button; not a Lucide icon |
+| `component` | `square-dashed-mouse-pointer` | Pick a component |
+| `section` | `panel-top-dashed` | Pick a section |
+| `page` | `app-window` | Whole page |
+| `text` | `type` | Text and typography |
+| `colour` | `pipette` | Colour eyedropper |
+| `spacing` | `ruler-dimension-line` | Spacing ruler |
+| `check` | `scan-eye` | Design check |
+| `annotate` | `message-square-plus` | Add a feedback note |
+| `basket` | `shopping-basket` | Capture basket |
+| `copy` | `clipboard-copy` | Copy prompt or design.md |
+| `send` | `send` | Send to the agent |
+| `download` | `download` | Export a file |
+| `images-off` | `image-off` | Block images |
+| `pause` | `circle-pause` | Pause page animations |
+| `settings` | `settings` | Settings |
+| `close` | `x` | Close panel, hide toolbar |
+| `minimise` | `minus` | Collapse the toolbar |
+| `undo` | `undo-2` | Undo |
+| `edit` | `pencil` | Edit a note |
+| `delete` | `trash-2` | Delete a note or capture |
+| `add` | `plus` | Add |
+| `hide` | `eye-off` | Hide markers |
+| `success` | `circle-check` | Success status |
+| `warning` | `triangle-alert` | Warning status |
+| `error` | `circle-x` | Error status |
+| `info` | `info` | Info status |
+
+**Rules**
+
+- Toolbar buttons are icon-only, with an `aria-label` and a tooltip that shows the name and shortcut, for example "Colour  C". The icon itself has `aria-hidden="true"`.
+- Menus, panels and settings show the icon with a text label.
+- Status messages always pair the status icon with words.
 
 ## 8. Motion
 

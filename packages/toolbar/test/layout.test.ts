@@ -116,7 +116,7 @@ describe('Layout mode', { timeout: 120_000 }, () => {
     expect(await page.locator('[data-part="layout-added"]').innerText()).toContain('The page is back');
     // And why: Layout mode previews, the code has not changed yet
     expect(await page.locator('[data-part="why-reset"]').innerText()).toContain('nothing in your code has changed yet');
-    expect(await page.locator('[data-part="reset-note"]').innerText()).toContain('Your planned changes are not lost');
+    expect(await page.locator('[data-part="reset-note"]').innerText()).toContain('Your plan is safe in the');
     expect(await marked(page)).toBe(0);
     expect(await css(page, 'nav', 'column-gap')).toBe('12px');
     // Nothing went into the notes

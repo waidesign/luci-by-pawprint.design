@@ -17,6 +17,7 @@
     "src/tokens.css"
   ],
   "dependencies": {
+    "lucide-preact": "1.72.0",
     "preact": "10.29.8"
   }
 }
