@@ -35,6 +35,8 @@ interface PackageJson {
   name?: string;
   scripts: Record<string, unknown>;
   deps: Record<string, unknown>;
+  /** What the app itself runs on: dependencies and peerDependencies (not devDependencies). */
+  runtime: Record<string, unknown>;
 }
 
 // `npm init` writes a test script that only fails; it is not a real test command
@@ -60,7 +62,8 @@ function readPackageJson(dir: string): PackageJson | null {
     return {
       ...(typeof pkg['name'] === 'string' && pkg['name'] ? { name: pkg['name'] } : {}),
       scripts: record(pkg['scripts']),
-      deps: { ...record(pkg['dependencies']), ...record(pkg['devDependencies']) }
+      deps: { ...record(pkg['dependencies']), ...record(pkg['devDependencies']) },
+      runtime: { ...record(pkg['peerDependencies']), ...record(pkg['dependencies']) }
     };
   } catch {
     return null;
@@ -172,24 +175,31 @@ export function detectProject(targetDir: string = process.cwd()): ProjectInfo {
   if (has('pom.xml') || has('build.gradle') || has('build.gradle.kts')) languages.push('Java/Kotlin');
   if (rootFiles.some(f => /\.(csproj|sln)$/i.test(f))) languages.push('C#');
 
-  // Framework: UI frameworks first, then frontend signs, then server and other stacks
+  // Framework: UI frameworks first, then frontend signs, then server and other stacks.
+  // A framework the app runs on (dependencies, peerDependencies) counts. One only in devDependencies
+  // counts when the project's own files show it (SvelteKit lists svelte there; a tool that lists
+  // react there only to test against it is not a React app).
   const viteConfig = has('vite.config.ts') || has('vite.config.js');
+  const configFile = (base: string) => ['js', 'mjs', 'cjs', 'ts', 'mts'].some(ext => has(`${base}.${ext}`));
+  const runtime = pkg?.runtime ?? {};
+  const uses = (names: readonly string[], shown: () => boolean) => names.some(n => Boolean(runtime[n])) || (names.some(dep) && shown());
+  const reactShown = () => viteConfig || has('index.html') || hasSourceFiles(dir, /\.(jsx|tsx)$/i);
   let framework = 'unknown';
   let isReact = false;
-  if (dep('next')) {
+  if (uses(['next'], () => configFile('next.config') || has('pages') || has(path.join('src', 'app')) || has('app'))) {
     framework = 'nextjs';
     isReact = true;
-  } else if (dep('@remix-run/react')) {
+  } else if (uses(['@remix-run/react'], () => configFile('remix.config') || has(path.join('app', 'root.tsx')) || has(path.join('app', 'root.jsx')))) {
     framework = 'remix';
     isReact = true;
-  } else if (dep('react') || dep('react-dom')) {
+  } else if (uses(['react', 'react-dom'], reactShown)) {
     framework = dep('vite') || viteConfig ? 'react-vite' : 'react';
     isReact = true;
-  } else if (dep('nuxt') || dep('vue')) {
+  } else if (uses(['nuxt', 'vue'], () => configFile('nuxt.config') || hasSourceFiles(dir, /\.vue$/i))) {
     framework = dep('nuxt') ? 'nuxt' : 'vue';
-  } else if (dep('@sveltejs/kit') || dep('svelte')) {
+  } else if (uses(['@sveltejs/kit', 'svelte'], () => configFile('svelte.config') || hasSourceFiles(dir, /\.svelte$/i))) {
     framework = 'svelte';
-  } else if (dep('@angular/core')) {
+  } else if (uses(['@angular/core'], () => has('angular.json'))) {
     framework = 'angular';
   } else if (has('index.html') || dep('vite') || dep('webpack') || dep('parcel') || viteConfig || has('webpack.config.js')) {
     framework = 'plain-frontend';

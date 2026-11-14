@@ -3,6 +3,7 @@ import path from 'node:path';
 import { MEMORY_FILES, refreshSections } from '@luci/format';
 import { SkillRegistry, writeCatalog, type SkillSource } from '@luci/skills';
 import { configureAgents } from '../agents/agentFiles.js';
+import { cleanPrototypeSections } from '../import/importPrototype.js';
 import { CodeMap, mapFreshness } from '../codemap/codeMap.js';
 import { detectProject } from '../detect/detector.js';
 import { diagnose, type Diagnosis } from '../doctor/diagnose.js';
@@ -45,6 +46,8 @@ export interface UpdateReport {
   refreshedSections: string[];
   /** Agent files whose Luci section was added or refreshed. */
   agentFiles: string[];
+  /** Agent files whose leftover pre-import section (pointing to the old memory folder) was removed. */
+  oldSectionsRemoved: string[];
   /** What happened to an existing code map: refreshed when out of date and Graphify is installed. */
   codeMap: string | null;
 }
@@ -59,7 +62,7 @@ export async function updateProject(
   options: { globalBrainDir?: string; registry?: SkillSource; version?: string; codeMap?: CodeMap } = {}
 ): Promise<UpdateReport> {
   const dir = path.resolve(targetDir);
-  const report: UpdateReport = { projectPath: dir, initialized: fs.existsSync(memoryDir(dir)), added: [], refreshedSections: [], agentFiles: [], codeMap: null };
+  const report: UpdateReport = { projectPath: dir, initialized: fs.existsSync(memoryDir(dir)), added: [], refreshedSections: [], agentFiles: [], oldSectionsRemoved: [], codeMap: null };
   if (!report.initialized) return report;
 
   const info = detectProject(dir);
@@ -83,6 +86,8 @@ export async function updateProject(
   for (const result of Object.values(configureAgents(dir, info))) {
     if (result && result.action !== 'unchanged') report.agentFiles.push(path.relative(dir, result.target).replace(/\\/g, '/'));
   }
+  // An old section from before the import (in a file it missed), next to Luci's: it points to a folder that is gone
+  report.oldSectionsRemoved = cleanPrototypeSections(dir);
 
   // The code map is refreshed only when one exists and is out of date; update never builds a new one
   const map = mapFreshness(dir);

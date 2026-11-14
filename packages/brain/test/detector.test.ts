@@ -18,6 +18,22 @@ describe('detector', () => {
     expect(detectProject(tempProject({ 'package.json': deps({ next: '^14' }) })).framework).toBe('nextjs');
   });
 
+  it('a framework only in devDependencies counts when the project\'s own files show it', () => {
+    const dev = (devDependencies: Record<string, string>) => pkg({ devDependencies });
+    // A tool that installs React only to test against it (Luci's own repository) is not a React app
+    const tool = detectProject(tempProject({ 'package.json': dev({ react: '19.3.1', 'react-dom': '19.3.1', vitest: '5' }), 'packages/cli/src/index.ts': '' }));
+    expect(tool.framework).toBe('node');
+    expect(tool.isReact).toBe(false);
+    expect(tool.dependencies).toContain('react');
+    // With its own .tsx sources it is
+    expect(detectProject(tempProject({ 'package.json': dev({ react: '18' }), 'src/App.tsx': '' })).framework).toBe('react');
+    // A component library: react as a peer dependency
+    expect(detectProject(tempProject({ 'package.json': pkg({ peerDependencies: { react: '>=18' }, devDependencies: { react: '18' } }) })).framework).toBe('react');
+    // SvelteKit lists svelte in devDependencies; its .svelte files show it
+    expect(detectProject(tempProject({ 'package.json': dev({ '@sveltejs/kit': '2', svelte: '5', vite: '6' }), 'src/routes/+page.svelte': '' })).framework).toBe('svelte');
+    expect(detectProject(tempProject({ 'package.json': dev({ svelte: '5' }), 'svelte.config.js': '' })).framework).toBe('svelte');
+  });
+
   it('languages come from the project files, not assumed', () => {
     const py = detectProject(tempProject({ 'requirements.txt': 'fastapi==0.110\nuvicorn' }));
     expect(py.languages).toEqual(['Python']);

@@ -19,6 +19,7 @@ import {
 } from '@luci/format';
 import { SkillRegistry, missingSkillWarnings, projectSkillSet, readLock, type SkillSource } from '@luci/skills';
 import { configureAgent, projectAgents } from '../agents/agentFiles.js';
+import { cleanPrototypeSections } from '../import/importPrototype.js';
 import { mapFreshness } from '../codemap/codeMap.js';
 import { readProjectGoal, readProjectRules } from '../context/projectContext.js';
 import { detectProject } from '../detect/detector.js';
@@ -155,6 +156,9 @@ async function projectChecks(dir: string, registry: SkillSource): Promise<{ chec
 
   const info = detectProject(dir);
   for (const id of projectAgents(dir)) agentCheck(id, dir, info, add);
+  for (const file of cleanPrototypeSections(dir, { dryRun: true })) {
+    add('warn', file, `still has the old section from before the import, which points agents to a memory folder that is gone`, `${run('update')} removes it; the rest of the file is kept.`);
+  }
   const skills = await skillChecks(dir, registry, add);
 
   const decisionsDir = path.join(root, MEMORY_FILES.decisions);

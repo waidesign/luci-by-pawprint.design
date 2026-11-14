@@ -73,6 +73,42 @@ const LUCI_AGENTS: Readonly<Record<string, AgentId>> = { 'CLAUDE CODE': 'claudeC
 const AGENT_LABELS: Readonly<Record<string, string>> = { WINDSURF: 'Windsurf' };
 
 /** Rename the prototype's paths, variables and commands in text people wrote. Prose words are left alone. */
+/**
+ * The text without the prototype's old agent section (it points agents to ai-brain/, which is gone),
+ * or null when there is none. Only what lies between its own markers goes; the rest of the file stays.
+ */
+export function withoutPrototypeSection(text: string): string | null {
+  const start = PROTOTYPE.markerStart.exec(text);
+  if (!start) return null;
+  const endMatch = PROTOTYPE.markerEnd.exec(text.slice(start.index));
+  if (!endMatch) return null;
+  const end = start.index + endMatch.index + endMatch[0].length;
+  const before = text.slice(0, start.index).replace(/\n+$/, '\n');
+  const after = text.slice(end).replace(/^\n+/, '');
+  const joined = before.trim() && after ? `${before}\n${after}` : `${before}${after}`;
+  return joined.endsWith('\n') ? joined : `${joined}\n`;
+}
+
+/**
+ * Agent files that still hold the prototype's old section next to Luci's (files an earlier import
+ * missed, such as AGENT_INSTRUCTIONS.md): the old section is removed unless `dryRun`, the rest of
+ * the file is kept. Returns their project-relative paths. `luci update` cleans; `luci doctor` warns.
+ */
+export function cleanPrototypeSections(projectPath: string, options: { dryRun?: boolean } = {}): string[] {
+  const out: string[] = [];
+  for (const id of projectAgents(projectPath)) {
+    const file = path.join(projectPath, LUCI_AGENT_FILES[id]);
+    if (!fs.existsSync(file)) continue;
+    const text = stripBom(fs.readFileSync(file, 'utf8'));
+    if (!text.includes(agentStartMarker(LUCI_AGENT_LABELS[id]))) continue;
+    const cleaned = withoutPrototypeSection(text);
+    if (cleaned === null) continue;
+    if (!options.dryRun) fs.writeFileSync(file, cleaned, 'utf8');
+    out.push(LUCI_AGENT_FILES[id]);
+  }
+  return out;
+}
+
 export function renameText(text: string): string {
   return text
     .replace(/(?<![\w.-])ai-brain(?![\w-])/g, PRODUCT.projectDir)

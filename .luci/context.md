@@ -19,7 +19,6 @@ Luci: a local-first toolkit for AI coding agents with memory, skill selection, d
 - Type check: `pnpm typecheck`
 
 ## Folder Map (auto-detected)
-- `ai-brain/`
 - `docs/`: documentation
 - `eval/`
 - `packages/`: workspace packages

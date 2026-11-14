@@ -1,7 +1,7 @@
 # Images are selectable with a new Image tool that records only how an image is shown (kind, size, aspect ratio and the source ratio, fit, position, corners incl. a clipping wrapper, shadow, filters, mask, overlays); every url(...) is written <image>, so no URL or pixels reach a file (FR21). Any pick of an element can add a reference screenshot (FR22): full PNG downloaded beside the file and named in a new optional frontmatter field `reference`; the basket keeps a JPEG thumbnail (max 640px) and exports one .zip with references/. The zip writer is Luci's own stored-only writer (no fflate): pictures are already compressed, so no dependency is needed. Original image files are not copied (level 3 declined).
 
 - Date: 2026-11-13
-- Status: superseded (same day) by "Images are described inside component files": the Image tool, reference screenshots and the .zip export were removed
+- Status: replaced by 2026-11-13-images-are-described-inside-component-files-not-ca.md (same day: the Image tool, reference screenshots and the .zip export were removed)
 - Area: capture
 
 ## What

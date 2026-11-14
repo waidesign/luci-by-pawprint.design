@@ -80,6 +80,8 @@ export {
   type ImportOptions,
   type ImportReport,
   PROTOTYPE,
+  cleanPrototypeSections,
+  withoutPrototypeSection,
   convertSkillFiles,
   convertPrototypeSkillFolder,
   importPrototype,
