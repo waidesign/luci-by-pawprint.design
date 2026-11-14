@@ -1,6 +1,8 @@
-/** Feedback in the browser: what an item points at (with the React adapter), and where items are kept. */
+/** Feedback in the browser: what an item points at (with the React, Vue and Svelte adapters), and where items are kept. */
 export * from './sourcemap.js';
 export * from './react.js';
+export * from './vue.js';
+export * from './svelte.js';
 export * from './target.js';
 export * from './backend.js';
 export { DEFAULT_FEEDBACK_SETTINGS, Feedback, MARKER_COLORS, PAUSE_CSS, type FeedbackProps, type FeedbackSettings } from './ui/feedback.js';

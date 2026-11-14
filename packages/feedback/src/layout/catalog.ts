@@ -6,6 +6,8 @@
 import { isLuciUi } from '@luci/capture';
 import type { LayoutBlock, Part } from '@luci/format/feedback';
 import { componentName, fiberOf, isServerRecord, ownerOf, reactInfo } from '../react.js';
+import { nearestSvelteMeta, svelteInfo, svelteMetaOf } from '../svelte.js';
+import { nearestVueInstance, vueComponentName, vueInfo, vueInstanceOf } from '../vue.js';
 
 export interface PageComponent {
   name: string;
@@ -35,28 +37,49 @@ const HOST_TAGS = new Set([3, 4, 5, 6, 26, 27]);
  */
 function rootOf(el: Element): { name: string; owner: unknown }[] {
   const fiber = fiberOf(el);
-  if (!fiber) return [];
-  const chain: unknown[] = [];
-  for (let f = fiber.return, i = 0; f && !HOST_TAGS.has(f.tag) && i < 40; f = f.return, i++) chain.push(f);
-  if (!chain.some(componentName) && isServerRecord(ownerOf(fiber))) {
-    const around = parentWithFiber(el);
-    const stop = around ? ownerOf(fiberOf(around)) : null;
-    let reached = !stop;
-    for (let o = ownerOf(fiber), i = 0; o && isServerRecord(o) && i < 40; o = ownerOf(o), i++) {
-      if (stop && same(o, stop)) { reached = true; break; }
-      chain.push(o);
+  if (fiber) {
+    const chain: unknown[] = [];
+    for (let f = fiber.return, i = 0; f && !HOST_TAGS.has(f.tag) && i < 40; f = f.return, i++) chain.push(f);
+    if (!chain.some(componentName) && isServerRecord(ownerOf(fiber))) {
+      const around = parentWithFiber(el);
+      const stop = around ? ownerOf(fiberOf(around)) : null;
+      let reached = !stop;
+      for (let o = ownerOf(fiber), i = 0; o && isServerRecord(o) && i < 40; o = ownerOf(o), i++) {
+        if (stop && same(o, stop)) { reached = true; break; }
+        chain.push(o);
+      }
+      if (!reached) return [];
     }
-    if (!reached) return [];
+    // The project's own components only (library wrappers are left out of reactInfo's list)
+    const own = new Set(reactInfo(el)?.components ?? []);
+    return chain.flatMap(owner => {
+      const name = componentName(owner);
+      return name && own.has(name) ? [{ name, owner }] : [];
+    });
   }
-  // The project's own components only (library wrappers are left out of reactInfo's list)
-  const own = new Set(reactInfo(el)?.components ?? []);
-  return chain.flatMap(owner => {
-    const name = componentName(owner);
-    return name && own.has(name) ? [{ name, owner }] : [];
-  });
+  const vueInst = vueInstanceOf(el);
+  if (vueInst) {
+    const stop = el.parentElement ? nearestVueInstance(el.parentElement) : null;
+    if (vueInst === stop) return [];
+    const own = new Set(vueInfo(el)?.components ?? []);
+    const out: { name: string; owner: unknown }[] = [];
+    for (let cur = vueInst, i = 0; cur && cur !== stop && i < 40; cur = cur.parent, i++) {
+      const name = vueComponentName(cur);
+      if (name && own.has(name)) out.push({ name, owner: cur });
+    }
+    return out;
+  }
+  const svelteMeta = svelteMetaOf(el);
+  if (svelteMeta?.loc?.file) {
+    const around = el.parentElement ? nearestSvelteMeta(el.parentElement) : null;
+    if (around?.meta.loc?.file === svelteMeta.loc.file) return [];
+    const name = svelteInfo(el)?.components.at(-1);
+    return name ? [{ name, owner: svelteMeta.parent ?? el }] : [];
+  }
+  return [];
 }
 
-/** The app's own components on the page, the most used first, then the smaller. Empty without React (or in a production build). */
+/** The app's own components on the page, the most used first, then the smaller. Empty without a dev framework build. */
 export function pageComponents(doc: Document, limit = 5000): PageComponent[] {
   // Counted by instance: a component that renders a fragment has several outermost elements
   // Each instance with the area of all its outermost elements (the page's shell is the largest)
@@ -64,7 +87,7 @@ export function pageComponents(doc: Document, limit = 5000): PageComponent[] {
   const all = doc.body?.querySelectorAll('*') ?? [];
   for (let i = 0; i < all.length && i < limit; i++) {
     const el = all[i]!;
-    if (isLuciUi(el) || !fiberOf(el)) continue;
+    if (isLuciUi(el)) continue;
     const roots = rootOf(el);
     if (!roots.length) continue;
     const r = el.getBoundingClientRect();

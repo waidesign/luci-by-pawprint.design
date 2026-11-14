@@ -7,6 +7,8 @@ import { elementName, implicitRole, selectorFor } from '@luci/capture';
 import type { FeedbackItem, SourceLocation } from '@luci/format/feedback';
 import { PAGE_FOLDER, firstUserLocation, frameResolver, reactInfo, type FrameResolver, type FrameworkInfo, type ServerResolver } from './react.js';
 import { sourceMapLoader } from './sourcemap.js';
+import { svelteInfo } from './svelte.js';
+import { vueInfo } from './vue.js';
 
 export type Target = FeedbackItem['target'];
 
@@ -39,7 +41,11 @@ export interface Adapter {
   name: string;
   read(el: Element): FrameworkInfo | null;
 }
-export const ADAPTERS: readonly Adapter[] = [{ name: 'react', read: reactInfo }];
+export const ADAPTERS: readonly Adapter[] = [
+  { name: 'react', read: reactInfo },
+  { name: 'vue', read: vueInfo },
+  { name: 'svelte', read: svelteInfo }
+];
 
 /** Fetch a module's text from the page's own server (for its source map). */
 const sameOriginText = (doc: Document) => async (url: string): Promise<string | null> => {
@@ -65,30 +71,37 @@ export function resolverFor(doc: Document, serverResolve?: ServerResolver): Fram
 
 /**
  * The page's own file among the components' files (outermost first): a route file ("page.tsx",
- * Next's App Router), then one in pages/, routes/, views/ or screens/, then any in app/.
+ * Next's App Router, or SvelteKit's "+page.svelte"), then one in pages/, routes/, views/ or
+ * screens/, then any in app/.
  */
 export function pageFile(files: readonly string[]): string | undefined {
   const norm = (f: string) => f.replace(/\\/g, '/');
-  return files.find(f => /(^|\/)(page|route)\.[jt]sx?$/.test(norm(f)))
+  return files.find(f => /(^|\/)(\+?page|route)\.(?:[jt]sx?|vue|svelte)$/.test(norm(f)))
     ?? files.find(f => /(^|\/)(pages|routes|views|screens)\//.test(norm(f)))
     ?? files.find(f => PAGE_FOLDER.test(norm(f)));
 }
 
-/** The framework details of an element: components, its JSX location, and the page component's file. */
-export async function frameworkDetails(el: Element, resolve: FrameResolver = resolverFor(el.ownerDocument)): Promise<{ components?: string[]; source?: SourceLocation; pageSource?: string }> {
+/** The first framework adapter that recognizes this element (React, Vue or Svelte). */
+export function frameworkInfo(el: Element): FrameworkInfo | null {
   for (const adapter of ADAPTERS) {
     const info = adapter.read(el);
-    if (!info) continue;
-    const source = await firstUserLocation(info.frames, resolve);
-    const files = await Promise.all(info.componentFrames.map(f => firstUserLocation(f, resolve).then(s => s?.file)));
-    const pageSource = pageFile(files.filter((f): f is string => Boolean(f)));
-    return {
-      ...(info.components.length ? { components: info.components } : {}),
-      ...(source ? { source } : {}),
-      ...(pageSource ? { pageSource } : {})
-    };
+    if (info) return info;
   }
-  return {};
+  return null;
+}
+
+/** The framework details of an element: components, its JSX location, and the page component's file. */
+export async function frameworkDetails(el: Element, resolve: FrameResolver = resolverFor(el.ownerDocument)): Promise<{ components?: string[]; source?: SourceLocation; pageSource?: string }> {
+  const info = frameworkInfo(el);
+  if (!info) return {};
+  const source = await firstUserLocation(info.frames, resolve);
+  const files = await Promise.all(info.componentFrames.map(f => firstUserLocation(f, resolve).then(s => s?.file)));
+  const pageSource = pageFile(files.filter((f): f is string => Boolean(f)));
+  return {
+    ...(info.components.length ? { components: info.components } : {}),
+    ...(source ? { source } : {}),
+    ...(pageSource ? { pageSource } : {})
+  };
 }
 
 /** The element a selection is in: the nearest element holding both ends. */

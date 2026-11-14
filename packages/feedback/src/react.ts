@@ -237,8 +237,14 @@ export function frameResolver(
       return mod ? { file: mod } : null;
     }
     const served = projectPath(frame.url);
-    const hit = /^https?:/.test(frame.url) ? await mapped(frame.url, frame.line, frame.column ?? 1) : null;
-    if (!hit) return { file: served, line: frame.line, ...(frame.column ? { column: frame.column } : {}) };
+    const hit = /^https?:/.test(frame.url) && frame.line > 0 ? await mapped(frame.url, frame.line, frame.column ?? 1) : null;
+    if (!hit) {
+      return {
+        file: served,
+        ...(frame.line > 0 ? { line: frame.line } : {}),
+        ...(frame.column && frame.column > 0 ? { column: frame.column } : {})
+      };
+    }
     let file = projectPath(hit.source);
     // A map that names the file alone ("Pricing.jsx") or as served: the served path says where it is
     if (!file.includes('/') || served.endsWith(`/${file}`) || served === file) file = served;

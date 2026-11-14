@@ -10,8 +10,8 @@ One file per item, `.luci/feedback/<id>.json`. `luci serve` writes them for the 
 | --- | --- |
 | `id` | The file's name: letters, digits, `-` and `_`. Never shown to agents |
 | `ref` | The stable ID agents report on, `P<page>-A<n>` (FR27). A page's number is the order its route was first annotated in the session; `n` is the order on that page. A route keeps its number while any item on it remains, and numbers on a page are never reused |
-| `page` | `url`, `route` (the path, plus a `#/...` fragment for hash routers; never the query), `title`, and `source`: the page component's file when an adapter found it |
-| `target` | `kind` (`element` or `text`), `selector`, `element` (tag and role, such as `h2 (heading)`), `text` (its visible text, shortened), `selectedText`, `components` (outermost first), `source` (`file`, `line`, `column`), `styles` (a few computed values), `rect` (where it was, to place the marker again) |
+| `page` | `url`, `route` (the path, plus a `#/...` fragment for hash routers; never the query), `title`, and `source`: the page component's file when an adapter (React, Vue 3, or Svelte 4/5) found it |
+| `target` | `kind` (`element` or `text`), `selector`, `element` (tag and role, such as `h2 (heading)`), `text` (its visible text, shortened), `selectedText`, `components` (outermost first, from React, Vue or Svelte), `source` (`file`, plus `line` and `column` when the framework provides them), `styles` (a few computed values), `rect` (where it was, to place the marker again) |
 | `comment` | What the person wrote |
 | `intent` | `fix`, `change`, `question` or `approve` |
 | `priority` | `high`, `medium` or `low` |

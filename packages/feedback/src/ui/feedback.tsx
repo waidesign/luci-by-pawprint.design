@@ -21,9 +21,8 @@ import {
   type FeedbackPriority
 } from '@luci/format/feedback';
 import type { FeedbackBackend } from '../backend.js';
-import { reactInfo } from '../react.js';
 import { copyToClipboard } from './clipboard.js';
-import { describeTarget, nameOf, selectionElement } from '../target.js';
+import { describeTarget, frameworkInfo, nameOf, selectionElement } from '../target.js';
 
 export interface FeedbackSettings {
   markerColor: string;
@@ -286,7 +285,7 @@ export function Feedback(props: FeedbackProps) {
   const open = items.find(i => i.ref === openRef) ?? null;
 
   const hoverRect = annotating && candidate && !draft ? candidate.getBoundingClientRect() : null;
-  const innermost = annotating && candidate ? reactInfo(candidate)?.components.at(-1) : undefined;
+  const innermost = annotating && candidate ? frameworkInfo(candidate)?.components.at(-1) : undefined;
   const hoverName = annotating && candidate ? `${nameOf(candidate)}${innermost ? ` · ${innermost}` : ''}` : '';
 
   return (

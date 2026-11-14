@@ -205,7 +205,7 @@ Version 0.1 covers all four modules: 56 requirements, 49 of them must-have (P0).
 | --- | --- | --- |
 | FR23 | **Annotate.** Click an element or select text, write feedback, set intent and priority. | P0 |
 | FR24 | **Prompt output.** Copy structured markdown with CSS selector, source file path, component tree and computed styles, at a selectable level of detail. | P0 |
-| FR25 | **Any framework.** Selector and text snippet always; source file path and component tree through adapters, React first, then Vue and Svelte. | P0 for React, P1 for others |
+| FR25 | **Any framework.** Selector and text snippet always; source file path and component tree through adapters, React first, then Vue and Svelte. (Built 14 Nov 2026, v0.3: Vue 3 `__vueParentComponent` / `type.__file` and Svelte 4/5 `__svelte_meta` alongside React 19.) | P0 for React, P1 for others |
 | FR26 | **One session across pages.** Annotations are stored per project, not per page, and survive navigation and reloads. | P0 |
 | FR27 | **Page-grouped prompt.** The prompt opens with the count of pages and items, groups items by page with route and source file, and gives each item a stable ID such as `P2-A3`. | P0 |
 | FR28 | **Completion report.** The prompt ends by asking the agent to report the status of every item ID, page by page, and name the route to open to verify it. | P0 |

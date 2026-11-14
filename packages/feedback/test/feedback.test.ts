@@ -12,7 +12,7 @@ import { FeedbackStore, initProject } from '@luci/brain';
 import { SkillRegistry } from '@luci/skills';
 import { browserBackend, bridgeBackend, decodeMappings, originalPosition, projectPath, stackFrames, type NewItem } from '../src/index.js';
 import { startBridge } from '../../cli/src/serve/bridge.js';
-import { serveApp, type AppServer } from './app.js';
+import { serveApp, serveSvelteApp, serveVueApp, type AppServer } from './app.js';
 import { tempProject } from '../../cli/test/helpers.js';
 
 describe('stacks, paths and source maps (pure)', () => {
@@ -45,28 +45,33 @@ describe('stacks, paths and source maps (pure)', () => {
   });
 });
 
-describe('feedback targets on a real React 19 app (FR23, FR24, FR25)', { timeout: 60_000 }, () => {
+describe('feedback targets on real React 19, Vue 3 and Svelte 5 apps (FR23, FR24, FR25)', { timeout: 60_000 }, () => {
   let browser: Browser;
   let app: AppServer;
+  let vueApp: AppServer;
+  let svelteApp: AppServer;
   let bundle: string;
   beforeAll(async () => {
     const entry = fileURLToPath(new URL('../src/index.ts', import.meta.url));
     const built = build({ entryPoints: [entry], bundle: true, format: 'iife', globalName: 'LuciFeedback', platform: 'browser', target: 'chrome120', write: false, logLevel: 'silent' });
-    [browser, app, bundle] = await Promise.all([chromium.launch(), serveApp(), built.then(r => r.outputFiles[0]!.text)]);
+    [browser, app, vueApp, svelteApp, bundle] = await Promise.all([chromium.launch(), serveApp(), serveVueApp(), serveSvelteApp(), built.then(r => r.outputFiles[0]!.text)]);
   }, 60_000);
   afterAll(async () => {
     await browser?.close();
     await app?.close();
+    await vueApp?.close();
+    await svelteApp?.close();
   });
 
-  async function open(route: string): Promise<Page> {
+  async function openIn(srv: AppServer, route: string): Promise<Page> {
     const page = await browser.newPage();
     page.setDefaultTimeout(5000);
-    await page.goto(`${app.origin}${route}`);
+    await page.goto(`${srv.origin}${route}`);
     await page.waitForSelector('main *');
     await page.addScriptTag({ content: bundle });
     return page;
   }
+  const open = (route: string) => openIn(app, route);
   const describeIn = (page: Page, selector: string, selectedText?: string) => page.evaluate(async ([sel, text]) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const L = (window as any).LuciFeedback;
@@ -125,6 +130,115 @@ describe('feedback targets on a real React 19 app (FR23, FR24, FR25)', { timeout
     expect(target).toMatchObject({ element: 'aside (complementary)', text: 'Injected' });
     expect(target.components).toBeUndefined();
     expect(target.source).toBeUndefined();
+    await page.close();
+  });
+
+  it('Vue 3: a button in an SFC reports its component hierarchy, .vue file, and page file', async () => {
+    const page = await openIn(vueApp, '/pricing');
+    const { target, pageSource } = await describeIn(page, '.plan:nth-of-type(2) button');
+    expect(target).toMatchObject({
+      kind: 'element',
+      element: 'button',
+      text: 'Start free trial',
+      components: ['App', 'Layout', 'Pricing', 'PlanCard'],
+      source: { file: 'src/components/PlanCard.vue' }
+    });
+    expect(target.source?.line).toBeUndefined();
+    expect(pageSource).toBe('src/pages/Pricing.vue');
+
+    const heading = await describeIn(page, 'h1', 'pricng');
+    expect(heading.target).toMatchObject({
+      kind: 'text',
+      element: 'h1 (heading)',
+      selectedText: 'pricng',
+      components: ['App', 'Layout', 'Pricing'],
+      source: { file: 'src/pages/Pricing.vue' }
+    });
+    expect(heading.pageSource).toBe('src/pages/Pricing.vue');
+
+    const nav = await describeIn(page, 'nav a:nth-of-type(2)');
+    expect(nav.target).toMatchObject({
+      element: 'a (link)',
+      text: 'Pricing',
+      components: ['App', 'Layout', 'Nav'],
+      source: { file: 'src/components/Nav.vue' }
+    });
+    expect(nav.pageSource).toBeUndefined();
+
+    const injected = await page.evaluate(async () => {
+      const el = document.createElement('aside');
+      el.textContent = 'Injected';
+      document.body.appendChild(el);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (window as any).LuciFeedback.describeTarget(el);
+    });
+    expect(injected.target.components).toBeUndefined();
+    expect(injected.target.source).toBeUndefined();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const found = await page.evaluate(() => (window as any).LuciFeedback.pageComponents(document).map((c: any) => ({ name: c.name, count: c.count })));
+    expect(found[0]).toEqual({ name: 'PlanCard', count: 2 });
+    await page.close();
+  });
+
+  it('Svelte 5: a button in a .svelte component reports its component hierarchy, exact line, and page file', async () => {
+    const page = await openIn(svelteApp, '/pricing');
+    const { target, pageSource } = await describeIn(page, '.plan:nth-of-type(2) button');
+    expect(target).toMatchObject({
+      kind: 'element',
+      element: 'button',
+      text: 'Start free trial',
+      components: ['App', 'Layout', 'Pricing', 'PlanCard'],
+      source: { file: 'src/components/PlanCard.svelte', line: 8 }
+    });
+    expect(pageSource).toBe('src/pages/Pricing.svelte');
+
+    const heading = await describeIn(page, 'h1', 'pricng');
+    expect(heading.target).toMatchObject({
+      kind: 'text',
+      element: 'h1 (heading)',
+      selectedText: 'pricng',
+      components: ['App', 'Layout', 'Pricing'],
+      source: { file: 'src/pages/Pricing.svelte', line: 6 }
+    });
+    expect(heading.pageSource).toBe('src/pages/Pricing.svelte');
+
+    const nav = await describeIn(page, 'nav a:nth-of-type(2)');
+    expect(nav.target).toMatchObject({
+      element: 'a (link)',
+      text: 'Pricing',
+      components: ['App', 'Layout', 'Nav'],
+      source: { file: 'src/components/Nav.svelte', line: 3 }
+    });
+    expect(nav.pageSource).toBeUndefined();
+
+    // Svelte 4 DOM-only metadata (0-based line + char, no parent dev_stack) and SvelteKit +page.svelte route
+    const svelte4 = await page.evaluate(async () => {
+      const section = document.createElement('section');
+      const btn = document.createElement('button');
+      btn.textContent = 'Buy now';
+      section.appendChild(btn);
+      document.body.appendChild(section);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (section as any).__svelte_meta = { loc: { file: 'src/routes/pricing/+page.svelte', line: 4, column: 2, char: 64 } };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (btn as any).__svelte_meta = { loc: { file: 'src/lib/BuyButton.svelte', line: 0, column: 4, char: 0 } };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const res = await (window as any).LuciFeedback.describeTarget(btn);
+      section.remove();
+      return res;
+    });
+    expect(svelte4.target).toMatchObject({
+      element: 'button',
+      text: 'Buy now',
+      components: ['Pricing', 'BuyButton'],
+      source: { file: 'src/lib/BuyButton.svelte', line: 1, column: 4 }
+    });
+    expect(svelte4.pageSource).toBe('src/routes/pricing/+page.svelte');
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const found = await page.evaluate(() => (window as any).LuciFeedback.pageComponents(document).map((c: any) => ({ name: c.name, count: c.count })));
+    expect(found[0]).toEqual({ name: 'PlanCard', count: 2 });
     await page.close();
   });
 });

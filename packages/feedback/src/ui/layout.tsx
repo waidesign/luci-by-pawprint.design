@@ -12,8 +12,7 @@ import { formatLayoutPrompt, layoutChangeText, routeOf, type LayoutPromptElement
 import type { FeedbackBackend } from '../backend.js';
 import { startSize } from '../layout/catalog.js';
 import { LayoutPreview, insertParent, layoutChildren, pageScale, reorderable, snapTo, type InsertPosition, type LayoutProperty, type PageScale, type PlannedInsert } from '../layout/preview.js';
-import { reactInfo } from '../react.js';
-import { describeTarget, nameOf } from '../target.js';
+import { describeTarget, frameworkInfo, nameOf } from '../target.js';
 import { copyToClipboard } from './clipboard.js';
 import { EMPTY_SOURCES, PartPicker, componentFile, loadSources, namedPart, partName, type Chosen, type PartSources } from './parts.js';
 import { Sketch } from './sketch.js';
@@ -81,7 +80,7 @@ const ALIGN_SELF = ['auto', 'stretch', 'flex-start', 'center', 'flex-end', 'base
 const px = (v: string) => parseFloat(v) || 0;
 const isPx = (v: string) => /^-?\d*\.?\d+px$/.test(v.trim());
 const nameWithComponent = (el: Element) => {
-  const c = reactInfo(el)?.components.at(-1);
+  const c = frameworkInfo(el)?.components.at(-1);
   return `${nameOf(el)}${c ? ` · ${c}` : ''}`;
 };
 /** A typed value: a bare number is px; "none", "auto", "50%", "20rem" are kept as written. */
