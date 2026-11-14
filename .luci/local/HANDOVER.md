@@ -2,7 +2,8 @@
 
 > [!IMPORTANT]
 > **CRITICAL NOTE FOR CLAUDE CODE (DO NOT RESUME THE UNFINISHED SESSION WORK):**
-> Do **NOT** attempt to resume, recreate, or reapply the uncommitted edits you were working on when you ran out of tokens (the basket card layout reorder and the help page Node 18+ notice).
+> *Timestamp: Claude Code session stopped at **3:26 AM (2026-11-15)** due to token limit.*
+> Do **NOT** attempt to resume, recreate, or reapply the uncommitted edits you were working on at 3:26 AM (the basket card layout reorder and the help page Node 18+ notice).
 > **All of that work was completed, verified, and committed in `2eab681`.**
 > Furthermore, two subsequent UI/UX fixes requested by the user were completed:
 > 1. `6e9ae9f`: Panel position `Right` is selected/active by default and reflects the dragged side.
