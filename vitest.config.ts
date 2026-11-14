@@ -13,6 +13,7 @@ export default defineConfig({
       { find: /^@luci\/format$/, replacement: pkg('format') },
       { find: /^@luci\/brain$/, replacement: pkg('brain') },
       { find: /^@luci\/skills$/, replacement: pkg('skills') },
+      { find: /^@luci\/ui$/, replacement: pkg('ui') },
       { find: /^@luci\/capture$/, replacement: pkg('capture') },
       { find: /^@luci\/feedback$/, replacement: pkg('feedback') },
       { find: /^@luci\/toolbar$/, replacement: pkg('toolbar') },

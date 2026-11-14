@@ -211,6 +211,9 @@ importers:
       '@luci/format':
         specifier: workspace:*
         version: link:../format
+      '@luci/ui':
+        specifier: workspace:*
+        version: link:../ui
       culori:
         specifier: 4.0.2
         version: 4.0.2
@@ -264,6 +267,9 @@ importers:
       '@luci/format':
         specifier: workspace:*
         version: link:../format
+      '@luci/ui':
+        specifier: workspace:*
+        version: link:../ui
       preact:
         specifier: 10.29.8
         version: 10.29.8
@@ -316,6 +322,12 @@ importers:
       '@luci/format':
         specifier: workspace:*
         version: link:../format
+
+  packages/ui:
+    dependencies:
+      preact:
+        specifier: 10.29.8
+        version: 10.29.8
 
 packages:
 

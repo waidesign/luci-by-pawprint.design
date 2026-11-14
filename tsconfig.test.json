@@ -13,6 +13,7 @@
       "@luci/format/feedback": ["./packages/format/src/feedback/index.ts"],
       "@luci/brain": ["./packages/brain/src/index.ts"],
       "@luci/skills": ["./packages/skills/src/index.ts"],
+      "@luci/ui": ["./packages/ui/src/index.ts"],
       "@luci/capture": ["./packages/capture/src/index.ts"],
       "@luci/feedback": ["./packages/feedback/src/index.ts"],
       "@luci/toolbar": ["./packages/toolbar/src/index.ts"]

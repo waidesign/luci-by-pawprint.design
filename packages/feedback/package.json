@@ -17,6 +17,7 @@
   "dependencies": {
     "@luci/capture": "workspace:*",
     "@luci/format": "workspace:*",
+    "@luci/ui": "workspace:*",
     "preact": "10.29.8"
   }
 }

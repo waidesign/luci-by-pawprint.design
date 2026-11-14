@@ -1,0 +1,54 @@
+:root {
+  /* Luci brand colors */
+  --luci-ginger-50: #FEF5E8;
+  --luci-ginger-100: #FEEBD1;
+  --luci-ginger-200: #FCD7AA;
+  --luci-ginger-300: #FBBE7A;
+  --luci-ginger-400: #F6A24F;
+  --luci-ginger-500: #EC862B;
+  --luci-ginger-600: #D86D1D;
+  --luci-ginger-700: #AD4F1A;
+  --luci-ginger-800: #893D1B;
+  --luci-ginger-900: #652D18;
+  --luci-ginger-950: #451F12;
+  --luci-muzzle-0: #FDF9F6;
+  --luci-muzzle-50: #F5EFEA;
+  --luci-muzzle-100: #EBE5E0;
+  --luci-muzzle-200: #DBD4CF;
+  --luci-muzzle-300: #C2BCB8;
+  --luci-muzzle-400: #A29D99;
+  --luci-muzzle-500: #837F7C;
+  --luci-muzzle-600: #656360;
+  --luci-muzzle-700: #4F4D4B;
+  --luci-muzzle-800: #3B3A39;
+  --luci-muzzle-900: #2B2B2B;
+  --luci-collar-lime-100: #EAF5C7;
+  --luci-collar-lime-300: #CBE66D;
+  --luci-collar-lime-500: #B4D43C;
+  --luci-collar-lime-700: #547617;
+  --luci-nose-pink-100: #FFE4E1;
+  --luci-nose-pink-300: #F5B9B4;
+  --luci-nose-pink-500: #E79993;
+  --luci-nose-pink-700: #AB5050;
+  --luci-iris-gold-100: #F7F0CA;
+  --luci-iris-gold-300: #E6D17A;
+  --luci-iris-gold-500: #CBB042;
+  --luci-iris-gold-700: #7B6813;
+  --luci-success-100: #DFF3D5;
+  --luci-success-700: #3F7932;
+  --luci-warning-100: #FEEDC9;
+  --luci-warning-700: #975F03;
+  --luci-danger-100: #FFE3DF;
+  --luci-danger-700: #C5372F;
+  --luci-info-100: #D9F0F3;
+  --luci-info-700: #1E767F;
+
+  /* Roles */
+  --luci-surface: #F5EFEA;
+  --luci-ink: #2B2B2B;
+  --luci-text-secondary: #656360;
+  --luci-primary: #EC862B;
+  --luci-on-primary: #2B2B2B;
+  --luci-link: #AD4F1A;
+  --luci-accent: #B4D43C;
+}

@@ -20,6 +20,7 @@
   ],
   "dependencies": {
     "@luci/format": "workspace:*",
+    "@luci/ui": "workspace:*",
     "culori": "4.0.2",
     "preact": "10.29.8"
   },
