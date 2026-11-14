@@ -139,7 +139,7 @@ export function AppearanceControls(props: { prefs: UiPrefs; onChange: (patch: Pa
         </div>
         <div class="seg" role="group" aria-label="Panel position">
           {DOCK_OPTIONS.map(d => (
-            <button type="button" data-dock-choice={d.id} aria-pressed={!props.moved && prefs.dock === d.id} title={d.title} onClick={() => onChange({ dock: d.id, place: null, devPlace: null })}>
+            <button type="button" data-dock-choice={d.id} aria-pressed={prefs.dock === d.id} title={d.title} onClick={() => onChange({ dock: d.id, place: null, devPlace: null })}>
               {d.label}
             </button>
           ))}

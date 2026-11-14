@@ -1058,7 +1058,7 @@ export function Toolbar(props: ToolbarProps) {
     const h = r.left + r.width / 2 < vw / 2 ? 'left' : 'right';
     const v = r.top + r.height / 2 < vh / 2 ? 'top' : 'bottom';
     setMoving(null);
-    setUiPrefs({ place: { h, v, x: Math.round(h === 'left' ? r.left : vw - r.right), y: Math.round(v === 'top' ? r.top : vh - r.bottom) } });
+    setUiPrefs({ place: { h, v, x: Math.round(h === 'left' ? r.left : vw - r.right), y: Math.round(v === 'top' ? r.top : vh - r.bottom) }, dock: h });
   };
   const swallowDragClick = (e: MouseEvent) => {
     if (!justMoved.current) return;

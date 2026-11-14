@@ -228,7 +228,7 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
       // Anchored to that corner from now on (so it keeps its place when the window resizes)
       Object.assign(button.style, { left: '', top: '', right: '', bottom: '', cursor: 'grab', [h]: `${place.x}px`, [v]: `${place.y}px`,
         [h === 'left' ? 'right' : 'left']: 'auto', [v === 'top' ? 'bottom' : 'top']: 'auto' });
-      writeUiPrefs(doc, { ...readUiPrefs(doc), devPlace: place });
+      writeUiPrefs(doc, { ...readUiPrefs(doc), devPlace: place, dock: h });
     };
     const release = () => {
       doc.removeEventListener('pointermove', move, true);
@@ -323,7 +323,7 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
     const v = r.top + r.height / 2 < vh / 2 ? 'top' : 'bottom';
     place = { h, v, x: Math.round(h === 'left' ? r.left : vw - r.right), y: Math.round(v === 'top' ? r.top : vh - r.bottom) };
     applyPlace(d.host);
-    writeUiPrefs(doc, { ...readUiPrefs(doc), devPlace: place });
+    writeUiPrefs(doc, { ...readUiPrefs(doc), devPlace: place, dock: h });
   };
   const draggable = (host: HTMLElement) => {
     const root = host.shadowRoot;
