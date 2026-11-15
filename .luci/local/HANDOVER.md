@@ -16,22 +16,19 @@
 ## 1. Where things stand
 
 - **Project:** Luci, a local-first toolkit for AI coding agents: project memory, skill selection, design capture (browser extension and dev toolbar) and UI feedback. Spec: `docs/PRD.md` (Part 4 is the build brief). Monorepo, pnpm, TypeScript, vitest, Playwright, Preact; 10 packages including `@luci/ui` (see `.luci/context.md`).
-- **Git State:** `HEAD` is pushed to GitHub `main` (clean working tree).
-- **Recent Commit History (15 commits):**
-  - `a8a4a9e` — **Propose rule**: push only when the user says so.
-  - `b9caf0e` — **Brand kit**: a Luci pose for every tool, and Lucifer on his collar.
-  - `d13596a` — **Dev toolbar**: centred mode switch, placed at the bottom where Luci waits, and description cards for every mode.
-  - `a46227f` — **`luci toolbar`**: add/remove the dev toolbar in an app without editing code (Next.js, SvelteKit, Astro, HTML), offered in `init` and `serve`.
-  - `73f0431` — **Fix**: opening the extension closes the dev toolbar into its button and vice-versa (one Luci on page at a time).
-  - `3e6dff9` — **Fix**: note markers float on elements properly; dev toolbar panels open upwards from the bar.
-  - `3e9b478` — **Decision record**: dev toolbar panels open from the bar (`.luci/decisions/2026-11-15-dev-toolbar-placement-and-setup.md`).
-  - `fc7e648` — **Extension**: drag the bar anywhere in the window, kept per site in UI preferences.
-  - `b0a4ee2` — **Luci v0.3.0**: version pill with GitHub mark, "Take Luci home" in extension menu, draggable dev toolbar, settings row wrap fix.
-  - `1e3672a` — **Third-party notices**: credit Graphify (code map) and uv in `THIRD_PARTY_NOTICES.md`.
-  - `4bd9a19` — **Panel position reads `Left | Right`** (screen order); menu no longer scrolls sideways from repo pill tooltip; dev toolbar button draggable without opening bar.
-  - `2eab681` — **Basket & Help page update**: (finished what Claude Code left off) basket items show meta on top, name and export/remove buttons in one row, note textarea below; help page notes Node 18+ requirement.
-  - `6e9ae9f` — **Panel position default**: `Right` tab is selected with active state by default (`aria-pressed={prefs.dock === d.id}` without unselecting when custom-placed); follows the dragged side of the screen across Extension and Dev Toolbar.
-  - `d8c8eae` — **Tooltip container fix**: expanded tooltip container `max-width: 340px; box-sizing: border-box; white-space: pre-wrap;` so long button hints (such as Pause: *"Pause  Freezes the page's animations"*) fit comfortably without text overflowing the dark pill.
+- **Git State:** Working tree clean. Local `main` is 6 commits ahead of `origin/main` (commits kept local per user instruction: push only upon explicit request).
+- **Recent Commit History (Latest commits on main):**
+  - `329a83e` — **B16: monorepo sub-package scoping and package rules**: ancestor directory climbing (`findProjectRoot`), package-scoped rules under `## Package: <path-or-name>` in root `.luci/rules.md`, active package stack & rules reporting in `get_project_context`, `luci start`, `luci doctor`, and transparent monorepo scoping for all CLI commands (`task`, `skills`, `capture`, `map`, `serve`).
+  - `2e7db6f` — **DESIGN.md export for Google Stitch**: prose-first design export format with markdown tables and design token sections.
+  - `3428a59` — **v0.4 screenshot mode and automatic design check**: visual inspection, token diffing against design baseline, and automatic checking during serve.
+  - `dee604e` — **v0.4 remap to my tokens, and compare in the basket**: token remapping engine and basket comparison views.
+  - `db13734` — **B14 project design baseline, and compare mode's core (v0.4)**: design baseline storage, baseline checks, and comparison infrastructure.
+  - `e2c3766` — **Decision record: install command waits for npm registration**: package naming and publication decision record.
+  - `65c2ad8` — **docs**: add 3:26 AM (2026-11-15) Claude Code cutoff timestamp to handover.
+  - `7a4d2cf` — **docs**: update handover notes for Claude Code with recent commits and UI fixes.
+  - `d8c8eae` — **Tooltip**: expand max-width to 340px and pre-wrap so hints do not overflow container.
+  - `6e9ae9f` — **Panel position**: Right active by default and follows dragged side.
+  - `2eab681` — **Basket**: meta on top, name and actions in one row; help page note on Node 18+.
 
 ---
 
@@ -41,7 +38,7 @@
 - **Next.js Integration Tested:** `E:\vht - Copy` was initialized with `luci init`, `luci serve` runs on port 4545, and `Script` tag was wired into `apps/web/src/app/layout.tsx`.
 - **Test Suite Status:**
   - `pnpm typecheck` passes with 0 errors.
-  - `pnpm test` passes cleanly: **58 test files passed (502 tests passed, 6 skipped)**.
+  - `pnpm test` passes cleanly: **64 test files passed (566 tests passed, 6 skipped)**.
 - **Builds:**
   - `packages/toolbar/dist/luci-toolbar.js` freshly built.
   - `packages/extension/.output/chrome-mv3` freshly built.
