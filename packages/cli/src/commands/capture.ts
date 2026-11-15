@@ -1,9 +1,15 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import { MEMORY_FILES, PRODUCT } from '@luci/format';
-import { DesignStore, captureRule, proposeCaptureRule } from '@luci/brain';
+import { compareComponentFiles, formatCompareReport } from '@luci/format/capture';
+import { DesignStore, canWriteBaseline, captureRule, proposeCaptureRule, writeBaseline } from '@luci/brain';
 import { parseFlags, type Command } from '../context.js';
 
-export const CAPTURE_HELP = `capture [rule <file>]  The design captures saved in the project; rule proposes a rule from a component capture (--dry-run shows it)`;
+export const CAPTURE_HELP = `capture [rule <file> | baseline | compare <a> <b>]
+                        The design captures saved in the project. rule proposes a rule from a component
+                        capture; baseline rebuilds the project's own typography, colors and spacing from
+                        its stylesheets; compare lists the differences between two component captures
+                        (--dry-run shows what rule or baseline would write)`;
 
 const usage = () => `Usage: ${PRODUCT.command} ${CAPTURE_HELP}`;
 
@@ -25,6 +31,37 @@ export const captureCommand: Command = async (args, ctx) => {
     ctx.out(`Design captures in ${PRODUCT.projectDir}/${MEMORY_FILES.design}/:`);
     for (const f of files) ctx.out(`  ${f.file}  (${f.scope}${f.type && f.type !== f.scope ? `, ${f.type}` : ''}, from ${f.source}, ${f.captured})`);
     ctx.out(`\nA component can become a rule: ${PRODUCT.command} capture rule <file>`);
+    return 0;
+  }
+
+  // The project design baseline (B14), rebuilt from the project's stylesheets
+  if (sub === 'baseline') {
+    if (file) { ctx.err(`baseline takes no file.\n${usage()}`); return 1; }
+    if (!canWriteBaseline(ctx.cwd)) { ctx.err(`No ${PRODUCT.projectDir}/ here yet: run \`${PRODUCT.command} init\` first.`); return 1; }
+    const dryRun = flags.has('--dry-run');
+    const r = writeBaseline(ctx.cwd, { dryRun });
+    if (!r.stylesheets.length) {
+      ctx.out(`No stylesheets found in this project (CSS, Sass, Less, or <style> in Vue, Svelte and Astro files), so there is no design baseline.`);
+      return 0;
+    }
+    ctx.out(`Read ${r.stylesheets.length} stylesheet${r.stylesheets.length === 1 ? '' : 's'} and ${r.tokens} custom propert${r.tokens === 1 ? 'y' : 'ies'}.`);
+    if (!r.written.length) ctx.out('They set no typography, colors or spacing Luci can read, so there is no design baseline.');
+    for (const f of r.written) ctx.out(`  ${dryRun ? 'Would write' : 'Wrote'} ${f}`);
+    for (const f of r.removed) ctx.out(`  ${dryRun ? 'Would remove' : 'Removed'} ${f} (that system is no longer in the stylesheets)`);
+    if (r.written.length && !dryRun) ctx.out(`\nYour agent finds them with list_captures. Your own instructions in these files stay when they are rebuilt.`);
+    return 0;
+  }
+
+  // Compare two component captures (v0.4): what differs, part by part
+  if (sub === 'compare') {
+    const [a, b] = [file, extra[0]];
+    if (!a || !b || extra.length > 1) { ctx.err(`Name two component capture files.\n${usage()}`); return 1; }
+    const read = (f: string) => store.read(path.basename(f)) ?? (fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : null);
+    const [ta, tb] = [read(a), read(b)];
+    if (ta === null || tb === null) { ctx.err(`Not found: ${ta === null ? a : b}`); return 1; }
+    const result = compareComponentFiles(ta, tb);
+    if (!result.ok) { ctx.err(result.error); return 1; }
+    ctx.out(formatCompareReport(result.value, { a: path.basename(a), b: path.basename(b) }).trimEnd());
     return 0;
   }
 

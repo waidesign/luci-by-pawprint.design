@@ -9,6 +9,8 @@ import { memoryDir, memoryPath } from '../layout/brainLayout.js';
 import { writeBrain } from '../layout/writeBrain.js';
 import { writeGlobalBrainSnapshot } from '../memory/globalLink.js';
 import { MemoryEngine } from '../memory/memoryEngine.js';
+import { writeBaseline } from '../design/baseline.js';
+import { BASELINE_FILES } from '@luci/format/capture';
 
 export interface InitOptions {
   /** Report what would be written; write nothing, not even the Global Brain. */
@@ -42,6 +44,8 @@ export interface InitReport {
   agents: Partial<Record<AgentId, AgentFileResult>>;
   /** Skill packs that fit the project and aren't added yet. Nothing is added here. */
   packsSuggested: PackSuggestion[];
+  /** The project design baseline written (B14): how many stylesheets and tokens it read, and its files. */
+  baseline?: { stylesheets: number; tokens: number; files: string[] };
   /** Project-relative paths written for the first time (or, in a dry run, that would be). */
   created: string[];
   /** Generated files rewritten with current content. */
@@ -117,6 +121,14 @@ export async function initProject(targetDir: string = process.cwd(), options: In
     if (result.action === 'created') report.created.push(rel);
     else if (result.action === 'unchanged') report.skipped.push(`${rel} (up to date)`);
     else report.updated.push(`${rel} (${result.action === 'merged' ? 'Luci section added' : 'Luci section refreshed'})`);
+  }
+
+  // The project design baseline (B14): its own typography, colors and spacing, from its stylesheets
+  const before = new Set<string>(Object.values(BASELINE_FILES).filter(f => fs.existsSync(path.join(memoryDir(dir), MEMORY_FILES.design, f))));
+  const baseline = writeBaseline(dir, { dryRun });
+  if (baseline.written.length) {
+    report.baseline = { stylesheets: baseline.stylesheets.length, tokens: baseline.tokens, files: baseline.written };
+    for (const file of baseline.written) (before.has(path.basename(file)) ? report.updated : report.created).push(file);
   }
 
   report.packsSuggested = await suggestPacks(dir, projectInfo, registry);

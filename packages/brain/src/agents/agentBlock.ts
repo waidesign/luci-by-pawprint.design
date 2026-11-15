@@ -20,6 +20,7 @@ export function agentBlock(options: { agentLabel: string; heading: string; extra
     `- Memory: record decisions in ${dir}/decisions/. Propose new rules or lessons as files in ${dir}/memory/proposed/; don't edit rules.md yourself.`,
     `- Code map: ./graphify-out/GRAPH_REPORT.md and graph.json, if present. \`${PRODUCT.command} map\` says whether it is current; when it is not, read changed files directly.`,
     `- ${PRODUCT.name} over MCP (${PRODUCT.mcpServer}, if connected): get_project_context first (get_active_task when resuming), load_project_skills for the skills the current task needs; get_feedback_prompt when the user mentions UI feedback (read only: report every ID in your answer), watch_feedback when they ask you to watch for new notes, list_captures before building UI from a design.`,
+    `- Design baseline: ${dir}/design/project.system.{typography,color,spacing}.design.md hold the project's own type, colors, spacing and tokens, read from its stylesheets. Reuse them before adding new values; \`${PRODUCT.command} capture baseline\` rebuilds them after the stylesheets change.`,
     `- Dev toolbar (notes, layout plans and captures in the running app): when the user asks for it, run \`${PRODUCT.command} toolbar\`; it adds a localhost-only loader to the app's root HTML or layout (\`${PRODUCT.command} toolbar remove\` takes it out), and \`${PRODUCT.command} serve\` connects it.`,
     `- Precedence: Safety rules > user request > ${dir}/rules.md > Global Brain (~/${PRODUCT.homeDir}/brain) > skills > tool defaults.`,
     ...(options.extra ?? []),

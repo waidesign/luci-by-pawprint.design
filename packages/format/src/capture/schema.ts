@@ -12,8 +12,11 @@ import { z } from 'zod';
 export const CAPTURE_SCOPES = ['token', 'system', 'component', 'section', 'page', 'collection'] as const;
 export const TOKEN_TYPES = ['text', 'color', 'spacing'] as const;
 export const SYSTEM_TYPES = ['typography', 'color', 'spacing'] as const;
-/** `measured` for values read from the live DOM; `estimated` for values guessed (a pixel on an image). */
-export const CAPTURE_METHODS = ['measured', 'estimated'] as const;
+/**
+ * `measured` for values read from the live DOM; `estimated` for values guessed (a pixel on an image,
+ * a palette from a screenshot); `authored` for values read from the project's own stylesheets (B14).
+ */
+export const CAPTURE_METHODS = ['measured', 'estimated', 'authored'] as const;
 export const COLOR_ROLES = ['background', 'text', 'border', 'accent'] as const;
 export const UNIT_SETTINGS = ['px', 'rem', 'both'] as const;
 export const COLOR_SETTINGS = ['hex', 'rgb', 'hsl', 'oklch'] as const;

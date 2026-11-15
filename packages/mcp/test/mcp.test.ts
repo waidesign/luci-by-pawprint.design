@@ -37,7 +37,7 @@ describe('luci-mcp tools (B11)', () => {
   it('serves the ported tools plus get_active_task and propose_memory, and the feedback and capture tools (M6)', () => {
     const names = TOOLS.map(t => t.name).sort();
     expect(names).toEqual([
-      'add_skill_packs', 'analyze_project',
+      'add_skill_packs', 'analyze_project', 'compare_captures',
       'get_active_task', 'get_capture', 'get_feedback_prompt', 'get_global_brain', 'get_project_context', 'get_project_graph',
       'get_project_skills', 'get_project_status', 'get_skill', 'initialize_project', 'intake_docs', 'list_captures', 'list_feedback',
       'list_skill_packs', 'list_skills', 'load_project_skills', 'load_skills', 'propose_capture_rule', 'propose_memory', 'recommend_skills',
@@ -45,6 +45,7 @@ describe('luci-mcp tools (B11)', () => {
     ]);
     const readOnly = TOOLS.filter(t => t.annotations.readOnlyHint).map(t => t.name);
     expect(readOnly).toContain('get_project_context');
+    expect(readOnly).toContain('compare_captures');
     expect(readOnly).not.toContain('update_project_memory');
     for (const t of TOOLS) expect(t.description).not.toMatch(/\b(gaw|GAW|ai-brain|Guided Agent)\b/);
   });

@@ -90,6 +90,11 @@ export const initCommand: Command = async (rawArgs, ctx) => {
     ctx.out(`  Add with: ${PRODUCT.command} packs add ${report.packsSuggested.map(p => p.name).join(' ')}`);
   }
 
+  // The design baseline (B14): what init read from the project's stylesheets
+  if (report.baseline) {
+    ctx.out(`\nDesign baseline: ${report.baseline.files.length} file${report.baseline.files.length === 1 ? '' : 's'} from ${report.baseline.stylesheets} stylesheet${report.baseline.stylesheets === 1 ? '' : 's'} and ${report.baseline.tokens} token${report.baseline.tokens === 1 ? '' : 's'}: your project's own typography, colors and spacing, for your agent to reuse. Rebuild with ${PRODUCT.command} capture baseline.`);
+  }
+
   // The dev toolbar: added on request, offered in a terminal, else one line on how to add it later
   if (flags.has('--toolbar')) await toolbarCommand([], ctx);
   else if (interactive) await offerToolbar(ctx);

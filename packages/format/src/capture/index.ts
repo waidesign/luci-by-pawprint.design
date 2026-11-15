@@ -8,3 +8,5 @@ export * from './check.js';
 export * from './rule.js';
 export * from './spacingUnit.js';
 export * from './merge.js';
+export * from './baseline.js';
+export * from './compare.js';

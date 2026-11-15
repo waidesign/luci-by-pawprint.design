@@ -9,6 +9,7 @@ import path from 'node:path';
 import { z } from 'zod';
 import { MEMORY_FILES, PROPOSAL_TARGETS, PRODUCT, formatProposal } from '@luci/format';
 import { DETAIL_LEVELS, FEEDBACK_STATUSES, formatFeedbackPrompt, layoutChangeText, sourceText as feedbackSourceText, type FeedbackItem } from '@luci/format/feedback';
+import { compareComponentFiles, formatCompareReport } from '@luci/format/capture';
 import {
   CODE_MAP_SETUP_HINT,
   CodeMap,
@@ -447,7 +448,7 @@ export const TOOLS: readonly LuciTool[] = [
 
   // Design captures saved from the toolbar into the project
   tool('list_captures',
-    `Design captures saved into this project (${PRODUCT.projectDir}/${MEMORY_FILES.design}/): components, text, colors, spacing, systems, whole pages and basket exports, measured from live pages. Read one with get_capture before building or restyling UI it describes. Reads only.`,
+    `Design captures saved into this project (${PRODUCT.projectDir}/${MEMORY_FILES.design}/): components, text, colors, spacing, systems, whole pages and basket exports, measured from live pages, and the project's own design baseline (project.system.typography/color/spacing.design.md, method authored: the values and tokens its stylesheets already have; reuse them). Read one with get_capture before building or restyling UI it describes. Reads only.`,
     { projectPath }, READ,
     (args, deps) => {
       const store = new DesignStore(target(args, deps));
@@ -464,6 +465,22 @@ export const TOOLS: readonly LuciTool[] = [
       if (!store.available) return notInitialized(store.projectDir);
       const content = store.read(args.file);
       return content === null ? error(`No capture named ${args.file}. list_captures shows the saved ones.`) : text(content);
+    }),
+
+  tool('compare_captures',
+    'Compare two saved component captures (from list_captures), part by part: parts, styles, state changes, motion and accessibility. Returns every value that differs as a table (What, A, B), values compared by meaning (any color notation, lengths within half a pixel). Reads only.',
+    {
+      a: z.string().min(1).describe('First component capture, e.g. example-com.component.button.design.md'),
+      b: z.string().min(1).describe('Second component capture'),
+      projectPath
+    }, READ,
+    (args, deps) => {
+      const store = new DesignStore(target(args, deps));
+      if (!store.available) return notInitialized(store.projectDir);
+      const [a, b] = [store.read(args.a), store.read(args.b)];
+      if (a === null || b === null) return error(`No capture named ${a === null ? args.a : args.b}. list_captures shows the saved ones.`);
+      const result = compareComponentFiles(a, b);
+      return result.ok ? text(formatCompareReport(result.value, { a: args.a, b: args.b })) : error(result.error);
     }),
 
   tool('propose_capture_rule',

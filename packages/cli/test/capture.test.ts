@@ -70,3 +70,43 @@ describe('luci capture: capture to rule (v0.3.2)', () => {
     expect(proposals(dir)).toEqual([]);
   });
 });
+
+describe('luci capture baseline (B14) and compare (v0.4)', () => {
+  it('builds the design baseline from the project stylesheets; init already did, and a rebuild reports it', async () => {
+    const dir = tempProject({ 'package.json': JSON.stringify({ name: 'shop' }), 'src/app.css': ':root { --brand: #0f62fe; --space-4: 1rem; }\nbody { font-family: Inter, sans-serif; color: #161616; }\n.card { padding: var(--space-4); background: var(--brand); }\n' });
+    const init = fakeContext(dir);
+    expect(await run(['init', '--yes'], init.ctx)).toBe(0);
+    expect(init.text()).toContain('Design baseline: 3 files from 1 stylesheet and 2 tokens');
+    expect(new DesignStore(dir).list().map(f => f.file)).toContain('project.system.color.design.md');
+    const f = fakeContext(dir);
+    expect(await run(['capture', 'baseline'], f.ctx)).toBe(0);
+    expect(f.text()).toContain('Read 1 stylesheet and 2 custom properties.');
+    expect(f.text()).toContain('Wrote .luci/design/project.system.spacing.design.md');
+  });
+
+  it('says so when a project has no stylesheets, and needs init first', async () => {
+    const bare = tempProject();
+    const none = fakeContext(bare);
+    expect(await run(['capture', 'baseline'], none.ctx)).toBe(1);
+    expect(none.errors()).toContain('run `luci init` first');
+    await initProject(bare);
+    const empty = fakeContext(bare);
+    expect(await run(['capture', 'baseline'], empty.ctx)).toBe(0);
+    expect(empty.text()).toContain('No stylesheets found in this project');
+  });
+
+  it('compares two component captures', async () => {
+    const dir = await project();
+    const other = golden(BUTTON).replace('name: primary-button', 'name: buy-button').replace(/border-radius 8px \(--radius-md\)/, 'border-radius 12px');
+    new DesignStore(dir).save('other-example.component.buy-button.design.md', other);
+    const f = fakeContext(dir);
+    expect(await run(['capture', 'compare', BUTTON, 'other-example.component.buy-button.design.md'], f.ctx)).toBe(0);
+    expect(f.text()).toContain(`# Compare: ${BUTTON} and other-example.component.buy-button.design.md`);
+    const same = fakeContext(dir);
+    expect(await run(['capture', 'compare', BUTTON, BUTTON], same.ctx)).toBe(0);
+    expect(same.text()).toContain('No differences: every value compared is the same.');
+    const bad = fakeContext(dir);
+    expect(await run(['capture', 'compare', BUTTON, 'example-com.system.typography.design.md'], bad.ctx)).toBe(1);
+    expect(bad.errors()).toContain('The second file is not a component capture');
+  });
+});

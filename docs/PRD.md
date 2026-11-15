@@ -155,7 +155,7 @@ Version 0.1 covers all four modules: 56 requirements, 49 of them must-have (P0).
 
 | ID | Requirement | Priority |
 | --- | --- | --- |
-| B14 | **Project design baseline.** For UI projects, build a design.md from values already in the project's stylesheets, in Luci's format, so agents reuse them. | P0 |
+| B14 | **Project design baseline.** For UI projects, build a design.md from values already in the project's stylesheets, in Luci's format, so agents reuse them. (Built 15 Nov 2026: `luci init` and `luci capture baseline` write `project.system.{typography,color,spacing}.design.md`, method `authored`; see docs/format/capture.md.) | P0 |
 | B15 | **Memory updates.** Agents can propose additions to project memory; proposals wait in a review folder until a person accepts them. | P0 |
 | S8 | **Skill packs.** Small curated sets of skills for one kind of work, offered at init when they fit the project, and removable without touching hand-picked skills. | P0 |
 | S9 | **Skill import and trust levels.** Import skills from a GitHub repository; every skill shows where it came from and who has checked it. | P0 |

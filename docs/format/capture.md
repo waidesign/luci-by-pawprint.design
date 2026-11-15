@@ -16,7 +16,7 @@ This page covers single tokens and page systems (M4), components and the basket 
 | `source` | yes | The page: origin and path only. The query and fragment are dropped, because they can carry personal data. With the **Source** setting `site`, only the site's name (`lattice.com`: the host without `www.`, with the port for a local server); a page without a host keeps its address |
 | `selector` | tokens and components | The picked element. System and page files have none |
 | `captured` | yes | `YYYY-MM-DD` |
-| `method` | yes | `measured` when read from the live DOM; `estimated` when guessed, such as a pixel picked from an image |
+| `method` | yes | `measured` when read from the live DOM; `estimated` when guessed, such as a pixel picked from an image or a palette from a screenshot (v0.4); `authored` when read from the project's own stylesheets (the design baseline, B14) |
 | `extends` | no | Another capture file this one builds on |
 
 Values are plain YAML scalars when they read back unchanged, and JSON-quoted otherwise (selectors with `#`, quotes or `: `).
@@ -60,6 +60,22 @@ One file per capture, flat: `<site>.<scope>.<name>.design.md`, where `<site>` is
 ### Site-level systems (v0.3.3)
 
 `mergeSystems` (`merge.ts`) merges one system type captured on two or more pages of one site into a site-level system: `name: site-<type>`, the site's root as `source`, and `pages: ["/pricing", "/blog"]` in the frontmatter; the file is `<site>.system.site-<type>.design.md`, so it never replaces a page's own system file. Rows are unified by what they are, not by how a page named them: text styles by their look (first font, size, weight, line height, letter spacing, color), color roles by role and `colorKey`, spacing values by px; uses are summed, a token or authored value is kept only when every page agrees, and families with the same first font are one row (written as the most used stack). The Roles tables (typography and color), color Tokens and the spacing Scale gain a **Pages** column: `all`, or the paths of the pages that use the row. A style that keeps the most uses takes a role name; another style with the same name is numbered (`heading-2-2`). The spacing base unit and outliers are found again over all pages. A **Conflicts** section lists, as `What | Values by page`, each text role (heading levels and named roles; page-local numbering such as `body-2` is ignored) and each token with different values on different pages, then a line asking to decide which one the site means; with none it says so. `mergeGroups` says which basket items can merge (single-page systems of one type and site, from two pages or more; a page captured twice counts once, the latest). Goldens: `fixtures/merge/` (the system goldens' /pricing inputs plus a /blog page with a heading-2, a `--color-primary` and a `--space-4` that differ).
+
+### The project design baseline (B14)
+
+`buildBaseline` (`baseline.ts`) reads a project's own stylesheets and writes its three systems as `project.system.typography.design.md`, `project.system.color.design.md` and `project.system.spacing.design.md` in `.luci/design/`, with `method: authored`, `name: project-<type>` and `source: file:///<project folder name>` (no other path). The stylesheets are the project's `.css`, `.scss`, `.less` and `.pcss` files and the `<style>` blocks of `.vue`, `.svelte` and `.astro` files, never `node_modules`, build output, minified files or hidden folders (at most 400 files of 1 MB each). Nested rules are flattened (a Sass `&` keeps its parent), `@media`, `@supports`, `@layer` and `@container` pass their rules through, `@keyframes` and `@font-face` are skipped, and Tailwind v4's `@theme` holds tokens like `:root`. Values resolve through custom properties (`var()`, with fallbacks) and Sass `$` or Less `@` variables; lengths are written in px at the stylesheets' root font size (`html { font-size: 62.5% }` makes `1rem` 10px), with the written value as Authored and its token.
+
+- **Tokens**: each custom property's first definition on the root (`:root`, `html`, `:host`, `body`, `@theme`, a `[data-theme]` attribute or a `.light`, `.dark` or `.theme-*` class).
+- **Colors**: each color a declaration uses, by the role its property gives it (`color` text; `background` background; `border`, `outline` border; `fill`, `stroke`, `accent-color` accent), at most six a role, most used first; fully transparent colors, `currentColor` and `inherit` are left out. Tokens: every color token, with how many declarations use it.
+- **Spacing**: every length of `padding`, `margin`, `gap` and `inset` declarations, with the base unit and outliers as for a page.
+- **Typography**: roles only from element rules, never classes: `body` (`html`, `body`, `:root`), `heading-1` to `heading-6`, `paragraph`, `small`, `code`, `button`, `label`, `link`. A role takes what its rule sets and the rest from `body` (or, for a heading's size and weight, the browser's defaults). Families and the size scale count every `font-family` and `font-size` declaration.
+- **Uses** count the declarations that set a value. A token no declaration uses (a utility framework's theme: Tailwind classes use it in markup, not in CSS) counts its own definition once in the spacing and size scales, and a color token named for a role (`--color-background`, `--text`, `--border`, `--primary`) gets that role.
+
+`luci init` writes the baseline for a project with stylesheets, and `luci capture baseline` rebuilds it (`--dry-run` shows what it would write); the person's `## Your instructions` in a baseline file survive a rebuild, and a system the stylesheets no longer have loses its file. Agents find the files with `list_captures`.
+
+### Compare (v0.4)
+
+`compareCaptures` (`compare.ts`) compares two captures of any scope value by value (component parts, styles, state changes, motion, accessibility; text styles; system roles and scales), and `compareComponentFiles` compares two component files as saved, with the design check's own rules (`checkComponent`). Values are compared by meaning, as the design check compares them. `formatCompareReport` writes the result: who A and B are, how many values are the same, and a `What | A | B` table of the differences. The basket compares two items, `luci capture compare <a> <b>` and the MCP tool `compare_captures` compare two saved component files.
 
 ## Components
 
