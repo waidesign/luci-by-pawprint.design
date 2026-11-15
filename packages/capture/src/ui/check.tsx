@@ -136,6 +136,56 @@ export function CheckResultPanel(props: {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const copyTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  // Visual screenshot diff overlay (v0.4.4)
+  const [overlayImage, setOverlayImage] = useState<string | null>(null);
+  const [overlayMode, setOverlayMode] = useState<'onion' | 'split' | 'diff'>('onion');
+  const [overlayOpacity, setOverlayOpacity] = useState(50);
+  const [overlaySplit, setOverlaySplit] = useState(50);
+  const [abToggle, setAbToggle] = useState(false);
+  const diffFileInput = useRef<HTMLInputElement>(null);
+  const [rect, setRect] = useState<DOMRect | null>(() => (typeof props.el.getBoundingClientRect === 'function' ? props.el.getBoundingClientRect() : null));
+
+  const loadOverlayFile = (f: Blob) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setOverlayImage(reader.result);
+        setAbToggle(false);
+      }
+    };
+    reader.readAsDataURL(f);
+  };
+
+  useEffect(() => {
+    const updateRect = () => {
+      if (typeof props.el.getBoundingClientRect === 'function') {
+        setRect(props.el.getBoundingClientRect());
+      }
+    };
+    updateRect();
+    const win = props.el.ownerDocument?.defaultView ?? window;
+    win.addEventListener('scroll', updateRect, true);
+    win.addEventListener('resize', updateRect);
+    return () => {
+      win.removeEventListener('scroll', updateRect, true);
+      win.removeEventListener('resize', updateRect);
+    };
+  }, [props.el]);
+
+  useEffect(() => {
+    const win = props.el.ownerDocument?.defaultView ?? window;
+    const onPaste = (e: ClipboardEvent) => {
+      const file = [...(e.clipboardData?.items ?? [])].find(i => i.kind === 'file' && i.type.startsWith('image/'))?.getAsFile();
+      if (file) {
+        e.preventDefault();
+        loadOverlayFile(file);
+      }
+    };
+    win.addEventListener('paste', onPaste, true);
+    return () => win.removeEventListener('paste', onPaste, true);
+  }, []);
+
   useEffect(() => () => clearTimeout(copyTimer.current), []);
   useEffect(() => {
     setTicked(diffs.map(() => true));
@@ -158,7 +208,8 @@ export function CheckResultPanel(props: {
   };
 
   return (
-    <div class="panel" role="dialog" aria-label="Design check result" data-part="check-result">
+    <>
+      <div class="panel" role="dialog" aria-label="Design check result" data-part="check-result">
       <h2>Design check: {result.design.name} <span class="dim">({result.design.type})</span></h2>
       <p class="dim" data-part="check-design">Against {props.design.label} · built: <code>{props.selector}</code></p>
       <p data-part="check-summary">
@@ -190,6 +241,115 @@ export function CheckResultPanel(props: {
       )}
       {added && <p class="hint" data-part="check-added">Added {added.length} note{added.length === 1 ? '' : 's'} ({added.join(', ')}) to {props.notesWhere ?? 'your feedback notes'}. They are in Feedback mode, ready to copy for your agent.</p>}
       {error && <p class="error" data-part="check-error">{error}</p>}
+
+      {/* Visual Screenshot Diff Overlay (v0.4.4) */}
+      <div class="stack diff-section" data-part="diff-overlay-section">
+        <div class="row" style={{ justifyContent: 'space-between' }}>
+          <span class="field-label">Visual diff overlay (v0.4.4)</span>
+          {overlayImage && (
+            <button type="button" class="btn-secondary" data-action="diff-clear-image" onClick={() => setOverlayImage(null)}>
+              Remove image
+            </button>
+          )}
+        </div>
+        {!overlayImage ? (
+          <div
+            class="sub image-drop"
+            data-part="diff-dropzone"
+            style={{ position: 'static', width: 'auto', margin: 0, padding: '12px' }}
+            onDragOver={e => e.preventDefault()}
+            onDrop={e => {
+              e.preventDefault();
+              const f = e.dataTransfer?.files?.[0];
+              if (f && /^image\//.test(f.type)) loadOverlayFile(f);
+            }}
+          >
+            <p class="dim" style={{ textAlign: 'center' }}>Drop or paste a reference screenshot to compare over the built component</p>
+            <div class="row" style={{ justifyContent: 'center' }}>
+              <input
+                ref={diffFileInput}
+                type="file"
+                accept="image/*"
+                data-part="diff-file-input"
+                hidden
+                onChange={e => {
+                  const f = (e.currentTarget as HTMLInputElement).files?.[0];
+                  if (f) loadOverlayFile(f);
+                }}
+              />
+              <button type="button" class="btn-secondary" data-action="diff-choose-file" onClick={() => diffFileInput.current?.click()}>
+                Choose screenshot
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div class="diff-controls" data-part="diff-overlay-controls">
+            <div class="seg" role="group" aria-label="Overlay mode">
+              <button
+                type="button"
+                aria-pressed={overlayMode === 'onion'}
+                data-diff-mode="onion"
+                onClick={() => setOverlayMode('onion')}
+              >
+                Onion skin
+              </button>
+              <button
+                type="button"
+                aria-pressed={overlayMode === 'split'}
+                data-diff-mode="split"
+                onClick={() => setOverlayMode('split')}
+              >
+                Split
+              </button>
+              <button
+                type="button"
+                aria-pressed={overlayMode === 'diff'}
+                data-diff-mode="diff"
+                onClick={() => setOverlayMode('diff')}
+              >
+                Difference
+              </button>
+            </div>
+            {overlayMode === 'onion' && (
+              <label class="field-stack">
+                <span class="dim">Opacity: {overlayOpacity}%</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={overlayOpacity}
+                  class="diff-slider"
+                  data-action="diff-opacity"
+                  onInput={e => setOverlayOpacity(Number((e.currentTarget as HTMLInputElement).value))}
+                />
+              </label>
+            )}
+            {overlayMode === 'split' && (
+              <label class="field-stack">
+                <span class="dim">Split: {overlaySplit}% (Design left · Built right)</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={overlaySplit}
+                  class="diff-slider"
+                  data-action="diff-split"
+                  onInput={e => setOverlaySplit(Number((e.currentTarget as HTMLInputElement).value))}
+                />
+              </label>
+            )}
+            {overlayMode === 'diff' && (
+              <p class="dim">Matching pixels are dark; discrepancies light up.</p>
+            )}
+            <div class="row">
+              <button type="button" class="btn-secondary" data-action="diff-toggle-ab" onClick={() => setAbToggle(t => !t)}>
+                {abToggle ? 'Show design overlay' : 'Hide design overlay (A/B)'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
       <div class="row">
         {props.addNotes && diffs.length > 0 && !added && (
           <button type="button" class="btn-primary" data-action="check-add" disabled={adding || !chosen.length} onClick={() => void add()}>
@@ -203,5 +363,46 @@ export function CheckResultPanel(props: {
         <button type="button" data-action="check-design" onClick={props.onChangeDesign}>Change design</button>
       </div>
     </div>
+    {overlayImage && rect && (
+      <div
+        class={`diff-overlay ${overlayMode}`}
+        data-part="diff-overlay-layer"
+        style={{
+          position: 'fixed',
+          top: `${rect.top}px`,
+          left: `${rect.left}px`,
+          width: `${rect.width}px`,
+          height: `${rect.height}px`,
+          display: abToggle ? 'none' : 'block',
+          pointerEvents: 'none',
+          zIndex: 2147483644
+        }}
+      >
+        <img
+          src={overlayImage}
+          alt="Reference design"
+          data-part="diff-overlay-img"
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'fill',
+            display: 'block',
+            opacity: overlayMode === 'onion' ? overlayOpacity / 100 : 1,
+            clipPath: overlayMode === 'split' ? `inset(0 ${100 - overlaySplit}% 0 0)` : undefined,
+            mixBlendMode: overlayMode === 'diff' ? 'difference' : 'normal'
+          }}
+        />
+        {overlayMode === 'split' && (
+          <div
+            class="diff-split-line"
+            data-part="diff-split-line"
+            style={{
+              left: `${overlaySplit}%`
+            }}
+          />
+        )}
+      </div>
+    )}
+  </>
   );
 }

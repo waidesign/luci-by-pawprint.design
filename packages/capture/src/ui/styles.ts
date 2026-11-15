@@ -336,6 +336,14 @@ label { display: inline-flex; gap: var(--luci-space-4); align-items: center; col
 .diffs input { flex: none; margin: 3px 0 0; }
 .diffs .dim { padding-left: 21px; }
 
+/* Screenshot diff overlay (v0.4.4) */
+.diff-section { border-top: 1px solid var(--luci-color-stroke-subtle); padding-top: var(--luci-space-8); }
+.diff-controls { display: flex; flex-direction: column; gap: var(--luci-space-8); padding: var(--luci-space-12); border-radius: var(--luci-radius-md); background: var(--luci-color-surface-sunken); }
+.diff-slider { width: 100%; accent-color: var(--luci-color-primary); cursor: pointer; }
+.diff-overlay { position: fixed; z-index: 2147483644; pointer-events: none; overflow: hidden; box-shadow: 0 0 0 2px var(--luci-color-primary), var(--luci-shadow-float); border-radius: var(--luci-radius-sm); }
+.diff-overlay img { width: 100%; height: 100%; object-fit: fill; display: block; }
+.diff-split-line { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--luci-color-primary); box-shadow: 0 0 4px rgba(0,0,0,0.5); pointer-events: none; }
+
 /* Loading */
 .loading { display: flex; gap: var(--luci-space-12); align-items: center; margin: 0; color: var(--luci-color-ink); }
 .loading .steps { color: var(--luci-color-ink-secondary); font-size: var(--luci-type-small-size); }

@@ -83,6 +83,53 @@ describe('design check in the capture toolbar (v0.3.1)', { timeout: 60_000 }, ()
     expect(await page.locator('[data-action="check-watch"]').isChecked()).toBe(false);
   });
 
+  it('visual screenshot diff overlay (v0.4.4): compares reference image over built component with onion, split and diff modes', async () => {
+    // Dropzone is shown
+    const dropzone = page.locator('[data-part="diff-dropzone"]');
+    await dropzone.waitFor();
+    expect(await page.locator('[data-part="diff-overlay-layer"]').count()).toBe(0);
+
+    // Provide a reference screenshot via diff-file-input
+    await page.locator('[data-part="diff-file-input"]').setInputFiles({
+      name: 'reference.png',
+      mimeType: 'image/png',
+      buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64')
+    });
+
+    // The overlay layer appears positioned over the built component
+    const overlay = page.locator('[data-part="diff-overlay-layer"]');
+    await overlay.waitFor();
+    const builtBox = (await page.locator('#built').boundingBox())!;
+    const overlayBox = (await overlay.boundingBox())!;
+    expect(Math.abs(overlayBox.x - builtBox.x)).toBeLessThan(4);
+    expect(Math.abs(overlayBox.y - builtBox.y)).toBeLessThan(4);
+
+    // Controls appear
+    await page.locator('[data-part="diff-overlay-controls"]').waitFor();
+    expect(await page.locator('[data-diff-mode="onion"]').getAttribute('aria-pressed')).toBe('true');
+
+    // Switch to split mode
+    await page.click('[data-diff-mode="split"]');
+    expect(await page.locator('[data-diff-mode="split"]').getAttribute('aria-pressed')).toBe('true');
+    expect(await page.locator('[data-part="diff-split-line"]').count()).toBe(1);
+
+    // Switch to difference mode
+    await page.click('[data-diff-mode="diff"]');
+    expect(await page.locator('[data-diff-mode="diff"]').getAttribute('aria-pressed')).toBe('true');
+    expect(await overlay.getAttribute('class')).toContain('diff');
+
+    // A/B toggle hides/shows the overlay
+    await page.click('[data-action="diff-toggle-ab"]');
+    expect(await overlay.isVisible()).toBe(false);
+    await page.click('[data-action="diff-toggle-ab"]');
+    expect(await overlay.isVisible()).toBe(true);
+
+    // Remove image removes overlay and restores dropzone
+    await page.click('[data-action="diff-clear-image"]');
+    expect(await page.locator('[data-part="diff-overlay-layer"]').count()).toBe(0);
+    await dropzone.waitFor();
+  });
+
   it('the design itself matches; a pasted file that is not a component says what to pick', async () => {
     // Check another: the same design, now against the design button itself
     await page.click('[data-action="check-again"]');
