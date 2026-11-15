@@ -16,9 +16,9 @@
 ## 1. Where things stand
 
 - **Project:** Luci, a local-first toolkit for AI coding agents: project memory, skill selection, design capture (browser extension and dev toolbar) and UI feedback. Spec: `docs/PRD.md` (Part 4 is the build brief). Monorepo, pnpm, TypeScript, vitest, Playwright, Preact; 10 packages including `@luci/ui` (see `.luci/context.md`).
-- **Git State:** Working tree clean. Option C (`v0.4.3` Computed Layout Tree) completed, verified (67 test files, 591 tests passing), and committed locally pending user review and confirmation before push to `origin/main`.
+- **Git State:** Working tree clean. `7e680e8` pushed to `origin/main`. Option A (`v0.4.1`), Option B (`v0.4.2`), and Option C (`v0.4.3`) are all complete and pushed.
 - **Recent Commit History (Latest commits on main):**
-  - *(local)* — **feat(v0.4.3)**: computed layout tree: extract parent/child flex and grid layout relationships in component and section captures.
+  - `7e680e8` — **feat(v0.4.3)**: computed layout tree: extract parent/child flex and grid layout relationships in component and section captures.
   - `eb6cf2a` — **feat(v0.4.2)**: multi-page crawl: capture routes in one pass and merge into site-level DESIGN.md.
   - `7567b01` — **docs**: sync HANDOVER.md with v0.4.1 and tooltip fix.
   - `6b0e787` — **fix(ui)**: prevent tooltip masking inside cards/panels (left-align first-child tooltips inside `.panel`, right-align last-child) and elevate hover `z-index`.
