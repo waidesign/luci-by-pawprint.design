@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PRODUCT } from '@luci/format';
+import { PRODUCT } from '@luci-dev/format';
 
 describe('PRODUCT', () => {
   it('uses Luci names only', () => {

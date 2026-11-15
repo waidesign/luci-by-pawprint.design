@@ -9,7 +9,7 @@ import {
   type SpacingSystem,
   type SystemCapture,
   type TypographySystem
-} from '@luci/format/capture';
+} from '@luci-dev/format/capture';
 import { crawlSite, resolveCrawlUrl, launchCrawlerBrowser, initProject } from '../src/index.js';
 import { tempProject } from './helpers.js';
 import { serveSites } from '../../capture/test/browser.js';

@@ -1,4 +1,4 @@
-/** Capture files (design.md). Browser-safe: import it as `@luci/format/capture` from the extension. */
+/** Capture files (design.md). Browser-safe: import it as `@luci-dev/format/capture` from the extension. */
 export * from './schema.js';
 export * from './values.js';
 export * from './format.js';
@@ -13,4 +13,5 @@ export * from './compare.js';
 export * from './remap.js';
 export * from './image.js';
 export * from './stitch.js';
+export * from './tokensExport.js';
 export * from './layout.js';

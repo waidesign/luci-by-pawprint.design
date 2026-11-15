@@ -1,6 +1,6 @@
 import { browser } from 'wxt/browser';
 import { defineBackground } from 'wxt/utils/define-background';
-import { readStatesViaCdp, type CdpReadOptions, type ForcedReading } from '@luci/capture/states';
+import { readStatesViaCdp, type CdpReadOptions, type ForcedReading } from '@luci-dev/capture/states';
 
 export const READ_STATES = 'luci:read-states';
 export const CAPTURE_SCREEN = 'luci:capture-screen';

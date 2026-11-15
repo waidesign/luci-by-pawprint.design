@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { parseFrontmatter } from '@luci/format';
+import { parseFrontmatter } from '@luci-dev/format';
 import {
   SkillRegistry,
   convertToLss,
@@ -18,7 +18,7 @@ import {
   resolveSkillLicense,
   toSkillName,
   type GitHubClient
-} from '@luci/skills';
+} from '@luci-dev/skills';
 import { tempDir } from './helpers.js';
 
 // Ported from the prototype: skill-import.test.js

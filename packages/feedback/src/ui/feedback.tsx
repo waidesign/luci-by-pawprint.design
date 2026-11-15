@@ -6,7 +6,7 @@
  * Notes live in a FeedbackBackend.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import { AppearanceControls, ButtonSpinner, DevSettingsPanel, LuciLogo, ModeSwitch, elementAt, isLuciUi, scrollableAncestor, useUiPrefs, type ModeSwitchProps, type StorageLike, type UiPrefs } from '@luci/capture';
+import { AppearanceControls, ButtonSpinner, DevSettingsPanel, LuciLogo, ModeSwitch, elementAt, isLuciUi, scrollableAncestor, useUiPrefs, type ModeSwitchProps, type StorageLike, type UiPrefs } from '@luci-dev/capture';
 import {
   DETAIL_LEVELS,
   FEEDBACK_INTENTS,
@@ -19,8 +19,8 @@ import {
   type FeedbackIntent,
   type FeedbackItem,
   type FeedbackPriority
-} from '@luci/format/feedback';
-import { Button, COPY, EmptyState, IconAnnotate, IconChevron, IconClose, IconCopy, IconNotes, IconPause, Mascot, PALETTE, RepoButton, Select, useShortcuts } from '@luci/ui';
+} from '@luci-dev/format/feedback';
+import { Badge, Button, COPY, EmptyState, IconAnnotate, IconChevron, IconClose, IconCopy, IconNotes, IconPause, Mascot, PALETTE, RepoButton, Select, useShortcuts } from '@luci-dev/ui';
 
 /** Feedback's single-key shortcuts (in each tooltip). */
 export const FEEDBACK_KEYS = { annotate: 'A', notes: 'N', pause: 'P', menu: 'M' } as const;
@@ -642,7 +642,7 @@ function SettingsPanel(props: { settings: FeedbackSettings; onChange: (s: Feedba
   const validHook = !hook || /^https?:\/\/\S+$/.test(hook);
   return (
     <div class="panel" role="dialog" aria-label="Feedback settings" data-part="settings">
-      <div class="settings-head"><h2>Settings</h2><RepoButton /></div>
+      <div class="settings-head"><div class="row" style={{ alignItems: 'center', gap: '8px' }}><h2>Settings</h2><Badge brand>Beta</Badge></div><RepoButton /></div>
       <AppearanceControls prefs={props.uiPrefs} onChange={props.onUiPrefsChange} movable moved={Boolean(props.uiPrefs.devPlace)} />
       <hr class="settings-divider" />
       <div class="stack">

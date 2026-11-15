@@ -1,7 +1,6 @@
 {
-  "name": "@luci/skills",
-  "version": "0.0.0",
-  "private": true,
+  "name": "@luci-dev/skills",
+  "version": "0.5.2",
   "description": "Skill standard, registry, selection, packs and the design skill library.",
   "type": "module",
   "license": "MIT",
@@ -11,8 +10,25 @@
       "default": "./dist/index.js"
     }
   },
-  "files": ["dist", "library", "packs"],
+  "files": [
+    "dist",
+    "library",
+    "packs"
+  ],
   "dependencies": {
-    "@luci/format": "workspace:*"
-  }
+    "@luci-dev/format": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/waidesign/luci-by-pawprint.design.git",
+    "directory": "packages/skills"
+  },
+  "homepage": "https://github.com/waidesign/luci-by-pawprint.design#readme",
+  "bugs": {
+    "url": "https://github.com/waidesign/luci-by-pawprint.design/issues"
+  },
+  "author": "Pawprint Design <lucas@pawprint.design>"
 }

@@ -14,7 +14,7 @@ import {
   type ComponentCapture,
   type ComponentSpec,
   type Responsive
-} from '@luci/format/capture';
+} from '@luci-dev/format/capture';
 import { colorToken, colorUses, colorSystem, componentColorSet } from '../color.js';
 import { anatomyOf, componentCapture, componentType, stateParts, type ComponentImageInput } from '../component.js';
 import { DESKTOP_WIDTH, PHONE_WIDTH, chooseThresholds, mediaQueriesFor, mediaThresholds, readAtWidths, responsiveChanges, uniqueParts, widthsFor, type PartReading, type ViewportWidth } from '../responsive.js';
@@ -92,7 +92,7 @@ export function insideOf(live: LiveSnapshot, container: ElementSnapshot): (el: E
 /** A component capture from a pick; `system` adds the page's variants. States are read separately (states.ts). */
 export function captureComponent(live: LiveSnapshot, entry: ElementSnapshot, settings: CaptureSettings, options: { system?: boolean; states?: ComponentCapture['states'] } = {}): Result {
   const images = componentImages(live, entry);
-  return { ok: true, output: toOutput(componentCapture(live.snapshot, entry, insideOf(live, entry), { captured: CAPTURED(), ...options, images }), settings) };
+  return { ok: true, output: toOutput(componentCapture(live.snapshot, entry, insideOf(live, entry), { captured: CAPTURED(), ...options, images, nodes: live.nodes }), settings) };
 }
 
 /** The images inside a component, read from the live page: how each is shown, never the image itself. */

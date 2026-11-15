@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { AGENT_END_MARKER, PRODUCT, agentStartMarker, stripBom } from '@luci/format';
+import { AGENT_END_MARKER, PRODUCT, agentStartMarker, stripBom } from '@luci-dev/format';
 
 const dir = `./${PRODUCT.projectDir}`;
 

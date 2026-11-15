@@ -2,7 +2,7 @@
  * The Spacing tool (FR15, FR16): padding, margin and gap of one element (authored), the distance
  * between two elements (measured), and the page's spacing system: scale, base unit, outliers.
  */
-import { findBaseUnit, isMultipleOf, pxValue, round, toCaptureName, type SpacingSet, type SpacingSystem, type SpacingToken } from '@luci/format/capture';
+import { findBaseUnit, isMultipleOf, pxValue, round, toCaptureName, type SpacingSet, type SpacingSystem, type SpacingToken } from '@luci-dev/format/capture';
 import { tokenOf, type ElementSnapshot, type PageSnapshot, type Rect, type SnapshotProperty } from './model.js';
 import { elementName } from './naming.js';
 
@@ -41,8 +41,8 @@ export function spacingUses(el: ElementSnapshot): SpacingUse[] {
   return out;
 }
 
-// The base unit finder moved to @luci/format in v0.3.3 (site-level systems use it too); same names here
-export { BASE_UNITS, BASE_UNIT_MIN_STEPS, BASE_UNIT_REFINE, BASE_UNIT_REFINE_MIN, BASE_UNIT_SHARE, MULTIPLE_TOLERANCE, findBaseUnit } from '@luci/format/capture';
+// The base unit finder moved to @luci-dev/format in v0.3.3 (site-level systems use it too); same names here
+export { BASE_UNITS, BASE_UNIT_MIN_STEPS, BASE_UNIT_REFINE, BASE_UNIT_REFINE_MIN, BASE_UNIT_SHARE, MULTIPLE_TOLERANCE, findBaseUnit } from '@luci-dev/format/capture';
 const isMultiple = isMultipleOf;
 
 /** The spacing system of the page (FR16). Null when nothing on the page sets spacing. */

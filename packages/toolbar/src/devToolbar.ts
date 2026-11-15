@@ -8,9 +8,9 @@
 import {
   LUCI_UI_ATTRIBUTE, TOOLBAR_REPLACE_EVENT, UI_PREFS_EVENT, mountToolbar, readUiPrefs, writeUiPrefs,
   type BarPlace, type BasketStore, type CheckNote
-} from '@luci/capture';
-import { basketItemSchema, type BasketItem, type CaptureSettings, type CheckRun } from '@luci/format/capture';
-import { ANIMATIONS_CSS, COPY, TOKENS_CSS, mascotSvg } from '@luci/ui';
+} from '@luci-dev/capture';
+import { basketItemSchema, type BasketItem, type CaptureSettings, type CheckRun } from '@luci-dev/format/capture';
+import { ANIMATIONS_CSS, COPY, TOKENS_CSS, mascotSvg } from '@luci-dev/ui';
 import {
   DEFAULT_FEEDBACK_SETTINGS,
   bridgeBackend,
@@ -23,7 +23,7 @@ import {
   type FeedbackBackend,
   type FeedbackSettings,
   type KeyValue
-} from '@luci/feedback';
+} from '@luci-dev/feedback';
 
 export const DEFAULT_BRIDGE = 'http://127.0.0.1:4545';
 export const LAUNCHER_TAG = 'luci-launcher';

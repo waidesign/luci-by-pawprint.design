@@ -1,7 +1,7 @@
 /** Put the toolbar on a page, inside its own shadow root (FR1). Both shells call this. */
 import { h, render } from 'preact';
-import type { CaptureSettings, CheckRun } from '@luci/format/capture';
-import { loadFonts } from '@luci/ui';
+import type { CaptureSettings, CheckRun } from '@luci-dev/format/capture';
+import { loadFonts } from '@luci-dev/ui';
 import { LUCI_UI_ATTRIBUTE } from '../dom.js';
 import { TOOLBAR_CSS } from './styles.js';
 import { Toolbar, type ProposedRule } from './toolbar.js';

@@ -1,9 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { LAYOUT_VERSION, PRECEDENCE, parseBrainJson } from '@luci/format';
-import { TEMPLATES_DIR, initProject, renderTemplate } from '@luci/brain';
-import { lintLibrary } from '@luci/skills';
+import { LAYOUT_VERSION, PRECEDENCE, parseBrainJson } from '@luci-dev/format';
+import { TEMPLATES_DIR, initProject, renderTemplate } from '@luci-dev/brain';
+import { lintLibrary } from '@luci-dev/skills';
 import { listFiles, memoryExists, pkg, readMemory, tempProject } from './helpers.js';
 
 const reactProject = () => tempProject({

@@ -10,7 +10,7 @@ import {
   findRuleConflicts,
   initProject,
   loadProjectContext
-} from '@luci/brain';
+} from '@luci-dev/brain';
 import { pkg, tempDir, tempProject } from './helpers.js';
 
 describe('conflict detection (B12, v0.3.5)', () => {

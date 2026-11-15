@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
-import { PRODUCT } from '@luci/format';
-import { findProjectRoot } from '@luci/brain';
+import { PRODUCT } from '@luci-dev/format';
+import { findProjectRoot } from '@luci-dev/brain';
 import { DEFAULT_PORT, startBridge } from '../serve/bridge.js';
 import type { Command } from '../context.js';
 import { cliVersion } from '../version.js';
@@ -10,10 +10,10 @@ import { offerToolbar } from './toolbar.js';
 
 export const SERVE_HELP = `serve [--port <n>]      Connect the dev toolbar to this project (feedback and captures in ${PRODUCT.projectDir}/)`;
 
-/** The dev toolbar's browser script, from the @luci/toolbar package; null until it is built. */
+/** The dev toolbar's browser script, from the @luci-dev/toolbar package; null until it is built. */
 export function toolbarScriptPath(): string | null {
   try {
-    const file = createRequire(import.meta.url).resolve('@luci/toolbar/script');
+    const file = createRequire(import.meta.url).resolve('@luci-dev/toolbar/script');
     return fs.existsSync(file) ? file : null;
   } catch {
     return null;

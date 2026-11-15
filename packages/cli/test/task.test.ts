@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { archiveActiveTask, diagnose, initProject, readActiveTask, writeActiveTask } from '@luci/brain';
-import { SkillOrchestrator, SkillRegistry } from '@luci/skills';
+import { archiveActiveTask, diagnose, initProject, readActiveTask, writeActiveTask } from '@luci-dev/brain';
+import { SkillOrchestrator, SkillRegistry } from '@luci-dev/skills';
 import { run } from '../src/index.js';
 import { fakeContext, tempProject } from './helpers.js';
 

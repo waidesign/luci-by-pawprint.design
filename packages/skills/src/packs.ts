@@ -7,7 +7,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { packSchema, parseJsonText, type SkillPack } from '@luci/format';
+import { packSchema, parseJsonText, type SkillPack } from '@luci-dev/format';
 import { readLock, selectSkills, writeLock } from './project.js';
 import type { SkillSource } from './types.js';
 

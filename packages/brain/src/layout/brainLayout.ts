@@ -24,7 +24,7 @@ import {
   type BrainJson,
   type ParseResult,
   type ProjectCommands
-} from '@luci/format';
+} from '@luci-dev/format';
 import { isRecord } from '../fs/readJson.js';
 import { PACKAGE_KIND_LABEL, type ProjectInfo, type WorkspacePackage } from '../detect/detector.js';
 

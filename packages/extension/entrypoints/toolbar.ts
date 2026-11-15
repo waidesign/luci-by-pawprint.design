@@ -1,7 +1,7 @@
 import { browser } from 'wxt/browser';
 import { defineUnlistedScript } from 'wxt/utils/define-unlisted-script';
-import { mountToolbar, type ForcedReading, type SavedDesign, type ToolbarHandle } from '@luci/capture';
-import { basketItemSchema, type CaptureSettings } from '@luci/format/capture';
+import { mountToolbar, type ForcedReading, type SavedDesign, type ToolbarHandle } from '@luci-dev/capture';
+import { basketItemSchema, type CaptureSettings } from '@luci-dev/format/capture';
 
 const SETTINGS_KEY = 'captureSettings';
 const BASKET_KEY = 'basket';

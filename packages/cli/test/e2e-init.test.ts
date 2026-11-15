@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, it } from 'vitest';
-import { parseBrainJson } from '@luci/format';
+import { parseBrainJson } from '@luci-dev/format';
 import { tempDir } from './helpers.js';
 
 // Ported from the prototype: e2e-init.test.js, on the same sample React project

@@ -1,7 +1,6 @@
 {
-  "name": "@luci/capture",
-  "version": "0.0.0",
-  "private": true,
+  "name": "@luci-dev/capture",
+  "version": "0.5.2",
   "description": "Capture: the picker, the eligibility check and the Text, Colour and Spacing tools. Browser-safe.",
   "type": "module",
   "license": "MIT",
@@ -19,12 +18,25 @@
     "dist"
   ],
   "dependencies": {
-    "@luci/format": "workspace:*",
-    "@luci/ui": "workspace:*",
+    "@luci-dev/format": "workspace:*",
+    "@luci-dev/ui": "workspace:*",
     "culori": "4.0.2",
     "preact": "10.29.8"
   },
   "devDependencies": {
     "@types/culori": "4.0.1"
-  }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/waidesign/luci-by-pawprint.design.git",
+    "directory": "packages/capture"
+  },
+  "homepage": "https://github.com/waidesign/luci-by-pawprint.design#readme",
+  "bugs": {
+    "url": "https://github.com/waidesign/luci-by-pawprint.design/issues"
+  },
+  "author": "Pawprint Design <lucas@pawprint.design>"
 }

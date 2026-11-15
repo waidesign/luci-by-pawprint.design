@@ -2,7 +2,7 @@
  * The full-page reference: the page's typography, color and spacing systems, plus one entry per kind
  * of component on it (buttons, links, fields, cards...), each with its variants and states.
  */
-import { colorSystemSchema, componentSchema, spacingSystemSchema, toCaptureName, typographySystemSchema, type ComponentCapture, type PageCapture } from '@luci/format/capture';
+import { colorSystemSchema, componentSchema, spacingSystemSchema, toCaptureName, typographySystemSchema, type ComponentCapture, type PageCapture } from '@luci-dev/format/capture';
 import { colorSystem } from './color.js';
 import { componentCapture, componentType, type ComponentImageInput } from './component.js';
 import { eligibility } from './eligibility.js';

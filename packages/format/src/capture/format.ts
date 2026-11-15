@@ -28,7 +28,8 @@ import {
   type SystemConflict,
   type TextStyle,
   type TextToken,
-  type TypographySystem
+  type TypographySystem,
+  type SiteStack
 } from './schema.js';
 import { formatColor, formatLength, formatShadow, formatTransform, parseColor, resolveSettings, round, withoutUrls } from './values.js';
 import { formatLayoutTree } from './layout.js';
@@ -150,7 +151,8 @@ const show = (v: CapturedValue, kind: Kind, s: CaptureSettings) => {
 /** The authored value, only when it says more than the computed one. */
 const authored = (v: CapturedValue) => (v.authored && v.authored !== v.computed ? code(withoutUrls(v.authored)) : '');
 
-const TEXT_ROWS: readonly [keyof TextStyle, string, Kind][] = [
+type TextPropertyKey = 'family' | 'size' | 'weight' | 'lineHeight' | 'letterSpacing' | 'color' | 'style' | 'transform' | 'decoration';
+const TEXT_ROWS: readonly [TextPropertyKey, string, Kind][] = [
   ['family', 'font-family', 'raw'], ['size', 'font-size', 'length'], ['weight', 'font-weight', 'raw'],
   ['lineHeight', 'line-height', 'length'], ['letterSpacing', 'letter-spacing', 'length'], ['color', 'color', 'color'],
   ['style', 'font-style', 'raw'], ['transform', 'text-transform', 'raw'], ['decoration', 'text-decoration', 'raw']
@@ -162,6 +164,9 @@ function textToken(c: TextToken, s: CaptureSettings): string[] {
     return v ? [[prop, show(v, kind, s), authored(v), code(v.token)]] : [];
   });
   const out = ['## Text style', table(['Property', 'Value', 'Authored', 'Token'], rows), '', '## Where used', `- ${ref(c.usedBy)}`];
+  if (c.style.font?.googleFont && c.style.font.importUrl && (s as { webfont?: boolean }).webfont) {
+    out.push('', '## Webfont', `- Rendered: ${c.style.font.rendered} (Google Fonts: ${c.style.font.importUrl})`);
+  }
   if (c.accessibility) out.push('', ...accessibilitySection(c.accessibility, s));
   return out;
 }
@@ -373,6 +378,15 @@ function imagesSection(images: readonly ComponentImage[], s: CaptureSettings): s
   return [table(['Part', 'Kind', 'Size', 'Shape', 'Fit', 'Corners', 'Effects', 'Layers over it'], rows), '', IMAGES_NOTE];
 }
 
+export function formatStack(stack: SiteStack): string[] {
+  const lines: string[] = [];
+  if (stack.framework) lines.push(`- Framework: ${stack.framework}${stack.version ? ` (${stack.version})` : ''}${stack.router ? ` [${stack.router}]` : ''}`);
+  if (stack.styling) lines.push(`- Styling: ${stack.styling}`);
+  if (stack.uiLibrary) lines.push(`- UI Library: ${stack.uiLibrary}`);
+  if (stack.signals?.length) lines.push(`- Signals: ${stack.signals.join(', ')}`);
+  return lines.length ? lines : ['- None detected.'];
+}
+
 function componentBody(c: ComponentCapture, s: CaptureSettings, noStates = '- Not read.'): string[] {
   const tokens = c.tokens.length
     ? table(['Token', 'Value', 'Used for'], c.tokens.map(t => [code(t.token), kindOf(t.usedFor[0] ?? '') === 'color' ? formatColor(t.value, s) : formatLength(t.value, s), t.usedFor.join(', ')]))
@@ -380,7 +394,8 @@ function componentBody(c: ComponentCapture, s: CaptureSettings, noStates = '- No
   const anatomy = c.anatomy.map(p => {
     const indent = s.layoutTree && p.depth && p.depth > 0 ? '  '.repeat(p.depth) : '';
     const appears = p.appearsIn?.length ? `, appears on ${p.appearsIn.join(' and ')}` : '';
-    const label = `${p.part} — ${p.element}${p.optional ? ', optional' : ''}${appears}`;
+    const icon = p.icon ? `, icon: ${p.icon.set} "${p.icon.name}" (<${p.icon.component ?? p.icon.name} />)` : '';
+    const label = `${p.part} — ${p.element}${p.optional ? ', optional' : ''}${appears}${icon}`;
     return `${indent}- ${label}: ${p.styles.length ? p.styles.map(e => styleText(e.property, e.value, s)).join(', ') : 'no styles of its own'}`;
   });
   const states = c.states.length
@@ -394,6 +409,15 @@ function componentBody(c: ComponentCapture, s: CaptureSettings, noStates = '- No
     ? c.motion.map(m => `- ${m.part ? `${m.part}: ` : ''}${m.kind} ${m.target} ${m.duration} ${m.easing}${m.delay && m.delay !== '0s' ? `, delay ${m.delay}` : ''}`)
     : ['- None.'];
   const out = ['## Tokens', tokens, '', '## Anatomy', ...anatomy];
+  if (c.icons?.length) {
+    out.push('', '## Icons', ...c.icons.map(i => {
+      const cmp = i.icon.component ?? i.icon.name;
+      const imp = i.icon.set === 'lucide' ? ' (lucide-react)'
+        : i.icon.set === 'heroicons' ? ' (@heroicons/react)'
+        : '';
+      return `- ${i.part}: ${i.icon.set} "${i.icon.name}" (<${cmp} />)${imp}`;
+    }));
+  }
   if (c.layoutTree && s.layoutTree) out.push('', '## Layout Tree', formatLayoutTree(c.layoutTree));
   if (c.images?.length) out.push('', '## Images', ...imagesSection(c.images, s));
   out.push('', '## States', states, '', '## Motion', ...motion);
@@ -403,6 +427,9 @@ function componentBody(c: ComponentCapture, s: CaptureSettings, noStates = '- No
     out.push('', '## Variants', c.variants.length
       ? table(['Variant', 'Uses', 'Differences from this one', 'Example'], c.variants.map(v => [v.name, String(v.count), v.differences.length ? v.differences.map(d => styleText(d.property, d.value, s)).join(', ') : 'same styles', code(v.selector)]))
       : '- No similar elements on this page.');
+  }
+  if (c.stack && Object.keys(c.stack).length) {
+    out.push('', '## Detected Stack', ...formatStack(c.stack));
   }
   return out;
 }
@@ -452,6 +479,7 @@ function sectionBody(c: SectionCapture, s: CaptureSettings): string[] {
   out.push('', SECTION_NOTE, '', '## Components', components);
   if (c.responsive) out.push('', ...responsiveSection(c.responsive, s));
   if (c.accessibility) out.push('', ...accessibilitySection(c.accessibility, s));
+  if (c.stack && Object.keys(c.stack).length) out.push('', '## Detected Stack', ...formatStack(c.stack));
   return out;
 }
 
@@ -475,6 +503,7 @@ function pageBody(c: PageCapture, s: CaptureSettings): string[] {
     '', '## Spacing', part(c.spacing && spacingSystem(c.spacing, s), 'The page sets no spacing.'),
     '', '## Components', `- ${c.components.length} kind${c.components.length === 1 ? '' : 's'} of component on this page, each with its variants and the states its stylesheet rules give it. For a state done in JavaScript, capture that component on its own with Luci.`,
     ...components,
+    ...(c.stack && Object.keys(c.stack).length ? ['', '## Detected Stack', ...formatStack(c.stack)] : []),
     ...(c.skipped?.length
       ? ['', '## Left out', '- Luci could not read these parts of the page, so they are not in this file:', ...c.skipped.map(x => `- ${x.part}: ${x.reason}`)]
       : [])

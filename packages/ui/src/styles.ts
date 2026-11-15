@@ -173,6 +173,8 @@ export const COMPONENTS_CSS = `
 .luci-theme .repo-btn { position: relative; display: inline-flex; flex: none; align-items: center; gap: 6px; height: 32px; padding: 0 var(--luci-space-12);
   border: 1px solid var(--luci-color-stroke-subtle); border-radius: var(--luci-radius-full); background: var(--luci-color-surface-raised);
   color: var(--luci-color-ink); font: 600 13px/1 var(--luci-font-code); text-decoration: none; white-space: nowrap; }
+.luci-theme .repo-btn .repo-beta { display: inline-flex; align-items: center; height: 18px; padding: 0 6px; border-radius: var(--luci-radius-full);
+  background: var(--luci-color-primary-soft); color: var(--luci-color-link); font: 700 10px/1.2 var(--luci-font-sans); text-transform: uppercase; letter-spacing: 0.04em; margin-left: 2px; }
 .luci-theme a.repo-btn:hover { background: var(--luci-color-ghost-hover); }
 .luci-theme a.repo-btn:focus-visible { outline: 2px solid var(--luci-color-focus); outline-offset: 2px; }
 .luci-theme .repo-btn .gh-mark { display: block; width: 16px; height: 16px; line-height: 0; }

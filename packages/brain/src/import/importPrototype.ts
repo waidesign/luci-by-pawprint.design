@@ -34,8 +34,8 @@ import {
   stripBom,
   type AgentId,
   type LockEntry
-} from '@luci/format';
-import { SkillRegistry, writeCatalog, writeLock, type SkillSource } from '@luci/skills';
+} from '@luci-dev/format';
+import { SkillRegistry, writeCatalog, writeLock, type SkillSource } from '@luci-dev/skills';
 import { agentBlock } from '../agents/agentBlock.js';
 import { configureAgent, projectAgents } from '../agents/agentFiles.js';
 import { detectProject } from '../detect/detector.js';

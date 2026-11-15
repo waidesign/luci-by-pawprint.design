@@ -1,6 +1,6 @@
 {
   "name": "luci-monorepo",
-  "version": "0.3.0",
+  "version": "0.5.2",
   "private": true,
   "type": "module",
   "license": "MIT",
@@ -10,10 +10,11 @@
   },
   "scripts": {
     "build": "tsc -b && node scripts/build-toolbar.mjs",
-    "typecheck": "tsc -b && node scripts/build-toolbar.mjs && tsc -p tsconfig.test.json && pnpm --filter @luci/extension exec wxt prepare && tsc -p packages/extension/tsconfig.json",
+    "typecheck": "tsc -b && node scripts/build-toolbar.mjs && tsc -p tsconfig.test.json && pnpm --filter @luci-dev/extension exec wxt prepare && tsc -p packages/extension/tsconfig.json",
     "test": "vitest run",
     "check": "pnpm typecheck && pnpm test",
     "test:extension": "node scripts/test-extension.mjs",
+    "test:multipage": "node scripts/eval-multipage.mjs",
     "brand:sync": "node scripts/brand-sync.mjs"
   },
   "devDependencies": {
@@ -27,5 +28,14 @@
     "typescript": "7.0.2",
     "vitest": "5.1.0",
     "vue": "3.5.45"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/waidesign/luci-by-pawprint.design.git"
+  },
+  "homepage": "https://github.com/waidesign/luci-by-pawprint.design#readme",
+  "bugs": {
+    "url": "https://github.com/waidesign/luci-by-pawprint.design/issues"
+  },
+  "author": "Pawprint Design <lucas@pawprint.design>"
 }

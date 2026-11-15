@@ -5,8 +5,8 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { MEMORY_FILES, PRODUCT, formatProposal, type Proposal } from '@luci/format';
-import { readComponentFile, ruleFromComponent } from '@luci/format/capture';
+import { MEMORY_FILES, PRODUCT, formatProposal, type Proposal } from '@luci-dev/format';
+import { readComponentFile, ruleFromComponent } from '@luci-dev/format/capture';
 import { memoryDir, memoryPath } from '../layout/brainLayout.js';
 import { DesignError, DesignStore } from './designStore.js';
 

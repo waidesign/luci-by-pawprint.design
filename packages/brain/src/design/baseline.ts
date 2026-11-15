@@ -6,11 +6,11 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { MEMORY_FILES, PRODUCT } from '@luci/format';
+import { MEMORY_FILES, PRODUCT } from '@luci-dev/format';
 import {
   BASELINE_FILES, INSTRUCTIONS_HEADING, buildBaseline, formatCapture, withInstructions,
   type Baseline, type StylesheetSource
-} from '@luci/format/capture';
+} from '@luci-dev/format/capture';
 import { findProjectRoot, memoryDir } from '../layout/brainLayout.js';
 import { DesignStore } from './designStore.js';
 

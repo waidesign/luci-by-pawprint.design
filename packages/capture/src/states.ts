@@ -14,8 +14,8 @@
  * values are final rather than the first frame of a transition. Everything is restored at once.
  */
 import { formatRgb } from 'culori';
-import type { ComponentCapture } from '@luci/format/capture';
-import { colorKey, parseColor } from '@luci/format/capture';
+import type { ComponentCapture } from '@luci-dev/format/capture';
+import { colorKey, parseColor } from '@luci-dev/format/capture';
 import { selectorFor, specificity } from './dom.js';
 import { elementName, implicitRole } from './naming.js';
 import { hasRules, isMediaRule, isStyleRule, mediaMatches, windowOf } from './realm.js';

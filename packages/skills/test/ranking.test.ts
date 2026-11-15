@@ -19,7 +19,7 @@ import {
   splitSentences,
   writeSkillFolder,
   type Skill
-} from '@luci/skills';
+} from '@luci-dev/skills';
 import { addSkill, tempDir } from './helpers.js';
 
 const skill = (over: Partial<Skill> & Record<string, unknown> = {}) => ({

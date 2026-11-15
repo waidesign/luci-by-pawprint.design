@@ -1,5 +1,5 @@
-import { PRODUCT } from '@luci/format';
-import { generatedFiles, startProject, updateProject } from '@luci/brain';
+import { PRODUCT } from '@luci-dev/format';
+import { generatedFiles, startProject, updateProject } from '@luci-dev/brain';
 import type { Command } from '../context.js';
 import { cliVersion } from '../version.js';
 

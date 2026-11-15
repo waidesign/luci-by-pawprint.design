@@ -3,7 +3,7 @@
  * the only commands that use the network, and only when the user runs them.
  * Uses the public API (60 requests/hour without a token); set GITHUB_TOKEN for more.
  */
-import { PRODUCT } from '@luci/format';
+import { PRODUCT } from '@luci-dev/format';
 
 const API = 'https://api.github.com';
 const RAW = 'https://raw.githubusercontent.com';

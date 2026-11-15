@@ -4,7 +4,7 @@
  * and places each component by reference, so every component is described once. Pure: works on the
  * snapshot; states and images come in from the live page like the full-page reference.
  */
-import { buildLayoutTree, captureFileName, componentSchema, toCaptureName, type ComponentCapture, type SectionCapture } from '@luci/format/capture';
+import { buildLayoutTree, captureFileName, componentSchema, toCaptureName, type ComponentCapture, type SectionCapture } from '@luci-dev/format/capture';
 import { contrastOf } from './a11y.js';
 import { componentCapture, componentType, layoutStyles, partName, textStylesOf, tokensOf, variantGroups, type ComponentImageInput } from './component.js';
 import { eligibility } from './eligibility.js';

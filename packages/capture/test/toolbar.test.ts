@@ -5,6 +5,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Browser, Page } from 'playwright';
+import { LUCI_VERSION } from '@luci-dev/ui';
 import { captureBundle, launch, serveSites } from './browser.js';
 
 let browser: Browser;
@@ -357,7 +358,8 @@ describe('the extension\'s bar moves anywhere in the window (user request, 2026-
     // Nothing in the menu (a hidden tooltip included) makes it scroll sideways
     expect(await page.locator('[data-part="settings"]').evaluate(el => el.scrollWidth - el.clientWidth)).toBe(0);
     // The menu: Luci's version with GitHub's mark, and the invitation to take Luci home (the extension only)
-    expect(await page.locator('[data-part="repo"]').innerText()).toBe('v0.3.0');
+    expect(await page.locator('[data-part="repo"]').innerText()).toContain(`v${LUCI_VERSION}`);
+    expect(await page.locator('[data-part="repo"]').innerText()).toMatch(/beta/i);
     expect(await page.locator('[data-part="repo"] svg path').count()).toBe(1);
     expect(await page.locator('[data-part="invite"]').innerText()).toContain('Take Luci home.');
     await page.click('[data-action="settings"]');
@@ -476,6 +478,36 @@ describe('v0.4: use my tokens, and compare two basket items', { timeout: 30_000 
     await page.selectOption('select[data-setting="style"]', 'luci');
     expect(await page.locator('[data-part="file-name"]').innerText()).toMatch(/\.component\.primary-button\.design\.md$/);
     expect(await preview(page)).toMatch(/^---\nname: primary-button\nscope: component\n/);
+    await page.context().close();
+  });
+
+  it('File: Tailwind and CSS Variables turn preview into tokens, and back', async () => {
+    const page = await open('css-variables');
+    await page.click('button[data-tool="component"]');
+    await page.click('.card:first-child .button', { force: true });
+    await page.click('[data-output="one"]');
+
+    // Switch to Tailwind v4
+    await page.selectOption('select[data-setting="style"]', 'tailwind');
+    expect(await page.locator('[data-part="file-name"]').innerText()).toBe('theme.css');
+    let previewText = await preview(page);
+    expect(previewText).toContain('@theme {');
+
+    // Switch to Tailwind v3
+    await page.selectOption('select[data-setting="style"]', 'tailwind-v3');
+    expect(await page.locator('[data-part="file-name"]').innerText()).toBe('tailwind.config.js');
+    previewText = await preview(page);
+    expect(previewText).toContain('module.exports = {');
+
+    // Switch to CSS Variables
+    await page.selectOption('select[data-setting="style"]', 'css-vars');
+    expect(await page.locator('[data-part="file-name"]').innerText()).toBe('tokens.css');
+    previewText = await preview(page);
+    expect(previewText).toContain(':root {');
+
+    // Back to Luci
+    await page.selectOption('select[data-setting="style"]', 'luci');
+    expect(await page.locator('[data-part="file-name"]').innerText()).toMatch(/\.component\.primary-button\.design\.md$/);
     await page.context().close();
   });
 

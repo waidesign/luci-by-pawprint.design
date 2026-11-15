@@ -2,8 +2,8 @@
  * Choosing a new part (Layout mode steps 2 and 3): the app's own components on the page, captures
  * saved in the project, or generic blocks. Insert and the new-page sketch both use it.
  */
-import { ButtonSpinner, selectorFor } from '@luci/capture';
-import { LAYOUT_BLOCKS, type Part } from '@luci/format/feedback';
+import { ButtonSpinner, selectorFor } from '@luci-dev/capture';
+import { LAYOUT_BLOCKS, type Part } from '@luci-dev/format/feedback';
 import type { FeedbackBackend, SavedCapture } from '../backend.js';
 import { pageComponents, type PageComponent } from '../layout/catalog.js';
 import { describeTarget, nameOf } from '../target.js';

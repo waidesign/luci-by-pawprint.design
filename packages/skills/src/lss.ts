@@ -19,7 +19,7 @@ import {
   type FrontmatterMap,
   type LicenseCategory,
   type SkillContract
-} from '@luci/format';
+} from '@luci-dev/format';
 import { estimateTokens } from './types.js';
 
 export const MAX_BODY_TOKENS = 5000;

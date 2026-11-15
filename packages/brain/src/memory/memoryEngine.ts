@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { MEMORY_FILES, PRODUCT, decisionFileName, formatDecision } from '@luci/format';
+import { MEMORY_FILES, PRODUCT, decisionFileName, formatDecision } from '@luci-dev/format';
 import { memoryDir } from '../layout/brainLayout.js';
 import { DEFAULT_BRAIN_DIR, userBrainDir } from './paths.js';
 

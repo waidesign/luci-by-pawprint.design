@@ -6,7 +6,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { MEMORY_FILES, parseActiveTaskHeader, type TaskStatus } from '@luci/format';
+import { MEMORY_FILES, parseActiveTaskHeader, type TaskStatus } from '@luci-dev/format';
 import { ensureLocalDir, findProjectRoot, memoryDir, memoryPath } from '../layout/brainLayout.js';
 
 export interface ActiveTask {

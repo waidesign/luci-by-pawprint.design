@@ -3,7 +3,7 @@
  * color system. Every color a visible element uses appears, each with a role.
  */
 import { converter } from 'culori';
-import { colorKey, isTransparent, parseColor, toCaptureName, type ColorRole, type ColorSet, type ColorSystem, type ColorToken } from '@luci/format/capture';
+import { colorKey, isTransparent, parseColor, toCaptureName, type ColorRole, type ColorSet, type ColorSystem, type ColorToken } from '@luci-dev/format/capture';
 import { tokenOf, type ElementSnapshot, type PageSnapshot, type SnapshotProperty } from './model.js';
 import { elementName } from './naming.js';
 

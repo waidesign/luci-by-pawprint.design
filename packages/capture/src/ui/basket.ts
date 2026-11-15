@@ -18,7 +18,7 @@ import {
   type Capture,
   type CaptureSettings,
   type SystemCapture
-} from '@luci/format/capture';
+} from '@luci-dev/format/capture';
 
 export interface BasketStore {
   load(): Promise<BasketItem[]>;

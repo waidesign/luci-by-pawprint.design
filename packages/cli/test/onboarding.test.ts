@@ -2,8 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { PassThrough } from 'node:stream';
 import { describe, expect, it } from 'vitest';
-import { initProject } from '@luci/brain';
-import { SkillRegistry, addedPacks, readLock } from '@luci/skills';
+import { initProject } from '@luci-dev/brain';
+import { SkillRegistry, addedPacks, readLock } from '@luci-dev/skills';
 import { createLineAsker, parseSelection, runOnboarding } from '../src/index.js';
 import { readMemory, tempProject } from './helpers.js';
 

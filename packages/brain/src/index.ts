@@ -1,4 +1,4 @@
-export { PRODUCT } from '@luci/format';
+export { PRODUCT } from '@luci-dev/format';
 export { readJsonFile, isRecord } from './fs/readJson.js';
 export {
   type ProjectInfo,

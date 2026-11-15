@@ -14,9 +14,10 @@ import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { build } from 'esbuild';
 import { chromium, type Browser, type BrowserContext, type Page } from 'playwright';
-import { FeedbackStore, initProject } from '@luci/brain';
-import { SkillRegistry } from '@luci/skills';
-import { refsIn } from '@luci/format/feedback';
+import { FeedbackStore, initProject } from '@luci-dev/brain';
+import { SkillRegistry } from '@luci-dev/skills';
+import { refsIn } from '@luci-dev/format/feedback';
+import { LUCI_VERSION } from '@luci-dev/ui';
 import { handleTool } from '../../mcp/src/index.js';
 import { startBridge, type Bridge } from '../../cli/src/serve/bridge.js';
 import { serveApp, type AppServer } from '../../feedback/test/app.js';
@@ -175,7 +176,8 @@ describe('dev toolbar placement and descriptions (user request, 2026-11-15)', { 
     const home = await box('luci-feedback .bar');
     expect(Math.round(1280 - (home.x + home.width))).toBe(12);
     expect(Math.round(900 - (home.y + home.height))).toBe(12);
-    expect(await page.locator('luci-feedback [data-part="repo"]').innerText()).toBe('v0.3.0');
+    expect(await page.locator('luci-feedback [data-part="repo"]').innerText()).toContain(`v${LUCI_VERSION}`);
+    expect(await page.locator('luci-feedback [data-part="repo"]').innerText()).toMatch(/beta/i);
 
     // Docked left, both are in the bottom-left corner
     await page.evaluate(() => localStorage.setItem('luci.ui', JSON.stringify({ theme: 'system', dock: 'left', greeted: true })));
@@ -187,7 +189,8 @@ describe('dev toolbar placement and descriptions (user request, 2026-11-15)', { 
     await page.click('luci-feedback [data-mode="layout"]');
     await page.click('luci-layout [data-action="settings"]');
     expect(await page.locator('luci-layout [data-part="settings"]').count()).toBe(1);
-    expect(await page.locator('luci-layout [data-part="repo"]').innerText()).toBe('v0.3.0');
+    expect(await page.locator('luci-layout [data-part="repo"]').innerText()).toContain(`v${LUCI_VERSION}`);
+    expect(await page.locator('luci-layout [data-part="repo"]').innerText()).toMatch(/beta/i);
     await page.click('luci-layout [data-action="settings"]');
     expect(await page.locator('luci-layout [data-part="settings"]').count()).toBe(0);
 

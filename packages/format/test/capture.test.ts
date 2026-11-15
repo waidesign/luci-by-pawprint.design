@@ -33,8 +33,8 @@ import {
   typographySystemSchema,
   type Capture,
   type CaptureSettings
-} from '@luci/format/capture';
-import { parseFrontmatter } from '@luci/format';
+} from '@luci-dev/format/capture';
+import { parseFrontmatter } from '@luci-dev/format';
 
 const dir = fileURLToPath(new URL('../fixtures/capture/', import.meta.url));
 const inputs = JSON.parse(fs.readFileSync(path.join(dir, 'inputs.json'), 'utf8')) as Record<string, { capture: Capture; settings: CaptureSettings }>;
@@ -328,5 +328,42 @@ describe('capture values and settings', () => {
     expect(typographySystemSchema.safeParse({ ...typo, roles: [] }).success).toBe(false);
     expect(parseCapture('# no frontmatter').ok).toBe(false);
     expect(parseCapture('---\nname: x\nscope: token\ntype: color\nsource: https://a.b/\ncaptured: 2026-11-12\nmethod: measured\n---\n\n## Color\n').ok).toBe(false);
+  });
+
+  it('formats component with icon and detected stack (v0.5 Priorities 12 & 13)', () => {
+    const base = componentInputs['example-com.component.primary-button.design.md']!.capture as ComponentCapture;
+    const withDetails: ComponentCapture = {
+      ...base,
+      anatomy: [
+        base.anatomy[0]!,
+        {
+          part: 'icon',
+          element: 'svg',
+          styles: [{ property: 'width', value: { computed: '16px' } }],
+          icon: { set: 'lucide', name: 'check', component: 'Check' }
+        }
+      ],
+      icons: [
+        { part: 'icon', icon: { set: 'lucide', name: 'check', component: 'Check' } }
+      ],
+      stack: {
+        framework: 'Next.js',
+        router: 'App Router',
+        styling: 'Tailwind CSS',
+        uiLibrary: 'Shadcn UI / Radix'
+      }
+    };
+
+    const md = formatCapture(withDetails);
+    expect(md).toContain('icon: lucide "check" (<Check />)');
+    expect(md).toContain('## Icons');
+    expect(md).toContain('- icon: lucide "check" (<Check />) (lucide-react)');
+    expect(md).toContain('## Detected Stack');
+    expect(md).toContain('- Framework: Next.js [App Router]');
+    expect(md).toContain('- Styling: Tailwind CSS');
+    expect(md).toContain('- UI Library: Shadcn UI / Radix');
+
+    const parsed = parseCapture(md);
+    expect(parsed.ok, parsed.ok ? '' : parsed.error).toBe(true);
   });
 });

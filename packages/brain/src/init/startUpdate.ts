@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { MEMORY_FILES, refreshSections } from '@luci/format';
-import { SkillRegistry, writeCatalog, type SkillSource } from '@luci/skills';
+import { MEMORY_FILES, refreshSections } from '@luci-dev/format';
+import { SkillRegistry, writeCatalog, type SkillSource } from '@luci-dev/skills';
 import { configureAgents } from '../agents/agentFiles.js';
 import { cleanPrototypeSections } from '../import/importPrototype.js';
 import { CodeMap, mapFreshness } from '../codemap/codeMap.js';

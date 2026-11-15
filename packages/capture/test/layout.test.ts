@@ -1,7 +1,7 @@
 /// <reference lib="dom" />
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Browser, Page } from 'playwright';
-import { formatCapture, formatLayoutTree } from '@luci/format/capture';
+import { formatCapture, formatLayoutTree } from '@luci-dev/format/capture';
 import { captureBundle, launch, openSite, serveSites } from './browser.js';
 import { computeElementLayout } from '../src/layout.js';
 import type { ElementSnapshot } from '../src/model.js';

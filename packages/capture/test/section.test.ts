@@ -6,7 +6,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Browser, Page } from 'playwright';
-import { parseCapture, type ComponentCapture, type SectionCapture } from '@luci/format/capture';
+import { parseCapture, type ComponentCapture, type SectionCapture } from '@luci-dev/format/capture';
 import { captureBundle, launch, serveSites } from './browser.js';
 
 describe('section scope (v0.2)', () => {

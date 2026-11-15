@@ -3,7 +3,7 @@
  * and the Luci brand mark, shared by the Capture extension toolbar and the Dev Toolbar.
  */
 import { useEffect, useState } from 'preact/hooks';
-import { LuciAvatar } from '@luci/ui';
+import { LuciAvatar } from '@luci-dev/ui';
 
 export type ThemeChoice = 'system' | 'light' | 'dark';
 export type DockChoice = 'right' | 'left';

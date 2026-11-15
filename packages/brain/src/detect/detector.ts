@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { PRODUCT, type ProjectCommands } from '@luci/format';
+import { PRODUCT, type ProjectCommands } from '@luci-dev/format';
 import { isRecord, readJsonFile } from '../fs/readJson.js';
 
 /** What Luci knows about a project from its files. */

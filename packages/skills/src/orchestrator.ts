@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { PRODUCT } from '@luci/format';
+import { PRODUCT } from '@luci-dev/format';
 import { SkillDiscovery, explainMatch } from './discovery.js';
 import { describeTrust, needsCaution, trustLevel, type TrustLevel } from './trust.js';
 import { estimateTokens, type Skill, type SkillSource } from './types.js';

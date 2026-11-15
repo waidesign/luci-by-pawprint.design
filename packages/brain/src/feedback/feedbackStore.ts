@@ -7,7 +7,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { MEMORY_FILES, PRODUCT } from '@luci/format';
+import { MEMORY_FILES, PRODUCT } from '@luci-dev/format';
 import {
   OPEN_STATUSES,
   byRef,
@@ -21,8 +21,8 @@ import {
   type DesignCheck,
   type LayoutPlan,
   type Wireframe
-} from '@luci/format/feedback';
-import type { CheckRun } from '@luci/format/capture';
+} from '@luci-dev/format/feedback';
+import type { CheckRun } from '@luci-dev/format/capture';
 import { memoryDir } from '../layout/brainLayout.js';
 
 /** What the toolbar sends for a new item; the store adds id, ref, status and times. */

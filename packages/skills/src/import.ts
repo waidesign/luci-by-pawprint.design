@@ -8,7 +8,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { CONTRACT_FILE, META, SKILL_FILE, fmString, parseFrontmatter, parseSkillContract, type FrontmatterMap, type SkillContract } from '@luci/format';
+import { CONTRACT_FILE, META, SKILL_FILE, fmString, parseFrontmatter, parseSkillContract, type FrontmatterMap, type SkillContract } from '@luci-dev/format';
 import { parseGitHubUrl, type GitHubClient } from './github.js';
 import { licenseCategory, normalizeLicense, resolveSkillLicense } from './licenses.js';
 import { applySplit, canModify, convertToLss, planSplit, toSkillName, writeSkillFolder, type LicenseResult, type SplitPlan } from './lss.js';

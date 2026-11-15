@@ -27,7 +27,7 @@ import {
   writeCatalog,
   writeSkillFolder,
   lintSkillFolder
-} from '@luci/skills';
+} from '@luci-dev/skills';
 import { addSkill, tempDir } from './helpers.js';
 
 const official = new SkillRegistry({ autoIndex: false });

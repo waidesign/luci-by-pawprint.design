@@ -1,5 +1,5 @@
-import { PRODUCT } from '@luci/format';
-import { CODE_MAP_SETUP_HINT, CodeMap, GraphifyInstaller, ensureGraphify, findProjectRoot, locateGraph, mapFreshness, readGraphStats } from '@luci/brain';
+import { PRODUCT } from '@luci-dev/format';
+import { CODE_MAP_SETUP_HINT, CodeMap, GraphifyInstaller, ensureGraphify, findProjectRoot, locateGraph, mapFreshness, readGraphStats } from '@luci-dev/brain';
 import { parseFlags, type Command } from '../context.js';
 import { createLineAsker } from '../onboarding.js';
 

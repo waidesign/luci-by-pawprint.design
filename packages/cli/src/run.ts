@@ -1,4 +1,4 @@
-import { PRODUCT } from '@luci/format';
+import { PRODUCT } from '@luci-dev/format';
 import { CAPTURE_HELP, captureCommand } from './commands/capture.js';
 import { DOCTOR_HELP, doctorCommand } from './commands/doctor.js';
 import { INIT_HELP, initCommand } from './commands/init.js';
@@ -11,6 +11,7 @@ import { SKILLS_HELP, skillsCommand } from './commands/skills.js';
 import { TOOLBAR_HELP, toolbarCommand } from './commands/toolbar.js';
 import { TASK_HELP, taskCommand } from './commands/task.js';
 import { START_HELP, UPDATE_HELP, startCommand, updateCommand } from './commands/startUpdate.js';
+import { BENCHMARK_HELP, benchmarkCommand } from './commands/benchmark.js';
 import type { CliContext, Command } from './context.js';
 import { cliVersion } from './version.js';
 
@@ -36,6 +37,7 @@ const helpCommand: Command = async (_args, ctx) => {
   ctx.out(`  ${TOOLBAR_HELP}`);
   ctx.out(`  ${CAPTURE_HELP}`);
   ctx.out(`  ${IMPORT_HELP}`);
+  ctx.out(`  ${BENCHMARK_HELP}`);
   ctx.out('  version               Show the version');
   ctx.out('  help                  Show this help');
   return 0;
@@ -55,6 +57,8 @@ export const COMMANDS: Readonly<Record<string, Command>> = {
   capture: captureCommand,
   captures: captureCommand,
   import: importCommand,
+  benchmark: benchmarkCommand,
+  eval: benchmarkCommand,
   start: startCommand,
   update: updateCommand,
   version: versionCommand,

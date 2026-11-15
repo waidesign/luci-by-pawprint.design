@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { diagnose, initProject } from '@luci/brain';
-import { readLock, writeSkillFolder } from '@luci/skills';
+import { diagnose, initProject } from '@luci-dev/brain';
+import { readLock, writeSkillFolder } from '@luci-dev/skills';
 import { run } from '../src/index.js';
 import { fakeContext, readMemory, tempDir, tempProject } from './helpers.js';
 

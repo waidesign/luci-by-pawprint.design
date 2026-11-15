@@ -2,7 +2,7 @@
  * The script-tag entry (`<script src="http://127.0.0.1:4545/toolbar.js"></script>`, served by
  * `luci serve`): mounts the dev toolbar once the page is ready, once per page.
  */
-import { LUCI_FRAME_NAME } from '@luci/capture';
+import { LUCI_FRAME_NAME } from '@luci-dev/capture';
 import { mountDevToolbar, type DevToolbarHandle } from './devToolbar.js';
 
 declare global {

@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { configureAgent, configureAgents, diagnose, initProject, updateProject, withoutPrototypeSection } from '@luci/brain';
-import { SkillRegistry } from '@luci/skills';
+import { configureAgent, configureAgents, diagnose, initProject, updateProject, withoutPrototypeSection } from '@luci-dev/brain';
+import { SkillRegistry } from '@luci-dev/skills';
 import { pkg, tempProject } from './helpers.js';
 
 const read = (dir: string, file: string) => fs.readFileSync(path.join(dir, file), 'utf8');

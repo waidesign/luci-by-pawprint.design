@@ -6,8 +6,8 @@
  * step 2 inserts new parts: each is a placeholder Luci draws, its siblings shifted (translate) to
  * make room, and its parent grown when it stacks top to bottom.
  */
-import { snapshotPage, spacingSystem } from '@luci/capture';
-import { LAYOUT_PROPERTIES, type LayoutChange, type Part } from '@luci/format/feedback';
+import { snapshotPage, spacingSystem } from '@luci-dev/capture';
+import { LAYOUT_PROPERTIES, type LayoutChange, type Part } from '@luci-dev/format/feedback';
 
 export type LayoutProperty = (typeof LAYOUT_PROPERTIES)[number];
 export const LAYOUT_ATTRIBUTE = 'data-luci-layout';

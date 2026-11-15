@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { MEMORY_FILES, type AgentId } from '@luci/format';
-import { SkillRegistry, addedPacks, detectPacks, loadPacks, packSkills, writeCatalog, type SkillSource } from '@luci/skills';
+import { MEMORY_FILES, type AgentId } from '@luci-dev/format';
+import { SkillRegistry, addedPacks, detectPacks, loadPacks, packSkills, writeCatalog, type SkillSource } from '@luci-dev/skills';
 import { configureAgents } from '../agents/agentFiles.js';
 import type { AgentFileResult } from '../agents/agentBlock.js';
 import { detectProject, type ProjectInfo } from '../detect/detector.js';
@@ -10,7 +10,7 @@ import { writeBrain } from '../layout/writeBrain.js';
 import { writeGlobalBrainSnapshot } from '../memory/globalLink.js';
 import { MemoryEngine } from '../memory/memoryEngine.js';
 import { writeBaseline } from '../design/baseline.js';
-import { BASELINE_FILES } from '@luci/format/capture';
+import { BASELINE_FILES } from '@luci-dev/format/capture';
 
 export interface InitOptions {
   /** Report what would be written; write nothing, not even the Global Brain. */

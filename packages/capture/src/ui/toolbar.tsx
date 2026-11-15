@@ -6,7 +6,33 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { RemapSection, pageTokenStore, remapOutput, type MyTokensSource } from './remap.js';
 import type { ViewportWidth } from '../responsive.js';
-import { STITCH_FILE_NAME, cleanSource, compareCaptures, estimatePalette, formatCapture, formatStitch, type CheckRun, formatCompareReport, groupOf, imageColorSystem, imageFileName, mergeGroups, withInstructions, type CompareResult, type Responsive, type BasketItem, type CaptureSettings, type ComponentCapture } from '@luci/format/capture';
+import {
+  CSS_VARS_FILE_NAME,
+  STITCH_FILE_NAME,
+  TAILWIND_V3_FILE_NAME,
+  TAILWIND_V4_FILE_NAME,
+  cleanSource,
+  compareCaptures,
+  estimatePalette,
+  formatCapture,
+  formatCssVariables,
+  formatStitch,
+  formatTailwind,
+  formatTailwindV3,
+  type CheckRun,
+  formatCompareReport,
+  groupOf,
+  imageColorSystem,
+  imageFileName,
+  mergeGroups,
+  withInstructions,
+  type CompareResult,
+  type Responsive,
+  type BasketItem,
+  type CaptureSettings,
+  type ComponentCapture,
+  type StyleSetting
+} from '@luci-dev/format/capture';
 import { addToBasket, exportBasket, exportItem, mergeInBasket, noteInBasket, removeFromBasket, renameInBasket, sourceLabel, type BasketStore } from './basket.js';
 import type { Eligibility } from '../eligibility.js';
 import type { ElementSnapshot } from '../model.js';
@@ -17,9 +43,9 @@ import { elementAt, eligibilityOf, eventTarget, firstChildOf, hoverLabel, parent
 import { ButtonSpinner, Loading, nextPaint } from './loading.js';
 import { ModeSwitch, type ModeSwitchProps } from './modeSwitch.js';
 import {
-  Button, COPY, EmptyState, Icon, IconBasket, IconCheck, IconClose, IconColour, IconComponent, IconCopy, IconDownload, IconInfo, IconPage,
+  Badge, Button, COPY, EmptyState, Icon, IconBasket, IconCheck, IconClose, IconColour, IconComponent, IconCopy, IconDownload, IconInfo, IconPage,
   IconSpacing, IconSuccess, IconText, LUCI_REPO_URL, Mascot, RepoButton, Select, useShortcuts, type LucideIcon, type MascotPose
-} from '@luci/ui';
+} from '@luci-dev/ui';
 import { AppearanceControls, LuciLogo, useUiPrefs } from './theme.js';
 import { DevSettingsPanel, type StorageLike } from './devSettings.js';
 import { zip } from './zip.js';
@@ -863,13 +889,37 @@ export function Toolbar(props: ToolbarProps) {
   const [instructions, setInstructions] = useState('');
   const [edited, setEdited] = useState<string | null>(null);
   const captureWithInstructions = output ? ({ ...output.capture, ...(instructions.trim() ? { instructions: instructions.trim() } : {}) } as typeof output.capture) : null;
-  // The file people copy and download: Luci's tables, or DESIGN.md for Google Stitch (a section with its components in one)
-  const stitch = settings.style === 'stitch';
-  const luciMarkdown = (!stitch ? edited : null) ?? (captureWithInstructions ? formatCapture(captureWithInstructions, settings) : '');
+  // The file people copy and download: Luci's tables, DESIGN.md for Google Stitch, Tailwind CSS, or CSS Variables
+  const isStitch = settings.style === 'stitch';
+  const isTailwind = settings.style === 'tailwind';
+  const isTailwindV3 = settings.style === 'tailwind-v3';
+  const isCssVars = settings.style === 'css-vars';
+  const isTokenExport = isTailwind || isTailwindV3 || isCssVars;
+  const isCustomExport = isStitch || isTokenExport;
+  const stitch = isStitch;
+  const luciMarkdown = (!isCustomExport ? edited : null) ?? (captureWithInstructions ? formatCapture(captureWithInstructions, settings) : '');
   const markdown = edited ?? (captureWithInstructions
-    ? (stitch ? formatStitch([captureWithInstructions, ...(output?.files ?? []).map(f => f.capture)]) : luciMarkdown)
+    ? (isStitch
+        ? formatStitch([captureWithInstructions, ...(output?.files ?? []).map(f => f.capture)])
+        : isTailwind
+          ? formatTailwind([captureWithInstructions, ...(output?.files ?? []).map(f => f.capture)])
+          : isTailwindV3
+            ? formatTailwindV3([captureWithInstructions, ...(output?.files ?? []).map(f => f.capture)])
+            : isCssVars
+              ? formatCssVariables([captureWithInstructions, ...(output?.files ?? []).map(f => f.capture)])
+              : luciMarkdown)
     : '');
-  const outputName = output ? (stitch ? STITCH_FILE_NAME : output.fileName) : '';
+  const outputName = output
+    ? (isStitch
+        ? STITCH_FILE_NAME
+        : isTailwind
+          ? TAILWIND_V4_FILE_NAME
+          : isTailwindV3
+            ? TAILWIND_V3_FILE_NAME
+            : isCssVars
+              ? CSS_VARS_FILE_NAME
+              : output.fileName)
+    : '';
   const changeInstructions = (text: string) => {
     setInstructions(text);
     setCopied(false);
@@ -896,7 +946,12 @@ export function Toolbar(props: ToolbarProps) {
   };
 
   const downloadText = (fileName: string, text: string) => {
-    const url = URL.createObjectURL(new Blob([text], { type: 'text/markdown' }));
+    const mime = fileName.endsWith('.css')
+      ? 'text/css'
+      : fileName.endsWith('.js')
+        ? 'text/javascript'
+        : 'text/markdown';
+    const url = URL.createObjectURL(new Blob([text], { type: mime }));
     const a = doc.createElement('a');
     a.href = url;
     a.download = fileName;
@@ -992,7 +1047,7 @@ export function Toolbar(props: ToolbarProps) {
     setAdded(true);
     const current = basketLoaded.current || !store ? basket : await store.load();
     basketLoaded.current = true;
-    let next = addToBasket(current, captureWithInstructions ?? output.capture, (!stitch ? edited : null) ?? undefined);
+    let next = addToBasket(current, captureWithInstructions ?? output.capture, (!isCustomExport ? edited : null) ?? undefined);
     // A section's component files go in with it
     for (const f of output.files ?? []) next = addToBasket(next, f.capture);
     saveBasket(next);
@@ -1084,10 +1139,16 @@ export function Toolbar(props: ToolbarProps) {
     }
   };
   const exported = basketExport
-    ? (settings.style === 'stitch'
+    ? (isStitch
       // DESIGN.md for Stitch: the item, or the whole basket, in one file (with each item's note)
       ? { fileName: STITCH_FILE_NAME, markdown: formatStitch((basketExport.item ? [basketExport.item] : basket).map(i => i.capture)) }
-      : basketExport.item ? exportItem(basketExport.item, settings) : basket.length ? exportBasket(basket, settings) : null)
+      : isTailwind
+        ? { fileName: TAILWIND_V4_FILE_NAME, markdown: formatTailwind((basketExport.item ? [basketExport.item] : basket).map(i => i.capture)) }
+        : isTailwindV3
+          ? { fileName: TAILWIND_V3_FILE_NAME, markdown: formatTailwindV3((basketExport.item ? [basketExport.item] : basket).map(i => i.capture)) }
+          : isCssVars
+            ? { fileName: CSS_VARS_FILE_NAME, markdown: formatCssVariables((basketExport.item ? [basketExport.item] : basket).map(i => i.capture)) }
+            : basketExport.item ? exportItem(basketExport.item, settings) : basket.length ? exportBasket(basket, settings) : null)
     : null;
 
   const Dropper = (win as unknown as { EyeDropper?: new () => { open(): Promise<{ sRGBHex: string }> } }).EyeDropper;
@@ -1434,6 +1495,7 @@ export function Toolbar(props: ToolbarProps) {
               <div class="brand-stack">
                 <div class="brand-title-line">
                   <span class="brand-title" data-part="brand-title">{props.modes ? COPY.capture.devTitle : COPY.capture.title}</span>
+                  <Badge brand>Beta</Badge>
                   <span class="brand-sub" data-part="brand-sub">{props.modes ? COPY.capture.devByline : COPY.capture.byline}</span>
                 </div>
                 <p class="brand-desc">{props.modes ? COPY.capture.devDescription : COPY.capture.description}</p>
@@ -1547,10 +1609,14 @@ export function Toolbar(props: ToolbarProps) {
                     <option value="page">page address</option><option value="site">site name only</option>
                   </Select>
                 </label>
-                <label class="field-stack" title="The file you copy, download and export: Luci's tables, or DESIGN.md for Google Stitch">
+                <label class="field-stack" title="The file you copy, download and export: Luci's tables, DESIGN.md for Google Stitch, Tailwind CSS, or CSS Variables">
                   <span class="dim">File</span>
-                  <Select data-setting="style" value={settings.style ?? 'luci'} onChange={e => changeSettings({ ...settings, style: (e.currentTarget as HTMLSelectElement).value as 'luci' })}>
-                    <option value="luci">Luci tables</option><option value="stitch">DESIGN.md (Stitch)</option>
+                  <Select data-setting="style" value={settings.style ?? 'luci'} onChange={e => changeSettings({ ...settings, style: (e.currentTarget as HTMLSelectElement).value as StyleSetting })}>
+                    <option value="luci">Luci tables</option>
+                    <option value="stitch">DESIGN.md (Stitch)</option>
+                    <option value="tailwind">Tailwind v4 (@theme)</option>
+                    <option value="tailwind-v3">Tailwind v3 (config.js)</option>
+                    <option value="css-vars">CSS Variables (tokens.css)</option>
                   </Select>
                 </label>
               </div>
@@ -1872,14 +1938,18 @@ export function Toolbar(props: ToolbarProps) {
                         <option value="page">page address</option><option value="site">site name only</option>
                       </Select>
                     </label>
-                    <label class="field-stack" title="The file you copy and download: Luci's tables, or DESIGN.md for Google Stitch">
+                    <label class="field-stack" title="The file you copy and download: Luci's tables, DESIGN.md for Google Stitch, Tailwind CSS, or CSS Variables">
                       <span class="field-label">File</span>
-                      <Select data-setting="style" value={settings.style ?? 'luci'} onChange={e => changeSettings({ ...settings, style: (e.currentTarget as HTMLSelectElement).value as 'luci' })}>
-                        <option value="luci">Luci tables</option><option value="stitch">DESIGN.md (Stitch)</option>
+                      <Select data-setting="style" value={settings.style ?? 'luci'} onChange={e => changeSettings({ ...settings, style: (e.currentTarget as HTMLSelectElement).value as StyleSetting })}>
+                        <option value="luci">Luci tables</option>
+                        <option value="stitch">DESIGN.md (Stitch)</option>
+                        <option value="tailwind">Tailwind v4 (@theme)</option>
+                        <option value="tailwind-v3">Tailwind v3 (config.js)</option>
+                        <option value="css-vars">CSS Variables (tokens.css)</option>
                       </Select>
                     </label>
                   </div>
-                  {stitch && props.saveToProject && <p class="dim" data-part="stitch-note">Save to project keeps Luci's tables: the design check and your agent's tools read them.</p>}
+                  {isCustomExport && props.saveToProject && <p class="dim" data-part="stitch-note">Save to project keeps Luci's tables: the design check and your agent's tools read them.</p>}
                   {stateNote && <p class="hint" data-part="state-note">{stateNote}</p>}
                   {componentCtx && result.output.capture.meta.scope === 'component' && (
                     <div class="stack" data-part="manual-state">
@@ -1978,8 +2048,8 @@ export function Toolbar(props: ToolbarProps) {
                     onInput={e => { setEdited((e.currentTarget as HTMLTextAreaElement).value); setCopied(false); }} />
                   <div class="row actions">
                     <Button variant="primary" size="md" iconOnly tipAbove tipAlign="left" icon={copied ? IconSuccess : IconCopy} data-action="copy" onClick={copy}
-                      label={copied ? COPY.common.copied : sectionFiles.length && !stitch ? COPY.capture.actions.copySection : COPY.capture.actions.copy} />
-                    {sectionFiles.length && !stitch
+                      label={copied ? COPY.common.copied : sectionFiles.length && !isCustomExport ? COPY.capture.actions.copySection : COPY.capture.actions.copy} />
+                    {sectionFiles.length && !isCustomExport
                       ? <Button variant="secondary" size="md" iconOnly tipAbove icon={IconDownload} data-action="download-zip" onClick={downloadZip} label={COPY.capture.actions.downloadZip(sectionFiles.length + 1)} />
                       : <Button variant="secondary" size="md" iconOnly tipAbove icon={IconDownload} data-action="download" onClick={download} label={COPY.capture.actions.download} />}
                     <Button variant="secondary" size="md" iconOnly tipAbove icon={added ? IconSuccess : IconBasket} data-action="add-to-basket"

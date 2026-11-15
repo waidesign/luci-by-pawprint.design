@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { AGENT_FILES, AGENT_LABELS, DEFAULT_AGENTS, agentStartMarker, type AgentId } from '@luci/format';
+import { AGENT_FILES, AGENT_LABELS, DEFAULT_AGENTS, agentStartMarker, type AgentId } from '@luci-dev/format';
 import type { ProjectInfo } from '../detect/detector.js';
 import { frameworkLine } from '../layout/brainLayout.js';
 import { agentBlock, upsertAgentBlock, type AgentFileResult } from './agentBlock.js';

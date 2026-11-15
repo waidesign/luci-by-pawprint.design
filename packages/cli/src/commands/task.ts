@@ -1,5 +1,5 @@
-import { PRODUCT } from '@luci/format';
-import { archiveActiveTask, readActiveTask } from '@luci/brain';
+import { PRODUCT } from '@luci-dev/format';
+import { archiveActiveTask, readActiveTask } from '@luci-dev/brain';
 import type { Command } from '../context.js';
 
 export const TASK_HELP = `task [done]           Show the active task, or archive it when it is finished`;

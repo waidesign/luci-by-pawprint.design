@@ -6,7 +6,7 @@
  * command (`luci map --install`).
  */
 import { execSync } from 'node:child_process';
-import { PRODUCT } from '@luci/format';
+import { PRODUCT } from '@luci-dev/format';
 import { CodeMap, GRAPHIFY_PACKAGE } from './codeMap.js';
 import { findTool, type FoundTool } from './toolLocator.js';
 

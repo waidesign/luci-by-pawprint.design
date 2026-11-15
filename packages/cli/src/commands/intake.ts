@@ -1,5 +1,5 @@
-import { MEMORY_FILES, PRODUCT } from '@luci/format';
-import { intakeDocs, memoryPath } from '@luci/brain';
+import { MEMORY_FILES, PRODUCT } from '@luci-dev/format';
+import { intakeDocs, memoryPath } from '@luci-dev/brain';
 import type { Command } from '../context.js';
 
 export const INTAKE_HELP = `intake <file...>      Fit a PRD and supporting docs into project memory (--dry-run to preview)`;

@@ -13,7 +13,7 @@ import {
   parseFrontmatter,
   parseSkillContract,
   type SkillContract
-} from '@luci/format';
+} from '@luci-dev/format';
 import { LEVEL_NAMES, MAX_KEYWORDS, MAX_KEYWORD_LENGTH, MAX_TAGS, rankabilityLevel } from './rankability.js';
 
 // Keyword stuffing: one word used this many times AND making up this share of the description

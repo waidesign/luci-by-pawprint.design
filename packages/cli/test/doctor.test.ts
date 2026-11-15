@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { diagnose, initProject, type Check } from '@luci/brain';
+import { diagnose, initProject, type Check } from '@luci-dev/brain';
 import { run } from '../src/index.js';
 import { fakeContext, tempDir, tempProject } from './helpers.js';
 

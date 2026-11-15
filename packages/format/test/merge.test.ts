@@ -16,7 +16,7 @@ import {
   type SpacingSystem,
   type SystemCapture,
   type TypographySystem
-} from '@luci/format/capture';
+} from '@luci-dev/format/capture';
 
 const captureDir = fileURLToPath(new URL('../fixtures/capture/', import.meta.url));
 const mergeDir = fileURLToPath(new URL('../fixtures/merge/', import.meta.url));

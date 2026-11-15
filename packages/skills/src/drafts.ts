@@ -3,7 +3,7 @@
  * are listed in the contract's "drafts" array; ranking and rankability levels ignore
  * them until they are approved.
  */
-import type { SkillContract } from '@luci/format';
+import type { SkillContract } from '@luci-dev/format';
 import { readSkillFolder, writeSkillFolder } from './lss.js';
 import { MAX_KEYWORDS, MAX_KEYWORD_LENGTH } from './rankability.js';
 

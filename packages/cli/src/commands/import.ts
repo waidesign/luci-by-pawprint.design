@@ -1,5 +1,5 @@
-import { PRODUCT } from '@luci/format';
-import { PROTOTYPE, importPrototype } from '@luci/brain';
+import { PRODUCT } from '@luci-dev/format';
+import { PROTOTYPE, importPrototype } from '@luci-dev/brain';
 import { parseFlags, type Command } from '../context.js';
 import { cliVersion } from '../version.js';
 

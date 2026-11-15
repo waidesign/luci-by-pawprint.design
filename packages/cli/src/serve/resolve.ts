@@ -6,8 +6,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { mapLookup, moduleIdPath, projectPath, sourceMapRef, type MapLookup } from '@luci/feedback';
-import type { SourceLocation } from '@luci/format/feedback';
+import { mapLookup, moduleIdPath, projectPath, sourceMapRef, type MapLookup } from '@luci-dev/feedback';
+import type { SourceLocation } from '@luci-dev/format/feedback';
 
 export interface ServerFrame {
   url: string;

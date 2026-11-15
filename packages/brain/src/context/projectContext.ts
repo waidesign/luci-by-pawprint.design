@@ -12,8 +12,8 @@ import {
   PROJECT_RULES_HEADING,
   sectionBody,
   type ProjectCommands
-} from '@luci/format';
-import { SkillRegistry, addedPacks, missingSkillWarnings, projectSkillSet, readLock, trustLevel, type Skill, type SkillSource, type TrustLevel } from '@luci/skills';
+} from '@luci-dev/format';
+import { SkillRegistry, addedPacks, missingSkillWarnings, projectSkillSet, readLock, trustLevel, type Skill, type SkillSource, type TrustLevel } from '@luci-dev/skills';
 import { mapFreshness, type MapFreshness } from '../codemap/codeMap.js';
 import { GRAPH_JSON, detectProject, type WorkspacePackage } from '../detect/detector.js';
 import { suggestPacks, type PackSuggestion } from '../init/initProject.js';
@@ -49,7 +49,7 @@ export function readProjectRules(projectDir: string): string[] {
 
 /**
  * Package rules written under "## Package: <id>" or "## Package Rules: <id>" in rules.md,
- * where <id> is a package path (e.g. "packages/cli") or package name (e.g. "@luci/cli" or "luci").
+ * where <id> is a package path (e.g. "packages/cli") or package name (e.g. "@luci-dev/cli" or "luci").
  */
 export function readAllPackageRules(projectDir: string): Record<string, string[]> {
   const root = findProjectRoot(projectDir).root;
@@ -94,7 +94,7 @@ export function readAllPackageRules(projectDir: string): Record<string, string[]
 }
 
 /**
- * Rules for a specific package, matched by its path (e.g. "packages/cli") or name ("luci", "@luci/cli").
+ * Rules for a specific package, matched by its path (e.g. "packages/cli") or name ("luci", "@luci-dev/cli").
  */
 export function readPackageRules(projectDir: string, pkg: { path: string; name?: string }): string[] {
   const all = readAllPackageRules(projectDir);

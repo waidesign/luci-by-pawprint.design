@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { MEMORY_FILES, PRODUCT, userSkillsDir } from '@luci/format';
-import { convertPrototypeSkillFolder, detectProject, findProjectRoot, memoryDir, writeActiveTask } from '@luci/brain';
+import { MEMORY_FILES, PRODUCT, userSkillsDir } from '@luci-dev/format';
+import { convertPrototypeSkillFolder, detectProject, findProjectRoot, memoryDir, writeActiveTask } from '@luci-dev/brain';
 import {
   GitHubClient,
   SkillDiscovery,
@@ -29,7 +29,7 @@ import {
   writeCatalog,
   type PreferenceAction,
   type Skill
-} from '@luci/skills';
+} from '@luci-dev/skills';
 import type { CliContext, Command } from '../context.js';
 
 const cmd = (args: string) => `${PRODUCT.command} ${args}`;

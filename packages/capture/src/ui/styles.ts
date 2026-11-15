@@ -1,9 +1,9 @@
 /**
  * The toolbar's styles. They live in its shadow root, so the page and the toolbar never affect each
- * other. Built on @luci/ui (tokens, base and components from the brand kit): this file only lays out
+ * other. Built on @luci-dev/ui (tokens, base and components from the brand kit): this file only lays out
  * the toolbar's own parts, with var(--luci-*) values and no colours of its own.
  */
-import { UI_CSS } from '@luci/ui';
+import { UI_CSS } from '@luci-dev/ui';
 
 export const TOOLBAR_CSS = `
 :host { all: initial; }

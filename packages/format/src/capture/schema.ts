@@ -22,8 +22,9 @@ export const UNIT_SETTINGS = ['px', 'rem', 'both'] as const;
 export const COLOR_SETTINGS = ['hex', 'rgb', 'hsl', 'oklch'] as const;
 /** How the source is written: the page (origin and path) or only the site's name ("lattice.com"). */
 export const SOURCE_SETTINGS = ['page', 'site'] as const;
-/** The file to copy and export: Luci's tables, or DESIGN.md for Google Stitch (v0.4.x). */
-export const STYLE_SETTINGS = ['luci', 'stitch'] as const;
+/** The file to copy and export: Luci's tables, Stitch DESIGN.md, Tailwind v4 @theme, Tailwind v3 config, or CSS variables. */
+export const STYLE_SETTINGS = ['luci', 'stitch', 'tailwind', 'tailwind-v3', 'css-vars'] as const;
+export type StyleSetting = (typeof STYLE_SETTINGS)[number];
 /** A site's name as the "site" source setting writes it: host without "www.", with a port when there is one. */
 export const siteNameSchema = z.string().regex(/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*(:\d+)?$/i, 'a site name, e.g. example.com');
 
@@ -52,6 +53,46 @@ export const elementRefSchema = z.object({
 });
 export type ElementRef = z.infer<typeof elementRefSchema>;
 
+/**
+ * Font identification (v0.5): detects the exact rendered webfont family in the fallback stack
+ * and identifies Google Fonts matches with import URLs.
+ */
+export const fontIdentificationSchema = z.object({
+  /** The font family actually rendered by the browser from the stack. */
+  rendered: z.string().min(1),
+  /** Whether this font is available on Google Fonts. */
+  googleFont: z.boolean().optional(),
+  /** Google Fonts import URL if available. */
+  importUrl: z.string().optional()
+});
+export type FontIdentification = z.infer<typeof fontIdentificationSchema>;
+
+/**
+ * Icon identification (v0.5): recognizes standard SVG icon sets (Lucide, Heroicons, Radix, FontAwesome)
+ * by attribute or geometry matching.
+ */
+export const iconSchema = z.object({
+  set: z.enum(['lucide', 'heroicons', 'radix', 'fontawesome', 'tabler', 'custom']),
+  name: z.string().min(1),
+  component: z.string().optional(),
+  viewBox: z.string().optional()
+});
+export type IconInfo = z.infer<typeof iconSchema>;
+
+/**
+ * Stack detection on external sites (v0.5): inspects external DOM and window globals to identify
+ * the site's framework, router, styling system, and UI component library.
+ */
+export const stackSchema = z.object({
+  framework: z.string().optional(),
+  version: z.string().optional(),
+  router: z.string().optional(),
+  styling: z.string().optional(),
+  uiLibrary: z.string().optional(),
+  signals: z.array(z.string()).optional()
+});
+export type SiteStack = z.infer<typeof stackSchema>;
+
 export const textStyleSchema = z.object({
   family: valueSchema,
   size: valueSchema,
@@ -59,6 +100,8 @@ export const textStyleSchema = z.object({
   lineHeight: valueSchema,
   letterSpacing: valueSchema,
   color: valueSchema,
+  /** Rendered font identification (v0.5). */
+  font: fontIdentificationSchema.optional(),
   /** Only when not the default (italic, uppercase, underline...). */
   style: valueSchema.optional(),
   transform: valueSchema.optional(),
@@ -214,7 +257,7 @@ export const typographySystemSchema = z.object({
     elements: z.array(z.string().min(1)),
     pages: pagesField
   })).min(1),
-  families: z.array(z.object({ family: z.string().min(1), count: z.number().int().positive() })),
+  families: z.array(z.object({ family: z.string().min(1), count: z.number().int().positive(), font: fontIdentificationSchema.optional() })),
   scale: z.array(z.object({ size: valueSchema, count: z.number().int().positive() })),
   conflicts: z.array(conflictSchema).optional()
 });
@@ -371,6 +414,8 @@ export const componentSchema = z.object({
     parent: slug.optional(),
     depth: z.number().int().nonnegative().optional(),
     layout: computedLayoutSchema.optional(),
+    /** Identified SVG icon (v0.5). */
+    icon: iconSchema.optional(),
     styles: z.array(styleEntrySchema)
   })).min(1),
   states: z.array(z.object({
@@ -409,7 +454,11 @@ export const componentSchema = z.object({
     differences: z.array(styleEntrySchema)
   })).optional(),
   /** Computed hierarchical layout tree (v0.4.3). */
-  layoutTree: layoutTreeNodeSchema.optional()
+  layoutTree: layoutTreeNodeSchema.optional(),
+  /** Detected icons inside the component (v0.5). */
+  icons: z.array(z.object({ part: slug, icon: iconSchema })).optional(),
+  /** Detected stack of the host site (v0.5). */
+  stack: stackSchema.optional()
 });
 export type ComponentCapture = z.infer<typeof componentSchema>;
 
@@ -452,7 +501,9 @@ export const sectionSchema = z.object({
   /** How its layout changes by window width (v0.3.4), when the person asked for it. */
   responsive: responsiveSchema.optional(),
   /** Computed hierarchical layout tree (v0.4.3). */
-  layoutTree: layoutTreeNodeSchema.optional()
+  layoutTree: layoutTreeNodeSchema.optional(),
+  /** Detected stack of the host site (v0.5). */
+  stack: stackSchema.optional()
 });
 export type SectionCapture = z.infer<typeof sectionSchema>;
 
@@ -469,7 +520,9 @@ export const pageSchema = z.object({
   spacing: spacingSystemSchema.nullable(),
   components: z.array(componentSchema),
   /** Parts Luci could not read on this page (a system, or one component by its selector), left out with the reason. */
-  skipped: z.array(z.object({ part: z.string().min(1), reason: z.string().min(1) })).optional()
+  skipped: z.array(z.object({ part: z.string().min(1), reason: z.string().min(1) })).optional(),
+  /** Detected stack of the host site (v0.5). */
+  stack: stackSchema.optional()
 });
 export type PageCapture = z.infer<typeof pageSchema>;
 
@@ -491,8 +544,9 @@ export const captureSettingsSchema = z.object({
   /** `page` writes the page's address (origin and path); `site` only the site's name. */
   source: z.enum(SOURCE_SETTINGS).default('page'),
   /**
-   * The file people copy, download and export: Luci's tables (`luci`), or DESIGN.md for Google Stitch
-   * and other prose-first workflows (`stitch`, formatStitch). Files saved into the project stay Luci's.
+   * The file people copy, download and export: Luci's tables (`luci`), DESIGN.md for Google Stitch
+   * (`stitch`), Tailwind CSS v4 `@theme` (`tailwind`), Tailwind v3 config (`tailwind-v3`), or CSS
+   * variables stylesheet (`css-vars`). Files saved into the project stay Luci's.
    */
   style: z.enum(STYLE_SETTINGS).default('luci'),
   /** The page's root font size in px, for rem conversion. */

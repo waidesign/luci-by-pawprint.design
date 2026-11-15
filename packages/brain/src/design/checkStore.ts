@@ -6,8 +6,8 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { MEMORY_FILES } from '@luci/format';
-import { checkRunSchema, type CheckRun } from '@luci/format/capture';
+import { MEMORY_FILES } from '@luci-dev/format';
+import { checkRunSchema, type CheckRun } from '@luci-dev/format/capture';
 import { memoryDir } from '../layout/brainLayout.js';
 import { writeAtomic } from '../feedback/feedbackStore.js';
 

@@ -2,10 +2,11 @@
  * The Text tool (FR11, FR12): one text style, and the page's typography system. Every distinct
  * text style appears once, grouped into a role named from the elements that use it.
  */
-import { colorKey, pxValue, type TextStyle, type TextToken, type TypographySystem } from '@luci/format/capture';
+import { colorKey, pxValue, type TextStyle, type TextToken, type TypographySystem } from '@luci-dev/format/capture';
 import { contrastOf } from './a11y.js';
 import { valueOf, type ElementSnapshot, type PageSnapshot } from './model.js';
 import { elementName } from './naming.js';
+import { identifyFont } from './font.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -18,6 +19,8 @@ export function textStyleOf(el: ElementSnapshot): TextStyle {
   const style = optional('font-style', 'normal');
   const transform = optional('text-transform', 'none');
   const decoration = optional('text-decoration-line', 'none');
+  const rawFamily = el.styles['font-family'];
+  const font = rawFamily ? identifyFont(rawFamily) : undefined;
   return {
     family: valueOf(el, 'font-family'),
     size: valueOf(el, 'font-size'),
@@ -25,6 +28,7 @@ export function textStyleOf(el: ElementSnapshot): TextStyle {
     lineHeight: valueOf(el, 'line-height'),
     letterSpacing: valueOf(el, 'letter-spacing'),
     color: valueOf(el, 'color'),
+    ...(font ? { font } : {}),
     ...(style ? { style } : {}),
     ...(transform ? { transform } : {}),
     ...(decoration ? { decoration } : {})
@@ -132,7 +136,10 @@ export function typographySystem(snapshot: PageSnapshot, options: { captured?: s
   return {
     meta: { name: 'typography', scope: 'system', type: 'typography', source: snapshot.url, captured: options.captured ?? today(), method: 'measured' },
     roles: groups.map(g => ({ role: g.role, style: g.style, count: g.elements.length, elements: g.tags })),
-    families: [...families.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([family, count]) => ({ family, count })),
+    families: [...families.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([family, count]) => ({
+      family,
+      count
+    })),
     scale: [...sizes.entries()]
       .sort((a, b) => (pxValue(b[0]) ?? 0) - (pxValue(a[0]) ?? 0))
       .map(([computed, { n, tokens }]) => {

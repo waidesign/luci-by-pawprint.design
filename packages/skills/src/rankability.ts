@@ -10,7 +10,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import type { SkillContract } from '@luci/format';
+import type { SkillContract } from '@luci-dev/format';
 
 export const RANKING_VERSION = 'lss-ranking-1';
 export const LEVEL_NAMES = ['Incomplete', 'Findable', 'Rankable', 'Precise'] as const;

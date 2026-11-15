@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { MEMORY_FILES, SKILL_FILE, TEMPLATE_DIRS, TEMPLATE_FILES, formatBrainJson } from '@luci/format';
+import { MEMORY_FILES, SKILL_FILE, TEMPLATE_DIRS, TEMPLATE_FILES, formatBrainJson } from '@luci-dev/format';
 import type { ProjectInfo } from '../detect/detector.js';
 import {
   TEMPLATES_DIR,

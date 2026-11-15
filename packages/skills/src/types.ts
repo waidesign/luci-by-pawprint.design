@@ -1,4 +1,4 @@
-import type { LockEntry, SkillContract } from '@luci/format';
+import type { LockEntry, SkillContract } from '@luci-dev/format';
 
 /** Which library a skill was loaded from. */
 export type LibraryKind = 'official' | 'personal' | 'project';

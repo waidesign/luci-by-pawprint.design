@@ -1,6 +1,6 @@
-import { AGENT_FILES, AGENT_NAMES, PRODUCT, type AgentId } from '@luci/format';
-import { initProject } from '@luci/brain';
-import { SkillRegistry } from '@luci/skills';
+import { AGENT_FILES, AGENT_NAMES, PRODUCT, type AgentId } from '@luci-dev/format';
+import { initProject } from '@luci-dev/brain';
+import { SkillRegistry } from '@luci-dev/skills';
 import { parseFlags, type Command } from '../context.js';
 import { createLineAsker, runOnboarding } from '../onboarding.js';
 import { cliVersion } from '../version.js';

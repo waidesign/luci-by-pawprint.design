@@ -6,7 +6,7 @@
  * `setWidth`), or load the same page in a hidden frame of that width (any shell; the page must allow
  * itself in a frame). The pure parts (thresholds, widths, differences) are tested without a browser.
  */
-import type { CapturedValue, Responsive } from '@luci/format/capture';
+import type { CapturedValue, Responsive } from '@luci-dev/format/capture';
 import { LUCI_UI_ATTRIBUTE } from './dom.js';
 import { hasRules, isMediaRule, isStyleRule } from './realm.js';
 

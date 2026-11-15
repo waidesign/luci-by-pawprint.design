@@ -55,7 +55,8 @@ type Flat = Map<string, { value: string; token?: string | undefined; property: s
 const put = (out: Flat, what: string, property: string, v: CapturedValue | undefined) => {
   if (v) out.set(what, { value: v.computed, ...(v.token ? { token: v.token } : {}), property });
 };
-const TEXT_FIELDS: readonly [keyof TextStyle, string][] = [
+type TextPropertyKey = 'family' | 'size' | 'weight' | 'lineHeight' | 'letterSpacing' | 'color' | 'style' | 'transform' | 'decoration';
+const TEXT_FIELDS: readonly [TextPropertyKey, string][] = [
   ['family', 'font-family'], ['size', 'font-size'], ['weight', 'font-weight'], ['lineHeight', 'line-height'], ['letterSpacing', 'letter-spacing'],
   ['color', 'color'], ['style', 'font-style'], ['transform', 'text-transform'], ['decoration', 'text-decoration']
 ];

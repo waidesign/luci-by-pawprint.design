@@ -1,6 +1,6 @@
 /**
  * The base unit of a spacing system: the unit most spacing uses are multiples of. Moved here from
- * @luci/capture (unchanged) in v0.3.3, so a site-level system merged from several pages finds its
+ * @luci-dev/capture (unchanged) in v0.3.3, so a site-level system merged from several pages finds its
  * base unit the same way a page's own system does. Pure and browser-safe.
  */
 

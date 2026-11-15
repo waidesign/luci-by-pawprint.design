@@ -19,7 +19,7 @@ import {
   type SystemCapture,
   type SystemConflict,
   type TypographySystem
-} from '@luci/format/capture';
+} from '@luci-dev/format/capture';
 import { DesignStore } from './designStore.js';
 
 let cachedBundle: string | null = null;

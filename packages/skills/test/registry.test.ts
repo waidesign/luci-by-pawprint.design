@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { parseFrontmatter } from '@luci/format';
-import { OFFICIAL_SKILLS_DIR, SkillRegistry, lintLibrary, lintSkillFolder } from '@luci/skills';
+import { parseFrontmatter } from '@luci-dev/format';
+import { OFFICIAL_SKILLS_DIR, SkillRegistry, lintLibrary, lintSkillFolder } from '@luci-dev/skills';
 import { makeLibrary, tempDir } from './helpers.js';
 
 // Ported from the prototype: gss.test.js and skill-registry.test.js

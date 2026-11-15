@@ -9,7 +9,7 @@ import {
   loadProjectContext,
   readAllPackageRules,
   readPackageRules
-} from '@luci/brain';
+} from '@luci-dev/brain';
 import { tempDir, tempProject } from './helpers.js';
 
 const monorepo = (rulesMd?: string) => tempProject({

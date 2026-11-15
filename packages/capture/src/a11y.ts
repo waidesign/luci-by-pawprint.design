@@ -5,7 +5,7 @@
  * or opacity on the way makes the ratio an estimate. Pure.
  */
 import { parse, rgb } from 'culori';
-import type { Accessibility, ComponentCapture, WcagLevel } from '@luci/format/capture';
+import type { Accessibility, ComponentCapture, WcagLevel } from '@luci-dev/format/capture';
 import type { ElementSnapshot, PageSnapshot } from './model.js';
 
 interface Rgba { r: number; g: number; b: number; a: number }

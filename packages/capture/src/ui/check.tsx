@@ -4,7 +4,7 @@
  * and each difference, ticked to become a feedback note (dev toolbar) or copied as a report.
  */
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { cleanSource, formatCheckReport, readComponentFile, type BasketItem, type CheckDifference } from '@luci/format/capture';
+import { cleanSource, formatCheckReport, readComponentFile, type BasketItem, type CheckDifference } from '@luci-dev/format/capture';
 import { exportItem } from './basket.js';
 import { ButtonSpinner, Loading } from './loading.js';
 import { checkNote, type CheckNote, type CheckOutcome, type DesignChoice } from './tools.js';

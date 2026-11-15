@@ -1,8 +1,8 @@
 /**
  * The Feedback and Layout layers' styles, on top of the capture toolbar's (same look, same
- * shadow-root isolation). Values come only from @luci/ui's tokens (var(--luci-*)).
+ * shadow-root isolation). Values come only from @luci-dev/ui's tokens (var(--luci-*)).
  */
-import { TOOLBAR_CSS } from '@luci/capture';
+import { TOOLBAR_CSS } from '@luci-dev/capture';
 
 export const FEEDBACK_CSS = `${TOOLBAR_CSS}
 .luci-theme { --marker: var(--luci-color-muzzle-900); --marker-ink: var(--luci-color-muzzle-50); }

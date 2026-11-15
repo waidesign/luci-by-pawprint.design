@@ -13,4 +13,7 @@ export * from './a11y.js';
 export * from './section.js';
 export * from './responsive.js';
 export * from './layout.js';
+export * from './font.js';
+export * from './icon.js';
+export * from './stack.js';
 export * from './ui/index.js';

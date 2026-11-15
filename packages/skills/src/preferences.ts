@@ -6,7 +6,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { parseJsonText, skillPreferencesFile } from '@luci/format';
+import { parseJsonText, skillPreferencesFile } from '@luci-dev/format';
 
 export const PIN_BOOST = 1.15;
 

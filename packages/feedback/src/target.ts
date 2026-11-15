@@ -3,8 +3,8 @@
  * and text that always work, plus the components and source file a framework adapter finds (React
  * first, FR25), and a few computed styles for the "detailed" level.
  */
-import { elementName, implicitRole, selectorFor } from '@luci/capture';
-import type { FeedbackItem, SourceLocation } from '@luci/format/feedback';
+import { elementName, implicitRole, selectorFor } from '@luci-dev/capture';
+import type { FeedbackItem, SourceLocation } from '@luci-dev/format/feedback';
 import { PAGE_FOLDER, firstUserLocation, frameResolver, reactInfo, type FrameResolver, type FrameworkInfo, type ServerResolver } from './react.js';
 import { sourceMapLoader } from './sourcemap.js';
 import { svelteInfo } from './svelte.js';

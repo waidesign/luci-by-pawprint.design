@@ -1,7 +1,6 @@
 {
-  "name": "@luci/feedback",
-  "version": "0.0.0",
-  "private": true,
+  "name": "@luci-dev/feedback",
+  "version": "0.5.2",
   "description": "Feedback in the browser: annotations on a running app, the React adapter, and where items are kept. Browser-safe.",
   "type": "module",
   "license": "MIT",
@@ -15,9 +14,22 @@
     "dist"
   ],
   "dependencies": {
-    "@luci/capture": "workspace:*",
-    "@luci/format": "workspace:*",
-    "@luci/ui": "workspace:*",
+    "@luci-dev/capture": "workspace:*",
+    "@luci-dev/format": "workspace:*",
+    "@luci-dev/ui": "workspace:*",
     "preact": "10.29.8"
-  }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/waidesign/luci-by-pawprint.design.git",
+    "directory": "packages/feedback"
+  },
+  "homepage": "https://github.com/waidesign/luci-by-pawprint.design#readme",
+  "bugs": {
+    "url": "https://github.com/waidesign/luci-by-pawprint.design/issues"
+  },
+  "author": "Pawprint Design <lucas@pawprint.design>"
 }

@@ -1,4 +1,4 @@
-import { PRODUCT } from '@luci/format';
+import { PRODUCT } from '@luci-dev/format';
 import type { CliContext, Command } from '../context.js';
 import { createLineAsker } from '../onboarding.js';
 import { DEFAULT_PORT } from '../serve/bridge.js';

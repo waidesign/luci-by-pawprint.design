@@ -1,5 +1,5 @@
 /** Luci's loader: a spinning ring (or, for a long wait, Luci asleep) and what Luci is doing, announced to screen readers. */
-import { Mascot } from '@luci/ui';
+import { Mascot } from '@luci-dev/ui';
 
 /**
  * Shown while Luci reads the page; `step` is the current step ("Components 3 of 16"). `sleep` is for

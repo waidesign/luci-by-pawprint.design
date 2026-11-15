@@ -1,15 +1,32 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { MEMORY_FILES, PRODUCT } from '@luci/format';
-import { STITCH_FILE_NAME, buildLayoutTree, compareComponentFiles, formatCheckRunWithNotes, formatCompareReport, formatLayoutTree, formatStitch, parseCapture, readComponentFile } from '@luci/format/capture';
-import { CheckStore, DesignStore, FeedbackStore, canWriteBaseline, captureRule, crawlSite, findProjectRoot, proposeCaptureRule, writeBaseline } from '@luci/brain';
+import { MEMORY_FILES, PRODUCT } from '@luci-dev/format';
+import {
+  CSS_VARS_FILE_NAME,
+  STITCH_FILE_NAME,
+  TAILWIND_V3_FILE_NAME,
+  TAILWIND_V4_FILE_NAME,
+  buildLayoutTree,
+  compareComponentFiles,
+  formatCheckRunWithNotes,
+  formatCompareReport,
+  formatCssVariables,
+  formatLayoutTree,
+  formatStitch,
+  formatTailwind,
+  formatTailwindV3,
+  parseCapture,
+  readComponentFile
+} from '@luci-dev/format/capture';
+import { CheckStore, DesignStore, FeedbackStore, canWriteBaseline, captureRule, crawlSite, findProjectRoot, proposeCaptureRule, writeBaseline } from '@luci-dev/brain';
 import { parseFlags, type Command } from '../context.js';
 
-export const CAPTURE_HELP = `capture [checks | rule <file> | baseline [--stitch] | compare <a> <b> | crawl <urls...> [--stitch] [--base <url>] | layout <file>]
+export const CAPTURE_HELP = `capture [checks | rule <file> | baseline [--stitch] [--tailwind] [--tailwind-v3] [--css-vars] | compare <a> <b> | crawl <urls...> [--stitch] [--base <url>] | layout <file>]
                         The design captures saved in the project. checks lists recent design check runs;
                         rule proposes a rule from a component capture; baseline rebuilds the project's own
-                        typography, colors and spacing from its stylesheets (--stitch also writes them as
-                        DESIGN.md for Google Stitch); compare lists the differences between two component
+                        typography, colors and spacing from its stylesheets (--stitch also writes DESIGN.md,
+                        --tailwind writes theme.css, --tailwind-v3 writes tailwind.config.js,
+                        --css-vars writes tokens.css); compare lists the differences between two component
                         captures; crawl visits a list of routes or URLs in one pass, merges them into site-level
                         systems, and writes them to .luci/design/ (--stitch also writes DESIGN.md);
                         layout prints the computed layout tree of a component or section capture`;
@@ -29,7 +46,7 @@ export const captureCommand: Command = async (args, ctx) => {
       filteredArgs.push(a);
     }
   }
-  const { flags, rest: positional, unknown } = parseFlags(filteredArgs, ['--dry-run', '--stitch', '--force', '--no-stitch']);
+  const { flags, rest: positional, unknown } = parseFlags(filteredArgs, ['--dry-run', '--stitch', '--force', '--no-stitch', '--tailwind', '--tailwind-v3', '--css-vars']);
   if (unknown.length) {
     ctx.err(`Unknown option: ${unknown.join(' ')}\n${usage()}`);
     return 1;
@@ -84,6 +101,7 @@ export const captureCommand: Command = async (args, ctx) => {
     for (const f of r.written) ctx.out(`  ${dryRun ? 'Would write' : 'Wrote'} ${f}`);
     for (const f of r.removed) ctx.out(`  ${dryRun ? 'Would remove' : 'Removed'} ${f} (that system is no longer in the stylesheets)`);
     if (r.written.length && !dryRun) ctx.out(`\nYour agent finds them with list_captures. Your own instructions in these files stay when they are rebuilt.`);
+    const systems = [r.baseline.typography, r.baseline.color, r.baseline.spacing].filter((c): c is NonNullable<typeof c> => c !== null);
     // The same baseline as DESIGN.md (the open format Google Stitch reads), at the project's root
     if (flags.has('--stitch') && r.written.length) {
       const file = path.join(root, STITCH_FILE_NAME);
@@ -91,9 +109,38 @@ export const captureCommand: Command = async (args, ctx) => {
         ctx.err(`${STITCH_FILE_NAME} is already in this project. Run again with --force to replace it.`);
         return 1;
       }
-      const systems = [r.baseline.typography, r.baseline.color, r.baseline.spacing].filter((c): c is NonNullable<typeof c> => c !== null);
       if (!dryRun) fs.writeFileSync(file, formatStitch(systems, { name: `${path.basename(root)} design` }), 'utf8');
       ctx.out(`  ${dryRun ? 'Would write' : 'Wrote'} ${STITCH_FILE_NAME} (DESIGN.md format, for Google Stitch and other DESIGN.md tools)`);
+    }
+
+    if (flags.has('--tailwind') && r.written.length) {
+      const file = path.join(root, TAILWIND_V4_FILE_NAME);
+      if (fs.existsSync(file) && !flags.has('--force')) {
+        ctx.err(`${TAILWIND_V4_FILE_NAME} is already in this project. Run again with --force to replace it.`);
+        return 1;
+      }
+      if (!dryRun) fs.writeFileSync(file, formatTailwind(systems), 'utf8');
+      ctx.out(`  ${dryRun ? 'Would write' : 'Wrote'} ${TAILWIND_V4_FILE_NAME} (Tailwind v4 @theme format)`);
+    }
+
+    if (flags.has('--tailwind-v3') && r.written.length) {
+      const file = path.join(root, TAILWIND_V3_FILE_NAME);
+      if (fs.existsSync(file) && !flags.has('--force')) {
+        ctx.err(`${TAILWIND_V3_FILE_NAME} is already in this project. Run again with --force to replace it.`);
+        return 1;
+      }
+      if (!dryRun) fs.writeFileSync(file, formatTailwindV3(systems), 'utf8');
+      ctx.out(`  ${dryRun ? 'Would write' : 'Wrote'} ${TAILWIND_V3_FILE_NAME} (Tailwind v3 configuration format)`);
+    }
+
+    if (flags.has('--css-vars') && r.written.length) {
+      const file = path.join(root, CSS_VARS_FILE_NAME);
+      if (fs.existsSync(file) && !flags.has('--force')) {
+        ctx.err(`${CSS_VARS_FILE_NAME} is already in this project. Run again with --force to replace it.`);
+        return 1;
+      }
+      if (!dryRun) fs.writeFileSync(file, formatCssVariables(systems), 'utf8');
+      ctx.out(`  ${dryRun ? 'Would write' : 'Wrote'} ${CSS_VARS_FILE_NAME} (CSS custom properties format)`);
     }
     return 0;
   }

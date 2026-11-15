@@ -1,5 +1,5 @@
-import { PRODUCT } from '@luci/format';
-import { diagnose, type Check, type CheckStatus } from '@luci/brain';
+import { PRODUCT } from '@luci-dev/format';
+import { diagnose, type Check, type CheckStatus } from '@luci-dev/brain';
 import { parseFlags, type Command } from '../context.js';
 
 export const DOCTOR_HELP = `doctor [--json]       Check the install and this project's setup, and say how to fix what is wrong`;

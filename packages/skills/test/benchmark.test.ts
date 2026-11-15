@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { SkillRegistry, runBenchmark, type BenchmarkCase, type SetResult } from '@luci/skills';
+import { SkillRegistry, runBenchmark, type BenchmarkCase, type SetResult } from '@luci-dev/skills';
 
 const evalDir = fileURLToPath(new URL('../../../eval/', import.meta.url));
 const read = (file: string) => (JSON.parse(fs.readFileSync(path.join(evalDir, 'cases', file), 'utf8')) as { cases: BenchmarkCase[] }).cases;

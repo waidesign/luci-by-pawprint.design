@@ -7,7 +7,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { PRODUCT, stripBom } from '@luci/format';
+import { PRODUCT, stripBom } from '@luci-dev/format';
 
 export const TOOLBAR_START = 'luci:toolbar';
 export const TOOLBAR_END = '/luci:toolbar';

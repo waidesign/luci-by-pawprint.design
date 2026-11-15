@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { PRODUCT } from '@luci/format';
+import { PRODUCT } from '@luci-dev/format';
 import { createServer } from './server.js';
 
 // stdout carries the protocol, so anything for people goes to stderr

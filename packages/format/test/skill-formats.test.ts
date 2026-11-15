@@ -6,7 +6,7 @@ import {
   parseSkillLock,
   packSchema,
   stringifyFrontmatter
-} from '@luci/format';
+} from '@luci-dev/format';
 
 // Ported from the prototype: frontmatter.test.js
 describe('frontmatter', () => {

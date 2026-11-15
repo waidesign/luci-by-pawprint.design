@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { Button, COLLAR_NAME_MIN_SIZE, COPY, FACE_SVG, ICON_NAMES, ICON_SVG, LUCI_VERSION, Icon, IconColour, PALETTE, POSE_SVG, ROLES_BAR, ROLES_DARK, ROLES_LIGHT, faceSvg, mascotSvg, shortcutFor } from '@luci/ui';
+import { Button, COLLAR_NAME_MIN_SIZE, COPY, FACE_SVG, ICON_NAMES, ICON_SVG, LUCI_VERSION, Icon, IconColour, PALETTE, POSE_SVG, ROLES_BAR, ROLES_DARK, ROLES_LIGHT, faceSvg, mascotSvg, shortcutFor } from '@luci-dev/ui';
 
 const brand = (file: string) => readFileSync(fileURLToPath(new URL(`../../../brand/${file}`, import.meta.url)), 'utf8');
 
@@ -37,7 +37,7 @@ describe('Luci\'s version and repository', () => {
   });
 });
 
-describe('@luci/ui is generated from the brand kit', () => {
+describe('@luci-dev/ui is generated from the brand kit', () => {
   it('has every palette colour of brand/luci-tokens.json, unchanged', () => {
     const kit = JSON.parse(brand('luci-tokens.json')) as { color: Record<string, Record<string, string>> };
     for (const [scale, steps] of Object.entries(kit.color)) {
@@ -123,7 +123,7 @@ describe('icons (brand/DESIGN.md section 7)', () => {
   const pascal = (s: string) => s.split('-').map(p => p[0]!.toUpperCase() + p.slice(1)).join('');
   it('icons.ts exports exactly the approved icons of brand/luci-icons.json', async () => {
     const kit = JSON.parse(brand('luci-icons.json')) as { icons: Record<string, { lucide?: string }> };
-    const ui = await import('@luci/ui') as Record<string, unknown>;
+    const ui = await import('@luci-dev/ui') as Record<string, unknown>;
     const approved = Object.entries(kit.icons).filter(([, v]) => v.lucide);
     expect(Object.keys(ICON_NAMES).sort()).toEqual(approved.map(([n]) => n).sort());
     for (const [name] of approved) expect(typeof ui[`Icon${pascal(name)}`], name).toBe('function');

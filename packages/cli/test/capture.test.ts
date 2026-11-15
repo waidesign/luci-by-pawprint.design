@@ -2,8 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { parseProposal } from '@luci/format';
-import { CheckStore, DesignStore, FeedbackStore, initProject } from '@luci/brain';
+import { parseProposal } from '@luci-dev/format';
+import { CheckStore, DesignStore, FeedbackStore, initProject } from '@luci-dev/brain';
 import { run } from '../src/index.js';
 import { fakeContext, tempProject } from './helpers.js';
 
@@ -98,6 +98,46 @@ describe('luci capture baseline (B14) and compare (v0.4)', () => {
     expect(await run(['capture', 'baseline', '--stitch'], again.ctx)).toBe(1);
     expect(again.errors()).toContain('DESIGN.md is already in this project. Run again with --force to replace it.');
     expect(await run(['capture', 'baseline', '--stitch', '--force'], fakeContext(dir).ctx)).toBe(0);
+  });
+
+  it('--tailwind, --tailwind-v3, and --css-vars write token baselines at the project root', async () => {
+    const dir = tempProject({ 'package.json': JSON.stringify({ name: 'shop' }), 'src/app.css': ':root { --brand: #0f62fe; --space-4: 1rem; }\nbody { font-family: Inter, sans-serif; color: #161616; }\n.card { padding: var(--space-4); background: var(--brand); }\n' });
+    await initProject(dir);
+
+    // --tailwind writes theme.css
+    const fTailwind = fakeContext(dir);
+    expect(await run(['capture', 'baseline', '--tailwind'], fTailwind.ctx)).toBe(0);
+    expect(fTailwind.text()).toContain('Wrote theme.css (Tailwind v4 @theme format)');
+    const tw = fs.readFileSync(path.join(dir, 'theme.css'), 'utf8');
+    expect(tw).toContain('@theme {');
+    expect(tw).toContain('--color-primary: #0f62fe;');
+    expect(tw).toContain('--spacing-space-4: 16px;');
+    const twAgain = fakeContext(dir);
+    expect(await run(['capture', 'baseline', '--tailwind'], twAgain.ctx)).toBe(1);
+    expect(twAgain.errors()).toContain('theme.css is already in this project. Run again with --force to replace it.');
+    expect(await run(['capture', 'baseline', '--tailwind', '--force'], fakeContext(dir).ctx)).toBe(0);
+
+    // --tailwind-v3 writes tailwind.config.js
+    const fV3 = fakeContext(dir);
+    expect(await run(['capture', 'baseline', '--tailwind-v3'], fV3.ctx)).toBe(0);
+    expect(fV3.text()).toContain('Wrote tailwind.config.js (Tailwind v3 configuration format)');
+    const v3 = fs.readFileSync(path.join(dir, 'tailwind.config.js'), 'utf8');
+    expect(v3).toContain('module.exports = {');
+    expect(v3).toContain('"primary": "#0f62fe"');
+    const v3Again = fakeContext(dir);
+    expect(await run(['capture', 'baseline', '--tailwind-v3'], v3Again.ctx)).toBe(1);
+    expect(v3Again.errors()).toContain('tailwind.config.js is already in this project. Run again with --force to replace it.');
+
+    // --css-vars writes tokens.css
+    const fCss = fakeContext(dir);
+    expect(await run(['capture', 'baseline', '--css-vars'], fCss.ctx)).toBe(0);
+    expect(fCss.text()).toContain('Wrote tokens.css (CSS custom properties format)');
+    const css = fs.readFileSync(path.join(dir, 'tokens.css'), 'utf8');
+    expect(css).toContain(':root {');
+    expect(css).toContain('--color-primary: #0f62fe;');
+    const cssAgain = fakeContext(dir);
+    expect(await run(['capture', 'baseline', '--css-vars'], cssAgain.ctx)).toBe(1);
+    expect(cssAgain.errors()).toContain('tokens.css is already in this project. Run again with --force to replace it.');
   });
 
   it('says so when a project has no stylesheets, and needs init first', async () => {

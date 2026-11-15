@@ -1,7 +1,7 @@
 /** Put Layout mode on a page, in its own shadow root (the page's preview stylesheet is the only thing it adds outside). */
 import { h, render } from 'preact';
-import { LUCI_UI_ATTRIBUTE, type ModeSwitchProps, type StorageLike } from '@luci/capture';
-import { loadFonts } from '@luci/ui';
+import { LUCI_UI_ATTRIBUTE, type ModeSwitchProps, type StorageLike } from '@luci-dev/capture';
+import { loadFonts } from '@luci-dev/ui';
 import type { FeedbackBackend } from '../backend.js';
 import { FEEDBACK_CSS } from './styles.js';
 import { Layout } from './layout.js';

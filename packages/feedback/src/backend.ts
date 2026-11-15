@@ -18,9 +18,9 @@ import {
   type LayoutPlan,
   type SourceLocation,
   type Wireframe
-} from '@luci/format/feedback';
+} from '@luci-dev/format/feedback';
 import type { ServerResolver } from './react.js';
-import type { CheckRun } from '@luci/format/capture';
+import type { CheckRun } from '@luci-dev/format/capture';
 
 export interface NewItem {
   page: { url: string; route?: string; title?: string; source?: string };

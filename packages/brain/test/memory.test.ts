@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { PRECEDENCE, parseDecision } from '@luci/format';
+import { PRECEDENCE, parseDecision } from '@luci-dev/format';
 import {
   DEFAULT_BRAIN_DIR,
   GLOBAL_PREFERENCE_FILES,
@@ -11,7 +11,7 @@ import {
   luciHome,
   userBrainDir,
   writeGlobalBrainSnapshot
-} from '@luci/brain';
+} from '@luci-dev/brain';
 import { listFiles, memoryExists, pkg, readMemory, tempDir, tempProject } from './helpers.js';
 
 describe('Global Brain', () => {

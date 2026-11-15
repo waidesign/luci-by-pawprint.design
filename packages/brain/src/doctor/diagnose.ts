@@ -16,8 +16,8 @@ import {
   parseProposal,
   type ActiveTaskHeader,
   type AgentId
-} from '@luci/format';
-import { SkillRegistry, missingSkillWarnings, projectSkillSet, readLock, type SkillSource } from '@luci/skills';
+} from '@luci-dev/format';
+import { SkillRegistry, missingSkillWarnings, projectSkillSet, readLock, type SkillSource } from '@luci-dev/skills';
 import { configureAgent, projectAgents } from '../agents/agentFiles.js';
 import { cleanPrototypeSections } from '../import/importPrototype.js';
 import { mapFreshness } from '../codemap/codeMap.js';

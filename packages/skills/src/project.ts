@@ -6,7 +6,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { LSS_VERSION, MEMORY_FILES, PRODUCT, formatSkillLock, parseJsonText, type LockEntry, type SkillLock } from '@luci/format';
+import { LSS_VERSION, MEMORY_FILES, PRODUCT, formatSkillLock, parseJsonText, type LockEntry, type SkillLock } from '@luci-dev/format';
 import { SkillOrchestrator, type LoadedTask } from './orchestrator.js';
 import { SkillRegistry } from './registry.js';
 import { describeTrust, needsCaution, trustLevel } from './trust.js';

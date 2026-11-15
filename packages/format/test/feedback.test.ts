@@ -20,7 +20,7 @@ import {
   routeOf,
   type DetailLevel,
   type FeedbackItem
-} from '@luci/format/feedback';
+} from '@luci-dev/format/feedback';
 
 const dir = fileURLToPath(new URL('../fixtures/feedback/', import.meta.url));
 const inputs = JSON.parse(fs.readFileSync(path.join(dir, 'prompt-inputs.json'), 'utf8')) as Record<string, { items: unknown[]; options: { detail: DetailLevel } }>;

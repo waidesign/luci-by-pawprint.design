@@ -3,8 +3,8 @@
  * names from fibers, each with one on the page to copy), and generic blocks with a starting size.
  * Saved captures come from the project through `luci serve` (FeedbackBackend.listCaptures).
  */
-import { isLuciUi } from '@luci/capture';
-import type { LayoutBlock, Part } from '@luci/format/feedback';
+import { isLuciUi } from '@luci-dev/capture';
+import type { LayoutBlock, Part } from '@luci-dev/format/feedback';
 import { componentName, fiberOf, isServerRecord, ownerOf, reactInfo } from '../react.js';
 import { nearestSvelteMeta, svelteInfo, svelteMetaOf } from '../svelte.js';
 import { nearestVueInstance, vueComponentName, vueInfo, vueInstanceOf } from '../vue.js';

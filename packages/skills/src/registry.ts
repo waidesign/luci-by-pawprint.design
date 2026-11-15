@@ -13,7 +13,7 @@ import {
   userSkillsDir,
   type FrontmatterMap,
   type SkillContract
-} from '@luci/format';
+} from '@luci-dev/format';
 import { readSkillPreferences, type SkillPreferences } from './preferences.js';
 import { estimateTokens, type LibraryKind, type Skill } from './types.js';
 

@@ -199,19 +199,19 @@ importers:
 
   packages/brain:
     dependencies:
-      '@luci/format':
+      '@luci-dev/format':
         specifier: workspace:*
         version: link:../format
-      '@luci/skills':
+      '@luci-dev/skills':
         specifier: workspace:*
         version: link:../skills
 
   packages/capture:
     dependencies:
-      '@luci/format':
+      '@luci-dev/format':
         specifier: workspace:*
         version: link:../format
-      '@luci/ui':
+      '@luci-dev/ui':
         specifier: workspace:*
         version: link:../ui
       culori:
@@ -227,19 +227,19 @@ importers:
 
   packages/cli:
     dependencies:
-      '@luci/brain':
+      '@luci-dev/brain':
         specifier: workspace:*
         version: link:../brain
-      '@luci/feedback':
+      '@luci-dev/feedback':
         specifier: workspace:*
         version: link:../feedback
-      '@luci/format':
+      '@luci-dev/format':
         specifier: workspace:*
         version: link:../format
-      '@luci/skills':
+      '@luci-dev/skills':
         specifier: workspace:*
         version: link:../skills
-      '@luci/toolbar':
+      '@luci-dev/toolbar':
         specifier: workspace:*
         version: link:../toolbar
       zod:
@@ -248,10 +248,10 @@ importers:
 
   packages/extension:
     dependencies:
-      '@luci/capture':
+      '@luci-dev/capture':
         specifier: workspace:*
         version: link:../capture
-      '@luci/format':
+      '@luci-dev/format':
         specifier: workspace:*
         version: link:../format
     devDependencies:
@@ -261,13 +261,13 @@ importers:
 
   packages/feedback:
     dependencies:
-      '@luci/capture':
+      '@luci-dev/capture':
         specifier: workspace:*
         version: link:../capture
-      '@luci/format':
+      '@luci-dev/format':
         specifier: workspace:*
         version: link:../format
-      '@luci/ui':
+      '@luci-dev/ui':
         specifier: workspace:*
         version: link:../ui
       preact:
@@ -289,13 +289,13 @@ importers:
 
   packages/mcp:
     dependencies:
-      '@luci/brain':
+      '@luci-dev/brain':
         specifier: workspace:*
         version: link:../brain
-      '@luci/format':
+      '@luci-dev/format':
         specifier: workspace:*
         version: link:../format
-      '@luci/skills':
+      '@luci-dev/skills':
         specifier: workspace:*
         version: link:../skills
       '@modelcontextprotocol/sdk':
@@ -307,22 +307,22 @@ importers:
 
   packages/skills:
     dependencies:
-      '@luci/format':
+      '@luci-dev/format':
         specifier: workspace:*
         version: link:../format
 
   packages/toolbar:
     dependencies:
-      '@luci/capture':
+      '@luci-dev/capture':
         specifier: workspace:*
         version: link:../capture
-      '@luci/feedback':
+      '@luci-dev/feedback':
         specifier: workspace:*
         version: link:../feedback
-      '@luci/format':
+      '@luci-dev/format':
         specifier: workspace:*
         version: link:../format
-      '@luci/ui':
+      '@luci-dev/ui':
         specifier: workspace:*
         version: link:../ui
 

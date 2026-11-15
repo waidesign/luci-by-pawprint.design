@@ -8,7 +8,7 @@
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { PRODUCT } from '@luci/format';
+import { PRODUCT } from '@luci-dev/format';
 import { TOOL_ENV, findTool, type FoundTool } from './toolLocator.js';
 
 export const GRAPHIFY_OUT_DIR = 'graphify-out';

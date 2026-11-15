@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { CodeMap, GraphifyInstaller } from '@luci/brain';
+import { CodeMap, GraphifyInstaller } from '@luci-dev/brain';
 import { run } from '../src/index.js';
 import { mapServices } from '../src/commands/map.js';
 import { fakeContext, tempProject } from './helpers.js';

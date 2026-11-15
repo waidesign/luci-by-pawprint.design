@@ -15,7 +15,7 @@ import {
   updateProject,
   uvInstallCommand,
   type RunCommand
-} from '@luci/brain';
+} from '@luci-dev/brain';
 import { tempProject } from './helpers.js';
 
 const makeProject = () => tempProject({

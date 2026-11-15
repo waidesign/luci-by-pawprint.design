@@ -5,8 +5,8 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { MEMORY_FILES, PRODUCT } from '@luci/format';
-import { CAPTURE_EXTENSION, parseCapture, parseCollection } from '@luci/format/capture';
+import { MEMORY_FILES, PRODUCT } from '@luci-dev/format';
+import { CAPTURE_EXTENSION, parseCapture, parseCollection } from '@luci-dev/format/capture';
 import { memoryDir } from '../layout/brainLayout.js';
 import { writeAtomic } from '../feedback/feedbackStore.js';
 

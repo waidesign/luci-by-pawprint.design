@@ -80,12 +80,13 @@ export function RepoButton() {
     <>
       <span class="gh-mark" aria-hidden="true" dangerouslySetInnerHTML={{ __html: ICON_SVG.github }} />
       <span class="repo-version">v{LUCI_VERSION}</span>
+      <span class="repo-beta">Beta</span>
     </>
   );
   return LUCI_REPO_URL
     ? <a class="repo-btn" data-part="repo" href={LUCI_REPO_URL} target="_blank" rel="noopener noreferrer"
-      aria-label={`${COPY.repo.link}, version ${LUCI_VERSION}`} data-tip={COPY.repo.link}>{inner}</a>
-    : <span class="repo-btn" data-part="repo" role="img" aria-label={`Luci version ${LUCI_VERSION}. ${COPY.repo.soon}`} data-tip={COPY.repo.soon}>{inner}</span>;
+      aria-label={`${COPY.repo.link}, version ${LUCI_VERSION} (Beta)`} data-tip={COPY.repo.link}>{inner}</a>
+    : <span class="repo-btn" data-part="repo" role="img" aria-label={`Luci version ${LUCI_VERSION} (Beta). ${COPY.repo.soon}`} data-tip={COPY.repo.soon}>{inner}</span>;
 }
 
 export type SelectProps = Omit<JSX.SelectHTMLAttributes<HTMLSelectElement>, 'class'> & { class?: string; children?: ComponentChildren };

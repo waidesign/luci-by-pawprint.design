@@ -6,7 +6,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Browser, BrowserContext, Page } from 'playwright';
-import { parseCapture } from '@luci/format/capture';
+import { parseCapture } from '@luci-dev/format/capture';
 import { captureBundle, launch, serveSites } from './browser.js';
 
 let browser: Browser;

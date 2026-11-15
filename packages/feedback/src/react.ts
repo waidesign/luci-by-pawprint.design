@@ -11,7 +11,7 @@
  * disk. The creator chain is followed through those records too; their positions are mapped by
  * `luci serve` (which can read the server's source maps), or named by module when it is not there.
  */
-import type { SourceLocation } from '@luci/format/feedback';
+import type { SourceLocation } from '@luci-dev/format/feedback';
 
 /** A position in served code, as a stack trace, `_debugSource` or a server record gives it. */
 export interface CodeFrame {

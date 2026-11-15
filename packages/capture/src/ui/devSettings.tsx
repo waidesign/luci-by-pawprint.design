@@ -1,8 +1,8 @@
 import { h } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
-import { PALETTE, RepoButton, Select } from '@luci/ui';
-import { DETAIL_LEVELS, type DetailLevel } from '@luci/format/feedback';
-import type { CaptureSettings } from '@luci/format/capture';
+import { Badge, PALETTE, RepoButton, Select } from '@luci-dev/ui';
+import { DETAIL_LEVELS, type DetailLevel } from '@luci-dev/format/feedback';
+import type { CaptureSettings, StyleSetting } from '@luci-dev/format/capture';
 import { AppearanceControls, type UiPrefs } from './theme.js';
 import { TOOLS } from './tools.js';
 
@@ -146,7 +146,10 @@ export function DevSettingsPanel(props: DevSettingsPanelProps) {
   return (
     <div class="panel" role="dialog" aria-label="Settings" data-part="settings">
       <div class="settings-head">
-        <h2>Settings</h2>
+        <div class="row" style={{ alignItems: 'center', gap: '8px' }}>
+          <h2>Settings</h2>
+          <Badge brand>Beta</Badge>
+        </div>
         <RepoButton />
       </div>
 
@@ -355,14 +358,18 @@ export function DevSettingsPanel(props: DevSettingsPanelProps) {
                   <option value="page">page address</option><option value="site">site name only</option>
                 </Select>
               </label>
-              <label class="field-stack" title="The file you copy, download and export: Luci's tables, or DESIGN.md for Google Stitch">
+              <label class="field-stack" title="The file you copy, download and export: Luci's tables, DESIGN.md for Google Stitch, Tailwind CSS, or CSS Variables">
                 <span class="dim">File</span>
                 <Select
                   data-setting="style"
                   value={capSettings.style ?? 'luci'}
-                  onChange={(e: Event) => updateCapSettings({ ...capSettings, style: (e.currentTarget as HTMLSelectElement).value as 'luci' })}
+                  onChange={(e: Event) => updateCapSettings({ ...capSettings, style: (e.currentTarget as HTMLSelectElement).value as StyleSetting })}
                 >
-                  <option value="luci">Luci tables</option><option value="stitch">DESIGN.md (Stitch)</option>
+                  <option value="luci">Luci tables</option>
+                  <option value="stitch">DESIGN.md (Stitch)</option>
+                  <option value="tailwind">Tailwind v4 (@theme)</option>
+                  <option value="tailwind-v3">Tailwind v3 (config.js)</option>
+                  <option value="css-vars">CSS Variables (tokens.css)</option>
                 </Select>
               </label>
             </div>

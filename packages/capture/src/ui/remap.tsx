@@ -4,8 +4,8 @@
  * (kept for next time). The result says how many values now use their tokens, and can be undone.
  */
 import { useEffect, useState } from 'preact/hooks';
-import { parseTokens, remapCapture, remapSummary, type MyToken } from '@luci/format/capture';
-import { Button } from '@luci/ui';
+import { parseTokens, remapCapture, remapSummary, type MyToken } from '@luci-dev/format/capture';
+import { Button } from '@luci-dev/ui';
 import type { Output } from './tools.js';
 
 /** Where the person's tokens come from. */

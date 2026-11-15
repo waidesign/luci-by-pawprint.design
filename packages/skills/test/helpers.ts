@@ -2,8 +2,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach } from 'vitest';
-import { stringifyFrontmatter } from '@luci/format';
-import { writeSkillFolder } from '@luci/skills';
+import { stringifyFrontmatter } from '@luci-dev/format';
+import { writeSkillFolder } from '@luci-dev/skills';
 
 const made: string[] = [];
 afterEach(() => {

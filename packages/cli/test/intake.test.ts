@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { parseProposal } from '@luci/format';
-import { analyzeDoc, initProject, intakeDocs, kindOf, splitSections } from '@luci/brain';
+import { parseProposal } from '@luci-dev/format';
+import { analyzeDoc, initProject, intakeDocs, kindOf, splitSections } from '@luci-dev/brain';
 import { run } from '../src/index.js';
 import { fakeContext, readMemory, tempProject } from './helpers.js';
 

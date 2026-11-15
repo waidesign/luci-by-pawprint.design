@@ -4,7 +4,7 @@ The capture toolbar on any site, for Chrome (Manifest V3, built with WXT).
 
 ## Build and load
 
-1. `pnpm --filter @luci/extension build` (needs Node 22 or later; the `luci` command itself runs on Node 18).
+1. `pnpm --filter @luci-dev/extension build` (needs Node 22 or later; the `luci` command itself runs on Node 18).
 2. In Chrome, open `chrome://extensions`, turn on Developer mode, choose **Load unpacked**, and pick `packages/extension/.output/chrome-mv3`.
 3. On any page, click Luci's icon. The toolbar opens at the top right; click the icon again to close it.
 

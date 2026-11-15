@@ -7,9 +7,9 @@
  */
 import { Fragment } from 'preact';
 import { useLayoutEffect, useRef, useState } from 'preact/hooks';
-import { ButtonSpinner } from '@luci/capture';
-import { Mascot } from '@luci/ui';
-import { formatWireframePrompt, routeOf, shareText, wireframeSchema, type Part, type Wireframe } from '@luci/format/feedback';
+import { ButtonSpinner } from '@luci-dev/capture';
+import { Mascot } from '@luci-dev/ui';
+import { formatWireframePrompt, routeOf, shareText, wireframeSchema, type Part, type Wireframe } from '@luci-dev/format/feedback';
 import type { FeedbackBackend } from '../backend.js';
 import { snapTo } from '../layout/preview.js';
 import { copyToClipboard } from './clipboard.js';

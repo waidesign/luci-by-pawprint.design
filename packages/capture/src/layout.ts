@@ -2,7 +2,7 @@
  * Computed layout relationships (v0.4.3): extracts flex and grid container and item
  * layout relationships from element snapshots.
  */
-import type { ComputedLayout } from '@luci/format/capture';
+import type { ComputedLayout } from '@luci-dev/format/capture';
 import type { ElementSnapshot } from './model.js';
 
 /** Compute layout relationships (container and/or item) for an element. */

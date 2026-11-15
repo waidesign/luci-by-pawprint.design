@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatCapture, parseCapture } from '@luci/format/capture';
+import { formatCapture, parseCapture } from '@luci-dev/format/capture';
 import {
   boxShorthand,
   componentCapture,
@@ -145,7 +145,7 @@ describe('Color tool (FR13, FR14)', () => {
     const s = snapshot();
     // Element with both text color (rgb(255, 255, 255)) and background (rgb(15, 98, 254))
     const a = s.elements[3]!;
-    const set = componentColorSet(s, a, (el) => el.id === a.id ? 0 : null, CAPTURED) as import('@luci/format/capture').ColorSet;
+    const set = componentColorSet(s, a, (el) => el.id === a.id ? 0 : null, CAPTURED) as import('@luci-dev/format/capture').ColorSet;
     expect(set.meta.type).toBe('color');
     expect(set.colors.length).toBe(2);
     expect(set.colors.map(c => c.value.computed)).toContain('rgb(15, 98, 254)');
@@ -154,7 +154,7 @@ describe('Color tool (FR13, FR14)', () => {
 
     // Single color element returns a single token
     const p = s.elements[1]!;
-    const single = componentColorSet(s, p, (el) => el.id === p.id ? 0 : null, CAPTURED) as import('@luci/format/capture').ColorToken;
+    const single = componentColorSet(s, p, (el) => el.id === p.id ? 0 : null, CAPTURED) as import('@luci-dev/format/capture').ColorToken;
     expect(single.meta.type).toBe('color');
     expect(single.value.computed).toBe('rgb(22, 22, 22)');
     roundTrips(single);

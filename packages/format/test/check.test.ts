@@ -14,8 +14,8 @@ import {
   type CaptureSettings,
   type ComponentCapture,
   type ComponentSpec
-} from '@luci/format/capture';
-import { feedbackItemSchema } from '@luci/format/feedback';
+} from '@luci-dev/format/capture';
+import { feedbackItemSchema } from '@luci-dev/format/feedback';
 
 const captureDir = fileURLToPath(new URL('../fixtures/capture/', import.meta.url));
 const checkDir = fileURLToPath(new URL('../fixtures/check/', import.meta.url));

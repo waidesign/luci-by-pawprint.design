@@ -1,9 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import readline from 'node:readline';
-import { MEMORY_FILES, PRODUCT, PROJECT_GOAL_HEADING, PROJECT_RULES_HEADING, appendToSection, setSection, type SkillPack } from '@luci/format';
-import { detectProject, memoryDir } from '@luci/brain';
-import { SkillDiscovery, addPack, detectPacks, explainMatch, loadPacks, packSkills, readLock, selectSkills, writeCatalog, type SkillSource } from '@luci/skills';
+import { MEMORY_FILES, PRODUCT, PROJECT_GOAL_HEADING, PROJECT_RULES_HEADING, appendToSection, setSection, type SkillPack } from '@luci-dev/format';
+import { detectProject, memoryDir } from '@luci-dev/brain';
+import { SkillDiscovery, addPack, detectPacks, explainMatch, loadPacks, packSkills, readLock, selectSkills, writeCatalog, type SkillSource } from '@luci-dev/skills';
 
 const MAX_RULES = 20;
 const MEM = PRODUCT.projectDir;

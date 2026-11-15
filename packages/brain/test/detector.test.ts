@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { detectProject } from '@luci/brain';
+import { detectProject } from '@luci-dev/brain';
 import { pkg, tempProject } from './helpers.js';
 
 const deps = (dependencies: Record<string, string>) => pkg({ dependencies });

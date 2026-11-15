@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { appendToSection, refreshSections, sectionBody, setSection } from '@luci/format';
+import { appendToSection, refreshSections, sectionBody, setSection } from '@luci-dev/format';
 
 // Ported from the prototype: onboarding.test.js
 it('setSection / appendToSection - edit one section, keep the rest', () => {

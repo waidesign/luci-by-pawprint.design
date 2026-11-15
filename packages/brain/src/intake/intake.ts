@@ -12,7 +12,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { MEMORY_FILES, PRODUCT, formatProposal, sectionBody, setSection, stripBom, type Proposal } from '@luci/format';
+import { MEMORY_FILES, PRODUCT, formatProposal, sectionBody, setSection, stripBom, type Proposal } from '@luci-dev/format';
 import { memoryDir, memoryPath } from '../layout/brainLayout.js';
 
 export const INTAKE_EXTENSIONS = ['.md', '.markdown', '.mdx', '.txt'] as const;

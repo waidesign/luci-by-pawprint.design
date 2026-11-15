@@ -12,7 +12,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { MEMORY_FILES, PRODUCT } from '@luci/format';
+import { MEMORY_FILES, PRODUCT } from '@luci-dev/format';
 import { ensureLocalDir, memoryDir } from '../layout/brainLayout.js';
 import { DECISION_HISTORY_FILE } from './memoryEngine.js';
 

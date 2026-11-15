@@ -6,7 +6,7 @@
  *
  * readImage (browser) reads one element into plain data; imageSlot (pure) makes the file's entry.
  */
-import { formatShadow, isTransparent, withoutUrls, type ComponentImage } from '@luci/format/capture';
+import { formatShadow, isTransparent, withoutUrls, type ComponentImage } from '@luci-dev/format/capture';
 import { authoredFor, LUCI_UI_ATTRIBUTE, type RuleCache } from './dom.js';
 import { hasPhotoBackground } from './eligibility.js';
 import { tokenOf } from './model.js';

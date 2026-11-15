@@ -7,9 +7,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { z } from 'zod';
-import { MEMORY_FILES, PROPOSAL_TARGETS, PRODUCT, formatProposal } from '@luci/format';
-import { DETAIL_LEVELS, FEEDBACK_STATUSES, formatFeedbackPrompt, layoutChangeText, sourceText as feedbackSourceText, type FeedbackItem } from '@luci/format/feedback';
-import { buildLayoutTree, compareComponentFiles, formatCheckRun, formatCheckRunWithNotes, formatCompareReport, formatLayoutTree, parseCapture, readComponentFile } from '@luci/format/capture';
+import { MEMORY_FILES, PROPOSAL_TARGETS, PRODUCT, formatProposal } from '@luci-dev/format';
+import { DETAIL_LEVELS, FEEDBACK_STATUSES, formatFeedbackPrompt, layoutChangeText, sourceText as feedbackSourceText, type FeedbackItem } from '@luci-dev/format/feedback';
+import { buildLayoutTree, compareComponentFiles, formatCheckRun, formatCheckRunWithNotes, formatCompareReport, formatLayoutTree, parseCapture, readComponentFile } from '@luci-dev/format/capture';
 import {
   CODE_MAP_SETUP_HINT,
   CodeMap,
@@ -31,7 +31,7 @@ import {
   proposeCaptureRule,
   readActiveTask,
   startProject
-} from '@luci/brain';
+} from '@luci-dev/brain';
 import {
   SkillDiscovery,
   SkillOrchestrator,
@@ -47,7 +47,7 @@ import {
   writeCatalog,
   type Skill,
   type SkillSource
-} from '@luci/skills';
+} from '@luci-dev/skills';
 
 export interface ToolDeps {
   /** The skill library: Luci's library plus the user's personal one. */

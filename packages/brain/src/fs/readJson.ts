@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { parseJsonText } from '@luci/format';
+import { parseJsonText } from '@luci-dev/format';
 
 /**
  * Read a JSON file written by people or other tools. A UTF-8 byte-order mark is

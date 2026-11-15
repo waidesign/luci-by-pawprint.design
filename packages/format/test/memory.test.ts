@@ -15,7 +15,7 @@ import {
   parseDecision,
   parseProposal,
   type ParseResult
-} from '@luci/format';
+} from '@luci-dev/format';
 
 const fixtures = fileURLToPath(new URL('../fixtures/', import.meta.url));
 const memory = path.join(fixtures, 'memory-layout', '.luci');

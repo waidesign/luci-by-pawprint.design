@@ -1,7 +1,7 @@
 /** Put the Feedback layer on a page, in its own shadow root, apart from the page and its styles. */
 import { h, render } from 'preact';
-import { LUCI_UI_ATTRIBUTE, type ModeSwitchProps, type StorageLike } from '@luci/capture';
-import { loadFonts } from '@luci/ui';
+import { LUCI_UI_ATTRIBUTE, type ModeSwitchProps, type StorageLike } from '@luci-dev/capture';
+import { loadFonts } from '@luci-dev/ui';
 import type { FeedbackBackend } from '../backend.js';
 import { FEEDBACK_CSS } from './styles.js';
 import { DEFAULT_FEEDBACK_SETTINGS, Feedback, type FeedbackSettings } from './feedback.js';

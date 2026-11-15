@@ -3,13 +3,15 @@
  * "The whole system", the similar elements on the page grouped as variants. States come from
  * states.ts. Works on the page snapshot only, so it is the same in both toolbar shells.
  */
-import { buildLayoutTree, colorKey, isTransparent, round, toCaptureName, withoutUrls, type CapturedValue, type ComponentCapture, type ComponentImage } from '@luci/format/capture';
+import { buildLayoutTree, colorKey, isTransparent, round, toCaptureName, withoutUrls, type CapturedValue, type ComponentCapture, type ComponentImage, type SiteStack } from '@luci-dev/format/capture';
 import { componentAccessibility } from './a11y.js';
 import { isChromatic } from './color.js';
 import { imageSlot, type ImageReading } from './image.js';
 import { computeElementLayout } from './layout.js';
 import { tokenOf, valueOf, type ElementSnapshot, type PageSnapshot, type SnapshotProperty } from './model.js';
 import { elementName } from './naming.js';
+import { identifyIcon } from './icon.js';
+import { detectSiteStack } from './stack.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -195,7 +197,7 @@ export function stateParts(snap: PageSnapshot, container: ElementSnapshot, insid
   return parts;
 }
 
-export function anatomyOf(snap: PageSnapshot, container: ElementSnapshot, inside: (el: ElementSnapshot) => number | null): ComponentCapture['anatomy'] {
+export function anatomyOf(snap: PageSnapshot, container: ElementSnapshot, inside: (el: ElementSnapshot) => number | null, options: { nodes?: Element[] } = {}): ComponentCapture['anatomy'] {
   const containerLayout = computeElementLayout(container);
   const parts: ComponentCapture['anatomy'] = [{
     part: 'container',
@@ -243,6 +245,7 @@ export function anatomyOf(snap: PageSnapshot, container: ElementSnapshot, inside
     const parentEl = partToEl.get(parent) ?? container;
     const layout = computeElementLayout(el, parentEl);
     const depth = (parts.find(p => p.part === parent)?.depth ?? 0) + 1;
+    const icon = (isIcon || el.tag === 'svg') && options.nodes?.[el.id] ? identifyIcon(options.nodes[el.id]!) ?? undefined : undefined;
 
     parts.push({
       part,
@@ -250,6 +253,7 @@ export function anatomyOf(snap: PageSnapshot, container: ElementSnapshot, inside
       parent,
       depth,
       ...(layout ? { layout } : {}),
+      ...(icon ? { icon } : {}),
       styles
     });
   }
@@ -338,10 +342,10 @@ export function componentCapture(
   snap: PageSnapshot,
   el: ElementSnapshot,
   inside: (e: ElementSnapshot) => number | null,
-  options: { captured?: string; system?: boolean; states?: ComponentCapture['states']; images?: readonly ComponentImageInput[]; within?: (el: ElementSnapshot) => boolean } = {}
+  options: { captured?: string; system?: boolean; states?: ComponentCapture['states']; images?: readonly ComponentImageInput[]; within?: (el: ElementSnapshot) => boolean; nodes?: Element[]; stack?: SiteStack } = {}
 ): ComponentCapture {
   const name = componentName(el);
-  const anatomy = anatomyOf(snap, el, inside);
+  const anatomy = anatomyOf(snap, el, inside, options);
   const watched = stateParts(snap, el, inside);
   // Elements outside the anatomy that change in a state are named again, numbered from the anatomy's
   // own (the reader counted hidden elements that never change: "decoration-5" becomes "decoration")
@@ -407,12 +411,17 @@ export function componentCapture(
     images.push(imageSlot(reading, part));
   }
   const layoutTree = buildLayoutTree(anatomy);
+  const icons = anatomy.filter(a => a.icon).map(a => ({ part: a.part, icon: a.icon! }));
+  const hostDoc = options.nodes?.[el.id]?.ownerDocument;
+  const stack = options.stack ?? (hostDoc ? detectSiteStack(hostDoc) : undefined);
   return {
     meta: { name, scope: 'component', type: componentType(el), source: snap.url, selector: el.selector, captured: options.captured ?? today(), method: 'measured' },
     tokens: tokensOf(snap, [...anatomy, ...images.map(i => ({ styles: i.treatment }))]),
     anatomy,
     ...(layoutTree ? { layoutTree } : {}),
     ...(images.length ? { images } : {}),
+    ...(icons.length ? { icons } : {}),
+    ...(stack && Object.keys(stack).length ? { stack } : {}),
     states,
     motion,
     accessibility: componentAccessibility(snap, el, componentParts(snap, el, inside), states),

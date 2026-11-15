@@ -2,8 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { formatCapture, readComponentFile, ruleFromComponent, ruleText, type Capture, type ComponentSpec } from '@luci/format/capture';
-import { formatProposal, parseProposal } from '@luci/format';
+import { formatCapture, readComponentFile, ruleFromComponent, ruleText, type Capture, type ComponentSpec } from '@luci-dev/format/capture';
+import { formatProposal, parseProposal } from '@luci-dev/format';
 
 const captureDir = fileURLToPath(new URL('../fixtures/capture/', import.meta.url));
 const ruleDir = fileURLToPath(new URL('../fixtures/rule/', import.meta.url));

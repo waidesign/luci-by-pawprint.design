@@ -8,7 +8,7 @@
  *   personal   written or added locally by you
  *   project    in this project's .luci/skills/ folder
  */
-import { PRODUCT } from '@luci/format';
+import { PRODUCT } from '@luci-dev/format';
 import type { Skill } from './types.js';
 
 export type TrustLevel = 'official' | 'verified' | 'community' | 'personal' | 'project';

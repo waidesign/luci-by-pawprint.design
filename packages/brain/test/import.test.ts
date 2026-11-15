@@ -2,9 +2,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { parseDecision } from '@luci/format';
-import { SkillRegistry } from '@luci/skills';
-import { TEMPLATES_DIR, diagnose, importPrototype, matchesTemplate, renameText } from '@luci/brain';
+import { parseDecision } from '@luci-dev/format';
+import { SkillRegistry } from '@luci-dev/skills';
+import { TEMPLATES_DIR, diagnose, importPrototype, matchesTemplate, renameText } from '@luci-dev/brain';
 import { listFiles, tempDir, tempProject } from './helpers.js';
 
 const SNAPSHOT = fileURLToPath(new URL('../import-snapshot/', import.meta.url));

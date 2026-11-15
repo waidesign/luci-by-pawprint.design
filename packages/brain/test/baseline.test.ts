@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { BASELINE_FILES } from '@luci/format/capture';
+import { BASELINE_FILES } from '@luci-dev/format/capture';
 import { DesignStore, findStylesheets, writeBaseline } from '../src/index.js';
 
 const dirs: string[] = [];

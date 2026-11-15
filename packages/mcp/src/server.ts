@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { PRODUCT } from '@luci/format';
-import { SkillRegistry } from '@luci/skills';
+import { PRODUCT } from '@luci-dev/format';
+import { SkillRegistry } from '@luci-dev/skills';
 import { TOOLS, handleTool, type ToolDeps } from './tools.js';
 
 /** This package's version, from its package.json. */

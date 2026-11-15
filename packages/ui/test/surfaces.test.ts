@@ -6,8 +6,8 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { TOOLBAR_CSS } from '@luci/capture';
-import { FEEDBACK_CSS } from '@luci/feedback';
+import { TOOLBAR_CSS } from '@luci-dev/capture';
+import { FEEDBACK_CSS } from '@luci-dev/feedback';
 
 const root = fileURLToPath(new URL('../../../', import.meta.url));
 const SURFACES = ['packages/ui/src', 'packages/capture/src/ui', 'packages/feedback/src/ui', 'packages/toolbar/src', 'packages/extension/entrypoints'];

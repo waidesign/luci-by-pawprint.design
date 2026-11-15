@@ -12,11 +12,11 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import path from 'node:path';
 import { z } from 'zod';
-import { CheckStore, DesignError, DesignStore, FeedbackError, FeedbackStore, findStylesheets, proposeCaptureRule } from '@luci/brain';
-import { buildBaseline, checkRunSchema } from '@luci/format/capture';
+import { CheckStore, DesignError, DesignStore, FeedbackError, FeedbackStore, findStylesheets, proposeCaptureRule } from '@luci-dev/brain';
+import { buildBaseline, checkRunSchema } from '@luci-dev/format/capture';
 import { serverResolver } from './resolve.js';
-import { PRODUCT } from '@luci/format';
-import { DETAIL_LEVELS, FEEDBACK_INTENTS, FEEDBACK_PRIORITIES, designCheckSchema, feedbackItemSchema, formatFeedbackPrompt, layoutSchema, wireframeSchema } from '@luci/format/feedback';
+import { PRODUCT } from '@luci-dev/format';
+import { DETAIL_LEVELS, FEEDBACK_INTENTS, FEEDBACK_PRIORITIES, designCheckSchema, feedbackItemSchema, formatFeedbackPrompt, layoutSchema, wireframeSchema } from '@luci-dev/format/feedback';
 
 export const DEFAULT_PORT = 4545;
 /** The header every write must carry (a page cannot send it without passing the CORS check). */

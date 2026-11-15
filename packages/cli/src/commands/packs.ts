@@ -1,7 +1,7 @@
 import fs from 'node:fs';
-import { PRODUCT } from '@luci/format';
-import { detectProject, memoryDir } from '@luci/brain';
-import { SkillRegistry, addPack, addedPacks, loadPacks, packReasons, packSkills, removePack, writeCatalog } from '@luci/skills';
+import { PRODUCT } from '@luci-dev/format';
+import { detectProject, memoryDir } from '@luci-dev/brain';
+import { SkillRegistry, addPack, addedPacks, loadPacks, packReasons, packSkills, removePack, writeCatalog } from '@luci-dev/skills';
 import type { Command } from '../context.js';
 
 export const PACKS_HELP = `packs [show]          Curated skill sets (ui, motion, marketing, design-system, design-system-build):

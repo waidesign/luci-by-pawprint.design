@@ -6,7 +6,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Browser, Page } from 'playwright';
-import { parseCapture, parseCollection, type BasketItem } from '@luci/format/capture';
+import { parseCapture, parseCollection, type BasketItem } from '@luci-dev/format/capture';
 import { addToBasket, exportBasket, exportItem, noteInBasket, removeFromBasket, renameInBasket } from '../src/index.js';
 import { captureBundle, launch, serveSites } from './browser.js';
 

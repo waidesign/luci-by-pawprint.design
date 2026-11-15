@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { initProject, startProject, updateProject, writeActiveTask } from '@luci/brain';
+import { initProject, startProject, updateProject, writeActiveTask } from '@luci-dev/brain';
 import { run } from '../src/index.js';
 import { fakeContext, readMemory, tempDir, tempProject } from './helpers.js';
 

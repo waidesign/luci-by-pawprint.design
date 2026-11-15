@@ -7,7 +7,7 @@
  *   restricted  proprietary / source-available: may not be redistributed or modified without permission
  *   unknown     no licence found
  */
-import type { LicenseCategory } from '@luci/format';
+import type { LicenseCategory } from '@luci-dev/format';
 import type { GitHubClient } from './github.js';
 import type { LicenseResult } from './lss.js';
 
@@ -96,7 +96,7 @@ export async function resolveSkillLicense(github: GitHubClient, source: { repo: 
   let frontmatter = upstreamFrontmatter;
   const file = skillPath.endsWith('SKILL.md') ? skillPath : `${skillDir}/SKILL.md`;
   if (!frontmatter && tree && skillPath) {
-    const { parseFrontmatter } = await import('@luci/format');
+    const { parseFrontmatter } = await import('@luci-dev/format');
     const text = await github.raw(repo, tree.branch, file);
     frontmatter = text ? parseFrontmatter(text).data : null;
   }
