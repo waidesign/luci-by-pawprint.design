@@ -14,6 +14,7 @@ import {
   type CaptureMeta,
   type CaptureSettings,
   type CapturedValue,
+  type ColorSet,
   type ColorSystem,
   type ColorToken,
   type ComponentCapture,
@@ -205,6 +206,20 @@ function colorToken(c: ColorToken, s: CaptureSettings): string[] {
   return [
     '## Color', table(['Value', 'Authored', 'Token', 'Role'], [[show(c.value, 'color', s), authored(c.value), code(c.value.token), c.role ?? '']]),
     '', '## Where used', used
+  ];
+}
+
+function colorSet(c: ColorSet, s: CaptureSettings): string[] {
+  const rows = c.colors.map(col => [
+    show(col.value, 'color', s),
+    authored(col.value),
+    code(col.value.token),
+    col.role ?? '',
+    col.usedFor.map(u => `${u.element} (${u.property})`).slice(0, 4).join(', ')
+  ]);
+  return [
+    '## Color', table(['Value', 'Authored', 'Token', 'Role', 'Where used'], rows),
+    '', '## Where used', `- ${ref(c.usedBy)}`
   ];
 }
 
@@ -502,7 +517,7 @@ function formatMeasured(c: Capture, settings: CaptureSettings): string {
   if (c.meta.scope === 'section') return `${frontmatter(c.meta, settings)}\n\n${sectionBody(c as SectionCapture, settings).join('\n')}\n`;
   const body = key === 'page/page' ? pageBody(c as PageCapture, settings)
     : key === 'token/text' ? textToken(c as TextToken, settings)
-    : key === 'token/color' ? colorToken(c as ColorToken, settings)
+    : key === 'token/color' ? ('colors' in c ? colorSet(c as ColorSet, settings) : colorToken(c as ColorToken, settings))
     : key === 'token/spacing' ? ('values' in c ? spacingSet(c as SpacingSet, settings) : spacingToken(c as SpacingToken, settings))
     : key === 'system/typography' ? typographySystem(c as TypographySystem, settings)
     : key === 'system/color' ? colorSystem(c as ColorSystem, settings)

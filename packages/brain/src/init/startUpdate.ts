@@ -46,8 +46,8 @@ export async function startProject(targetDir: string = process.cwd(), options: {
   });
   const activePackage = isInside && subPath
     ? packagesWithRules
-        .filter(p => p.path === subPath || subPath.startsWith(p.path + '/'))
-        .sort((a, b) => b.path.length - a.path.length)[0] ?? null
+      .filter(p => p.path === subPath || subPath.startsWith(p.path + '/'))
+      .sort((a, b) => b.path.length - a.path.length)[0] ?? null
     : null;
   return {
     projectPath: dir,

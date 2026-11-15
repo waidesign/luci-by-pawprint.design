@@ -112,6 +112,7 @@ export function flattenCapture(c: Capture): Flat {
   } else if (m.scope === 'system') system(out, c);
   else if (m.type === 'text' && 'style' in c) textStyle(out, '', c.style);
   else if (m.type === 'color' && 'value' in c) put(out, 'color', 'color', c.value);
+  else if (m.type === 'color' && 'colors' in c) for (const col of (c as { colors: { role?: string; value: { computed: string } }[] }).colors) put(out, col.role ?? 'color', col.role ?? 'color', col.value);
   else if (m.type === 'spacing' && 'values' in c) for (const v of c.values) put(out, v.property, v.property, v.value);
   else if (m.type === 'spacing' && 'kind' in c) put(out, c.property ?? c.kind, c.property ?? 'padding', c.value);
   return out;

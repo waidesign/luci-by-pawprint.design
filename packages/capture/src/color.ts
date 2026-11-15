@@ -3,7 +3,7 @@
  * color system. Every color a visible element uses appears, each with a role.
  */
 import { converter } from 'culori';
-import { colorKey, isTransparent, parseColor, toCaptureName, type ColorRole, type ColorSystem, type ColorToken } from '@luci/format/capture';
+import { colorKey, isTransparent, parseColor, toCaptureName, type ColorRole, type ColorSet, type ColorSystem, type ColorToken } from '@luci/format/capture';
 import { tokenOf, type ElementSnapshot, type PageSnapshot, type SnapshotProperty } from './model.js';
 import { elementName } from './naming.js';
 
@@ -149,5 +149,108 @@ export function colorToken(snapshot: PageSnapshot, pick: { element: ElementSnaps
       const element = elementName(u.el.tag, u.el.role);
       return { key: `${element}|${u.property}`, value: { element, property: u.property, selector: u.el.selector } };
     })).slice(0, MAX_USED_FOR)
+  };
+}
+
+/**
+ * All colors used in a component (container and descendants). If only one unique color is used,
+ * returns a single ColorToken; if multiple colors are used, returns a ColorSet.
+ */
+export function componentColorSet(
+  snapshot: PageSnapshot,
+  container: ElementSnapshot,
+  inside: (el: ElementSnapshot) => number | null = (el) => (el.id === container.id ? 0 : null),
+  options: { captured?: string } = {}
+): ColorSet | ColorToken | null {
+  const captured = options.captured ?? today();
+  const elements = snapshot.elements.filter(e => e.visible && inside(e) !== null);
+  const uses = elements.flatMap(colorUses);
+  if (!uses.length) return null;
+
+  const byKey = new Map<string, {
+    key: string;
+    computed: string;
+    authored?: string;
+    token?: string;
+    roles: Map<ColorRole, number>;
+    usedFor: { element: string; property: string; selector: string }[];
+  }>();
+
+  for (const u of uses) {
+    let group = byKey.get(u.key);
+    if (!group) {
+      group = {
+        key: u.key,
+        computed: u.computed,
+        roles: new Map(),
+        usedFor: []
+      };
+      byKey.set(u.key, group);
+    }
+    if (u.authored && !group.authored) group.authored = u.authored;
+    if (u.token && !group.token) group.token = u.token;
+    group.roles.set(u.role, (group.roles.get(u.role) ?? 0) + 1);
+
+    const elName = elementName(u.el.tag, u.el.role);
+    if (!group.usedFor.some(item => item.element === elName && item.property === u.property)) {
+      group.usedFor.push({ element: elName, property: u.property, selector: u.el.selector });
+    }
+  }
+
+  const colors = Array.from(byKey.values()).map(g => {
+    const role = [...g.roles.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+    return {
+      value: {
+        computed: g.computed,
+        ...(g.authored ? { authored: g.authored } : {}),
+        ...(g.token ? { token: g.token } : {})
+      },
+      ...(role ? { role } : {}),
+      usedFor: g.usedFor.slice(0, MAX_USED_FOR)
+    };
+  });
+
+  const containerName = elementName(container.tag, container.role);
+  const mainColor = colors.find(c => c.role === 'background' && c.value.token)
+    ?? colors.find(c => c.value.token)
+    ?? colors.find(c => c.role === 'background')
+    ?? colors[0]!;
+  const token = mainColor.value.token ?? colors.find(c => c.value.token)?.value.token;
+  const name = token ? nameFor(mainColor.value.computed, token) : toCaptureName(`color-${containerName}`);
+
+  if (colors.length === 1) {
+    const single = colors[0]!;
+    return {
+      meta: {
+        name,
+        scope: 'token',
+        type: 'color',
+        source: snapshot.url,
+        selector: container.selector,
+        captured,
+        method: 'measured'
+      },
+      value: single.value,
+      ...(single.role ? { role: single.role } : {}),
+      usedFor: single.usedFor
+    };
+  }
+
+  return {
+    meta: {
+      name,
+      scope: 'token',
+      type: 'color',
+      source: snapshot.url,
+      selector: container.selector,
+      captured,
+      method: 'measured'
+    },
+    colors,
+    usedBy: {
+      element: containerName,
+      selector: container.selector,
+      ...(container.role ? { role: container.role } : {})
+    }
   };
 }

@@ -200,6 +200,11 @@ function gather(captures: readonly Capture[]): { t: Tokens; f: Facts } {
     else if (m.type === 'color' && 'value' in c && !('kind' in c)) {
       const key = colorRef(t, c.value.computed, c.value.token ? slug(c.value.token) : slug(m.name));
       if (!f.colors.some(x => x.key === key)) f.colors.push({ key, value: hex(c.value.computed), role: c.role ?? 'color', token: c.value.token, properties: c.usedFor.map(u => u.property) });
+    } else if (m.type === 'color' && 'colors' in c) {
+      for (const col of (c as { colors: { value: { computed: string; token?: string }; role?: string; usedFor: { property: string }[] }[] }).colors) {
+        const key = colorRef(t, col.value.computed, col.value.token ? slug(col.value.token) : slug(m.name));
+        if (!f.colors.some(x => x.key === key)) f.colors.push({ key, value: hex(col.value.computed), role: col.role ?? 'color', token: col.value.token, properties: col.usedFor.map(u => u.property) });
+      }
     } else if (m.type === 'text' && 'style' in c) {
       const key = freeKey(t.typography, slug(m.name.replace(/^text-/, '')));
       t.typography.set(key, textStyleTokens(c.style));

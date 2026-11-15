@@ -15,7 +15,7 @@ import {
   type ComponentSpec,
   type Responsive
 } from '@luci/format/capture';
-import { colorToken, colorUses, colorSystem } from '../color.js';
+import { colorToken, colorUses, colorSystem, componentColorSet } from '../color.js';
 import { anatomyOf, componentCapture, componentType, stateParts, type ComponentImageInput } from '../component.js';
 import { DESKTOP_WIDTH, PHONE_WIDTH, chooseThresholds, mediaQueriesFor, mediaThresholds, readAtWidths, responsiveChanges, uniqueParts, widthsFor, type PartReading, type ViewportWidth } from '../responsive.js';
 import { imagesInside, readImage } from '../image.js';
@@ -227,9 +227,10 @@ export function captureOne(tool: ToolId, live: LiveSnapshot, entry: ElementSnaps
     return { ok: true, output: toOutput(textToken(live.snapshot, target, options), settings) };
   }
   if (tool === 'color') {
-    if (!colorUses(entry).length) return { ok: false, message: 'This element applies no color of its own. Pick another, or use "Pick a pixel".' };
-    const token = colorToken(live.snapshot, { element: entry }, options);
-    return token ? { ok: true, output: toOutput(token, settings) } : { ok: false, message: 'No color found here.' };
+    const inside = insideOf(live, entry);
+    const setOrToken = componentColorSet(live.snapshot, entry, inside, options);
+    if (!setOrToken) return { ok: false, message: 'This element and its parts apply no color of their own. Pick another, or use "Pick a pixel".' };
+    return { ok: true, output: toOutput(setOrToken, settings) };
   }
   const uses = spacingChoices(entry);
   const none: Result = { ok: false, message: 'This element sets no padding, margin or gap. Pick another, or drag between two elements to measure.' };

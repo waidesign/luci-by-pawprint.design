@@ -27,6 +27,7 @@ import {
   siteName,
   siteSlug,
   sourceText,
+  colorSetSchema,
   spacingSetSchema,
   textTokenSchema,
   typographySystemSchema,
@@ -107,6 +108,25 @@ describe('component and collection files: golden files are the spec (M5.1)', () 
     const set = inputs['example-com.token.spacing-ul.design.md']!.capture as unknown as { values: object[] };
     expect(spacingSetSchema.safeParse({ ...set, values: [] }).success).toBe(false);
     expect(spacingSetSchema.safeParse({ ...set, values: [{ value: { computed: '4px' }, kind: 'distance', property: 'x' }] }).success).toBe(false);
+  });
+
+  it('the spec validates and formats a component color set', () => {
+    const colorSet = {
+      meta: { name: 'color-card', scope: 'token' as const, type: 'color' as const, source: 'http://localhost:3000/', selector: '.card', captured: '2026-11-15', method: 'measured' as const },
+      colors: [
+        { value: { computed: '#ffffff', token: '--surface-raised' }, role: 'background' as const, usedFor: [{ element: 'div', property: 'background-color', selector: '.card' }] },
+        { value: { computed: '#111827', token: '--text-primary' }, role: 'text' as const, usedFor: [{ element: 'h2', property: 'color', selector: '.card h2' }] }
+      ],
+      usedBy: { element: 'div', selector: '.card', role: 'region' }
+    };
+    expect(colorSetSchema.safeParse(colorSet).success).toBe(true);
+    expect(colorSetSchema.safeParse({ ...colorSet, colors: [] }).success).toBe(false);
+    const md = formatCapture(colorSet as Capture, {});
+    expect(md).toContain('## Color');
+    expect(md).toContain('## Where used');
+    expect(md).toContain('#ffffff');
+    expect(md).toContain('#111827');
+    expect(parseCapture(md).ok).toBe(true);
   });
 
   it('the spec rejects a component without parts, an unknown state, and an empty basket', () => {

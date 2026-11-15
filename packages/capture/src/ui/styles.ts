@@ -86,12 +86,17 @@ ${UI_CSS}
 /* The basket: a Collar Lime pill with its count */
 .luci-theme .bar .basket-pill { display: inline-flex; align-items: center; gap: var(--luci-space-8); padding: 0 var(--luci-space-16) 0 var(--luci-space-12);
   background: var(--luci-color-accent); color: var(--luci-color-on-accent); font-weight: 600; }
-.luci-theme .bar .basket-pill:hover:not(:disabled), .luci-theme .bar .basket-pill[aria-pressed="true"] { background: var(--luci-color-collar-lime-300); color: var(--luci-color-on-accent); }
+.luci-theme .bar .basket-pill:hover:not(:disabled),
+.luci-theme .bar .basket-pill[aria-pressed="true"],
+.luci-theme .bar .basket-pill[aria-pressed="true"]:hover:not(:disabled),
+.luci-theme .bar button.basket-pill[aria-pressed="true"]:hover:not(:disabled) { background: var(--luci-color-collar-lime-300); color: var(--luci-color-on-accent); }
 .brand { display: inline-flex; align-items: center; gap: var(--luci-space-8); padding: 0 var(--luci-space-8) 0 0;
   font: var(--luci-type-display-weight) var(--luci-type-heading-size)/1 var(--luci-font-display); color: var(--luci-color-bar-ink); }
 /* The dev toolbar's mode switch, on Charcoal */
 .bar .seg { background: var(--luci-color-muzzle-800); align-self: center; }
 .luci-theme .bar .seg button { color: var(--luci-color-bar-ink); }
+.luci-theme .bar .seg button[aria-pressed="true"],
+.luci-theme .bar .seg button[aria-pressed="true"]:hover:not(:disabled) { color: var(--luci-color-on-tool-active); }
 .modes { margin-right: var(--luci-space-4); }
 
 /*

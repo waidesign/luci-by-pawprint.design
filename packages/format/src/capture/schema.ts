@@ -159,6 +159,22 @@ export const colorTokenSchema = z.object({
   usedFor: z.array(elementRefSchema.extend({ property: z.string().min(1) }))
 });
 
+/**
+ * Every color value a component or element uses (background, text, border, accents), in one token file.
+ * The Color table has a row per unique color with its role and where used.
+ */
+export const colorSetSchema = z.object({
+  meta: tokenMeta('color'),
+  instructions: instructionsField,
+  colors: z.array(z.object({
+    value: valueSchema,
+    role: z.enum(COLOR_ROLES).optional(),
+    usedFor: z.array(elementRefSchema.extend({ property: z.string().min(1) }))
+  })).min(1),
+  usedBy: elementRefSchema
+});
+export type ColorSet = z.infer<typeof colorSetSchema>;
+
 export const SPACING_KINDS = ['padding', 'margin', 'gap', 'distance'] as const;
 export const spacingTokenSchema = z.object({
   meta: tokenMeta('spacing'),
@@ -399,7 +415,7 @@ export const pageSchema = z.object({
 });
 export type PageCapture = z.infer<typeof pageSchema>;
 
-export const captureSchema = z.union([textTokenSchema, colorTokenSchema, spacingTokenSchema, spacingSetSchema, typographySystemSchema, colorSystemSchema, spacingSystemSchema, componentSchema, sectionSchema, pageSchema]);
+export const captureSchema = z.union([textTokenSchema, colorTokenSchema, colorSetSchema, spacingTokenSchema, spacingSetSchema, typographySystemSchema, colorSystemSchema, spacingSystemSchema, componentSchema, sectionSchema, pageSchema]);
 
 export type TextToken = z.infer<typeof textTokenSchema>;
 export type ColorToken = z.infer<typeof colorTokenSchema>;

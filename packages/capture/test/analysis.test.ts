@@ -7,6 +7,7 @@ import {
   motionOf,
   colorSystem,
   colorToken,
+  componentColorSet,
   distanceBetween,
   distanceToken,
   elementName,
@@ -138,6 +139,25 @@ describe('Color tool (FR13, FR14)', () => {
     expect(photo).toMatchObject({ meta: { name: 'color-c9a227', method: 'estimated' }, usedFor: [] });
     expect(photo.meta.selector).toBeUndefined();
     roundTrips(photo);
+  });
+
+  it('componentColorSet returns all colors used in a component as a ColorSet, or a single token', () => {
+    const s = snapshot();
+    // Element with both text color (rgb(255, 255, 255)) and background (rgb(15, 98, 254))
+    const a = s.elements[3]!;
+    const set = componentColorSet(s, a, (el) => el.id === a.id ? 0 : null, CAPTURED) as import('@luci/format/capture').ColorSet;
+    expect(set.meta.type).toBe('color');
+    expect(set.colors.length).toBe(2);
+    expect(set.colors.map(c => c.value.computed)).toContain('rgb(15, 98, 254)');
+    expect(set.colors.map(c => c.value.computed)).toContain('rgb(255, 255, 255)');
+    roundTrips(set);
+
+    // Single color element returns a single token
+    const p = s.elements[1]!;
+    const single = componentColorSet(s, p, (el) => el.id === p.id ? 0 : null, CAPTURED) as import('@luci/format/capture').ColorToken;
+    expect(single.meta.type).toBe('color');
+    expect(single.value.computed).toBe('rgb(22, 22, 22)');
+    roundTrips(single);
   });
 });
 

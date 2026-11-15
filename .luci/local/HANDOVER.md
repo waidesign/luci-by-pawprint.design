@@ -38,7 +38,7 @@
 - **Next.js Integration Tested:** `E:\vht - Copy` was initialized with `luci init`, `luci serve` runs on port 4545, and `Script` tag was wired into `apps/web/src/app/layout.tsx`.
 - **Test Suite Status:**
   - `pnpm typecheck` passes with 0 errors.
-  - `pnpm test` passes cleanly: **64 test files passed (566 tests passed, 6 skipped)**.
+  - `pnpm test` passes cleanly: **64 test files passed (568 tests passed, 6 skipped)**.
 - **Builds:**
   - `packages/toolbar/dist/luci-toolbar.js` freshly built.
   - `packages/extension/.output/chrome-mv3` freshly built.

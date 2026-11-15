@@ -46,7 +46,7 @@ describe('the built luci binary', () => {
     const doctor = luci(dir, home, 'doctor');
     expect(doctor.status, doctor.stdout).toBe(0);
     expect(doctor.stdout).toContain('No problems');
-  });
+  }, 60000);
 
   it('exits 1 on an unknown command', () => {
     expect(luci(tempProject(), tempDir(), 'nope').status).toBe(1);

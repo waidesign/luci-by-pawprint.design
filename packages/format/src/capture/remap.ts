@@ -158,6 +158,7 @@ export function remapCapture<T extends Capture>(capture: T, tokens: readonly MyT
   } else if (m.scope === 'system') remapSystemInPlace(c);
   else if (m.type === 'text' && 'style' in c) textStyle(c.style, '');
   else if (m.type === 'color' && 'value' in c && !('kind' in c)) visit(c.value, 'color', 'color');
+  else if (m.type === 'color' && 'colors' in c) for (const col of (c as { colors: { value: { computed: string } }[] }).colors) visit(col.value, 'color', 'color');
   else if (m.type === 'spacing' && 'values' in c) for (const v of c.values) visit(v.value, v.property, v.property);
   else if (m.type === 'spacing' && 'kind' in c) visit(c.value, c.property ?? c.kind, c.property ?? c.kind);
 
