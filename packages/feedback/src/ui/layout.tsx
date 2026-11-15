@@ -7,11 +7,11 @@
  * adding the plan to Feedback notes) puts the page back as it was.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import { Button, IconAdd, IconClose, IconCopy, IconNewPage, IconRedo, IconReset, IconSelect, IconUndo, Mascot, Select, useShortcuts } from '@luci/ui';
+import { Button, IconAdd, IconClose, IconCopy, IconNewPage, IconRedo, IconReset, IconSelect, IconUndo, Mascot, RepoButton, Select, useShortcuts } from '@luci/ui';
 
 /** Layout's single-key shortcuts (in each tooltip); Undo and Redo keep Ctrl+Z and Ctrl+Shift+Z. */
 export const LAYOUT_KEYS = { select: 'S', insert: 'I', newPage: 'N' } as const;
-import { ButtonSpinner, Loading, LuciLogo, ModeSwitch, elementAt, isLuciUi, parentOf, scrollableAncestor, selectorFor, useUiPrefs, type ModeSwitchProps } from '@luci/capture';
+import { AppearanceControls, ButtonSpinner, Loading, LuciLogo, ModeSwitch, elementAt, isLuciUi, parentOf, scrollableAncestor, selectorFor, useUiPrefs, type ModeSwitchProps } from '@luci/capture';
 import { formatLayoutPrompt, layoutChangeText, routeOf, type LayoutPromptElement, type Part } from '@luci/format/feedback';
 import type { FeedbackBackend } from '../backend.js';
 import { startSize } from '../layout/catalog.js';
@@ -152,7 +152,8 @@ export function Layout(props: LayoutProps) {
   const [insertSel, setInsertSel] = useState<number | null>(null);
   // Step 3: sketching a new page (over the app; the plan for this page stays as it is)
   const [sketching, setSketching] = useState(false);
-  const [uiPrefs] = useUiPrefs(doc);
+  const [uiPrefs, setUiPrefs] = useUiPrefs(doc);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [, setTick] = useState(0);
   const bump = () => setTick(t => t + 1);
 
@@ -177,7 +178,8 @@ export function Layout(props: LayoutProps) {
       const t = e.composedPath()[0];
       if (sketching || (t instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
       if (e.key === 'Escape') {
-        if (drag) setDrag(null);
+        if (settingsOpen) setSettingsOpen(false);
+        else if (drag) setDrag(null);
         else if (placing || catalog) { setPlacing(null); setPlaceHover(null); setCatalog(false); }
         else if (insertSel !== null) { setInsertSel(null); setSelecting(true); }
         else if (selected) { setSelected(null); setSelecting(true); }
@@ -582,7 +584,7 @@ export function Layout(props: LayoutProps) {
   return (
     <div class="luci luci-theme" data-theme={uiPrefs.theme} data-dock={uiPrefs.dock}>
       <div class="bar" role="toolbar" aria-label="Luci layout">
-        <span class="brand" data-part="brand-title" aria-label="Luci"><LuciLogo size={48} /></span>
+        <button type="button" class="menu-btn" data-action="settings" aria-label="Menu and settings" aria-pressed={settingsOpen} data-tip="Menu" onClick={() => setSettingsOpen(s => !s)}><LuciLogo size={48} /></button>
         {props.modes && <ModeSwitch {...props.modes} />}
         <span class="bar-sep" aria-hidden="true" />
         {!sketching && (
@@ -610,6 +612,13 @@ export function Layout(props: LayoutProps) {
         </span>
         <Button iconOnly size="lg" class="tool" icon={IconClose} label="Close Luci" data-action="close" onClick={props.onClose} />
       </div>
+
+      {settingsOpen && (
+        <div class="panel" role="dialog" aria-label="Layout settings" data-part="settings">
+          <div class="settings-head"><h2>Settings</h2><RepoButton /></div>
+          <AppearanceControls prefs={uiPrefs} onChange={setUiPrefs} movable moved={Boolean(uiPrefs.devPlace)} />
+        </div>
+      )}
 
       {sketching && scale && <Sketch doc={doc} backend={backend} base={scale.base} onClose={() => setSketching(false)} />}
       {!sketching && <>

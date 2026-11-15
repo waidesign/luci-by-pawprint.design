@@ -264,7 +264,7 @@ export function Toolbar(props: ToolbarProps) {
   // A movable bar (the extension): dragged by its own background or Luci's head, then kept where it was dropped
   const shellRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
-  const moveRef = useRef<{ id: number; x: number; y: number; shell: DOMRect; bar: DOMRect; moved: boolean } | null>(null);
+  const moveRef = useRef<{ id: number; x: number; y: number; shell: DOMRect; bar: DOMRect; moved: boolean; isBtn?: boolean } | null>(null);
   const justMoved = useRef(false);
   const [moving, setMoving] = useState<{ left: number; top: number } | null>(null);
   const trail = useRef<Element[]>([]);
@@ -1209,7 +1209,8 @@ export function Toolbar(props: ToolbarProps) {
     // The bar's own background, its separators or Luci's head: the tools stay plain buttons
     const t = e.target as Element;
     if (t !== bar && !t.closest?.('.menu-btn, .bar-sep')) return;
-    moveRef.current = { id: e.pointerId, x: e.clientX, y: e.clientY, shell: shell.getBoundingClientRect(), bar: bar.getBoundingClientRect(), moved: false };
+    const isBtn = Boolean(t.closest?.('.menu-btn'));
+    moveRef.current = { id: e.pointerId, x: e.clientX, y: e.clientY, shell: shell.getBoundingClientRect(), bar: bar.getBoundingClientRect(), moved: false, isBtn };
     // Follow the pointer wherever it goes (a quick drag leaves the bar before it counts as one)
     const onUp = (ev: PointerEvent) => {
       endMove(ev);
@@ -1229,7 +1230,8 @@ export function Toolbar(props: ToolbarProps) {
     if (!m.moved && !(e.buttons & 1)) { moveRef.current = null; return; }
     const rawX = e.clientX - m.x, rawY = e.clientY - m.y;
     // A few pixels first, so a click on Luci's head still opens the menu
-    if (!m.moved && Math.hypot(rawX, rawY) < 4) return;
+    const threshold = m.isBtn ? 14 : 4;
+    if (!m.moved && Math.hypot(rawX, rawY) < threshold) return;
     // Only now take the pointer: capturing on press would turn a click on Luci's head into a click on the bar
     if (!m.moved) barRef.current?.setPointerCapture?.(e.pointerId);
     m.moved = true;

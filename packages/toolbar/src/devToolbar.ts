@@ -276,11 +276,12 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
   };
 
   /*
-   * Dragging: by the bar's own background, a separator or Luci's head (4 px before it counts, so a
-   * click on Luci still opens the menu). While it moves it keeps its corner; dropped, it takes the
-   * nearest one, so its cards open on the side with room.
+   * Dragging: by the bar's own background, a separator or Luci's head (higher threshold for
+   * buttons, so a click on Luci always opens the menu without being intercepted as a drag).
+   * While it moves it keeps its corner; dropped, it takes the nearest one, so its cards open on
+   * the side with room.
    */
-  let drag: { id: number; x0: number; y0: number; rect: DOMRect; bar: HTMLElement; host: HTMLElement; moved: boolean } | null = null;
+  let drag: { id: number; x0: number; y0: number; rect: DOMRect; bar: HTMLElement; host: HTMLElement; moved: boolean; isBtn: boolean } | null = null;
   let justMoved = false;
   const stopDrag = () => {
     doc.removeEventListener('pointermove', dragMove, true);
@@ -294,7 +295,8 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
     if (!d || e.pointerId !== d.id) return;
     if (!d.moved && !(e.buttons & 1)) { stopDrag(); return; }
     const dx = e.clientX - d.x0, dy = e.clientY - d.y0;
-    if (!d.moved && Math.hypot(dx, dy) < 4) return;
+    const threshold = d.isBtn ? 14 : 4;
+    if (!d.moved && Math.hypot(dx, dy) < threshold) return;
     if (!d.moved) {
       d.moved = true;
       d.bar.setPointerCapture?.(e.pointerId);
@@ -333,7 +335,8 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
       const t = e.composedPath()[0] as Element | undefined;
       const bar = t?.closest?.('.bar') as HTMLElement | null;
       if (e.button !== 0 || !t || !bar || (t !== bar && !t.closest('.menu-btn, .bar-sep, .brand'))) return;
-      drag = { id: e.pointerId, x0: e.clientX, y0: e.clientY, rect: bar.getBoundingClientRect(), bar, host, moved: false };
+      const isBtn = Boolean(t.closest('.menu-btn'));
+      drag = { id: e.pointerId, x0: e.clientX, y0: e.clientY, rect: bar.getBoundingClientRect(), bar, host, moved: false, isBtn };
       doc.addEventListener('pointermove', dragMove, true);
       doc.addEventListener('pointerup', dragEnd, true);
       doc.addEventListener('pointercancel', dragEnd, true);

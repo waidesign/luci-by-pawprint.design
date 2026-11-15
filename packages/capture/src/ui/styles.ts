@@ -82,7 +82,7 @@ ${UI_CSS}
 .luci-theme .bar .btn-primary:disabled { background: transparent; color: var(--luci-color-muzzle-500); }
 .bar-sep { flex: none; width: 1px; height: 24px; margin: 0 2px; background: var(--luci-color-bar-stroke); }
 /* Luci's head: the menu button */
-.luci-theme .bar .menu-btn { display: inline-flex; align-items: center; justify-content: center; width: 48px; padding: 0; }
+.luci-theme .bar .menu-btn { display: inline-flex; align-items: center; justify-content: center; width: 48px; padding: 0; cursor: pointer; }
 .luci-theme .bar .menu-btn .luci-avatar { transition: background-color var(--luci-motion-fast); }
 .luci-theme .bar .menu-btn:is(:hover, [aria-pressed="true"]) { background: transparent; }
 .luci-theme .bar .menu-btn:hover .luci-avatar { background: var(--luci-color-primary-hover); }
@@ -138,6 +138,7 @@ ${UI_CSS}
 :host([data-v="bottom"]) .bar [data-tip][data-tip-align="right"]:is(:hover, :focus-visible)::after { transform: translate(0, 0); }
 /* The dev toolbar's bar can be dragged by its own background, a separator or Luci */
 :host([data-v]) .bar { cursor: grab; touch-action: none; }
+:host([data-v]) .bar button, :host([data-v]) .bar .menu-btn { cursor: pointer; }
 :host([data-moving]) .bar, :host([data-moving]) .bar * { cursor: grabbing; user-select: none; }
 /* New page's canvas covers the window: its tools and its panel keep clear of the bar */
 :host([data-v="bottom"]) .wf { padding-bottom: calc(var(--luci-y, 12px) + 76px); }

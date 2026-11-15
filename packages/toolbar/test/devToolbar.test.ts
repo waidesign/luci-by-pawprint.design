@@ -182,7 +182,16 @@ describe('dev toolbar placement and descriptions (user request, 2026-11-15)', { 
     await page.reload();
     const left = await box('luci-feedback .bar');
     expect(Math.round(left.x)).toBe(12);
-    await page.click('luci-feedback [data-action="close"]');
+
+    // In Layout mode too, clicking Luci's head opens settings
+    await page.click('luci-feedback [data-mode="layout"]');
+    await page.click('luci-layout [data-action="settings"]');
+    expect(await page.locator('luci-layout [data-part="settings"]').count()).toBe(1);
+    expect(await page.locator('luci-layout [data-part="repo"]').innerText()).toBe('v0.3.0');
+    await page.click('luci-layout [data-action="settings"]');
+    expect(await page.locator('luci-layout [data-part="settings"]').count()).toBe(0);
+
+    await page.click('luci-layout [data-action="close"]');
     expect(Math.round((await box('[data-action="open-luci"]')).x)).toBe(12);
     await ctx.close();
   });
