@@ -177,12 +177,12 @@ export const COMPONENTS_CSS = `
 .luci-theme a.repo-btn:focus-visible { outline: 2px solid var(--luci-color-focus); outline-offset: 2px; }
 .luci-theme .repo-btn .gh-mark { display: block; width: 16px; height: 16px; line-height: 0; }
 .luci-theme .repo-btn .gh-mark svg { display: block; width: 16px; height: 16px; }
-/* It sits at a panel's right edge: its tooltip opens leftwards, so the panel never scrolls sideways */
-.luci-theme .repo-btn[data-tip]::after { left: auto; right: 0; transform: translate(0, -4px); }
-.luci-theme .repo-btn[data-tip]:is(:hover, :focus-visible)::after { transform: translate(0, 0); }
+/* Tooltip host: relative positioning and raised z-index on hover so tooltips render above sibling elements */
+.luci-theme [data-tip] { position: relative; }
+.luci-theme [data-tip]:is(:hover, :focus-visible) { z-index: 10; }
 
 /* Tooltip: the text in data-tip; below the element, or above with data-tip-pos="above". Shows after 300 ms. */
-.luci-theme [data-tip]::after { content: attr(data-tip); position: absolute; left: 50%; top: calc(100% + var(--luci-space-8)); z-index: 3;
+.luci-theme [data-tip]::after { content: attr(data-tip); position: absolute; left: 50%; top: calc(100% + var(--luci-space-8)); z-index: 10;
   width: max-content; max-width: 340px; box-sizing: border-box; padding: 6px 10px; border-radius: var(--luci-radius-md); background: var(--luci-color-ink);
   color: var(--luci-color-surface); font-size: var(--luci-type-small-size); line-height: var(--luci-type-small-line); font-weight: var(--luci-type-small-weight);
   white-space: pre-wrap; word-break: normal; overflow-wrap: break-word; text-align: left; pointer-events: none; opacity: 0; transform: translate(-50%, -4px);
@@ -190,6 +190,43 @@ export const COMPONENTS_CSS = `
 .luci-theme [data-tip][data-tip-pos="above"]::after { top: auto; bottom: calc(100% + var(--luci-space-8)); transform: translate(-50%, 4px); }
 .luci-theme [data-tip]:is(:hover, :focus-visible)::after { opacity: 1; transform: translate(-50%, 0);
   transition: opacity var(--luci-motion-base) 300ms, transform var(--luci-motion-base) 300ms; }
+
+/* Left-aligned tooltips (first button in rows, cards, or explicit data-tip-align="left") open rightwards to prevent clipping inside cards/panels */
+.luci-theme [data-tip][data-tip-align="left"]::after,
+.luci-theme .panel .actions > [data-tip]:first-child::after,
+.luci-theme .panel .row > [data-tip]:first-child::after {
+  left: 0; right: auto; transform: translate(0, -4px);
+}
+.luci-theme [data-tip][data-tip-pos="above"][data-tip-align="left"]::after,
+.luci-theme .panel .actions > [data-tip]:first-child[data-tip-pos="above"]::after,
+.luci-theme .panel .row > [data-tip]:first-child[data-tip-pos="above"]::after {
+  top: auto; bottom: calc(100% + var(--luci-space-8)); left: 0; right: auto; transform: translate(0, 4px);
+}
+.luci-theme [data-tip][data-tip-align="left"]:is(:hover, :focus-visible)::after,
+.luci-theme .panel .actions > [data-tip]:first-child:is(:hover, :focus-visible)::after,
+.luci-theme .panel .row > [data-tip]:first-child:is(:hover, :focus-visible)::after {
+  transform: translate(0, 0);
+}
+
+/* Right-aligned tooltips (repo button, last button in rows, cards, or explicit data-tip-align="right") open leftwards */
+.luci-theme .repo-btn[data-tip]::after,
+.luci-theme [data-tip][data-tip-align="right"]::after,
+.luci-theme .panel .actions > [data-tip]:last-child::after,
+.luci-theme .panel .row > [data-tip]:last-child::after {
+  left: auto; right: 0; transform: translate(0, -4px);
+}
+.luci-theme .repo-btn[data-tip][data-tip-pos="above"]::after,
+.luci-theme [data-tip][data-tip-pos="above"][data-tip-align="right"]::after,
+.luci-theme .panel .actions > [data-tip]:last-child[data-tip-pos="above"]::after,
+.luci-theme .panel .row > [data-tip]:last-child[data-tip-pos="above"]::after {
+  top: auto; bottom: calc(100% + var(--luci-space-8)); left: auto; right: 0; transform: translate(0, 4px);
+}
+.luci-theme .repo-btn[data-tip]:is(:hover, :focus-visible)::after,
+.luci-theme [data-tip][data-tip-align="right"]:is(:hover, :focus-visible)::after,
+.luci-theme .panel .actions > [data-tip]:last-child:is(:hover, :focus-visible)::after,
+.luci-theme .panel .row > [data-tip]:last-child:is(:hover, :focus-visible)::after {
+  transform: translate(0, 0);
+}
 
 /* Empty state: Luci, a title, one line, an optional primary button */
 .empty { display: flex; flex-direction: column; align-items: center; gap: var(--luci-space-12); padding: var(--luci-space-24) var(--luci-space-16); text-align: center; }

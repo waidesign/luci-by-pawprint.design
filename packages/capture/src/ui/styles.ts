@@ -64,8 +64,12 @@ ${UI_CSS}
 .luci-theme .shell[data-h="right"] { align-items: flex-end; }
 .luci-theme .shell[data-movable] > .bar { cursor: grab; touch-action: none; }
 .luci-theme .shell[data-moving] > .bar, .luci-theme .shell[data-moving] > .bar * { cursor: grabbing; user-select: none; }
-.luci-theme .shell[data-v="bottom"] > .bar [data-tip]::after { top: auto; bottom: calc(100% + var(--luci-space-8)); transform: translate(-50%, 4px); }
-.luci-theme .shell[data-v="bottom"] > .bar [data-tip]:is(:hover, :focus-visible)::after { transform: translate(-50%, 0); }
+.luci-theme .shell[data-v="bottom"] > .bar [data-tip]:not([data-tip-align])::after { top: auto; bottom: calc(100% + var(--luci-space-8)); transform: translate(-50%, 4px); }
+.luci-theme .shell[data-v="bottom"] > .bar [data-tip]:not([data-tip-align]):is(:hover, :focus-visible)::after { transform: translate(-50%, 0); }
+.luci-theme .shell[data-v="bottom"] > .bar [data-tip][data-tip-align="left"]::after { top: auto; bottom: calc(100% + var(--luci-space-8)); left: 0; right: auto; transform: translate(0, 4px); }
+.luci-theme .shell[data-v="bottom"] > .bar [data-tip][data-tip-align="left"]:is(:hover, :focus-visible)::after { transform: translate(0, 0); }
+.luci-theme .shell[data-v="bottom"] > .bar [data-tip][data-tip-align="right"]::after { top: auto; bottom: calc(100% + var(--luci-space-8)); left: auto; right: 0; transform: translate(0, 4px); }
+.luci-theme .shell[data-v="bottom"] > .bar [data-tip][data-tip-align="right"]:is(:hover, :focus-visible)::after { transform: translate(0, 0); }
 .luci-theme .bar button { --luci-btn-h: 40px; color: var(--luci-color-bar-ink); }
 .luci-theme .bar .tool, .luci-theme .bar .menu-btn { --luci-btn-h: 48px; }
 .luci-theme .bar button:hover:not(:disabled) { background: var(--luci-color-bar-hover); }
@@ -126,8 +130,12 @@ ${UI_CSS}
 @keyframes luci-rise { from { opacity: 0; transform: translateY(8px); } }
 @keyframes luci-drop { from { opacity: 0; transform: translateY(-8px); } }
 @media (prefers-reduced-motion: reduce) { :host([data-v]) :is(.sub, .panel, .menu) { animation: none; } }
-:host([data-v="bottom"]) .bar [data-tip]::after { top: auto; bottom: calc(100% + var(--luci-space-8)); transform: translate(-50%, 4px); }
-:host([data-v="bottom"]) .bar [data-tip]:is(:hover, :focus-visible)::after { transform: translate(-50%, 0); }
+:host([data-v="bottom"]) .bar [data-tip]:not([data-tip-align])::after { top: auto; bottom: calc(100% + var(--luci-space-8)); transform: translate(-50%, 4px); }
+:host([data-v="bottom"]) .bar [data-tip]:not([data-tip-align]):is(:hover, :focus-visible)::after { transform: translate(-50%, 0); }
+:host([data-v="bottom"]) .bar [data-tip][data-tip-align="left"]::after { top: auto; bottom: calc(100% + var(--luci-space-8)); left: 0; right: auto; transform: translate(0, 4px); }
+:host([data-v="bottom"]) .bar [data-tip][data-tip-align="left"]:is(:hover, :focus-visible)::after { transform: translate(0, 0); }
+:host([data-v="bottom"]) .bar [data-tip][data-tip-align="right"]::after { top: auto; bottom: calc(100% + var(--luci-space-8)); left: auto; right: 0; transform: translate(0, 4px); }
+:host([data-v="bottom"]) .bar [data-tip][data-tip-align="right"]:is(:hover, :focus-visible)::after { transform: translate(0, 0); }
 /* The dev toolbar's bar can be dragged by its own background, a separator or Luci */
 :host([data-v]) .bar { cursor: grab; touch-action: none; }
 :host([data-moving]) .bar, :host([data-moving]) .bar * { cursor: grabbing; user-select: none; }

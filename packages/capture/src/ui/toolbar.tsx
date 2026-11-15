@@ -1428,7 +1428,7 @@ export function Toolbar(props: ToolbarProps) {
                   </div>
                 ) : <p class="hint">No differences: every value compared is the same.</p>}
                 <div class="row actions">
-                  <Button variant="primary" size="md" iconOnly tipAbove icon={copied ? IconSuccess : IconCopy} label={copied ? COPY.common.copied : 'Copy the comparison'}
+                  <Button variant="primary" size="md" iconOnly tipAbove tipAlign="left" icon={copied ? IconSuccess : IconCopy} label={copied ? COPY.common.copied : 'Copy the comparison'}
                     data-action="copy-compare" onClick={() => void copyText(formatCompareReport(comparison.result, { a: comparison.items[0].name, b: comparison.items[1].name }))} />
                   <button type="button" class="btn-secondary" data-action="compare-back" onClick={() => { setComparison(null); setCopied(false); }}>Back to the basket</button>
                 </div>
@@ -1439,7 +1439,7 @@ export function Toolbar(props: ToolbarProps) {
                 <div class="file" data-part="file-name">{exported.fileName}</div>
                 <pre data-part="preview">{exported.markdown}</pre>
                 <div class="row actions">
-                  <Button variant="primary" size="md" iconOnly tipAbove icon={copied ? IconSuccess : IconCopy} label={copied ? COPY.common.copied : COPY.capture.actions.copy}
+                  <Button variant="primary" size="md" iconOnly tipAbove tipAlign="left" icon={copied ? IconSuccess : IconCopy} label={copied ? COPY.common.copied : COPY.capture.actions.copy}
                     data-action="copy" onClick={() => void copyText(exported.markdown)} />
                   <Button variant="secondary" size="md" iconOnly tipAbove icon={IconDownload} label={COPY.capture.actions.download} data-action="download"
                     onClick={() => downloadText(exported.fileName, exported.markdown)} />
@@ -1791,7 +1791,7 @@ export function Toolbar(props: ToolbarProps) {
                   <textarea class="preview" data-part="preview" spellcheck={false} value={markdown}
                     onInput={e => { setEdited((e.currentTarget as HTMLTextAreaElement).value); setCopied(false); }} />
                   <div class="row actions">
-                    <Button variant="primary" size="md" iconOnly tipAbove icon={copied ? IconSuccess : IconCopy} data-action="copy" onClick={copy}
+                    <Button variant="primary" size="md" iconOnly tipAbove tipAlign="left" icon={copied ? IconSuccess : IconCopy} data-action="copy" onClick={copy}
                       label={copied ? COPY.common.copied : sectionFiles.length && !stitch ? COPY.capture.actions.copySection : COPY.capture.actions.copy} />
                     {sectionFiles.length && !stitch
                       ? <Button variant="secondary" size="md" iconOnly tipAbove icon={IconDownload} data-action="download-zip" onClick={downloadZip} label={COPY.capture.actions.downloadZip(sectionFiles.length + 1)} />

@@ -497,7 +497,10 @@ describe('v0.4: use my tokens, and compare two basket items', { timeout: 30_000 
     expect(await page.locator('[data-part="compare-summary"]').innerText()).toMatch(/A: .+ B: .+\d+ values? (is|are) the same; \d+ differs?\./);
     // Two of the same button: nothing differs
     expect(await page.locator('[data-part="compare-summary"]').innerText()).toMatch(/; 0 differ\.$/);
-    await page.click('[data-action="copy-compare"]');
+    const copyCompare = page.locator('[data-action="copy-compare"]');
+    expect(await copyCompare.getAttribute('data-tip-align')).toBe('left');
+    expect(await copyCompare.getAttribute('data-tip')).toBe('Copy the comparison');
+    await copyCompare.click();
     expect((await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, '\n')).toMatch(/^# Compare: .+\n- A: /);
     await page.click('[data-action="compare-back"]');
     await page.locator('[data-item-compare]').first().waitFor();

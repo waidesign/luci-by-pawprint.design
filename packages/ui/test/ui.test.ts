@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { COLLAR_NAME_MIN_SIZE, COPY, FACE_SVG, ICON_NAMES, ICON_SVG, LUCI_VERSION, Icon, IconColour, PALETTE, POSE_SVG, ROLES_BAR, ROLES_DARK, ROLES_LIGHT, faceSvg, mascotSvg, shortcutFor } from '@luci/ui';
+import { Button, COLLAR_NAME_MIN_SIZE, COPY, FACE_SVG, ICON_NAMES, ICON_SVG, LUCI_VERSION, Icon, IconColour, PALETTE, POSE_SVG, ROLES_BAR, ROLES_DARK, ROLES_LIGHT, faceSvg, mascotSvg, shortcutFor } from '@luci/ui';
 
 const brand = (file: string) => readFileSync(fileURLToPath(new URL(`../../../brand/${file}`, import.meta.url)), 'utf8');
 
@@ -212,5 +212,19 @@ describe('Mascot', () => {
     expect(small).not.toContain('luci-name');
     expect(small).toContain('luci-tag');
     expect(COLLAR_NAME_MIN_SIZE).toBe(200);
+  });
+});
+
+describe('Button tooltips (accessibility and card overflow)', () => {
+  it('supports tipAlign left, right, or center', () => {
+    const left = Button({ iconOnly: true, label: 'Copy', tipAlign: 'left' }) as unknown as { props: Record<string, unknown> };
+    expect(left.props['data-tip']).toBe('Copy');
+    expect(left.props['data-tip-align']).toBe('left');
+
+    const right = Button({ iconOnly: true, label: 'Export', tipAlign: 'right' }) as unknown as { props: Record<string, unknown> };
+    expect(right.props['data-tip-align']).toBe('right');
+
+    const center = Button({ iconOnly: true, label: 'Center', tipAlign: 'center' }) as unknown as { props: Record<string, unknown> };
+    expect(center.props['data-tip-align']).toBeUndefined();
   });
 });

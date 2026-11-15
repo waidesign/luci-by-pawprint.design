@@ -22,6 +22,8 @@ export type ButtonProps = Omit<JSX.ButtonHTMLAttributes<HTMLButtonElement>, 'siz
   label?: string;
   tip?: string;
   tipAbove?: boolean;
+  /** Alignment: 'left' anchors tooltip left edge to button (expands rightward); 'right' anchors right edge; default centered. */
+  tipAlign?: 'left' | 'right' | 'center';
   /** Working: aria-busy, and a click does nothing until it is done. */
   loading?: boolean;
   /** Its single-key shortcut ("C"): shown in the tooltip and as aria-keyshortcuts (the surface runs it with useShortcuts). */
@@ -39,7 +41,7 @@ export type ButtonProps = Omit<JSX.ButtonHTMLAttributes<HTMLButtonElement>, 'siz
  * carry an aria-label and a tooltip (DESIGN.md section 7).
  */
 export function Button(props: ButtonProps) {
-  const { variant = 'ghost', size, icon, iconOnly, label, tip, tipAbove, loading, shortcut, badge, class: extra, children, type = 'button', onClick, ...rest } = props;
+  const { variant = 'ghost', size, icon, iconOnly, label, tip, tipAbove, tipAlign, loading, shortcut, badge, class: extra, children, type = 'button', onClick, ...rest } = props;
   const iconSize: IconSize = size === 'lg' ? 'toolbar' : size === 'md' ? 'content' : 'compact';
   const cls = [
     `btn-${variant}`,
@@ -57,6 +59,7 @@ export function Button(props: ButtonProps) {
       {...(shortcut ? { 'aria-keyshortcuts': shortcut } : {})}
       {...(tipText ? { 'data-tip': tipText } : {})}
       {...(tipText && tipAbove ? { 'data-tip-pos': 'above' } : {})}
+      {...(tipText && tipAlign && tipAlign !== 'center' ? { 'data-tip-align': tipAlign } : {})}
       {...(loading ? { 'aria-busy': 'true' } : {})}
       onClick={loading ? undefined : onClick}
       {...rest}
