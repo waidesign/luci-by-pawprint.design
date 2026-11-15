@@ -393,6 +393,10 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
     doc.dispatchEvent(new CustomEvent(TOOLBAR_REPLACE_EVENT));
     mode = next;
     try { session?.setItem(KEYS.mode, mode); } catch { /* not available */ }
+    const projectInfo = {
+      get: async () => health.project ? { project: health.project, name: health.project.split(/[\\/]/).filter(Boolean).pop(), url: bridge } : null
+    };
+
     if (mode === 'feedback') {
       current = mountFeedback({
         doc,
@@ -401,6 +405,8 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
         settings: readJson<FeedbackSettings>(storage, KEYS.feedback, DEFAULT_FEEDBACK_SETTINGS),
         onSettingsChange: s => storage.setItem(KEYS.feedback, JSON.stringify(s)),
         modes: modeSwitch(),
+        projectInfo,
+        store: storage,
         onClose: () => { current = null; showLauncher(); }
       });
     } else if (mode === 'layout') {
@@ -409,6 +415,8 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
         backend,
         modes: modeSwitch(),
         ...(connected ? {} : { connectNote }),
+        projectInfo,
+        store: storage,
         onClose: () => { current = null; showLauncher(); }
       });
     } else {
@@ -418,10 +426,9 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
         onSettingsChange: s => storage.setItem(KEYS.capture, JSON.stringify(s)),
         basket: storageBasket(storage),
         modes: modeSwitch(),
+        store: storage,
         ...(backend.saveCapture ? { saveToProject: backend.saveCapture } : {}),
-        projectInfo: {
-          get: async () => health.project ? { project: health.project, name: health.project.split(/[\\/]/).filter(Boolean).pop(), url: bridge } : null
-        },
+        projectInfo,
         // Design check (v0.3): the project's design files, and each difference as a feedback note
         ...(backend.listCaptures && backend.readCapture ? { designs: { list: backend.listCaptures, read: backend.readCapture } } : {}),
         addCheckNotes: (el, notes) => addCheckNotes(backend, doc, el, notes),

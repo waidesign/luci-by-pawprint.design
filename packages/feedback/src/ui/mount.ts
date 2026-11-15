@@ -1,6 +1,6 @@
 /** Put the Feedback layer on a page, in its own shadow root, apart from the page and its styles. */
 import { h, render } from 'preact';
-import { LUCI_UI_ATTRIBUTE, type ModeSwitchProps } from '@luci/capture';
+import { LUCI_UI_ATTRIBUTE, type ModeSwitchProps, type StorageLike } from '@luci/capture';
 import { loadFonts } from '@luci/ui';
 import type { FeedbackBackend } from '../backend.js';
 import { FEEDBACK_CSS } from './styles.js';
@@ -17,6 +17,11 @@ export interface FeedbackMountOptions {
   modes?: ModeSwitchProps;
   onConnect?: () => Promise<string | null>;
   onClose?: () => void;
+  projectInfo?: {
+    get: () => Promise<{ project?: string; name?: string; url?: string } | null>;
+    setUrl?: (url: string) => Promise<void>;
+  };
+  store?: StorageLike;
 }
 
 export interface FeedbackHandle {
@@ -59,6 +64,8 @@ export function mountFeedback(options: FeedbackMountOptions): FeedbackHandle {
     ...(options.onSettingsChange ? { onSettingsChange: options.onSettingsChange } : {}),
     ...(options.modes ? { modes: options.modes } : {}),
     ...(options.onConnect ? { onConnect: options.onConnect } : {}),
+    ...(options.projectInfo ? { projectInfo: options.projectInfo } : {}),
+    ...(options.store ? { store: options.store } : {}),
     onClose: () => { destroy(); options.onClose?.(); }
   }), mountPoint);
   return { host, destroy };

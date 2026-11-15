@@ -11,6 +11,7 @@ import type { ModeSwitchProps } from './modeSwitch.js';
 import type { AddCheckNotes, DesignSource } from './check.js';
 import type { ViewportWidth } from '../responsive.js';
 import type { MyTokensSource } from './remap.js';
+import type { StorageLike } from './devSettings.js';
 
 export const TOOLBAR_TAG = 'luci-toolbar';
 /**
@@ -66,6 +67,8 @@ export interface MountOptions {
   autoCheck?: boolean;
   /** Every design check run, for the project (v0.4, the dev toolbar). */
   onCheckRun?: (run: CheckRun) => Promise<{ resolved?: string[]; updated?: string[] } | void> | void;
+  /** Storage for settings in dev toolbar (v0.4.4). */
+  store?: StorageLike;
 }
 
 export interface ToolbarHandle {
@@ -135,6 +138,7 @@ export function mountToolbar(options: MountOptions = {}): ToolbarHandle {
     ...(options.debuggerPermission ? { debuggerPermission: options.debuggerPermission } : {}),
     ...(options.autoCheck ? { autoCheck: true } : {}),
     ...(options.onCheckRun ? { onCheckRun: options.onCheckRun } : {}),
+    ...(options.store ? { store: options.store } : {}),
     onClose: () => { destroy(); options.onClose?.(); },
     registerPixelInput: (pick: (hex: string) => void) => { pixelInput = pick; }
   }), mountPoint);

@@ -11,7 +11,7 @@ import { Button, IconAdd, IconClose, IconCopy, IconNewPage, IconRedo, IconReset,
 
 /** Layout's single-key shortcuts (in each tooltip); Undo and Redo keep Ctrl+Z and Ctrl+Shift+Z. */
 export const LAYOUT_KEYS = { select: 'S', insert: 'I', newPage: 'N' } as const;
-import { AppearanceControls, ButtonSpinner, Loading, LuciLogo, ModeSwitch, elementAt, isLuciUi, parentOf, scrollableAncestor, selectorFor, useUiPrefs, type ModeSwitchProps } from '@luci/capture';
+import { AppearanceControls, ButtonSpinner, DevSettingsPanel, Loading, LuciLogo, ModeSwitch, elementAt, isLuciUi, parentOf, scrollableAncestor, selectorFor, useUiPrefs, type ModeSwitchProps, type StorageLike } from '@luci/capture';
 import { formatLayoutPrompt, layoutChangeText, routeOf, type LayoutPromptElement, type Part } from '@luci/format/feedback';
 import type { FeedbackBackend } from '../backend.js';
 import { startSize } from '../layout/catalog.js';
@@ -27,6 +27,12 @@ export interface LayoutProps {
   modes?: ModeSwitchProps;
   connectNote?: string;
   onClose: () => void;
+  /** Active project details (from luci serve /health). */
+  projectInfo?: {
+    get: () => Promise<{ project?: string; name?: string; url?: string } | null>;
+    setUrl?: (url: string) => Promise<void>;
+  };
+  store?: StorageLike;
 }
 
 /** The 8 handles: sides and corners. */
@@ -614,10 +620,20 @@ export function Layout(props: LayoutProps) {
       </div>
 
       {settingsOpen && (
-        <div class="panel" role="dialog" aria-label="Layout settings" data-part="settings">
-          <div class="settings-head"><h2>Settings</h2><RepoButton /></div>
-          <AppearanceControls prefs={uiPrefs} onChange={setUiPrefs} movable moved={Boolean(uiPrefs.devPlace)} />
-        </div>
+        props.modes ? (
+          <DevSettingsPanel
+            currentMode="layout"
+            uiPrefs={uiPrefs}
+            onUiPrefsChange={setUiPrefs}
+            projectInfo={props.projectInfo}
+            store={props.store}
+          />
+        ) : (
+          <div class="panel" role="dialog" aria-label="Layout settings" data-part="settings">
+            <div class="settings-head"><h2>Settings</h2><RepoButton /></div>
+            <AppearanceControls prefs={uiPrefs} onChange={setUiPrefs} movable moved={Boolean(uiPrefs.devPlace)} />
+          </div>
+        )
       )}
 
       {sketching && scale && <Sketch doc={doc} backend={backend} base={scale.base} onClose={() => setSketching(false)} />}

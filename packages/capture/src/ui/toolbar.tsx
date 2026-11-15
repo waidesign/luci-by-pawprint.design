@@ -21,6 +21,7 @@ import {
   IconSpacing, IconSuccess, IconText, LUCI_REPO_URL, Mascot, RepoButton, Select, useShortcuts, type LucideIcon, type MascotPose
 } from '@luci/ui';
 import { AppearanceControls, LuciLogo, useUiPrefs } from './theme.js';
+import { DevSettingsPanel, type StorageLike } from './devSettings.js';
 import { zip } from './zip.js';
 import { CheckResultPanel, DesignChooser, type AddCheckNotes, type DesignSource } from './check.js';
 import {
@@ -98,6 +99,8 @@ export interface ToolbarProps {
   autoCheck?: boolean;
   /** Every design check run (and each automatic re-check), for the project (v0.4). */
   onCheckRun?: (run: CheckRun) => Promise<{ resolved?: string[]; updated?: string[] } | void> | void;
+  /** Storage for settings in dev toolbar (v0.4.4). */
+  store?: StorageLike;
 }
 
 /** The check being watched, kept for this tab so a reload picks it up again (v0.4). */
@@ -1413,6 +1416,18 @@ export function Toolbar(props: ToolbarProps) {
         )}
 
         {settingsOpen && (
+          props.modes ? (
+            <DevSettingsPanel
+              currentMode="capture"
+              uiPrefs={uiPrefs}
+              onUiPrefsChange={setUiPrefs}
+              projectInfo={props.projectInfo}
+              store={props.store}
+              captureSettings={settings}
+              onCaptureSettingsChange={changeSettings}
+              debuggerPermission={props.debuggerPermission}
+            />
+          ) : (
           <div class="panel" role="dialog" aria-label={COPY.common.menu} data-part="settings">
             <div class="menu-head">
               <Mascot pose="sit" size={96} />
@@ -1472,8 +1487,8 @@ export function Toolbar(props: ToolbarProps) {
                     <span class="project-hint dim">
                       {debuggerGranted
                         ? (useDebugger
-                            ? 'Briefly attaches only during captures for exact CDP states'
-                            : 'CSS rules & hidden frames active. Debugger will never be attached.')
+                          ? 'Briefly attaches only during captures for exact CDP states'
+                          : 'CSS rules & hidden frames active. Debugger will never be attached.')
                         : 'CSS rules & frame fallback active'}
                     </span>
                   </div>
@@ -1559,6 +1574,7 @@ export function Toolbar(props: ToolbarProps) {
               </div>
             </div>
           </div>
+          )
         )}
 
         {!settingsOpen && pageBusy && !basketOpen && (
@@ -1696,8 +1712,8 @@ export function Toolbar(props: ToolbarProps) {
               <p class="hint" data-part="hint">
                 {imageMode ? (imageBusy ? 'Reading the image…' : 'Drop a screenshot here, paste one, or choose a file. Luci estimates its colours: every value is a guess.')
                   : pixelMode ? 'Point at any spot. Click to take its colour.'
-                  : checkDesign ? `Click the component you built. Luci checks it against ${checkDesign.label}.`
-                  : `${TOOL_HINTS[tool]}${tool === 'color' && !canPickPixels ? ' This browser cannot pick pixels.' : ''}`}
+                    : checkDesign ? `Click the component you built. Luci checks it against ${checkDesign.label}.`
+                      : `${TOOL_HINTS[tool]}${tool === 'color' && !canPickPixels ? ' This browser cannot pick pixels.' : ''}`}
               </p>
               {imageMode && (
                 <div class="row">
@@ -1876,7 +1892,7 @@ export function Toolbar(props: ToolbarProps) {
                             <span class={s.detected ? 'state detected' : 'state missing'} data-state={s.state}
                               title={s.detected ? (s.trigger ? `In the file. Set by the ${s.trigger.element} around it.` : 'In the file.')
                                 : checked(s) ? 'Checked in the browser. Nothing changes.'
-                                : 'Not detected. It may change through JavaScript. Capture it by hand below.'}>
+                                  : 'Not detected. It may change through JavaScript. Capture it by hand below.'}>
                               {s.state} {s.detected ? `✓${s.trigger ? ` (via ${s.trigger.element.split(' ')[0]})` : ''}` : checked(s) ? '– no change' : '– not detected'}
                             </span>
                           ))}

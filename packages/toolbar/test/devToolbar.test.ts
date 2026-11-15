@@ -584,5 +584,62 @@ describe('dev toolbar with luci serve (M6 Done when, automated)', { timeout: 90_
     expect(FEEDBACK_CSS).not.toMatch(/rgb\(\s*(?:0\s+0\s+0|255\s+255\s+255)\b/i);
     await ctx.close();
   });
+
+  it('DevTool settings provides shared settings and 3 tool tabs (Feedback, Layout, Capture)', async () => {
+    const ctx = await context(bridge.url);
+    const page = await open(ctx, '/');
+
+    // 1. In Feedback mode: clicking settings shows shared settings and 3 tool tabs
+    await page.click('luci-feedback [data-action="settings"]');
+    await page.locator('luci-feedback [data-part="settings"]').waitFor();
+
+    // Shared settings outside tabs
+    expect(await page.locator('luci-feedback [data-part="connected-project"]').count()).toBe(1);
+    expect(await page.locator('luci-feedback [data-part="appearance-settings"]').count()).toBe(1);
+
+    // 3 tool tabs present
+    expect(await page.locator('luci-feedback [data-tool-tab="feedback"]').count()).toBe(1);
+    expect(await page.locator('luci-feedback [data-tool-tab="layout"]').count()).toBe(1);
+    expect(await page.locator('luci-feedback [data-tool-tab="capture"]').count()).toBe(1);
+
+    // Initial tab matches Feedback
+    expect(await page.locator('luci-feedback [data-tool-tab="feedback"]').getAttribute('aria-selected')).toBe('true');
+    expect(await page.locator('luci-feedback [data-part="feedback-settings-tab"]').count()).toBe(1);
+
+    // Click Capture tab inside settings: switches tab without leaving Feedback mode
+    await page.click('luci-feedback [data-tool-tab="capture"]');
+    expect(await page.locator('luci-feedback [data-tool-tab="capture"]').getAttribute('aria-selected')).toBe('true');
+    expect(await page.locator('luci-feedback [data-part="capture-settings-tab"]').count()).toBe(1);
+    expect(await page.locator('luci-feedback select[data-setting="units"]').count()).toBe(1);
+
+    // Click Layout tab inside settings
+    await page.click('luci-feedback [data-tool-tab="layout"]');
+    expect(await page.locator('luci-feedback [data-tool-tab="layout"]').getAttribute('aria-selected')).toBe('true');
+    expect(await page.locator('luci-feedback [data-part="layout-settings-tab"]').count()).toBe(1);
+
+    // Close settings
+    await page.click('luci-feedback [data-action="settings"]');
+    expect(await page.locator('luci-feedback [data-part="settings"]').count()).toBe(0);
+
+    // 2. In Layout mode: opens with Layout tab selected
+    await page.click('[data-mode="layout"]');
+    await page.locator('luci-layout .bar').waitFor();
+    await page.click('luci-layout [data-action="settings"]');
+    await page.locator('luci-layout [data-part="settings"]').waitFor();
+    expect(await page.locator('luci-layout [data-tool-tab="layout"]').getAttribute('aria-selected')).toBe('true');
+    expect(await page.locator('luci-layout [data-part="layout-settings-tab"]').count()).toBe(1);
+    await page.click('luci-layout [data-action="settings"]');
+
+    // 3. In Capture mode: opens with Capture tab selected
+    await page.click('[data-mode="capture"]');
+    await page.locator('luci-toolbar .bar').waitFor();
+    await page.click('luci-toolbar [data-action="settings"]');
+    await page.locator('luci-toolbar [data-part="settings"]').waitFor();
+    expect(await page.locator('luci-toolbar [data-tool-tab="capture"]').getAttribute('aria-selected')).toBe('true');
+    expect(await page.locator('luci-toolbar [data-part="capture-settings-tab"]').count()).toBe(1);
+    await page.click('luci-toolbar [data-action="settings"]');
+
+    await ctx.close();
+  });
 });
 

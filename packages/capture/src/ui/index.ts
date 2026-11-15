@@ -9,4 +9,5 @@ export { ButtonSpinner, Loading, nextPaint } from './loading.js';
 export { ModeSwitch, type Mode, type ModeSwitchProps } from './modeSwitch.js';
 export { CHECK_HINT, CheckResultPanel, DesignChooser, type AddCheckNotes, type DesignSource, type SavedDesign } from './check.js';
 export * from './theme.js';
+export { DevSettingsPanel, MARKER_COLORS, DEFAULT_FEEDBACK_SETTINGS, FEEDBACK_SETTINGS_KEY, CAPTURE_SETTINGS_KEY, type FeedbackSettings, type DevSettingsPanelProps, type DevToolTab, type StorageLike } from './devSettings.js';
 export { RemapSection, pageTokenStore, remapOutput, type MyTokensSource } from './remap.js';

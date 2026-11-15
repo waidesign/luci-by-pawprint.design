@@ -322,6 +322,16 @@ label { display: inline-flex; gap: var(--luci-space-4); align-items: center; col
 .project-port-row { display: flex; align-items: center; gap: var(--luci-space-8); margin-top: var(--luci-space-4); }
 .port-input { flex: 1; min-width: 0; padding: 4px var(--luci-space-8); border-radius: var(--luci-radius-sm); border: 1px solid var(--luci-color-stroke-subtle); background: var(--luci-color-surface-raised); font: var(--luci-type-code-weight) 12px/1.4 var(--luci-font-code); color: var(--luci-color-ink); }
 
+/* DevTool tabbed settings (v0.4.4) */
+.setting-tools-header { display: flex; flex-direction: column; gap: var(--luci-space-8); }
+.tool-tabs { display: flex; width: 100%; box-sizing: border-box; }
+.tool-tabs button { flex: 1 1 0; text-align: center; justify-content: center; }
+.tool-settings-body { display: flex; flex-direction: column; gap: var(--luci-space-12); }
+.swatches { display: flex; gap: var(--luci-space-8); flex-wrap: wrap; }
+.luci-theme .swatches button { width: 28px; min-height: 28px; height: 28px; padding: 0; border-radius: 50%; border: 0; cursor: pointer; }
+.luci-theme .swatches button::before { inset: -8px; }
+.luci-theme .swatches button[aria-pressed="true"] { outline: 2px solid var(--luci-color-focus); outline-offset: 2px; }
+
 /* The selected element and its tips */
 .selected-card { display: flex; flex-direction: column; gap: var(--luci-space-12); padding: var(--luci-space-16); border-radius: var(--luci-radius-lg); background: var(--luci-color-surface-raised); border: 1px solid var(--luci-color-stroke-subtle); }
 .selected-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--luci-space-8); flex-wrap: wrap; }

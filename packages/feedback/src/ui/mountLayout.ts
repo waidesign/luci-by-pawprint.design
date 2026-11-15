@@ -1,6 +1,6 @@
 /** Put Layout mode on a page, in its own shadow root (the page's preview stylesheet is the only thing it adds outside). */
 import { h, render } from 'preact';
-import { LUCI_UI_ATTRIBUTE, type ModeSwitchProps } from '@luci/capture';
+import { LUCI_UI_ATTRIBUTE, type ModeSwitchProps, type StorageLike } from '@luci/capture';
 import { loadFonts } from '@luci/ui';
 import type { FeedbackBackend } from '../backend.js';
 import { FEEDBACK_CSS } from './styles.js';
@@ -14,6 +14,12 @@ export interface LayoutMountOptions {
   modes?: ModeSwitchProps;
   connectNote?: string;
   onClose?: () => void;
+  /** Active project details (from luci serve /health). */
+  projectInfo?: {
+    get: () => Promise<{ project?: string; name?: string; url?: string } | null>;
+    setUrl?: (url: string) => Promise<void>;
+  };
+  store?: StorageLike;
 }
 
 export function mountLayout(options: LayoutMountOptions): { host: HTMLElement; destroy(): void } {
@@ -48,6 +54,8 @@ export function mountLayout(options: LayoutMountOptions): { host: HTMLElement; d
     backend: options.backend,
     ...(options.modes ? { modes: options.modes } : {}),
     ...(options.connectNote ? { connectNote: options.connectNote } : {}),
+    ...(options.projectInfo ? { projectInfo: options.projectInfo } : {}),
+    ...(options.store ? { store: options.store } : {}),
     onClose: () => { destroy(); options.onClose?.(); }
   }), mountPoint);
   return { host, destroy };

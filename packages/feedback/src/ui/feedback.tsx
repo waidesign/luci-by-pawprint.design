@@ -6,7 +6,7 @@
  * Notes live in a FeedbackBackend.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import { AppearanceControls, ButtonSpinner, LuciLogo, ModeSwitch, elementAt, isLuciUi, scrollableAncestor, useUiPrefs, type ModeSwitchProps, type UiPrefs } from '@luci/capture';
+import { AppearanceControls, ButtonSpinner, DevSettingsPanel, LuciLogo, ModeSwitch, elementAt, isLuciUi, scrollableAncestor, useUiPrefs, type ModeSwitchProps, type StorageLike, type UiPrefs } from '@luci/capture';
 import {
   DETAIL_LEVELS,
   FEEDBACK_INTENTS,
@@ -53,6 +53,12 @@ export interface FeedbackProps {
   /** Look for `luci serve` again (the badge becomes a button); resolves null when connected, else why not. */
   onConnect?: () => Promise<string | null>;
   onClose: () => void;
+  /** Active project details (from luci serve /health). */
+  projectInfo?: {
+    get: () => Promise<{ project?: string; name?: string; url?: string } | null>;
+    setUrl?: (url: string) => Promise<void>;
+  };
+  store?: StorageLike;
 }
 
 /**
@@ -449,7 +455,23 @@ export function Feedback(props: FeedbackProps) {
         </div>
       )}
 
-      {panel === 'settings' && <SettingsPanel settings={settings} onChange={changeSettings} uiPrefs={uiPrefs} onUiPrefsChange={setUiPrefs} count={items.length} onClearAll={() => void act(() => backend.clear('all'))} />}
+      {panel === 'settings' && (
+        props.modes ? (
+          <DevSettingsPanel
+            currentMode="feedback"
+            uiPrefs={uiPrefs}
+            onUiPrefsChange={setUiPrefs}
+            projectInfo={props.projectInfo}
+            store={props.store}
+            feedbackSettings={settings}
+            onFeedbackSettingsChange={changeSettings}
+            feedbackNotesCount={items.length}
+            onClearAllFeedbackNotes={() => void act(() => backend.clear('all'))}
+          />
+        ) : (
+          <SettingsPanel settings={settings} onChange={changeSettings} uiPrefs={uiPrefs} onUiPrefsChange={setUiPrefs} count={items.length} onClearAll={() => void act(() => backend.clear('all'))} />
+        )
+      )}
 
       {error && (
         <div class="sub" role="alert" data-part="error" style={{ top: 'auto', bottom: '12px', left: '12px', right: 'auto' }}>
