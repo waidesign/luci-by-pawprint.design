@@ -16,8 +16,10 @@
 ## 1. Where things stand
 
 - **Project:** Luci, a local-first toolkit for AI coding agents: project memory, skill selection, design capture (browser extension and dev toolbar) and UI feedback. Spec: `docs/PRD.md` (Part 4 is the build brief). Monorepo, pnpm, TypeScript, vitest, Playwright, Preact; 10 packages including `@luci/ui` (see `.luci/context.md`).
-- **Git State:** Working tree clean. All commits pushed to GitHub `origin/main`.
+- **Git State:** Working tree clean. Pushing `976e985` and `6b0e787` to GitHub `origin/main`.
 - **Recent Commit History (Latest commits on main):**
+  - `6b0e787` — **fix(ui)**: prevent tooltip masking inside cards/panels (left-align first-child tooltips inside `.panel`, right-align last-child) and elevate hover `z-index`.
+  - `976e985` — **v0.4.1 Watch & Auto-Check**: automatic reconciliation of open feedback notes against design check runs (auto-resolving fixed notes, updating shifting values), `luci capture checks` CLI command, and MCP check note refs.
   - `4bddd51` — **test(capture)**: verify basket button hover never flashes orange tool-active.
   - `bffcbdf` — **Capture**: component color set, basket button hover lime, mode switch active black text.
   - `329a83e` — **B16: monorepo sub-package scoping and package rules**: ancestor directory climbing (`findProjectRoot`), package-scoped rules under `## Package: <path-or-name>` in root `.luci/rules.md`, active package stack & rules reporting in `get_project_context`, `luci start`, `luci doctor`, and transparent monorepo scoping for all CLI commands (`task`, `skills`, `capture`, `map`, `serve`).
