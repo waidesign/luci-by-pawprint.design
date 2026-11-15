@@ -6,7 +6,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { RemapSection, pageTokenStore, remapOutput, type MyTokensSource } from './remap.js';
 import type { ViewportWidth } from '../responsive.js';
-import { cleanSource, compareCaptures, estimatePalette, formatCapture, type CheckRun, formatCompareReport, groupOf, imageColorSystem, imageFileName, mergeGroups, withInstructions, type CompareResult, type Responsive, type BasketItem, type CaptureSettings, type ComponentCapture } from '@luci/format/capture';
+import { STITCH_FILE_NAME, cleanSource, compareCaptures, estimatePalette, formatCapture, formatStitch, type CheckRun, formatCompareReport, groupOf, imageColorSystem, imageFileName, mergeGroups, withInstructions, type CompareResult, type Responsive, type BasketItem, type CaptureSettings, type ComponentCapture } from '@luci/format/capture';
 import { addToBasket, exportBasket, exportItem, mergeInBasket, noteInBasket, removeFromBasket, renameInBasket, sourceLabel, type BasketStore } from './basket.js';
 import type { Eligibility } from '../eligibility.js';
 import type { ElementSnapshot } from '../model.js';
@@ -823,6 +823,8 @@ export function Toolbar(props: ToolbarProps) {
   useEffect(() => () => clearTimeout(copyTimer.current), []);
 
   const changeSettings = (next: CaptureSettings) => {
+    // Hand edits belong to one file format: switching it starts from the capture again
+    if ((next.style ?? 'luci') !== (settings.style ?? 'luci')) setEdited(null);
     setSettings(next);
     setCopied(false);
     props.onSettingsChange?.(next);
@@ -837,7 +839,13 @@ export function Toolbar(props: ToolbarProps) {
   const [instructions, setInstructions] = useState('');
   const [edited, setEdited] = useState<string | null>(null);
   const captureWithInstructions = output ? ({ ...output.capture, ...(instructions.trim() ? { instructions: instructions.trim() } : {}) } as typeof output.capture) : null;
-  const markdown = edited ?? (captureWithInstructions ? formatCapture(captureWithInstructions, settings) : '');
+  // The file people copy and download: Luci's tables, or DESIGN.md for Google Stitch (a section with its components in one)
+  const stitch = settings.style === 'stitch';
+  const luciMarkdown = (!stitch ? edited : null) ?? (captureWithInstructions ? formatCapture(captureWithInstructions, settings) : '');
+  const markdown = edited ?? (captureWithInstructions
+    ? (stitch ? formatStitch([captureWithInstructions, ...(output?.files ?? []).map(f => f.capture)]) : luciMarkdown)
+    : '');
+  const outputName = output ? (stitch ? STITCH_FILE_NAME : output.fileName) : '';
   const changeInstructions = (text: string) => {
     setInstructions(text);
     setCopied(false);
@@ -907,7 +915,7 @@ export function Toolbar(props: ToolbarProps) {
   };
 
   const copy = () => copyText(markdown);
-  const download = () => { if (output) downloadText(output.fileName, markdown); };
+  const download = () => { if (output) downloadText(outputName, markdown); };
 
   // A section (v0.2): its component files follow the unit and color settings too
   const [viewFile, setViewFile] = useState<{ fileName: string; markdown: string } | null>(null);
@@ -927,7 +935,8 @@ export function Toolbar(props: ToolbarProps) {
   };
   /** Save to project: the file, and a section's component files with it. */
   const saveAll = async () => {
-    const first = await props.saveToProject!(output!.fileName, markdown);
+    // The project keeps Luci's tables (the design check and the agent's tools read them), whatever is copied
+    const first = await props.saveToProject!(output!.fileName, luciMarkdown);
     for (const f of sectionFiles) await props.saveToProject!(f.fileName, f.markdown);
     return sectionFiles.length ? { ...first, path: `${first.path} and ${sectionFiles.length} component file${sectionFiles.length === 1 ? '' : 's'}` } : first;
   };
@@ -959,7 +968,7 @@ export function Toolbar(props: ToolbarProps) {
     setAdded(true);
     const current = basketLoaded.current || !store ? basket : await store.load();
     basketLoaded.current = true;
-    let next = addToBasket(current, captureWithInstructions ?? output.capture, edited ?? undefined);
+    let next = addToBasket(current, captureWithInstructions ?? output.capture, (!stitch ? edited : null) ?? undefined);
     // A section's component files go in with it
     for (const f of output.files ?? []) next = addToBasket(next, f.capture);
     saveBasket(next);
@@ -986,7 +995,10 @@ export function Toolbar(props: ToolbarProps) {
     setMergedNote(`Added to the basket: ${merged.map(m => `${m.name} (${sourceLabel(m)})`).join(', ')}. The page systems stay; export the site system${merged.length === 1 ? '' : 's'} like any item.`);
   };
   const exported = basketExport
-    ? (basketExport.item ? exportItem(basketExport.item, settings) : basket.length ? exportBasket(basket, settings) : null)
+    ? (settings.style === 'stitch'
+      // DESIGN.md for Stitch: the item, or the whole basket, in one file (with each item's note)
+      ? { fileName: STITCH_FILE_NAME, markdown: formatStitch((basketExport.item ? [basketExport.item] : basket).map(i => i.capture)) }
+      : basketExport.item ? exportItem(basketExport.item, settings) : basket.length ? exportBasket(basket, settings) : null)
     : null;
 
   const Dropper = (win as unknown as { EyeDropper?: new () => { open(): Promise<{ sRGBHex: string }> } }).EyeDropper;
@@ -1361,6 +1373,12 @@ export function Toolbar(props: ToolbarProps) {
                     <option value="page">page address</option><option value="site">site name only</option>
                   </Select>
                 </label>
+                <label class="field-stack" title="The file you copy, download and export: Luci's tables, or DESIGN.md for Google Stitch">
+                  <span class="dim">File</span>
+                  <Select data-setting="style" value={settings.style ?? 'luci'} onChange={e => changeSettings({ ...settings, style: (e.currentTarget as HTMLSelectElement).value as 'luci' })}>
+                    <option value="luci">Luci tables</option><option value="stitch">DESIGN.md (Stitch)</option>
+                  </Select>
+                </label>
               </div>
             </div>
             <hr class="settings-divider" />
@@ -1626,7 +1644,7 @@ export function Toolbar(props: ToolbarProps) {
               <>
                 <div class="panel-body">
                   <div class="file-row">
-                    <div class="file" data-part="file-name">{result.output.fileName}</div>
+                    <div class="file" data-part="file-name">{outputName}</div>
                     <span class="scope-pill badge">{result.output.capture.meta.scope}</span>
                   </div>
                   {sectionFiles.length > 0 && (
@@ -1664,7 +1682,14 @@ export function Toolbar(props: ToolbarProps) {
                         <option value="page">page address</option><option value="site">site name only</option>
                       </Select>
                     </label>
+                    <label class="field-stack" title="The file you copy and download: Luci's tables, or DESIGN.md for Google Stitch">
+                      <span class="field-label">File</span>
+                      <Select data-setting="style" value={settings.style ?? 'luci'} onChange={e => changeSettings({ ...settings, style: (e.currentTarget as HTMLSelectElement).value as 'luci' })}>
+                        <option value="luci">Luci tables</option><option value="stitch">DESIGN.md (Stitch)</option>
+                      </Select>
+                    </label>
                   </div>
+                  {stitch && props.saveToProject && <p class="dim" data-part="stitch-note">Save to project keeps Luci's tables: the design check and your agent's tools read them.</p>}
                   {stateNote && <p class="hint" data-part="state-note">{stateNote}</p>}
                   {componentCtx && result.output.capture.meta.scope === 'component' && (
                     <div class="stack" data-part="manual-state">
@@ -1763,8 +1788,8 @@ export function Toolbar(props: ToolbarProps) {
                     onInput={e => { setEdited((e.currentTarget as HTMLTextAreaElement).value); setCopied(false); }} />
                   <div class="row actions">
                     <Button variant="primary" size="md" iconOnly tipAbove icon={copied ? IconSuccess : IconCopy} data-action="copy" onClick={copy}
-                      label={copied ? COPY.common.copied : sectionFiles.length ? COPY.capture.actions.copySection : COPY.capture.actions.copy} />
-                    {sectionFiles.length
+                      label={copied ? COPY.common.copied : sectionFiles.length && !stitch ? COPY.capture.actions.copySection : COPY.capture.actions.copy} />
+                    {sectionFiles.length && !stitch
                       ? <Button variant="secondary" size="md" iconOnly tipAbove icon={IconDownload} data-action="download-zip" onClick={downloadZip} label={COPY.capture.actions.downloadZip(sectionFiles.length + 1)} />
                       : <Button variant="secondary" size="md" iconOnly tipAbove icon={IconDownload} data-action="download" onClick={download} label={COPY.capture.actions.download} />}
                     <Button variant="secondary" size="md" iconOnly tipAbove icon={added ? IconSuccess : IconBasket} data-action="add-to-basket"

@@ -1,20 +1,21 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { MEMORY_FILES, PRODUCT } from '@luci/format';
-import { compareComponentFiles, formatCompareReport } from '@luci/format/capture';
+import { STITCH_FILE_NAME, compareComponentFiles, formatCompareReport, formatStitch } from '@luci/format/capture';
 import { DesignStore, canWriteBaseline, captureRule, proposeCaptureRule, writeBaseline } from '@luci/brain';
 import { parseFlags, type Command } from '../context.js';
 
-export const CAPTURE_HELP = `capture [rule <file> | baseline | compare <a> <b>]
+export const CAPTURE_HELP = `capture [rule <file> | baseline [--stitch] | compare <a> <b>]
                         The design captures saved in the project. rule proposes a rule from a component
                         capture; baseline rebuilds the project's own typography, colors and spacing from
-                        its stylesheets; compare lists the differences between two component captures
+                        its stylesheets (--stitch also writes them as DESIGN.md for Google Stitch);
+                        compare lists the differences between two component captures
                         (--dry-run shows what rule or baseline would write)`;
 
 const usage = () => `Usage: ${PRODUCT.command} ${CAPTURE_HELP}`;
 
 export const captureCommand: Command = async (args, ctx) => {
-  const { flags, rest: positional, unknown } = parseFlags(args, ['--dry-run']);
+  const { flags, rest: positional, unknown } = parseFlags(args, ['--dry-run', '--stitch', '--force']);
   if (unknown.length) {
     ctx.err(`Unknown option: ${unknown.join(' ')}\n${usage()}`);
     return 1;
@@ -49,6 +50,17 @@ export const captureCommand: Command = async (args, ctx) => {
     for (const f of r.written) ctx.out(`  ${dryRun ? 'Would write' : 'Wrote'} ${f}`);
     for (const f of r.removed) ctx.out(`  ${dryRun ? 'Would remove' : 'Removed'} ${f} (that system is no longer in the stylesheets)`);
     if (r.written.length && !dryRun) ctx.out(`\nYour agent finds them with list_captures. Your own instructions in these files stay when they are rebuilt.`);
+    // The same baseline as DESIGN.md (the open format Google Stitch reads), at the project's root
+    if (flags.has('--stitch') && r.written.length) {
+      const file = path.join(ctx.cwd, STITCH_FILE_NAME);
+      if (fs.existsSync(file) && !flags.has('--force')) {
+        ctx.err(`${STITCH_FILE_NAME} is already in this project. Run again with --force to replace it.`);
+        return 1;
+      }
+      const systems = [r.baseline.typography, r.baseline.color, r.baseline.spacing].filter((c): c is NonNullable<typeof c> => c !== null);
+      if (!dryRun) fs.writeFileSync(file, formatStitch(systems, { name: `${path.basename(ctx.cwd)} design` }), 'utf8');
+      ctx.out(`  ${dryRun ? 'Would write' : 'Wrote'} ${STITCH_FILE_NAME} (DESIGN.md format, for Google Stitch and other DESIGN.md tools)`);
+    }
     return 0;
   }
 

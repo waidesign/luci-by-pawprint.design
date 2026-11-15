@@ -22,6 +22,8 @@ export const UNIT_SETTINGS = ['px', 'rem', 'both'] as const;
 export const COLOR_SETTINGS = ['hex', 'rgb', 'hsl', 'oklch'] as const;
 /** How the source is written: the page (origin and path) or only the site's name ("lattice.com"). */
 export const SOURCE_SETTINGS = ['page', 'site'] as const;
+/** The file to copy and export: Luci's tables, or DESIGN.md for Google Stitch (v0.4.x). */
+export const STYLE_SETTINGS = ['luci', 'stitch'] as const;
 /** A site's name as the "site" source setting writes it: host without "www.", with a port when there is one. */
 export const siteNameSchema = z.string().regex(/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*(:\d+)?$/i, 'a site name, e.g. example.com');
 
@@ -414,6 +416,11 @@ export const captureSettingsSchema = z.object({
   colors: z.enum(COLOR_SETTINGS).default('hex'),
   /** `page` writes the page's address (origin and path); `site` only the site's name. */
   source: z.enum(SOURCE_SETTINGS).default('page'),
+  /**
+   * The file people copy, download and export: Luci's tables (`luci`), or DESIGN.md for Google Stitch
+   * and other prose-first workflows (`stitch`, formatStitch). Files saved into the project stay Luci's.
+   */
+  style: z.enum(STYLE_SETTINGS).default('luci'),
   /** The page's root font size in px, for rem conversion. */
   rootFontSize: z.number().positive().default(16)
 });

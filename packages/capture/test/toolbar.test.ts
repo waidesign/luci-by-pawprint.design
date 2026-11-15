@@ -443,6 +443,26 @@ describe('v0.4: use my tokens, and compare two basket items', { timeout: 30_000 
     await page.context().close();
   });
 
+  it('File: DESIGN.md (Stitch) turns the preview, copy and download into the DESIGN.md format, and back', async () => {
+    const page = await open('css-variables');
+    await page.click('button[data-tool="component"]');
+    await page.click('.card:first-child .button', { force: true });
+    await page.click('[data-output="one"]');
+    await page.selectOption('select[data-setting="style"]', 'stitch');
+    expect(await page.locator('[data-part="file-name"]').innerText()).toBe('DESIGN.md');
+    const md = await preview(page);
+    expect(md).toMatch(/^---\nversion: alpha\nname: /);
+    expect(md).toContain('\ncomponents:\n  primary-button:\n');
+    expect(md).toContain('## Components');
+    await page.click('[data-action="copy"]');
+    expect((await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, '\n')).toMatch(/^---\nversion: alpha\n/);
+    // Back to Luci's tables
+    await page.selectOption('select[data-setting="style"]', 'luci');
+    expect(await page.locator('[data-part="file-name"]').innerText()).toMatch(/\.component\.primary-button\.design\.md$/);
+    expect(await preview(page)).toMatch(/^---\nname: primary-button\nscope: component\n/);
+    await page.context().close();
+  });
+
   it('compares two basket items: what differs, A and B, and copies it', async () => {
     const page = await open('css-variables');
     for (const sel of ['.card:first-child .button', '.card:nth-child(2) .button']) {

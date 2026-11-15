@@ -93,6 +93,10 @@ font's full licence is next to it.
 | Inter | Copyright 2016 The Inter Project Authors | `packages/ui/src/fonts/inter-OFL.txt` |
 | JetBrains Mono | Copyright 2020 The JetBrains Mono Project Authors | `packages/ui/src/fonts/jetbrains-mono-OFL.txt` |
 
+## Formats Luci writes
+
+Luci can export captures as DESIGN.md in the open format of [google-labs-code/design.md](https://github.com/google-labs-code/design.md) (Apache License 2.0, version "alpha"), the format Google Stitch reads. Luci contains none of that project's code: it writes files that follow its specification.
+
 ## Tools Luci can install and run (not bundled)
 
 Luci's code map is powered by Graphify. Luci contains no Graphify or uv code: with the person's

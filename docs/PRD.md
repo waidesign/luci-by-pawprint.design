@@ -468,6 +468,7 @@ These ideas sit outside v0.1 and are ranked by how much each widens the gap from
 | 7 | **Remap to my tokens.** Rewrite a capture onto your own design tokens. | Borrow structure and behaviour without borrowing the brand | v0.4 (built 15 Nov 2026: "Use my tokens", from the project's stylesheets or pasted CSS) |
 | 8 | **Compare mode.** Diff two captures, such as two sites' buttons. | Useful for research and design reviews | v0.4 (built 15 Nov 2026: the basket, `luci capture compare`, `compare_captures`) |
 | 9 | **Screenshot mode.** Estimate a file from an image, with every value flagged as estimated. | A fallback for apps and images you cannot inspect | v0.4 (built 15 Nov 2026: the Colour tool's Image, a color system estimated from a screenshot; colors only) |
+| 10 | **DESIGN.md export for Google Stitch.** Export captures (one, or the basket) and the project baseline in the open DESIGN.md format (google-labs-code/design.md): YAML design tokens, then prose sections filled in from measured values by fixed templates, never written by AI. | Teams on Google Stitch or other prose-first DESIGN.md workflows use Luci's captures directly | Added 15 Nov 2026 at the user's request (built: the File setting "DESIGN.md (Stitch)", `luci capture baseline --stitch`) |
 
 ## Recommended first step
 

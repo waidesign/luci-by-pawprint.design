@@ -84,6 +84,22 @@ describe('luci capture baseline (B14) and compare (v0.4)', () => {
     expect(f.text()).toContain('Wrote .luci/design/project.system.spacing.design.md');
   });
 
+  it('--stitch also writes the baseline as DESIGN.md at the project root, never over one without --force', async () => {
+    const dir = tempProject({ 'package.json': JSON.stringify({ name: 'shop' }), 'src/app.css': ':root { --brand: #0f62fe; --space-4: 1rem; }\nbody { font-family: Inter, sans-serif; color: #161616; }\n.card { padding: var(--space-4); background: var(--brand); }\n' });
+    await initProject(dir);
+    const f = fakeContext(dir);
+    expect(await run(['capture', 'baseline', '--stitch'], f.ctx)).toBe(0);
+    expect(f.text()).toContain('Wrote DESIGN.md (DESIGN.md format, for Google Stitch and other DESIGN.md tools)');
+    const md = fs.readFileSync(path.join(dir, 'DESIGN.md'), 'utf8');
+    expect(md).toMatch(/^---\nversion: alpha\nname: /);
+    expect(md).toContain('primary: "#0f62fe"');
+    expect(md).toContain('## Colors');
+    const again = fakeContext(dir);
+    expect(await run(['capture', 'baseline', '--stitch'], again.ctx)).toBe(1);
+    expect(again.errors()).toContain('DESIGN.md is already in this project. Run again with --force to replace it.');
+    expect(await run(['capture', 'baseline', '--stitch', '--force'], fakeContext(dir).ctx)).toBe(0);
+  });
+
   it('says so when a project has no stylesheets, and needs init first', async () => {
     const bare = tempProject();
     const none = fakeContext(bare);

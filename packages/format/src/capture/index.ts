@@ -12,3 +12,4 @@ export * from './baseline.js';
 export * from './compare.js';
 export * from './remap.js';
 export * from './image.js';
+export * from './stitch.js';
