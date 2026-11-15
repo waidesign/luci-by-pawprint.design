@@ -816,5 +816,39 @@ describe('extension branding, settings panel and the brand kit themes', { timeou
 
     await page.context().close();
   });
+
+  it('allows user to disable and re-enable debugger via settings toggle (v0.4.4 Option 3)', async () => {
+    const page = await open('css-variables');
+    await page.evaluate(() => {
+      const w = window as any;
+      w.toolbar?.destroy();
+      w.savedSettings = [];
+      w.toolbar = w.LuciCapture.mountToolbar({
+        doc: document,
+        settings: { useDebugger: true },
+        onSettingsChange: (s: any) => { w.savedSettings.push(s); },
+        debuggerPermission: {
+          get: async () => true
+        }
+      });
+    });
+
+    await page.click('[data-action="settings"]');
+    await page.locator('[data-part="debugger-permission"]').waitFor();
+    expect(await page.locator('[data-part="debugger-permission"] .project-name').innerText()).toBe('Debugger: active');
+    expect(await page.locator('[data-action="toggle-debugger"]').innerText()).toBe('Disable debugger');
+
+    // Click Disable debugger
+    await page.click('[data-action="toggle-debugger"]');
+    expect(await page.locator('[data-part="debugger-permission"] .project-name').innerText()).toBe('Debugger: disabled');
+    expect(await page.locator('[data-action="toggle-debugger"]').innerText()).toBe('Enable debugger');
+
+    // Click Enable debugger
+    await page.click('[data-action="toggle-debugger"]');
+    expect(await page.locator('[data-part="debugger-permission"] .project-name').innerText()).toBe('Debugger: active');
+    expect(await page.locator('[data-action="toggle-debugger"]').innerText()).toBe('Disable debugger');
+
+    await page.context().close();
+  });
 });
 

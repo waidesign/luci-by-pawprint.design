@@ -498,6 +498,8 @@ export const captureSettingsSchema = z.object({
   /** The page's root font size in px, for rem conversion. */
   rootFontSize: z.number().positive().default(16),
   /** Include computed layout tree in formatted output (v0.4.3). */
-  layoutTree: z.boolean().default(false)
+  layoutTree: z.boolean().default(false),
+  /** When true (default), uses the browser's debugger briefly during captures for exact CDP states & resizing. */
+  useDebugger: z.boolean().default(true)
 });
 export type CaptureSettings = z.input<typeof captureSettingsSchema>;

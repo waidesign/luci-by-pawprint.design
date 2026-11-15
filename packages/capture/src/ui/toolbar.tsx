@@ -269,6 +269,9 @@ export function Toolbar(props: ToolbarProps) {
   const [result, setResult] = useState<Result | null>(null);
   const [choice, setChoice] = useState(ALL_SPACING);
   const [settings, setSettings] = useState<CaptureSettings>(props.settings);
+  const useDebugger = settings.useDebugger ?? true;
+  const forcedStatesReader = useDebugger ? props.readForcedStates : undefined;
+  const viewportWidthSetter = useDebugger ? props.setViewportWidth : undefined;
   const [copied, setCopied] = useState(false);
   const [dropperOpen, setDropperOpen] = useState(false);
   const [basketOpen, setBasketOpen] = useState(false);
@@ -397,7 +400,7 @@ export function Toolbar(props: ToolbarProps) {
     setAutoNote(null);
     checkingNow.current = true;
     try {
-      const outcome = await checkAgainst(picked.live, picked.entry, checkDesign, props.readForcedStates);
+      const outcome = await checkAgainst(picked.live, picked.entry, checkDesign, forcedStatesReader);
       if (outcome.ok) await afterCheck(outcome, checkDesign, picked.entry.selector);
       else show(outcome);
     } catch (err) {
@@ -420,7 +423,7 @@ export function Toolbar(props: ToolbarProps) {
       const entry = entryFor(live, el);
       if (!entry) return;
       const before = checkOutcome.result.differences.length;
-      const outcome = await checkAgainst(live, entry, checkDesign, props.readForcedStates);
+      const outcome = await checkAgainst(live, entry, checkDesign, forcedStatesReader);
       if (run !== checkRun.current || !outcome.ok) return;
       setPicked(p => (p ? { ...p, el, entry, live } : p));
       const res = await afterCheck(outcome, checkDesign, selector);
@@ -471,7 +474,7 @@ export function Toolbar(props: ToolbarProps) {
       setCheckDesign(watch.design);
       setPicked({ el, entry, live, eligibility: eligibilityOf(el) });
       checkingNow.current = true;
-      void checkAgainst(live, entry, watch.design, props.readForcedStates)
+      void checkAgainst(live, entry, watch.design, forcedStatesReader)
         .then(outcome => { if (outcome.ok) { afterCheck(outcome, watch.design, watch.selector); setAutoNote('Checked again after the page reloaded.'); } })
         .finally(() => { checkingNow.current = false; });
     }, 250);
@@ -512,7 +515,7 @@ export function Toolbar(props: ToolbarProps) {
     setBusy('Reading hover, focus, active and disabled…');
     try {
       const rest = restingValues(stateTargets(picked.live, picked.entry));
-      const { states, note } = await readComponentStates(picked.live, picked.entry, props.readForcedStates);
+      const { states, note } = await readComponentStates(picked.live, picked.entry, forcedStatesReader);
       setStateNote(note);
       setComponentCtx({ live: picked.live, entry: picked.entry, system, states, rest });
       setManualTarget(missingStates(states).length ? ALL_MISSING : 'hover');
@@ -915,9 +918,9 @@ export function Toolbar(props: ToolbarProps) {
       let data: Responsive;
       let note: string | null = null;
       try {
-        data = await readResponsive(picked.live, picked.entry, kind, { ...(props.setViewportWidth ? { setWidth: props.setViewportWidth } : {}), onWidth });
+        data = await readResponsive(picked.live, picked.entry, kind, { ...(viewportWidthSetter ? { setWidth: viewportWidthSetter } : {}), onWidth });
       } catch (err) {
-        if (!props.setViewportWidth) throw err;
+        if (!viewportWidthSetter) throw err;
         // The window could not be resized (the debugger was refused): a frame of the page instead
         data = await readResponsive(picked.live, picked.entry, kind, { onWidth });
         note = `The window could not be resized (${err instanceof Error ? err.message : String(err)}), so Luci read the page in a hidden frame instead.`;
@@ -1459,18 +1462,33 @@ export function Toolbar(props: ToolbarProps) {
             {props.debuggerPermission && (
               <div class="project-card" data-part="debugger-permission">
                 <div class="project-header">
-                  <span class={`status-dot ${debuggerGranted ? 'online' : 'offline'}`} aria-hidden="true"></span>
+                  <span class={`status-dot ${debuggerGranted && useDebugger ? 'online' : 'offline'}`} aria-hidden="true"></span>
                   <div class="project-info">
-                    <span class="project-name">{debuggerGranted ? 'Debugger: active' : 'Debugger: optional (not enabled)'}</span>
+                    <span class="project-name">
+                      {debuggerGranted
+                        ? (useDebugger ? 'Debugger: active' : 'Debugger: disabled')
+                        : 'Debugger: optional (not enabled)'}
+                    </span>
                     <span class="project-hint dim">
                       {debuggerGranted
-                        ? 'Exact CDP states & viewport emulation enabled'
+                        ? (useDebugger
+                            ? 'Briefly attaches only during captures for exact CDP states'
+                            : 'CSS rules & hidden frames active. Debugger will never be attached.')
                         : 'CSS rules & frame fallback active'}
                     </span>
                   </div>
                 </div>
-                {!debuggerGranted && (
-                  <div class="project-port-row">
+                <div class="project-port-row">
+                  {debuggerGranted ? (
+                    <button
+                      type="button"
+                      class="btn-secondary"
+                      data-action="toggle-debugger"
+                      onClick={() => changeSettings({ ...settings, useDebugger: !useDebugger })}
+                    >
+                      {useDebugger ? 'Disable debugger' : 'Enable debugger'}
+                    </button>
+                  ) : (
                     <button
                       type="button"
                       class="btn-secondary"
@@ -1485,8 +1503,8 @@ export function Toolbar(props: ToolbarProps) {
                     >
                       Enable in Help
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             )}
             <hr class="settings-divider" />
