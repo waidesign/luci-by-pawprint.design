@@ -307,6 +307,55 @@ export const responsiveSchema = z.object({
 });
 export type Responsive = z.infer<typeof responsiveSchema>;
 
+/**
+ * Computed layout relationships (v0.4.3): captures parent/child flex and grid layout roles,
+ * directions, alignments, gaps, and item layout properties so agents receive layout hierarchy context.
+ */
+export const computedLayoutSchema = z.object({
+  display: z.string().min(1).optional(),
+  direction: z.enum(['row', 'column', 'row-reverse', 'column-reverse']).optional(),
+  wrap: z.enum(['nowrap', 'wrap', 'wrap-reverse']).optional(),
+  justifyContent: z.string().min(1).optional(),
+  alignItems: z.string().min(1).optional(),
+  alignContent: z.string().min(1).optional(),
+  gap: z.string().min(1).optional(),
+  rowGap: z.string().min(1).optional(),
+  columnGap: z.string().min(1).optional(),
+  columns: z.string().min(1).optional(),
+  rows: z.string().min(1).optional(),
+  autoFlow: z.string().min(1).optional(),
+  justifyItems: z.string().min(1).optional(),
+  parentLayout: z.enum(['flex', 'grid', 'block']).optional(),
+  alignSelf: z.string().min(1).optional(),
+  justifySelf: z.string().min(1).optional(),
+  flexGrow: z.string().min(1).optional(),
+  flexShrink: z.string().min(1).optional(),
+  flexBasis: z.string().min(1).optional(),
+  flex: z.string().min(1).optional(),
+  gridColumn: z.string().min(1).optional(),
+  gridRow: z.string().min(1).optional(),
+  order: z.string().min(1).optional()
+});
+export type ComputedLayout = z.infer<typeof computedLayoutSchema>;
+
+export type LayoutTreeNode = {
+  part: string;
+  element: string;
+  depth: number;
+  parent?: string;
+  layout?: ComputedLayout;
+  children: LayoutTreeNode[];
+};
+
+export const layoutTreeNodeSchema: z.ZodType<LayoutTreeNode> = z.lazy(() => z.object({
+  part: slug,
+  element: z.string().min(1),
+  depth: z.number().int().nonnegative(),
+  parent: slug.optional(),
+  layout: computedLayoutSchema.optional(),
+  children: z.array(layoutTreeNodeSchema)
+}));
+
 export const componentSchema = z.object({
   meta: metaSchema.extend({ scope: z.literal('component'), type: slug, selector: z.string().min(1) }),
   instructions: instructionsField,
@@ -319,6 +368,9 @@ export const componentSchema = z.object({
     optional: z.boolean().optional(),
     /** Hidden at rest and shown in these states (an arrow that fades in on hover). */
     appearsIn: z.array(z.enum(COMPONENT_STATES)).optional(),
+    parent: slug.optional(),
+    depth: z.number().int().nonnegative().optional(),
+    layout: computedLayoutSchema.optional(),
     styles: z.array(styleEntrySchema)
   })).min(1),
   states: z.array(z.object({
@@ -355,7 +407,9 @@ export const componentSchema = z.object({
     count: z.number().int().positive(),
     selector: z.string().min(1),
     differences: z.array(styleEntrySchema)
-  })).optional()
+  })).optional(),
+  /** Computed hierarchical layout tree (v0.4.3). */
+  layoutTree: layoutTreeNodeSchema.optional()
 });
 export type ComponentCapture = z.infer<typeof componentSchema>;
 
@@ -375,6 +429,8 @@ export const sectionSchema = z.object({
     depth: z.number().int().min(0).max(12),
     part: slug,
     element: z.string().min(1),
+    parent: slug.optional(),
+    layout: computedLayoutSchema.optional(),
     styles: z.array(styleEntrySchema),
     /**
      * A component: its name and file in this capture; with `count`, the variant of each one in order
@@ -394,7 +450,9 @@ export const sectionSchema = z.object({
   })),
   accessibility: accessibilitySchema.optional(),
   /** How its layout changes by window width (v0.3.4), when the person asked for it. */
-  responsive: responsiveSchema.optional()
+  responsive: responsiveSchema.optional(),
+  /** Computed hierarchical layout tree (v0.4.3). */
+  layoutTree: layoutTreeNodeSchema.optional()
 });
 export type SectionCapture = z.infer<typeof sectionSchema>;
 
@@ -438,6 +496,8 @@ export const captureSettingsSchema = z.object({
    */
   style: z.enum(STYLE_SETTINGS).default('luci'),
   /** The page's root font size in px, for rem conversion. */
-  rootFontSize: z.number().positive().default(16)
+  rootFontSize: z.number().positive().default(16),
+  /** Include computed layout tree in formatted output (v0.4.3). */
+  layoutTree: z.boolean().default(false)
 });
 export type CaptureSettings = z.input<typeof captureSettingsSchema>;

@@ -16,9 +16,10 @@
 ## 1. Where things stand
 
 - **Project:** Luci, a local-first toolkit for AI coding agents: project memory, skill selection, design capture (browser extension and dev toolbar) and UI feedback. Spec: `docs/PRD.md` (Part 4 is the build brief). Monorepo, pnpm, TypeScript, vitest, Playwright, Preact; 10 packages including `@luci/ui` (see `.luci/context.md`).
-- **Git State:** Working tree clean. Option B (`v0.4.2` Multi-page Crawl) implemented, tested (65 test files, 583 tests passing), and committed locally pending user review and confirmation before push to `origin/main`.
+- **Git State:** Working tree clean. Option C (`v0.4.3` Computed Layout Tree) completed, verified (67 test files, 591 tests passing), and committed locally pending user review and confirmation before push to `origin/main`.
 - **Recent Commit History (Latest commits on main):**
-  - *(local)* — **feat(v0.4.2)**: multi-page crawl: capture routes in one pass and merge into site-level DESIGN.md.
+  - *(local)* — **feat(v0.4.3)**: computed layout tree: extract parent/child flex and grid layout relationships in component and section captures.
+  - `eb6cf2a` — **feat(v0.4.2)**: multi-page crawl: capture routes in one pass and merge into site-level DESIGN.md.
   - `7567b01` — **docs**: sync HANDOVER.md with v0.4.1 and tooltip fix.
   - `6b0e787` — **fix(ui)**: prevent tooltip masking inside cards/panels (left-align first-child tooltips inside `.panel`, right-align last-child) and elevate hover `z-index`.
   - `976e985` — **v0.4.1 Watch & Auto-Check**: automatic reconciliation of open feedback notes against design check runs (auto-resolving fixed notes, updating shifting values), `luci capture checks` CLI command, and MCP check note refs.
@@ -44,7 +45,7 @@
 - **Next.js Integration Tested:** `E:\vht - Copy` was initialized with `luci init`, `luci serve` runs on port 4545, and `Script` tag was wired into `apps/web/src/app/layout.tsx`.
 - **Test Suite Status:**
   - `pnpm typecheck` passes with 0 errors.
-  - `pnpm test` passes cleanly: **65 test files passed (583 tests passed, 6 skipped)**.
+  - `pnpm test` passes cleanly: **67 test files passed (591 tests passed, 6 skipped)**.
 - **Builds:**
   - `packages/toolbar/dist/luci-toolbar.js` freshly built.
   - `packages/capture/dist/luci-capture.js` freshly built.

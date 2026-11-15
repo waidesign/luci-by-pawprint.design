@@ -9,7 +9,7 @@ import path from 'node:path';
 import { z } from 'zod';
 import { MEMORY_FILES, PROPOSAL_TARGETS, PRODUCT, formatProposal } from '@luci/format';
 import { DETAIL_LEVELS, FEEDBACK_STATUSES, formatFeedbackPrompt, layoutChangeText, sourceText as feedbackSourceText, type FeedbackItem } from '@luci/format/feedback';
-import { compareComponentFiles, formatCheckRun, formatCheckRunWithNotes, formatCompareReport } from '@luci/format/capture';
+import { buildLayoutTree, compareComponentFiles, formatCheckRun, formatCheckRunWithNotes, formatCompareReport, formatLayoutTree, parseCapture, readComponentFile } from '@luci/format/capture';
 import {
   CODE_MAP_SETUP_HINT,
   CodeMap,
@@ -500,6 +500,38 @@ export const TOOLS: readonly LuciTool[] = [
       if (a === null || b === null) return error(`No capture named ${a === null ? args.a : args.b}. list_captures shows the saved ones.`);
       const result = compareComponentFiles(a, b);
       return result.ok ? text(formatCompareReport(result.value, { a: args.a, b: args.b })) : error(result.error);
+    }),
+
+  tool('get_layout_tree',
+    'Get the computed hierarchical layout tree of a saved component or section capture (from list_captures). Returns the parent/child flex and grid layout relationships, directions, alignment, and gaps as a formatted tree outline. Reads only.',
+    {
+      file: z.string().min(1).describe('A component or section capture file name, e.g. example-com.component.card.design.md'),
+      projectPath
+    },
+    READ,
+    (args, deps) => {
+      const store = new DesignStore(targetRoot(args, deps));
+      if (!store.available) return notInitialized(store.projectDir);
+      const content = store.read(args.file);
+      if (content === null) return error(`No capture named ${args.file}. list_captures shows the saved ones.`);
+      const parsed = parseCapture(content);
+      if (!parsed.ok) return error(`Could not parse ${args.file}: ${parsed.error}`);
+      if (parsed.value.meta.scope !== 'component' && parsed.value.meta.scope !== 'section') {
+        return error(`${args.file} is a ${parsed.value.meta.scope} capture; only components and sections have a layout tree.`);
+      }
+      if (parsed.value.sections['Layout Tree']) {
+        return text(`# Layout Tree: ${args.file}\n\n${parsed.value.sections['Layout Tree']}`);
+      }
+      const comp = readComponentFile(content);
+      if (comp.ok) {
+        const tree = buildLayoutTree(comp.value.parts.map((p, i) => ({
+          part: p.part,
+          element: p.element,
+          depth: i === 0 ? 0 : 1
+        })));
+        if (tree) return text(`# Layout Tree: ${args.file}\n\n${formatLayoutTree(tree)}`);
+      }
+      return text(`No layout tree found in ${args.file}.`);
     }),
 
   tool('propose_capture_rule',

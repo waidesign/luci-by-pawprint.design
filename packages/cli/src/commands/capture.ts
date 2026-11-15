@@ -1,17 +1,18 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { MEMORY_FILES, PRODUCT } from '@luci/format';
-import { STITCH_FILE_NAME, compareComponentFiles, formatCheckRunWithNotes, formatCompareReport, formatStitch } from '@luci/format/capture';
+import { STITCH_FILE_NAME, buildLayoutTree, compareComponentFiles, formatCheckRunWithNotes, formatCompareReport, formatLayoutTree, formatStitch, parseCapture, readComponentFile } from '@luci/format/capture';
 import { CheckStore, DesignStore, FeedbackStore, canWriteBaseline, captureRule, crawlSite, findProjectRoot, proposeCaptureRule, writeBaseline } from '@luci/brain';
 import { parseFlags, type Command } from '../context.js';
 
-export const CAPTURE_HELP = `capture [checks | rule <file> | baseline [--stitch] | compare <a> <b> | crawl <urls...> [--stitch] [--base <url>]]
+export const CAPTURE_HELP = `capture [checks | rule <file> | baseline [--stitch] | compare <a> <b> | crawl <urls...> [--stitch] [--base <url>] | layout <file>]
                         The design captures saved in the project. checks lists recent design check runs;
                         rule proposes a rule from a component capture; baseline rebuilds the project's own
                         typography, colors and spacing from its stylesheets (--stitch also writes them as
                         DESIGN.md for Google Stitch); compare lists the differences between two component
                         captures; crawl visits a list of routes or URLs in one pass, merges them into site-level
-                        systems, and writes them to .luci/design/ (--stitch also writes DESIGN.md)`;
+                        systems, and writes them to .luci/design/ (--stitch also writes DESIGN.md);
+                        layout prints the computed layout tree of a component or section capture`;
 
 const usage = () => `Usage: ${PRODUCT.command} ${CAPTURE_HELP}`;
 
@@ -153,6 +154,38 @@ export const captureCommand: Command = async (args, ctx) => {
       ctx.err(err instanceof Error ? err.message : String(err));
       return 1;
     }
+  }
+
+  // Print the computed layout tree of a component or section (v0.4.3)
+  if (sub === 'layout') {
+    if (!file || extra.length) { ctx.err(`Name one component or section capture file.\n${usage()}`); return 1; }
+    const read = (f: string) => store.read(path.basename(f)) ?? (fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : null);
+    const content = read(file);
+    if (content === null) { ctx.err(`Not found: ${file}`); return 1; }
+    const parsed = parseCapture(content);
+    if (!parsed.ok) { ctx.err(`Could not parse ${file}: ${parsed.error}`); return 1; }
+    if (parsed.value.meta.scope !== 'component' && parsed.value.meta.scope !== 'section') {
+      ctx.err(`${file} is a ${parsed.value.meta.scope} capture; only components and sections have a layout tree.`);
+      return 1;
+    }
+    if (parsed.value.sections['Layout Tree']) {
+      ctx.out(`# Layout Tree: ${path.basename(file)}\n\n${parsed.value.sections['Layout Tree']}`);
+      return 0;
+    }
+    const compResult = readComponentFile(content);
+    if (compResult.ok) {
+      const tree = buildLayoutTree(compResult.value.parts.map((p, i) => ({
+        part: p.part,
+        element: p.element,
+        depth: i === 0 ? 0 : 1
+      })));
+      if (tree) {
+        ctx.out(`# Layout Tree: ${path.basename(file)}\n\n${formatLayoutTree(tree)}`);
+        return 0;
+      }
+    }
+    ctx.out(`No layout tree found in ${file}.`);
+    return 0;
   }
 
   if (sub !== 'rule' || !file || extra.length) {

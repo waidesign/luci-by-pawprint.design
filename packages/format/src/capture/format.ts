@@ -31,6 +31,7 @@ import {
   type TypographySystem
 } from './schema.js';
 import { formatColor, formatLength, formatShadow, formatTransform, parseColor, resolveSettings, round, withoutUrls } from './values.js';
+import { formatLayoutTree } from './layout.js';
 
 export const CAPTURE_EXTENSION = '.design.md';
 
@@ -377,9 +378,10 @@ function componentBody(c: ComponentCapture, s: CaptureSettings, noStates = '- No
     ? table(['Token', 'Value', 'Used for'], c.tokens.map(t => [code(t.token), kindOf(t.usedFor[0] ?? '') === 'color' ? formatColor(t.value, s) : formatLength(t.value, s), t.usedFor.join(', ')]))
     : '- The component uses no custom properties.';
   const anatomy = c.anatomy.map(p => {
+    const indent = s.layoutTree && p.depth && p.depth > 0 ? '  '.repeat(p.depth) : '';
     const appears = p.appearsIn?.length ? `, appears on ${p.appearsIn.join(' and ')}` : '';
     const label = `${p.part} — ${p.element}${p.optional ? ', optional' : ''}${appears}`;
-    return `- ${label}: ${p.styles.length ? p.styles.map(e => styleText(e.property, e.value, s)).join(', ') : 'no styles of its own'}`;
+    return `${indent}- ${label}: ${p.styles.length ? p.styles.map(e => styleText(e.property, e.value, s)).join(', ') : 'no styles of its own'}`;
   });
   const states = c.states.length
     ? table(['State', 'Changes', 'Read from'], c.states.map(st => [
@@ -392,6 +394,7 @@ function componentBody(c: ComponentCapture, s: CaptureSettings, noStates = '- No
     ? c.motion.map(m => `- ${m.part ? `${m.part}: ` : ''}${m.kind} ${m.target} ${m.duration} ${m.easing}${m.delay && m.delay !== '0s' ? `, delay ${m.delay}` : ''}`)
     : ['- None.'];
   const out = ['## Tokens', tokens, '', '## Anatomy', ...anatomy];
+  if (c.layoutTree && s.layoutTree) out.push('', '## Layout Tree', formatLayoutTree(c.layoutTree));
   if (c.images?.length) out.push('', '## Images', ...imagesSection(c.images, s));
   out.push('', '## States', states, '', '## Motion', ...motion);
   if (c.responsive) out.push('', ...responsiveSection(c.responsive, s));
@@ -444,7 +447,9 @@ function sectionBody(c: SectionCapture, s: CaptureSettings): string[] {
   const components = c.components.length
     ? table(['Component', 'Type', 'Uses here', 'Variants', 'File'], c.components.map(k => [code(k.name), k.type, `${k.count}${k.inside ? `, inside ${code(k.inside)}` : ''}`, String(k.variants), code(k.file)]))
     : '- No components inside: the structure describes everything.';
-  const out = ['## Tokens', tokens, '', '## Structure', ...structure, '', SECTION_NOTE, '', '## Components', components];
+  const out = ['## Tokens', tokens, '', '## Structure', ...structure];
+  if (c.layoutTree && s.layoutTree) out.push('', '## Layout Tree', formatLayoutTree(c.layoutTree));
+  out.push('', SECTION_NOTE, '', '## Components', components);
   if (c.responsive) out.push('', ...responsiveSection(c.responsive, s));
   if (c.accessibility) out.push('', ...accessibilitySection(c.accessibility, s));
   return out;

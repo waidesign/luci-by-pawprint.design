@@ -23,7 +23,11 @@ export const SNAPSHOT_PROPERTIES = [
   'transition-property', 'transition-duration', 'transition-timing-function', 'transition-delay',
   'animation-name', 'animation-duration', 'animation-timing-function', 'animation-iteration-count',
   // Sections (v0.2) also read these
-  'grid-template-columns', 'flex-wrap', 'max-width'
+  'grid-template-columns', 'flex-wrap', 'max-width',
+  // Computed layout tree (v0.4.3)
+  'align-self', 'justify-self', 'justify-items', 'align-content',
+  'flex-grow', 'flex-shrink', 'flex-basis',
+  'grid-template-rows', 'grid-auto-flow', 'grid-column', 'grid-row', 'order'
 ] as const;
 export type SnapshotProperty = (typeof SNAPSHOT_PROPERTIES)[number];
 

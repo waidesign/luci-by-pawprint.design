@@ -69,6 +69,22 @@ describe('v0.4 design tools', () => {
     expect(resRel.isError).toBe(true);
     expect(resRel.text).toContain('requires a base URL');
   });
+
+  it('get_layout_tree returns the computed layout tree of a component capture (v0.4.3)', async () => {
+    const dir = await initialized();
+    const golden = fs.readFileSync(fileURLToPath(new URL('../../format/fixtures/capture/example-com.component.card.design.md', import.meta.url)), 'utf8');
+    new DesignStore(dir).save('example-com.component.card.design.md', golden);
+
+    const res = await call(dir, 'get_layout_tree', { file: 'example-com.component.card.design.md' });
+    expect(res.isError).toBeUndefined();
+    expect(res.text).toContain('# Layout Tree: example-com.component.card.design.md');
+    expect(res.text).toContain('- **container**');
+    expect(res.text).toContain('image');
+    expect(res.text).toContain('heading');
+
+    const bad = await call(dir, 'get_layout_tree', { file: 'not-found.design.md' });
+    expect(bad.isError).toBe(true);
+  });
 });
 
 // Ported from the prototype's mcp/server.js tool list (presets and agentation are dropped)
@@ -77,7 +93,7 @@ describe('luci-mcp tools (B11)', () => {
     const names = TOOLS.map(t => t.name).sort();
     expect(names).toEqual([
       'add_skill_packs', 'analyze_project', 'compare_captures', 'crawl_site_design',
-      'get_active_task', 'get_capture', 'get_design_checks', 'get_feedback_prompt', 'get_global_brain', 'get_project_context', 'get_project_graph',
+      'get_active_task', 'get_capture', 'get_design_checks', 'get_feedback_prompt', 'get_global_brain', 'get_layout_tree', 'get_project_context', 'get_project_graph',
       'get_project_skills', 'get_project_status', 'get_skill', 'initialize_project', 'intake_docs', 'list_captures', 'list_feedback',
       'list_skill_packs', 'list_skills', 'load_project_skills', 'load_skills', 'propose_capture_rule', 'propose_memory', 'recommend_skills',
       'remove_skill_packs', 'search_skills', 'select_project_skills', 'update_project_memory', 'watch_feedback'

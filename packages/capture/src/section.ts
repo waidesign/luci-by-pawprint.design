@@ -4,11 +4,12 @@
  * and places each component by reference, so every component is described once. Pure: works on the
  * snapshot; states and images come in from the live page like the full-page reference.
  */
-import { captureFileName, componentSchema, toCaptureName, type ComponentCapture, type SectionCapture } from '@luci/format/capture';
+import { buildLayoutTree, captureFileName, componentSchema, toCaptureName, type ComponentCapture, type SectionCapture } from '@luci/format/capture';
 import { contrastOf } from './a11y.js';
 import { componentCapture, componentType, layoutStyles, partName, textStylesOf, tokensOf, variantGroups, type ComponentImageInput } from './component.js';
 import { eligibility } from './eligibility.js';
 import { aspectRatioOf } from './image.js';
+import { computeElementLayout } from './layout.js';
 import type { ElementSnapshot, PageSnapshot } from './model.js';
 import { elementName } from './naming.js';
 
@@ -144,12 +145,20 @@ export function sectionCapture(
   // The outline: layout boxes with their own styles, text parts with their text style, image slots,
   // and components; boxes with no styles of their own are left out (their children move up a level)
   const kids = childrenOf(snap);
-  const structure: SectionCapture['structure'] = [{ depth: 0, part: 'container', element: elementName(section.tag, section.role), styles: layoutStyles(snap, section) }];
+  const containerLayout = computeElementLayout(section);
+  const structure: SectionCapture['structure'] = [{
+    depth: 0,
+    part: 'container',
+    element: elementName(section.tag, section.role),
+    ...(containerLayout ? { layout: containerLayout } : {}),
+    styles: layoutStyles(snap, section)
+  }];
   const texts: { part: string; el: ElementSnapshot }[] = [];
-  const walk = (el: ElementSnapshot, depth: number) => {
+  const walk = (el: ElementSnapshot, depth: number, parentPart = 'container') => {
     for (const child of kids.get(el.id) ?? []) {
       if (structure.length >= MAX_STRUCTURE_LINES) return;
       if (!child.visible) continue;
+      const childLayout = computeElementLayout(child, el);
       const comp = placed.get(child.id);
       if (comp) {
         // Several of the same component next to each other: one line with a count
@@ -158,37 +167,69 @@ export function sectionCapture(
           last.count = (last.count ?? 1) + 1;
           last.component.variants = [...(last.component.variants ?? [comp.name]), comp.variant];
         } else {
-          structure.push({ depth, part: toCaptureName(componentType(child)), element: elementName(child.tag, child.role), styles: [], component: { name: comp.name, file: comp.file, variants: [comp.variant] } });
+          structure.push({
+            depth,
+            part: toCaptureName(componentType(child)),
+            element: elementName(child.tag, child.role),
+            parent: parentPart,
+            ...(childLayout ? { layout: childLayout } : {}),
+            styles: [],
+            component: { name: comp.name, file: comp.file, variants: [comp.variant] }
+          });
         }
         continue;
       }
       if (IMAGE_TAGS.has(child.tag)) {
-        structure.push({ depth, part: 'image', element: elementName(child.tag, child.role), styles: [], image: { width: Math.round(child.rect.width * 100) / 100, height: Math.round(child.rect.height * 100) / 100, aspectRatio: aspectRatioOf(child.rect.width, child.rect.height) } });
+        structure.push({
+          depth,
+          part: 'image',
+          element: elementName(child.tag, child.role),
+          parent: parentPart,
+          ...(childLayout ? { layout: childLayout } : {}),
+          styles: [],
+          image: { width: Math.round(child.rect.width * 100) / 100, height: Math.round(child.rect.height * 100) / 100, aspectRatio: aspectRatioOf(child.rect.width, child.rect.height) }
+        });
         continue;
       }
       if (child.hasText) {
         const part = partName(child);
-        structure.push({ depth, part, element: elementName(child.tag, child.role), styles: [...textStylesOf(child), ...layoutStyles(snap, child).filter(s => s.property !== 'display')] });
+        structure.push({
+          depth,
+          part,
+          element: elementName(child.tag, child.role),
+          parent: parentPart,
+          ...(childLayout ? { layout: childLayout } : {}),
+          styles: [...textStylesOf(child), ...layoutStyles(snap, child).filter(s => s.property !== 'display')]
+        });
         texts.push({ part, el: child });
         continue;
       }
       const styles = layoutStyles(snap, child);
       if (styles.length && depth < MAX_STRUCTURE_DEPTH) {
-        structure.push({ depth, part: boxPart(child), element: elementName(child.tag, child.role), styles });
-        walk(child, depth + 1);
+        const box = boxPart(child);
+        structure.push({
+          depth,
+          part: box,
+          element: elementName(child.tag, child.role),
+          parent: parentPart,
+          ...(childLayout ? { layout: childLayout } : {}),
+          styles
+        });
+        walk(child, depth + 1, box);
       } else {
-        walk(child, depth);
+        walk(child, depth, parentPart);
       }
     }
   };
   if (section.hasText) texts.push({ part: 'container', el: section });
-  walk(section, 1);
+  walk(section, 1, 'container');
   // A variant list only when the components in a line are not all the same
   for (const n of structure) {
     const v = n.component?.variants;
     if (n.component && v && v.every(x => x === n.component!.name)) delete n.component.variants;
   }
 
+  const layoutTree = buildLayoutTree(structure);
   const contrast = texts.flatMap(t => { const c = contrastOf(snap, t.el, t.part); return c ? [c] : []; });
   const counts = new Map<string, number>();
   for (const p of placed.values()) counts.set(p.name, (counts.get(p.name) ?? 0) + 1);
@@ -199,6 +240,7 @@ export function sectionCapture(
       meta: { name: sectionName(section), scope: 'section', type: sectionType(section), source: snap.url, selector: section.selector, captured, method: 'measured' },
       tokens: tokensOf(snap, structure),
       structure,
+      ...(layoutTree ? { layoutTree } : {}),
       components: files.map((f, i) => {
         const inside = groups[i]!.within ? nameOf(groups[i]!.within!) : undefined;
         return { name: f.meta.name, type: f.meta.type, file: captureFileName(f.meta), count: counts.get(f.meta.name) ?? 1, variants: f.variants?.length ?? 1, ...(inside ? { inside } : {}) };

@@ -3,10 +3,11 @@
  * "The whole system", the similar elements on the page grouped as variants. States come from
  * states.ts. Works on the page snapshot only, so it is the same in both toolbar shells.
  */
-import { colorKey, isTransparent, round, toCaptureName, withoutUrls, type CapturedValue, type ComponentCapture, type ComponentImage } from '@luci/format/capture';
+import { buildLayoutTree, colorKey, isTransparent, round, toCaptureName, withoutUrls, type CapturedValue, type ComponentCapture, type ComponentImage } from '@luci/format/capture';
 import { componentAccessibility } from './a11y.js';
 import { isChromatic } from './color.js';
 import { imageSlot, type ImageReading } from './image.js';
+import { computeElementLayout } from './layout.js';
 import { tokenOf, valueOf, type ElementSnapshot, type PageSnapshot, type SnapshotProperty } from './model.js';
 import { elementName } from './naming.js';
 
@@ -195,16 +196,62 @@ export function stateParts(snap: PageSnapshot, container: ElementSnapshot, insid
 }
 
 export function anatomyOf(snap: PageSnapshot, container: ElementSnapshot, inside: (el: ElementSnapshot) => number | null): ComponentCapture['anatomy'] {
-  const parts: ComponentCapture['anatomy'] = [{ part: 'container', element: elementName(container.tag, container.role), styles: boxStyles(snap, container) }];
-  if (container.hasText) parts.push({ part: 'label', element: 'text', styles: textStyles(container) });
-  for (const { part, el } of componentParts(snap, container, inside).slice(1)) {
+  const containerLayout = computeElementLayout(container);
+  const parts: ComponentCapture['anatomy'] = [{
+    part: 'container',
+    element: elementName(container.tag, container.role),
+    depth: 0,
+    ...(containerLayout ? { layout: containerLayout } : {}),
+    styles: boxStyles(snap, container)
+  }];
+  if (container.hasText) {
+    const labelLayout = computeElementLayout(container, container);
+    parts.push({
+      part: 'label',
+      element: 'text',
+      parent: 'container',
+      depth: 1,
+      ...(labelLayout ? { layout: labelLayout } : {}),
+      styles: textStyles(container)
+    });
+  }
+
+  const elToPart = new Map<number, string>();
+  elToPart.set(container.id, 'container');
+  const partToEl = new Map<string, ElementSnapshot>();
+  partToEl.set('container', container);
+
+  const rawParts = componentParts(snap, container, inside).slice(1);
+  for (const { part, el } of rawParts) {
+    elToPart.set(el.id, part);
+    partToEl.set(part, el);
+  }
+
+  for (const { part, el } of rawParts) {
     const name = part.replace(/-\d+$/, '');
     const isIcon = name === 'icon' || name === 'image';
     const styles = isIcon
       ? [{ property: 'width', value: { computed: `${round(el.rect.width)}px` } }, { property: 'height', value: { computed: `${round(el.rect.height)}px` } },
         ...(['fill', 'color'] as const).filter(p => el.styles[p] && el.styles[p] !== 'none' && el.tag !== 'img' && el.tag !== 'image').slice(0, 1).map(p => ({ property: p, value: valueOf(el, p) }))]
       : [...textStyles(el), ...boxStyles(snap, el).filter(s => s.property !== 'display')];
-    parts.push({ part, element: elementName(el.tag, el.role), styles });
+
+    let parent = 'container';
+    for (let cur = el.parent; cur !== undefined && cur !== container.id; cur = snap.elements[cur]?.parent) {
+      const match = elToPart.get(cur);
+      if (match) { parent = match; break; }
+    }
+    const parentEl = partToEl.get(parent) ?? container;
+    const layout = computeElementLayout(el, parentEl);
+    const depth = (parts.find(p => p.part === parent)?.depth ?? 0) + 1;
+
+    parts.push({
+      part,
+      element: elementName(el.tag, el.role),
+      parent,
+      depth,
+      ...(layout ? { layout } : {}),
+      styles
+    });
   }
   return parts;
 }
@@ -359,10 +406,12 @@ export function componentCapture(
     }
     images.push(imageSlot(reading, part));
   }
+  const layoutTree = buildLayoutTree(anatomy);
   return {
     meta: { name, scope: 'component', type: componentType(el), source: snap.url, selector: el.selector, captured: options.captured ?? today(), method: 'measured' },
     tokens: tokensOf(snap, [...anatomy, ...images.map(i => ({ styles: i.treatment }))]),
     anatomy,
+    ...(layoutTree ? { layoutTree } : {}),
     ...(images.length ? { images } : {}),
     states,
     motion,

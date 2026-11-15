@@ -165,4 +165,16 @@ describe('luci capture baseline (B14) and compare (v0.4)', () => {
     expect(await run(['capture', 'crawl', '/pricing'], relNoBase.ctx)).toBe(1);
     expect(relNoBase.errors()).toContain('requires a base URL');
   });
+
+  it('prints the computed layout tree of a capture (v0.4.3)', async () => {
+    const dir = await project();
+    const f = fakeContext(dir);
+    expect(await run(['capture', 'layout', BUTTON], f.ctx)).toBe(0);
+    expect(f.text()).toContain(`# Layout Tree: ${BUTTON}`);
+    expect(f.text()).toContain('- **container**');
+
+    const notFound = fakeContext(dir);
+    expect(await run(['capture', 'layout', 'missing.design.md'], notFound.ctx)).toBe(1);
+    expect(notFound.errors()).toContain('Not found: missing.design.md');
+  });
 });
