@@ -419,6 +419,9 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
         basket: storageBasket(storage),
         modes: modeSwitch(),
         ...(backend.saveCapture ? { saveToProject: backend.saveCapture } : {}),
+        projectInfo: {
+          get: async () => health.project ? { project: health.project, name: health.project.split(/[\\/]/).filter(Boolean).pop(), url: bridge } : null
+        },
         // Design check (v0.3): the project's design files, and each difference as a feedback note
         ...(backend.listCaptures && backend.readCapture ? { designs: { list: backend.listCaptures, read: backend.readCapture } } : {}),
         addCheckNotes: (el, notes) => addCheckNotes(backend, doc, el, notes),

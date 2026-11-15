@@ -1,6 +1,6 @@
 import { browser } from 'wxt/browser';
 import { defineUnlistedScript } from 'wxt/utils/define-unlisted-script';
-import { mountToolbar, type ForcedReading, type ToolbarHandle } from '@luci/capture';
+import { mountToolbar, type ForcedReading, type SavedDesign, type ToolbarHandle } from '@luci/capture';
 import { basketItemSchema, type CaptureSettings } from '@luci/format/capture';
 
 const SETTINGS_KEY = 'captureSettings';
@@ -28,7 +28,7 @@ async function ask<T>(message: Record<string, unknown>): Promise<T> {
   }
   if (!raw) throw new Error(`Chrome said: no answer from Luci's background for "${String(message['type'])}".`);
   if (!raw['ok']) throw new Error(String(raw['error']));
-  return (raw['dataUrl'] ?? raw['reading']) as T;
+  return ('result' in raw ? raw['result'] : raw['dataUrl'] ?? raw['reading'] ?? raw) as T;
 }
 
 /** Injected when the user clicks Luci's icon: mount the toolbar, or close it when it is already open. */
@@ -45,8 +45,57 @@ export default defineUnlistedScript(async () => {
     onClose: () => { holder.__luciToolbar = undefined; },
     // The bar can be dragged anywhere, off the page's own header buttons and links
     movable: true,
-    // "Use my tokens" (v0.4): the tokens the person pasted, kept for every site
+    // "Send to project" direct extension bridge (v0.4.4): saves to .luci/design/ via localhost:4545
+    saveToProject: async (fileName, markdown) => {
+      return ask<{ path: string; replaced: boolean }>({
+        type: 'luci:save-to-project',
+        fileName,
+        markdown
+      });
+    },
+    // Active project information & port switcher (v0.4.4)
+    projectInfo: {
+      get: async () => {
+        try {
+          const res = await ask<{ project?: string; initialized: boolean; url: string }>({ type: 'luci:check-bridge' });
+          if (!res?.project) return null;
+          const name = res.project.split(/[\\/]/).filter(Boolean).pop();
+          return { project: res.project, name, url: res.url };
+        } catch {
+          return null;
+        }
+      },
+      setUrl: async (url: string) => {
+        await ask({ type: 'luci:set-bridge-url', url });
+      }
+    },
+    // Design check: load saved captures from project if luci serve is running
+    designs: {
+      list: async () => {
+        try {
+          return await ask<SavedDesign[]>({ type: 'luci:list-captures' });
+        } catch {
+          return [];
+        }
+      },
+      read: async (file: string) => {
+        return ask<string>({ type: 'luci:read-capture', file });
+      }
+    },
+    // "Make it a rule": saves capture and proposes rule in .luci/memory/proposed/
+    makeRule: async (fileName: string, markdown: string) => {
+      await ask<{ path: string; replaced: boolean }>({ type: 'luci:save-to-project', fileName, markdown });
+      return ask<{ path: string; existed: boolean; rule: string }>({ type: 'luci:propose-rule', file: fileName });
+    },
+    // "Use my tokens" (v0.4): the tokens the person pasted, or from the project when luci serve runs
     myTokens: {
+      project: async () => {
+        try {
+          return await ask<{ token: string; value: string }[]>({ type: 'luci:project-tokens' });
+        } catch {
+          return [];
+        }
+      },
       load: async () => String((await browser.storage.local.get(MY_TOKENS_KEY))[MY_TOKENS_KEY] ?? ''),
       save: async (css) => { await browser.storage.local.set({ [MY_TOKENS_KEY]: css }); }
     },

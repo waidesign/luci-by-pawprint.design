@@ -6,6 +6,23 @@ export const READ_STATES = 'luci:read-states';
 export const CAPTURE_SCREEN = 'luci:capture-screen';
 export const OPEN_HELP = 'luci:open-help';
 export const SET_VIEWPORT = 'luci:set-viewport';
+export const SAVE_TO_PROJECT = 'luci:save-to-project';
+export const CHECK_BRIDGE = 'luci:check-bridge';
+export const LIST_CAPTURES = 'luci:list-captures';
+export const READ_CAPTURE = 'luci:read-capture';
+export const PROPOSE_RULE = 'luci:propose-rule';
+export const PROJECT_TOKENS = 'luci:project-tokens';
+export const SET_BRIDGE_URL = 'luci:set-bridge-url';
+
+const DEFAULT_BRIDGE_URL = 'http://127.0.0.1:4545';
+async function bridgeUrl(): Promise<string> {
+  try {
+    const custom = (await browser.storage.local.get('bridgeUrl'))['bridgeUrl'];
+    return typeof custom === 'string' && custom ? custom.replace(/\/+$/, '') : DEFAULT_BRIDGE_URL;
+  } catch {
+    return DEFAULT_BRIDGE_URL;
+  }
+}
 
 /** Tabs whose width Luci is emulating right now (the debugger stays attached until it is put back). */
 const emulating = new Set<number>();
@@ -51,8 +68,8 @@ export default defineBackground(() => {
     }
   });
 
-  browser.runtime.onMessage.addListener((message: unknown, sender, sendResponse: (reply: ReadStatesReply | CaptureReply) => void) => {
-    const m = message as { type?: string; count?: number; options?: CdpReadOptions; section?: string };
+  browser.runtime.onMessage.addListener((message: unknown, sender, sendResponse: (reply: Record<string, unknown>) => void) => {
+    const m = message as { type?: string; count?: number; options?: CdpReadOptions; section?: string; fileName?: string; markdown?: string; file?: string };
     const tabId = sender.tab?.id;
     if (m?.type === OPEN_HELP) {
       // At a section of the help page when one is asked for (a plain id only)
@@ -60,6 +77,157 @@ export default defineBackground(() => {
       void browser.tabs.create({ url: `${browser.runtime.getURL('/help.html')}${section}` });
       sendResponse({ ok: true, dataUrl: '' });
       return false;
+    }
+    // "Send to project" direct extension bridge (v0.4.4): saves capture to .luci/design/
+    if (m?.type === SAVE_TO_PROJECT) {
+      if (!m.fileName || !m.markdown) {
+        sendResponse({ ok: false, error: 'File name and markdown are required.' });
+        return false;
+      }
+      void (async () => {
+        try {
+          const base = await bridgeUrl();
+          const res = await fetch(`${base}/design`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', 'x-luci': '1' },
+            body: JSON.stringify({ fileName: m.fileName, markdown: m.markdown })
+          });
+          const data = await res.json().catch(() => ({})) as { path?: string; replaced?: boolean; error?: string };
+          if (!res.ok) {
+            sendResponse({ ok: false, error: data.error || `Bridge answered status ${res.status}.` });
+            return;
+          }
+          sendResponse({ ok: true, result: { path: data.path ?? m.fileName, replaced: Boolean(data.replaced) } });
+        } catch (err) {
+          sendResponse({
+            ok: false,
+            error: `Could not connect to project bridge at 127.0.0.1:4545. Is \`luci serve\` running? (${err instanceof Error ? err.message : String(err)})`
+          });
+        }
+      })();
+      return true;
+    }
+    // Bridge health check
+    if (m?.type === CHECK_BRIDGE) {
+      void (async () => {
+        try {
+          const base = await bridgeUrl();
+          const ctrl = new AbortController();
+          const timer = setTimeout(() => ctrl.abort(), 2000);
+          const res = await fetch(`${base}/health`, { signal: ctrl.signal });
+          clearTimeout(timer);
+          const data = await res.json().catch(() => ({})) as { ok?: boolean; project?: string; initialized?: boolean; error?: string };
+          if (!res.ok || !data.ok) {
+            sendResponse({ ok: false, error: data.error || `Bridge answered status ${res.status}.` });
+            return;
+          }
+          sendResponse({ ok: true, result: { project: data.project, initialized: Boolean(data.initialized), url: base } });
+        } catch (err) {
+          sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
+        }
+      })();
+      return true;
+    }
+    // Set custom bridge URL (port switcher)
+    if (m?.type === SET_BRIDGE_URL) {
+      const msg = message as { url?: string };
+      void (async () => {
+        try {
+          if (msg.url && msg.url.trim()) {
+            await browser.storage.local.set({ bridgeUrl: msg.url.trim() });
+          } else {
+            await browser.storage.local.remove('bridgeUrl');
+          }
+          sendResponse({ ok: true, result: await bridgeUrl() });
+        } catch (err) {
+          sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
+        }
+      })();
+      return true;
+    }
+    // Design check: list project captures from .luci/design/
+    if (m?.type === LIST_CAPTURES) {
+      void (async () => {
+        try {
+          const base = await bridgeUrl();
+          const res = await fetch(`${base}/design`, { headers: { 'x-luci': '1' } });
+          const data = await res.json().catch(() => ({})) as { files?: unknown[]; error?: string };
+          if (!res.ok) {
+            sendResponse({ ok: false, error: data.error || `Bridge answered status ${res.status}.` });
+            return;
+          }
+          sendResponse({ ok: true, result: data.files ?? [] });
+        } catch (err) {
+          sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
+        }
+      })();
+      return true;
+    }
+    // Read one design capture from .luci/design/
+    if (m?.type === READ_CAPTURE) {
+      if (!m.file) {
+        sendResponse({ ok: false, error: 'File name is required.' });
+        return false;
+      }
+      void (async () => {
+        try {
+          const base = await bridgeUrl();
+          const res = await fetch(`${base}/design/${encodeURIComponent(m.file!)}`, { headers: { 'x-luci': '1' } });
+          const data = await res.json().catch(() => ({})) as { markdown?: string; error?: string };
+          if (!res.ok) {
+            sendResponse({ ok: false, error: data.error || `Bridge answered status ${res.status}.` });
+            return;
+          }
+          sendResponse({ ok: true, result: data.markdown ?? '' });
+        } catch (err) {
+          sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
+        }
+      })();
+      return true;
+    }
+    // Propose rule from capture
+    if (m?.type === PROPOSE_RULE) {
+      if (!m.file) {
+        sendResponse({ ok: false, error: 'File name is required.' });
+        return false;
+      }
+      void (async () => {
+        try {
+          const base = await bridgeUrl();
+          const res = await fetch(`${base}/rule`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', 'x-luci': '1' },
+            body: JSON.stringify({ file: m.file })
+          });
+          const data = await res.json().catch(() => ({})) as { path?: string; existed?: boolean; rule?: string; error?: string };
+          if (!res.ok) {
+            sendResponse({ ok: false, error: data.error || `Bridge answered status ${res.status}.` });
+            return;
+          }
+          sendResponse({ ok: true, result: { path: data.path!, existed: Boolean(data.existed), rule: data.rule! } });
+        } catch (err) {
+          sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
+        }
+      })();
+      return true;
+    }
+    // Project tokens
+    if (m?.type === PROJECT_TOKENS) {
+      void (async () => {
+        try {
+          const base = await bridgeUrl();
+          const res = await fetch(`${base}/tokens`);
+          const data = await res.json().catch(() => ({})) as { tokens?: { token: string; value: string }[]; error?: string };
+          if (!res.ok) {
+            sendResponse({ ok: false, error: data.error || `Bridge answered status ${res.status}.` });
+            return;
+          }
+          sendResponse({ ok: true, result: data.tokens ?? [] });
+        } catch (err) {
+          sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
+        }
+      })();
+      return true;
     }
     // Pixel mode: a screenshot of the visible tab (allowed by activeTab, granted by the icon click)
     if (m?.type === CAPTURE_SCREEN && sender.tab?.windowId !== undefined) {

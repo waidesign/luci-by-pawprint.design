@@ -38,6 +38,11 @@ export interface MountOptions {
   modes?: ModeSwitchProps;
   /** Saves a file into the project (the dev toolbar, through luci serve); adds "Save to project". */
   saveToProject?: (fileName: string, markdown: string) => Promise<{ path: string; replaced: boolean }>;
+  /** Active project details (from luci serve /health) for naming and port switching. */
+  projectInfo?: {
+    get: () => Promise<{ project?: string; name?: string; url?: string } | null>;
+    setUrl?: (url: string) => Promise<void>;
+  };
   /** Design files saved in the project, for the design check (the dev toolbar). */
   designs?: DesignSource;
   /** Pins a design check's differences as feedback notes (the dev toolbar). */
@@ -114,6 +119,7 @@ export function mountToolbar(options: MountOptions = {}): ToolbarHandle {
     ...(options.onHelp ? { onHelp: options.onHelp } : {}),
     ...(options.modes ? { modes: options.modes } : {}),
     ...(options.saveToProject ? { saveToProject: options.saveToProject } : {}),
+    ...(options.projectInfo ? { projectInfo: options.projectInfo } : {}),
     ...(options.designs ? { designs: options.designs } : {}),
     ...(options.addCheckNotes ? { addCheckNotes: options.addCheckNotes } : {}),
     ...(options.checkNotesWhere ? { checkNotesWhere: options.checkNotesWhere } : {}),

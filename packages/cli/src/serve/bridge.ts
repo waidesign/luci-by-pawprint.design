@@ -51,6 +51,21 @@ export function isLoopbackOrigin(origin: string): boolean {
   }
 }
 
+/** An origin of a browser extension: chrome-extension:, moz-extension:, or safari-web-extension:. */
+export function isExtensionOrigin(origin: string): boolean {
+  try {
+    const u = new URL(origin);
+    return u.protocol === 'chrome-extension:' || u.protocol === 'moz-extension:' || u.protocol === 'safari-web-extension:';
+  } catch {
+    return false;
+  }
+}
+
+/** An origin allowed to call the bridge: local pages or browser extensions. */
+export function isAllowedOrigin(origin: string): boolean {
+  return isLoopbackOrigin(origin) || isExtensionOrigin(origin);
+}
+
 /**
  * A source path as the project knows it: an absolute path inside the project becomes relative
  * ("/home/me/shop/src/App.tsx" -> "src/App.tsx"); anything else is kept as the browser saw it.
@@ -123,7 +138,7 @@ export function startBridge(options: BridgeOptions): Promise<Bridge> {
     const origin = req.headers.origin;
     const send = (status: number, body: unknown, type = 'application/json; charset=utf-8') => {
       const headers: Record<string, string> = { 'content-type': type, 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' };
-      if (origin && isLoopbackOrigin(origin)) {
+      if (origin && isAllowedOrigin(origin)) {
         Object.assign(headers, {
           'access-control-allow-origin': origin,
           vary: 'Origin',
@@ -140,7 +155,7 @@ export function startBridge(options: BridgeOptions): Promise<Bridge> {
       // DNS rebinding: a page on another name that resolves to 127.0.0.1 has that name in Host
       const host = (req.headers.host ?? '').toLowerCase();
       if (host !== `127.0.0.1:${port}` && host !== `localhost:${port}`) throw new HttpError(403, 'Unknown host.');
-      if (origin && !isLoopbackOrigin(origin)) throw new HttpError(403, `${PRODUCT.name} only answers pages on this machine.`);
+      if (origin && !isAllowedOrigin(origin)) throw new HttpError(403, `${PRODUCT.name} only answers pages on this machine or browser extensions.`);
       if (req.method === 'OPTIONS') { send(204, ''); return; }
 
       const url = new URL(req.url ?? '/', `http://127.0.0.1:${port}`);

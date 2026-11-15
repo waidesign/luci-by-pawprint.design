@@ -31,9 +31,23 @@ describe('extension build (M4.6)', { timeout: 120_000 }, () => {
     expect(m['manifest_version']).toBe(3);
     expect(m['name']).toBe('Luci');
     expect(m['permissions']).toEqual(['activeTab', 'scripting', 'storage', 'debugger']);
-    expect(m['host_permissions']).toBeUndefined();
+    expect(m['host_permissions']).toEqual(['http://127.0.0.1/*', 'http://localhost/*']);
     expect(m['content_scripts']).toBeUndefined();
     expect(m['background']).toEqual({ service_worker: 'background.js' });
+  });
+
+  it('bundles direct extension bridge handlers for saving captures to project and checking health', () => {
+    const dir = build(false);
+    const bg = fs.readFileSync(path.join(dir, 'background.js'), 'utf8');
+    expect(bg).toContain('luci:save-to-project');
+    expect(bg).toContain('luci:check-bridge');
+    expect(bg).toContain('luci:list-captures');
+    expect(bg).toContain('luci:read-capture');
+    expect(bg).toContain('luci:propose-rule');
+    expect(bg).toContain('/design');
+    expect(bg).toContain('/health');
+    const tb = fs.readFileSync(path.join(dir, 'toolbar.js'), 'utf8');
+    expect(tb).toContain('luci:save-to-project');
   });
 });
 

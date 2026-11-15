@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import { CheckStore, FeedbackStore, initProject } from '@luci/brain';
 import { SkillRegistry } from '@luci/skills';
-import { isLoopbackOrigin, relativeSource, startBridge, type Bridge } from '../src/serve/bridge.js';
+import { isAllowedOrigin, isExtensionOrigin, isLoopbackOrigin, relativeSource, startBridge, type Bridge } from '../src/serve/bridge.js';
 import { run } from '../src/index.js';
 import { fakeContext, tempProject } from './helpers.js';
 
@@ -197,11 +197,31 @@ describe('luci serve: the bridge (M6.3)', () => {
     expect((await request(bridge, 'POST', '/feedback', { body: { ...body, comment: '' } })).status).toBe(400);
     expect(new FeedbackStore(dir).list()).toEqual([]);
 
+    // Browser extension origin: allowed with CORS headers
+    const extOrigin = 'chrome-extension://abcdefghijklm';
+    const ext = await request(bridge, 'POST', '/feedback', { body, headers: { origin: extOrigin } });
+    expect(ext.status).toBe(201);
+    expect(ext.headers['access-control-allow-origin']).toBe(extOrigin);
+    expect(ext.headers['access-control-allow-headers']).toContain('x-luci');
+    const extPre = await request(bridge, 'OPTIONS', '/feedback', { headers: { origin: extOrigin, 'access-control-request-method': 'POST', 'access-control-request-headers': 'content-type,x-luci' } });
+    expect(extPre.status).toBe(204);
+    expect(extPre.headers['access-control-allow-origin']).toBe(extOrigin);
+
     expect(isLoopbackOrigin('http://localhost:3000')).toBe(true);
     expect(isLoopbackOrigin('http://app.localhost:3000')).toBe(true);
     expect(isLoopbackOrigin('http://[::1]:8080')).toBe(true);
     expect(isLoopbackOrigin('http://localhost.evil.example')).toBe(false);
     expect(isLoopbackOrigin('null')).toBe(false);
+
+    expect(isExtensionOrigin('chrome-extension://abcdefghijklm')).toBe(true);
+    expect(isExtensionOrigin('moz-extension://1234-5678')).toBe(true);
+    expect(isExtensionOrigin('safari-web-extension://1234-5678')).toBe(true);
+    expect(isExtensionOrigin('https://example.com')).toBe(false);
+    expect(isExtensionOrigin('invalid-url')).toBe(false);
+
+    expect(isAllowedOrigin('http://localhost:3000')).toBe(true);
+    expect(isAllowedOrigin('chrome-extension://abcdefghijklm')).toBe(true);
+    expect(isAllowedOrigin('https://evil.example')).toBe(false);
   });
 
   it('makes absolute source paths inside the project relative (Vite /@fs paths, React 18 _debugSource)', async () => {

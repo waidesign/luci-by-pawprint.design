@@ -70,6 +70,11 @@ export interface ToolbarProps {
   modes?: ModeSwitchProps;
   /** Saves a file into the project's .luci/design/ (the dev toolbar, through luci serve); adds "Save to project". */
   saveToProject?: (fileName: string, markdown: string) => Promise<{ path: string; replaced: boolean }>;
+  /** Active project details (from luci serve /health) for naming and port switching (v0.4.4). */
+  projectInfo?: {
+    get: () => Promise<{ project?: string; name?: string; url?: string } | null>;
+    setUrl?: (url: string) => Promise<void>;
+  };
   /** Design files saved in the project, for the design check (the dev toolbar, through luci serve). */
   designs?: DesignSource;
   /** Pins a design check's differences as feedback notes (the dev toolbar); without it they are copied as a prompt. */
@@ -98,21 +103,25 @@ const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(v,
 const EDGE = 8;
 
 /** "Save to project", then where it went (or why not). */
-function SaveButton(props: { save: () => Promise<{ path: string; replaced: boolean }> }) {
+function SaveButton(props: { save: () => Promise<{ path: string; replaced: boolean }>; projectName?: string }) {
   const [state, setState] = useState<{ busy?: boolean; done?: string; error?: string }>({});
   const run = async () => {
     setState({ busy: true });
     try {
       const r = await props.save();
-      setState({ done: `${r.replaced ? 'Replaced' : 'Saved'} ${r.path}` });
+      setState({ done: `${r.replaced ? 'Replaced in' : 'Saved to'} ${props.projectName ? `${props.projectName}/` : ''}${r.path}` });
     } catch (err) {
       setState({ error: err instanceof Error ? err.message : String(err) });
     }
   };
+  const label = props.projectName ? `Save to ${props.projectName}` : 'Save to project';
+  const title = props.projectName
+    ? `Into ${props.projectName}/.luci/design/, where your agent reads it`
+    : "Into the project's .luci/design/, where your agent reads it";
   return (
     <>
-      <button type="button" data-action="save-to-project" disabled={state.busy} title="Into the project's .luci/design/, where your agent reads it" onClick={() => void run()}>
-        {state.busy ? <><ButtonSpinner />Saving…</> : 'Save to project'}
+      <button type="button" data-action="save-to-project" disabled={state.busy} title={title} onClick={() => void run()}>
+        {state.busy ? <><ButtonSpinner />Saving…</> : label}
       </button>
       {state.done && <span class="dim" data-part="saved">{state.done}</span>}
       {state.error && <span class="error" data-part="save-error">{state.error}</span>}
@@ -987,6 +996,7 @@ export function Toolbar(props: ToolbarProps) {
     setBasketExport(null);
     setConfirmClear(false);
     setCopied(false);
+    setBasketStatus(null);
     // The latest items, in case another tab added some
     if (store) void store.load().then(setBasket);
   };
@@ -997,6 +1007,63 @@ export function Toolbar(props: ToolbarProps) {
     const { items, merged } = mergeInBasket(basket);
     saveBasket(items);
     setMergedNote(`Added to the basket: ${merged.map(m => `${m.name} (${sourceLabel(m)})`).join(', ')}. The page systems stay; export the site system${merged.length === 1 ? '' : 's'} like any item.`);
+  };
+
+  // Connected project info (v0.4.4): active project name from luci serve /health
+  const [activeProject, setActiveProject] = useState<{ project?: string; name?: string; url?: string } | null>(null);
+  const [bridgePortInput, setBridgePortInput] = useState('');
+
+  const refreshProject = () => {
+    if (props.projectInfo?.get) {
+      props.projectInfo.get().then(info => {
+        setActiveProject(info);
+        if (info?.url) setBridgePortInput(info.url);
+      }).catch(() => { setActiveProject(null); });
+    }
+  };
+
+  useEffect(() => {
+    refreshProject();
+  }, [props.projectInfo]);
+
+  // Direct send to project (v0.4.4): push basket captures straight to .luci/design/
+  const [itemSent, setItemSent] = useState<Record<string, { path?: string; error?: string }>>({});
+  const [basketSending, setBasketSending] = useState(false);
+  const [basketStatus, setBasketStatus] = useState<{ text: string; error?: boolean } | null>(null);
+
+  const sendOneToProject = async (item: BasketItem) => {
+    if (!props.saveToProject) return;
+    const { fileName, markdown } = exportItem(item, settings);
+    try {
+      const res = await props.saveToProject(fileName, markdown);
+      setItemSent(prev => ({ ...prev, [item.id]: { path: res.path } }));
+      const target = activeProject?.name ? `${activeProject.name}/` : '';
+      setBasketStatus({ text: `${res.replaced ? 'Replaced in' : 'Saved to'} ${target}${res.path}` });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setItemSent(prev => ({ ...prev, [item.id]: { error: msg } }));
+      setBasketStatus({ text: msg, error: true });
+    }
+  };
+
+  const sendAllToProject = async () => {
+    if (!props.saveToProject || !basket.length) return;
+    setBasketSending(true);
+    try {
+      let saved = 0;
+      for (const item of basket) {
+        const { fileName, markdown } = exportItem(item, settings);
+        const res = await props.saveToProject(fileName, markdown);
+        setItemSent(prev => ({ ...prev, [item.id]: { path: res.path } }));
+        saved++;
+      }
+      const target = activeProject?.name ? `${activeProject.name}/.luci/design/` : '.luci/design/';
+      setBasketStatus({ text: `Saved ${saved} capture${saved === 1 ? '' : 's'} into ${target}.` });
+    } catch (err) {
+      setBasketStatus({ text: err instanceof Error ? err.message : String(err), error: true });
+    } finally {
+      setBasketSending(false);
+    }
   };
   const exported = basketExport
     ? (settings.style === 'stitch'
@@ -1354,6 +1421,30 @@ export function Toolbar(props: ToolbarProps) {
                   : props.onHelp && <Button variant="link" class="invite-action" data-action="take-home" onClick={() => props.onHelp!('take-luci-home')}>{COPY.capture.invite.action}</Button>}
               </div>
             )}
+            <div class="project-card" data-part="connected-project">
+              <div class="project-header">
+                <span class={`status-dot ${activeProject?.project ? 'online' : 'offline'}`} aria-hidden="true"></span>
+                <div class="project-info">
+                  <span class="project-name">{activeProject?.name ? `Connected to ${activeProject.name}` : 'Not connected to a project'}</span>
+                  {activeProject?.project && <span class="project-path dim" title={activeProject.project}>{activeProject.project}</span>}
+                  {!activeProject?.project && <span class="project-hint dim">Run <code>luci serve</code> in your project terminal</span>}
+                </div>
+              </div>
+              {props.projectInfo?.setUrl && (
+                <div class="project-port-row">
+                  <label class="dim" for="luci-bridge-url">Bridge:</label>
+                  <input id="luci-bridge-url" type="text" class="port-input" data-part="port-input"
+                    value={bridgePortInput}
+                    placeholder="http://127.0.0.1:4545"
+                    onChange={e => {
+                      const val = (e.currentTarget as HTMLInputElement).value;
+                      setBridgePortInput(val);
+                      void props.projectInfo?.setUrl?.(val).then(refreshProject);
+                    }} />
+                </div>
+              )}
+            </div>
+            <hr class="settings-divider" />
             <hr class="settings-divider" />
             <AppearanceControls prefs={uiPrefs} onChange={setUiPrefs} movable={Boolean(props.movable || props.modes)}
               moved={props.movable ? Boolean(place) : Boolean(props.modes && uiPrefs.devPlace)} />
@@ -1445,7 +1536,7 @@ export function Toolbar(props: ToolbarProps) {
                     data-action="copy" onClick={() => void copyText(exported.markdown)} />
                   <Button variant="secondary" size="md" iconOnly tipAbove icon={IconDownload} label={COPY.capture.actions.download} data-action="download"
                     onClick={() => downloadText(exported.fileName, exported.markdown)} />
-                  {props.saveToProject && <SaveButton save={() => props.saveToProject!(exported.fileName, exported.markdown)} key={exported.fileName} />}
+                  {props.saveToProject && <SaveButton save={() => props.saveToProject!(exported.fileName, exported.markdown)} projectName={activeProject?.name} key={exported.fileName} />}
                   <button type="button" class="btn-secondary" data-action="basket-back" onClick={() => { setBasketExport(null); setCopied(false); }}>Back to the basket</button>
                 </div>
               </>
@@ -1471,6 +1562,13 @@ export function Toolbar(props: ToolbarProps) {
                           onChange={e => saveBasket(renameInBasket(basket, item.id, (e.currentTarget as HTMLInputElement).value))} />
                         <span class="row">
                           <button type="button" class="btn-secondary" data-item-export onClick={() => setBasketExport({ title: item.name, item })}>Export</button>
+                          {props.saveToProject && (
+                            <button type="button" class="btn-secondary" data-item-send-project
+                              title={activeProject?.name ? `Save this capture to ${activeProject.name}/.luci/design/` : "Save this capture to .luci/design/ in your project"}
+                              onClick={() => void sendOneToProject(item)}>
+                              {itemSent[item.id]?.error ? 'Failed' : itemSent[item.id] ? 'Saved' : activeProject?.name ? `Send to ${activeProject.name}` : 'Send'}
+                            </button>
+                          )}
                           <button class="btn-danger" type="button" data-item-remove aria-label={`Remove ${item.name}`} onClick={() => saveBasket(removeFromBasket(basket, item.id))}>Remove</button>
                         </span>
                         <textarea data-item-note aria-label={`Note for your agent about ${item.name}`} placeholder="Note for your agent (optional). What to use it for, what to change." value={item.capture.instructions ?? ''}
@@ -1495,10 +1593,18 @@ export function Toolbar(props: ToolbarProps) {
                 )}
                 <div class="row">
                   <button type="button" class="btn-primary" data-action="export-all" disabled={!basket.length} onClick={() => setBasketExport({ title: `All ${basket.length} items, one file` })}>Export all as one file</button>
+                  {props.saveToProject && (
+                    <button type="button" class="btn-secondary" data-action="send-all-project" disabled={!basket.length || basketSending}
+                      title={activeProject?.name ? `Save each capture in the basket to ${activeProject.name}/.luci/design/` : "Save each capture in the basket to .luci/design/ in your project"}
+                      onClick={() => void sendAllToProject()}>
+                      {basketSending ? <><ButtonSpinner />Sending…</> : activeProject?.name ? `Send all to ${activeProject.name}` : 'Send all to project'}
+                    </button>
+                  )}
                   {basket.length > 0 && (confirmClear
                     ? <button type="button" class="btn-danger" data-action="clear-basket-confirm" onClick={() => { saveBasket([]); setConfirmClear(false); }}>Yes, empty the basket</button>
                     : <button type="button" class="btn-danger" data-action="clear-basket" onClick={() => setConfirmClear(true)}>Empty basket</button>)}
                 </div>
+                {basketStatus && <p class={basketStatus.error ? 'error' : 'hint'} data-part="basket-status">{basketStatus.text}</p>}
               </>
             )}
           </div>
@@ -1801,7 +1907,7 @@ export function Toolbar(props: ToolbarProps) {
                     <Button variant="secondary" size="md" iconOnly tipAbove icon={added ? IconSuccess : IconBasket} data-action="add-to-basket"
                       label={added ? COPY.capture.actions.inBasket : COPY.capture.actions.addToBasket} onClick={() => { if (added) openBasket(); else void addCurrent(); }} />
                     {tool && <Button variant="secondary" size="md" iconOnly tipAbove icon={TOOL_ICONS[tool]} data-action="pick-again" label={COPY.capture.actions.pickAgain} onClick={() => startPicking(tool)} />}
-                    {props.saveToProject && output && <SaveButton save={saveAll} key={output.fileName} />}
+                    {props.saveToProject && output && <SaveButton save={saveAll} projectName={activeProject?.name} key={output.fileName} />}
                     {props.makeRule && output && output.capture.meta.scope === 'component' && (
                       <RuleButton make={() => props.makeRule!(output.fileName, markdown)} key={`rule ${output.fileName}`} />
                     )}

@@ -735,5 +735,59 @@ describe('extension branding, settings panel and the brand kit themes', { timeou
     expect(await theme.getAttribute('data-dock')).toBe('right');
     await page.context().close();
   });
+
+  it('sends basket items directly to project when saveToProject is provided (v0.4.4)', async () => {
+    const page = await open('css-variables');
+    await page.evaluate(() => {
+      const saved: { fileName: string; markdown: string }[] = [];
+      (window as any).savedCaptures = saved;
+      (window as any).toolbar?.destroy();
+      (window as any).toolbar = (window as any).LuciCapture.mountToolbar({
+        saveToProject: async (fileName: string, markdown: string) => {
+          saved.push({ fileName, markdown });
+          return { path: `.luci/design/${fileName}`, replaced: false };
+        },
+        projectInfo: {
+          get: async () => ({ project: 'E:/Luci/my-app', name: 'my-app', url: 'http://127.0.0.1:4545' })
+        }
+      });
+    });
+
+    // Capture an element and add to basket
+    await page.click('button[data-tool="color"]');
+    await page.click('.button >> nth=0', { force: true });
+    await page.click('[data-output="one"]');
+    expect(await page.locator('[data-action="save-to-project"]').innerText()).toBe('Save to my-app');
+    await page.click('[data-action="add-to-basket"]');
+
+    // Open basket
+    await page.click('[data-action="basket"]');
+    await page.locator('[data-part="basket"]').waitFor();
+
+    // Verify Send button on the item and Send all button at the bottom reflect the project name
+    expect(await page.locator('[data-item-send-project]').innerText()).toBe('Send to my-app');
+    expect(await page.locator('[data-action="send-all-project"]').innerText()).toBe('Send all to my-app');
+
+    // Click Send on the item
+    await page.click('[data-item-send-project]');
+    expect(await page.locator('[data-item-send-project]').innerText()).toBe('Saved');
+    expect(await page.locator('[data-part="basket-status"]').innerText()).toContain('Saved to my-app/.luci/design/');
+
+    // Click Send all to project
+    await page.click('[data-action="send-all-project"]');
+    expect(await page.locator('[data-part="basket-status"]').innerText()).toContain('Saved 1 capture into my-app/.luci/design/.');
+
+    // Verify connected project card in settings
+    await page.click('[data-action="settings"]');
+    await page.locator('[data-part="connected-project"]').waitFor();
+    expect(await page.locator('[data-part="connected-project"] .project-name').innerText()).toBe('Connected to my-app');
+    expect(await page.locator('[data-part="connected-project"] .project-path').innerText()).toBe('E:/Luci/my-app');
+
+    const saved = await page.evaluate(() => (window as any).savedCaptures);
+    expect(saved.length).toBe(2);
+    expect(saved[0].fileName).toMatch(/\.design\.md$/);
+
+    await page.context().close();
+  });
 });
 

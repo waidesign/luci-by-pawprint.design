@@ -20,9 +20,12 @@ export default defineConfig({
     name: 'Luci',
     description: 'Capture exact design context from any page for your AI coding agent. Everything stays on your machine.',
     permissions: ['activeTab', 'scripting', 'storage', 'debugger'],
+    // Connect to luci serve at 127.0.0.1 (any port, e.g. 4545, 4546) to save captures directly into the project.
     // Test build only: all sites, because a test cannot click the icon to grant activeTab, and
     // captureVisibleTab (Pixel mode) needs activeTab or access to all sites
-    ...(testBuild ? { host_permissions: ['<all_urls>'] } : {}),
+    host_permissions: testBuild
+      ? ['<all_urls>']
+      : ['http://127.0.0.1/*', 'http://localhost/*'],
     action: { default_title: 'Luci: capture design on this page' }
   }
 });
