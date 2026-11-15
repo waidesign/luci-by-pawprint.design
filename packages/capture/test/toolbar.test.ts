@@ -504,6 +504,29 @@ describe('v0.4: use my tokens, and compare two basket items', { timeout: 30_000 
     expect((await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, '\n')).toMatch(/^# Compare: .+\n- A: /);
     await page.click('[data-action="compare-back"]');
     await page.locator('[data-item-compare]').first().waitFor();
+
+    // Comparing different components shows differences table with wider What column
+    await page.click('button[data-tool="component"]');
+    await page.click('.card:first-child', { force: true });
+    await page.click('[data-output="one"]');
+    await page.click('[data-action="add-to-basket"]');
+    await page.click('[data-action="basket"]');
+    const newBoxes = page.locator('[data-item-compare]');
+    expect(await newBoxes.count()).toBe(3);
+    await newBoxes.nth(0).check();
+    await newBoxes.nth(2).check();
+    await page.click('[data-action="compare"]');
+    const table = page.locator('[data-part="compare-table"]');
+    await table.waitFor();
+    expect(await table.locator('th.col-what').count()).toBe(1);
+    expect(await table.locator('th.col-a').count()).toBe(1);
+    expect(await table.locator('th.col-b').count()).toBe(1);
+    const whatBox = await table.locator('th.col-what').boundingBox();
+    const aBox = await table.locator('th.col-a').boundingBox();
+    const bBox = await table.locator('th.col-b').boundingBox();
+    expect(whatBox!.width).toBeGreaterThan(aBox!.width);
+    expect(whatBox!.width).toBeGreaterThan(bBox!.width);
+
     await page.context().close();
   });
 });

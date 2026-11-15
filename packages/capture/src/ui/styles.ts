@@ -235,8 +235,12 @@ ${UI_CSS}
 .sub.image-drop { outline: 2px dashed var(--luci-color-stroke-subtle); outline-offset: -6px; }
 /* Compare mode (v0.4): What, A, B */
 .compare-scroll { max-height: 50vh; overflow: auto; border-radius: var(--luci-radius-md); background: var(--luci-color-surface-sunken); }
-.compare { width: 100%; border-collapse: collapse; font-size: var(--luci-type-small-size); line-height: var(--luci-type-small-line); }
-.compare th, .compare td { padding: var(--luci-space-4) var(--luci-space-8); text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.compare { width: 100%; min-width: 100%; table-layout: fixed; border-collapse: collapse; font-size: var(--luci-type-small-size); line-height: var(--luci-type-small-line); }
+.compare th, .compare td { padding: var(--luci-space-4) var(--luci-space-8); text-align: left; vertical-align: top; box-sizing: border-box; }
+.compare .col-what, .compare th:first-child, .compare td:first-child { width: 50%; overflow-wrap: break-word; word-break: normal; }
+.compare .col-a, .compare .col-b,
+.compare th:nth-child(2), .compare td:nth-child(2),
+.compare th:nth-child(3), .compare td:nth-child(3) { width: 25%; overflow-wrap: anywhere; word-break: break-word; }
 .compare th { position: sticky; top: 0; background: var(--luci-color-surface-sunken); color: var(--luci-color-ink-secondary); font-weight: 600; }
 .compare tr + tr td { border-top: 1px solid var(--luci-color-stroke-subtle); }
 .items .row { grid-column: 2; flex-wrap: nowrap; }

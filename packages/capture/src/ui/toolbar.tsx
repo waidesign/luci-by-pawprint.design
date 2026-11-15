@@ -1422,8 +1422,8 @@ export function Toolbar(props: ToolbarProps) {
                 {comparison.result.differences.length ? (
                   <div class="compare-scroll">
                     <table class="compare" data-part="compare-table">
-                      <thead><tr><th>What</th><th>A</th><th>B</th></tr></thead>
-                      <tbody>{comparison.result.differences.map(d => <tr><td>{d.what}</td><td>{d.a}</td><td>{d.b}</td></tr>)}</tbody>
+                      <thead><tr><th class="col-what">What</th><th class="col-a">A</th><th class="col-b">B</th></tr></thead>
+                      <tbody>{comparison.result.differences.map(d => <tr><td class="col-what">{d.what}</td><td class="col-a">{d.a}</td><td class="col-b">{d.b}</td></tr>)}</tbody>
                     </table>
                   </div>
                 ) : <p class="hint">No differences: every value compared is the same.</p>}
