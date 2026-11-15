@@ -87,7 +87,7 @@ export interface ToolbarProps {
   /** Check again whenever the page changes, from the start (v0.4, the dev toolbar); the person can switch it. */
   autoCheck?: boolean;
   /** Every design check run (and each automatic re-check), for the project (v0.4). */
-  onCheckRun?: (run: CheckRun) => void;
+  onCheckRun?: (run: CheckRun) => Promise<{ resolved?: string[]; updated?: string[] } | void> | void;
 }
 
 /** The check being watched, kept for this tab so a reload picks it up again (v0.4). */
@@ -366,15 +366,16 @@ export function Toolbar(props: ToolbarProps) {
   const checkRun = useRef(0);
   const session = (() => { try { return win.sessionStorage; } catch { return null; } })();
   const forgetWatch = () => { try { session?.removeItem(AUTO_CHECK_KEY); } catch { /* storage blocked */ } };
-  const afterCheck = (outcome: Extract<CheckOutcome, { ok: true }>, design: DesignChoice, selector: string) => {
+  const afterCheck = async (outcome: Extract<CheckOutcome, { ok: true }>, design: DesignChoice, selector: string) => {
     setCheckOutcome(outcome);
     setCheckVersion(v => v + 1);
-    props.onCheckRun?.({
+    const res = await Promise.resolve(props.onCheckRun?.({
       design: design.file, label: design.label, selector, page: cleanSource(doc.location.href), checkedAt: new Date().toISOString(),
       matches: outcome.result.matches.length,
       differences: outcome.result.differences.map(d => ({ kind: d.kind, part: d.part, ...(d.state ? { state: d.state } : {}), property: d.property, expected: d.expected, actual: d.actual, comment: d.comment, priority: d.priority }))
-    });
+    })).catch(() => undefined);
     if (watchCheck) { try { session?.setItem(AUTO_CHECK_KEY, JSON.stringify({ selector, design, path: doc.location.pathname })); } catch { /* storage blocked */ } }
+    return res;
   };
   const runCheck = async () => {
     if (!picked || !checkDesign) return;
@@ -383,7 +384,7 @@ export function Toolbar(props: ToolbarProps) {
     checkingNow.current = true;
     try {
       const outcome = await checkAgainst(picked.live, picked.entry, checkDesign, props.readForcedStates);
-      if (outcome.ok) afterCheck(outcome, checkDesign, picked.entry.selector);
+      if (outcome.ok) await afterCheck(outcome, checkDesign, picked.entry.selector);
       else show(outcome);
     } catch (err) {
       failed(err);
@@ -408,10 +409,13 @@ export function Toolbar(props: ToolbarProps) {
       const outcome = await checkAgainst(live, entry, checkDesign, props.readForcedStates);
       if (run !== checkRun.current || !outcome.ok) return;
       setPicked(p => (p ? { ...p, el, entry, live } : p));
-      afterCheck(outcome, checkDesign, selector);
+      const res = await afterCheck(outcome, checkDesign, selector);
       const n = outcome.result.differences.length;
       const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      setAutoNote(`Checked again at ${time}: ${n ? `${n} difference${n === 1 ? '' : 's'}` : 'it matches the design'}${n !== before ? ` (was ${before})` : ''}.`);
+      const resolvedMsg = res && typeof res === 'object' && 'resolved' in res && Array.isArray((res as { resolved?: unknown }).resolved) && (res as { resolved: string[] }).resolved.length
+        ? ` ${(res as { resolved: string[] }).resolved.length} feedback note${(res as { resolved: string[] }).resolved.length === 1 ? '' : 's'} resolved automatically (${(res as { resolved: string[] }).resolved.join(', ')}).`
+        : '';
+      setAutoNote(`Checked again at ${time}: ${n ? `${n} difference${n === 1 ? '' : 's'}` : 'it matches the design'}${n !== before ? ` (was ${before})` : ''}.${resolvedMsg}`);
     } catch {
       // A page in the middle of reloading: the next change checks again
     } finally {

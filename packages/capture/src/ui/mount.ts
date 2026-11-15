@@ -55,7 +55,7 @@ export interface MountOptions {
   /** Check again whenever the page changes, from the start (v0.4, the dev toolbar). */
   autoCheck?: boolean;
   /** Every design check run, for the project (v0.4, the dev toolbar). */
-  onCheckRun?: (run: CheckRun) => void;
+  onCheckRun?: (run: CheckRun) => Promise<{ resolved?: string[]; updated?: string[] } | void> | void;
 }
 
 export interface ToolbarHandle {

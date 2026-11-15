@@ -1,16 +1,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { MEMORY_FILES, PRODUCT } from '@luci/format';
-import { STITCH_FILE_NAME, compareComponentFiles, formatCompareReport, formatStitch } from '@luci/format/capture';
-import { DesignStore, canWriteBaseline, captureRule, findProjectRoot, proposeCaptureRule, writeBaseline } from '@luci/brain';
+import { STITCH_FILE_NAME, compareComponentFiles, formatCheckRunWithNotes, formatCompareReport, formatStitch } from '@luci/format/capture';
+import { CheckStore, DesignStore, FeedbackStore, canWriteBaseline, captureRule, findProjectRoot, proposeCaptureRule, writeBaseline } from '@luci/brain';
 import { parseFlags, type Command } from '../context.js';
 
-export const CAPTURE_HELP = `capture [rule <file> | baseline [--stitch] | compare <a> <b>]
-                        The design captures saved in the project. rule proposes a rule from a component
-                        capture; baseline rebuilds the project's own typography, colors and spacing from
-                        its stylesheets (--stitch also writes them as DESIGN.md for Google Stitch);
-                        compare lists the differences between two component captures
-                        (--dry-run shows what rule or baseline would write)`;
+export const CAPTURE_HELP = `capture [checks | rule <file> | baseline [--stitch] | compare <a> <b>]
+                        The design captures saved in the project. checks lists recent design check runs;
+                        rule proposes a rule from a component capture; baseline rebuilds the project's own
+                        typography, colors and spacing from its stylesheets (--stitch also writes them as
+                        DESIGN.md for Google Stitch); compare lists the differences between two component
+                        captures (--dry-run shows what rule or baseline would write)`;
 
 const usage = () => `Usage: ${PRODUCT.command} ${CAPTURE_HELP}`;
 
@@ -33,6 +33,25 @@ export const captureCommand: Command = async (args, ctx) => {
     ctx.out(`Design captures in ${PRODUCT.projectDir}/${MEMORY_FILES.design}/:`);
     for (const f of files) ctx.out(`  ${f.file}  (${f.scope}${f.type && f.type !== f.scope ? `, ${f.type}` : ''}, from ${f.source}, ${f.captured})`);
     ctx.out(`\nA component can become a rule: ${PRODUCT.command} capture rule <file>`);
+    return 0;
+  }
+
+  // The latest design check runs from the toolbar (v0.4.1)
+  if (sub === 'checks') {
+    const checks = new CheckStore(root);
+    if (!checks.available) { ctx.err(`No ${PRODUCT.projectDir}/ here yet: run \`${PRODUCT.command} init\` first.`); return 1; }
+    const runs = checks.list();
+    if (!runs.length) {
+      ctx.out(`No design checks saved in ${PRODUCT.projectDir}/${MEMORY_FILES.design}/ yet. Run a check with the dev toolbar or extension.`);
+      return 0;
+    }
+    const feedback = new FeedbackStore(root);
+    const openNotes = feedback.available ? feedback.open().filter(i => i.check) : [];
+    ctx.out(`Latest design checks (${runs.length}):\n`);
+    for (const r of runs) {
+      ctx.out(formatCheckRunWithNotes(r, openNotes));
+      ctx.out('');
+    }
     return 0;
   }
 

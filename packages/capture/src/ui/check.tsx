@@ -137,6 +137,9 @@ export function CheckResultPanel(props: {
   const [copied, setCopied] = useState(false);
   const copyTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => () => clearTimeout(copyTimer.current), []);
+  useEffect(() => {
+    setTicked(diffs.map(() => true));
+  }, [result]);
   const chosen = diffs.filter((_, i) => ticked[i]);
   const page = cleanSource(props.el.ownerDocument.location.href);
   const report = () => formatCheckReport({ ...result, differences: chosen }, { selector: props.selector, page, designFile: props.design.file });

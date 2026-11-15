@@ -22,6 +22,7 @@ import {
   type LayoutPlan,
   type Wireframe
 } from '@luci/format/feedback';
+import type { CheckRun } from '@luci/format/capture';
 import { memoryDir } from '../layout/brainLayout.js';
 
 /** What the toolbar sends for a new item; the store adds id, ref, status and times. */
@@ -178,5 +179,44 @@ export class FeedbackStore {
     const gone = this.list().filter(i => which === 'all' || i.status === 'resolved' || i.status === 'dismissed');
     for (const i of gone) fs.rmSync(this.file(i.id), { force: true });
     return gone.map(i => i.ref);
+  }
+
+  /**
+   * Reconcile open feedback items with a design check run (v0.4.1, watch & auto-check):
+   * when a difference no longer appears in the run, the item is marked resolved;
+   * when its measured actual value changed, the item is updated with the new measurement.
+   */
+  reconcileWithCheck(run: CheckRun): { resolved: string[]; updated: string[] } {
+    const resolved: string[] = [];
+    const updated: string[] = [];
+    const diffKey = (part: string, property: string, state?: string) => `${part}::${property}::${state ?? ''}`;
+    const diffMap = new Map(run.differences.map(d => [diffKey(d.part, d.property, d.state), d]));
+
+    const normalize = (f: string) => f.replace(/^\.luci\/design\//, '').replace(/^\/+/, '');
+    const runDesign = normalize(run.design);
+
+    for (const item of this.open()) {
+      if (!item.check) continue;
+      if (normalize(item.check.design) !== runDesign) continue;
+
+      const key = diffKey(item.check.part, item.check.property, item.check.state);
+      const remaining = diffMap.get(key);
+      if (!remaining) {
+        this.update(item.id, i => ({
+          ...i,
+          status: 'resolved',
+          resolution: `Resolved automatically: matches design on check at ${run.checkedAt}`
+        }));
+        resolved.push(item.ref);
+      } else if (remaining.actual !== item.check.actual) {
+        this.update(item.id, i => ({
+          ...i,
+          comment: remaining.comment,
+          check: { ...i.check!, actual: remaining.actual }
+        }));
+        updated.push(item.ref);
+      }
+    }
+    return { resolved, updated };
   }
 }

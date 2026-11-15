@@ -211,8 +211,13 @@ export function startBridge(options: BridgeOptions): Promise<Bridge> {
       if (route === '/checks' && req.method === 'GET') { send(200, { runs: checks.list() }); return; }
       if (route === '/checks' && req.method === 'POST') {
         if (!checks.available) throw new HttpError(409, `No ${PRODUCT.projectDir}/ in this project yet: run \`${PRODUCT.command} init\` there.`);
-        checks.save(parse(checkRunSchema, await readBody(req)));
-        send(201, { saved: true });
+        const run = parse(checkRunSchema, await readBody(req));
+        checks.save(run);
+        const { resolved, updated } = feedback.reconcileWithCheck(run);
+        if (resolved.length) {
+          console.info(`Luci: Auto-check resolved ${resolved.length} feedback note${resolved.length === 1 ? '' : 's'} (${resolved.join(', ')}) for ${run.label || run.design}.`);
+        }
+        send(201, { saved: true, resolved, updated });
         return;
       }
       // The project's own tokens (v0.4, remap to my tokens): read from its stylesheets now, so they are current

@@ -45,6 +45,17 @@ describe('v0.4 design tools', () => {
     expect(text).toContain('# Design checks: 1');
     expect(text).toContain('## button (button) from example.com: 1 difference');
     expect(text).toContain('1. Its border-radius is 4px; the design says 8px (--radius).');
+
+    new FeedbackStore(dir).add({
+      page: { url: 'http://localhost:5173/checkout' },
+      target: { kind: 'element', selector: '#built', element: 'button' },
+      comment: 'Fix border-radius',
+      intent: 'fix',
+      priority: 'medium',
+      check: { design: '.luci/design/example-com.component.button.design.md', part: 'container', property: 'border-radius', expected: '8px (--radius)', actual: '4px' }
+    });
+    const textWithNote = (await call(dir, 'get_design_checks')).text;
+    expect(textWithNote).toContain('[Note: P1-A1]');
   });
 });
 

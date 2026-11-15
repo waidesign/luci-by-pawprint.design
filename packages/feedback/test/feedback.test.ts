@@ -269,6 +269,22 @@ describe('where items are kept (FR26, FR29)', () => {
     expect((await again.list()).map(i => i.ref)).toEqual(['P1-A2', 'P1-A3', 'P2-A1']);
   });
 
+  it('this browser: auto-reconciles check differences on saveCheck (v0.4.1)', async () => {
+    const map = new Map<string, string>();
+    const b = browserBackend({ getItem: k => map.get(k) ?? null, setItem: (k, v) => { map.set(k, v); } });
+    const itm = await b.add({
+      ...item('http://localhost:5173/pricing', 'Wrong border'),
+      check: { design: 'button.design.md', part: 'container', property: 'border-radius', expected: '8px', actual: '4px' }
+    });
+    expect((await b.list())[0]!.status).toBe('pending');
+    const res = await b.saveCheck!({
+      design: '.luci/design/button.design.md', label: 'button', selector: '#btn', page: 'http://localhost:5173/pricing', checkedAt: '2026-11-15T12:00:00Z', matches: 10,
+      differences: []
+    });
+    expect(res.resolved).toEqual([itm.ref]);
+    expect((await b.list())[0]!.status).toBe('resolved');
+  });
+
   it('the project, through luci serve: the same items the agent can read', async () => {
     const dir = tempProject({ 'package.json': JSON.stringify({ name: 'shop' }) });
     await initProject(dir, { registry: new SkillRegistry({ user: false }) });

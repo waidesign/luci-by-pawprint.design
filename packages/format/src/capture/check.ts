@@ -315,12 +315,29 @@ export type CheckRun = z.infer<typeof checkRunSchema>;
 
 /** A check run as text for the agent: what was checked, when, and each difference to fix. */
 export function formatCheckRun(run: CheckRun): string {
+  return formatCheckRunWithNotes(run, []);
+}
+
+/** A check run correlated with open feedback notes for the agent or CLI. */
+export function formatCheckRunWithNotes(
+  run: CheckRun,
+  notes: readonly { ref: string; check?: { design: string; part: string; property: string; state?: string } }[] = []
+): string {
   const d = run.differences;
+  const normalize = (f: string) => f.replace(/^\.luci\/design\//, '').replace(/^\/+/, '');
+  const runDesign = normalize(run.design);
+  const findNote = (part: string, prop: string, state?: string) =>
+    notes.find(n => n.check && normalize(n.check.design) === runDesign && n.check.part === part && n.check.property === prop && (n.check.state ?? '') === (state ?? ''));
+
   return [
-    `## ${run.label || run.design}: ${d.length ? `${d.length} difference${d.length === 1 ? '' : 's'}` : 'matches'}`,
+    `## ${run.label || run.design}: ${d.length ? `${d.length} difference${d.length === 1 ? '' : 's'}` : 'matches design'}`,
     `- Design: ${run.design}; built: \`${run.selector}\` on ${run.page}`,
     `- Checked ${run.checkedAt}; ${run.matches} value${run.matches === 1 ? '' : 's'} match.`,
-    ...(d.length ? ['', ...d.map((x, i) => `${i + 1}. ${x.comment}${x.priority === 'high' ? ' (accessibility)' : ''}`)] : [])
+    ...(d.length ? ['', ...d.map((x, i) => {
+      const n = findNote(x.part, x.property, x.state);
+      const noteRef = n ? ` [Note: ${n.ref}]` : '';
+      return `${i + 1}. ${x.comment}${x.priority === 'high' ? ' (accessibility)' : ''}${noteRef}`;
+    })] : [])
   ].join('\n');
 }
 

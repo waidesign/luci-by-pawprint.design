@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { parseProposal } from '@luci/format';
-import { DesignStore, initProject } from '@luci/brain';
+import { CheckStore, DesignStore, FeedbackStore, initProject } from '@luci/brain';
 import { run } from '../src/index.js';
 import { fakeContext, tempProject } from './helpers.js';
 
@@ -124,5 +124,34 @@ describe('luci capture baseline (B14) and compare (v0.4)', () => {
     const bad = fakeContext(dir);
     expect(await run(['capture', 'compare', BUTTON, 'example-com.system.typography.design.md'], bad.ctx)).toBe(1);
     expect(bad.errors()).toContain('The second file is not a component capture');
+  });
+
+  it('lists recent design checks with open notes (v0.4.1)', async () => {
+    const dir = await project();
+    const empty = fakeContext(dir);
+    expect(await run(['capture', 'checks'], empty.ctx)).toBe(0);
+    expect(empty.text()).toContain('No design checks saved');
+
+    const checks = new CheckStore(dir);
+    checks.save({
+      design: `.luci/design/${BUTTON}`, label: 'primary-button (button)', selector: '#btn', page: 'http://localhost:3000/', checkedAt: '2026-11-15T12:00:00.000Z', matches: 10,
+      differences: [{ kind: 'style', part: 'container', property: 'padding', expected: '12px', actual: '6px', comment: 'Padding is still off.', priority: 'medium' }]
+    });
+
+    const fb = new FeedbackStore(dir);
+    fb.add({
+      page: { url: 'http://localhost:3000/' },
+      target: { kind: 'element', selector: '#btn', element: 'button' },
+      comment: 'Padding is still off.',
+      intent: 'fix',
+      priority: 'medium',
+      check: { design: `.luci/design/${BUTTON}`, part: 'container', property: 'padding', expected: '12px', actual: '6px' }
+    });
+
+    const f = fakeContext(dir);
+    expect(await run(['capture', 'checks'], f.ctx)).toBe(0);
+    expect(f.text()).toContain('Latest design checks (1):');
+    expect(f.text()).toContain('## primary-button (button): 1 difference');
+    expect(f.text()).toContain('[Note: P1-A1]');
   });
 });

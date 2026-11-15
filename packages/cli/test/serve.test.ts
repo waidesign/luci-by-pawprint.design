@@ -17,7 +17,7 @@ const bridges: Bridge[] = [];
 afterEach(async () => { for (const b of bridges.splice(0)) await b.close(); });
 
 const PAGE = 'http://localhost:5173';
-const target = { kind: 'element', selector: 'main > button', element: 'button', text: 'Pay now' };
+const target = { kind: 'element' as const, selector: 'main > button', element: 'button', text: 'Pay now' };
 
 async function project(init = true) {
   const dir = tempProject({ 'package.json': JSON.stringify({ name: 'shop', dependencies: { react: '19.2.1' } }) });
@@ -94,6 +94,47 @@ describe('luci serve: the bridge (M6.3)', () => {
     expect(runs[0].differences).toHaveLength(1);
     expect(new CheckStore(dir).list()[0]!.checkedAt).toBe('2026-11-15T10:05:00.000Z');
     expect((await request(bridge, 'POST', '/checks', { body: { design: 'x' } })).status).toBe(400);
+  });
+
+  it('automatically reconciles open feedback notes when a design check re-runs (v0.4.1, watch & auto-check)', async () => {
+    const { dir, bridge } = await project();
+    const fb = new FeedbackStore(dir);
+    const design = '.luci/design/example-com.component.button.design.md';
+    const page = { url: `${PAGE}/checkout` };
+    const n1 = fb.add({
+      page, target, comment: 'Background is blue', intent: 'fix', priority: 'medium',
+      check: { design, part: 'container', property: 'background-color', expected: '#0f62fe', actual: '#2563eb' }
+    });
+    const n2 = fb.add({
+      page, target, comment: 'Padding is too small', intent: 'fix', priority: 'medium',
+      check: { design, part: 'container', property: 'padding', expected: '12px', actual: '4px' }
+    });
+
+    // Re-check: background-color is fixed; padding changed from 4px to 6px
+    const run1 = {
+      design, label: 'button (button)', selector: '#btn', page: `${PAGE}/checkout`, checkedAt: '2026-11-15T11:00:00.000Z', matches: 10,
+      differences: [{ kind: 'style', part: 'container', property: 'padding', expected: '12px', actual: '6px', comment: 'Padding is still off.', priority: 'medium' }]
+    };
+    const res1 = await request(bridge, 'POST', '/checks', { body: run1 });
+    expect(res1.status).toBe(201);
+    expect(res1.json().resolved).toEqual([n1.ref]);
+    expect(res1.json().updated).toEqual([n2.ref]);
+
+    expect(fb.get(n1.ref)!.status).toBe('resolved');
+    expect(fb.get(n1.ref)!.resolution).toMatch(/Resolved automatically/);
+    expect(fb.get(n2.ref)!.status).toBe('pending');
+    expect(fb.get(n2.ref)!.check!.actual).toBe('6px');
+    expect(fb.get(n2.ref)!.comment).toBe('Padding is still off.');
+
+    // Re-check 2: all differences resolved
+    const run2 = {
+      design, label: 'button (button)', selector: '#btn', page: `${PAGE}/checkout`, checkedAt: '2026-11-15T11:05:00.000Z', matches: 11,
+      differences: []
+    };
+    const res2 = await request(bridge, 'POST', '/checks', { body: run2 });
+    expect(res2.status).toBe(201);
+    expect(res2.json().resolved).toEqual([n2.ref]);
+    expect(fb.get(n2.ref)!.status).toBe('resolved');
   });
 
   it('gives the project\'s own tokens, read from its stylesheets now (v0.4, use my tokens)', async () => {

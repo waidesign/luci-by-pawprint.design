@@ -79,8 +79,8 @@ export interface FeedbackBackend {
   resolveFrames?: ServerResolver;
   /** The project's own tokens, read from its stylesheets (project only; v0.4, remap to my tokens). */
   projectTokens?(): Promise<{ token: string; value: string }[]>;
-  /** Keep a design check's latest run for the agent (project only; v0.4, automatic design check). */
-  saveCheck?(run: CheckRun): Promise<void>;
+  /** Keep a design check's latest run for the agent (v0.4, automatic design check) and reconcile open feedback notes. */
+  saveCheck?(run: CheckRun): Promise<{ saved: boolean; resolved?: string[]; updated?: string[] }>;
 }
 
 export class BridgeError extends Error {}
@@ -116,7 +116,7 @@ export function bridgeBackend(url: string, fetchImpl: typeof fetch = (...a) => f
     readCapture: async (file) => (await call<{ markdown: string }>('GET', `/design/${encodeURIComponent(file)}`)).markdown,
     resolveFrames: async (frames) => (await call<{ locations: (SourceLocation | null)[] }>('POST', '/resolve', { frames })).locations,
     projectTokens: async () => (await call<{ tokens: { token: string; value: string }[] }>('GET', '/tokens')).tokens,
-    saveCheck: async (run) => { await call('POST', '/checks', run); }
+    saveCheck: (run) => call<{ saved: boolean; resolved: string[]; updated: string[] }>('POST', '/checks', run)
   };
 }
 
@@ -222,6 +222,36 @@ export function browserBackend(storage: KeyValue, key = 'luci.feedback'): Feedba
       const gone = items.filter(i => which === 'all' || i.status === 'resolved' || i.status === 'dismissed');
       save(items.filter(i => !gone.includes(i)));
       return gone.map(i => i.ref);
+    },
+    saveCheck: async (run: CheckRun) => {
+      const items = load();
+      const normalize = (f: string) => f.replace(/^\.luci\/design\//, '').replace(/^\/+/, '');
+      const runDesign = normalize(run.design);
+      const diffKey = (part: string, property: string, state?: string) => `${part}::${property}::${state ?? ''}`;
+      const diffMap = new Map(run.differences.map(d => [diffKey(d.part, d.property, d.state), d]));
+      const resolved: string[] = [];
+      const updated: string[] = [];
+      let changed = false;
+
+      for (let idx = 0; idx < items.length; idx++) {
+        const item = items[idx]!;
+        if (!OPEN_STATUSES.includes(item.status) || !item.check) continue;
+        if (normalize(item.check.design) !== runDesign) continue;
+
+        const key = diffKey(item.check.part, item.check.property, item.check.state);
+        const remaining = diffMap.get(key);
+        if (!remaining) {
+          items[idx] = { ...item, status: 'resolved', resolution: `Resolved automatically: matches design on check at ${run.checkedAt}`, updatedAt: now() };
+          resolved.push(item.ref);
+          changed = true;
+        } else if (remaining.actual !== item.check.actual) {
+          items[idx] = { ...item, comment: remaining.comment, check: { ...item.check, actual: remaining.actual }, updatedAt: now() };
+          updated.push(item.ref);
+          changed = true;
+        }
+      }
+      if (changed) save(items);
+      return { saved: true, resolved, updated };
     }
   };
 }
