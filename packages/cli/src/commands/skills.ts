@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { MEMORY_FILES, PRODUCT, userSkillsDir } from '@luci/format';
-import { convertPrototypeSkillFolder, detectProject, memoryDir, writeActiveTask } from '@luci/brain';
+import { convertPrototypeSkillFolder, detectProject, findProjectRoot, memoryDir, writeActiveTask } from '@luci/brain';
 import {
   GitHubClient,
   SkillDiscovery,
@@ -85,8 +85,10 @@ const short = (text: string, n = 90) => {
   return t.length > n ? `${t.slice(0, n - 3)}...` : t;
 };
 
+const projectRootOf = (ctx: CliContext) => findProjectRoot(ctx.cwd).root;
+
 function needProject(ctx: CliContext): boolean {
-  if (fs.existsSync(memoryDir(ctx.cwd))) return true;
+  if (fs.existsSync(memoryDir(projectRootOf(ctx)))) return true;
   ctx.err(`No ${PRODUCT.projectDir}/ here. Run \`${cmd('init')}\` first.`);
   return false;
 }
@@ -144,8 +146,9 @@ async function use(args: string[], ctx: CliContext): Promise<number> {
   const registry = registryFor();
   const info = fs.existsSync(path.join(ctx.cwd, 'package.json')) ? detectProject(ctx.cwd) : null;
   const options = tokenBudget ? { tokenBudget } : {};
+  const root = projectRootOf(ctx);
   const loaded = projectOnly
-    ? (needProject(ctx) ? await loadProjectSkillsForTask(ctx.cwd, registry, task, options) : null)
+    ? (needProject(ctx) ? await loadProjectSkillsForTask(root, registry, task, options) : null)
     : await new SkillOrchestrator(registry).loadSkillsForTask(task, info ? { dependencies: info.dependencies, framework: info.framework } : {}, options);
   if (!loaded) return 1;
   if (inject) {
@@ -155,9 +158,9 @@ async function use(args: string[], ctx: CliContext): Promise<number> {
       return 0;
     }
     // A small pointer (which skill files to open and why), not the skill text; --full also embeds it
-    let content = new SkillOrchestrator(registry).formatTaskPointer(loaded, { projectDir: ctx.cwd, ...(info ? { projectInfo: info } : {}) });
+    let content = new SkillOrchestrator(registry).formatTaskPointer(loaded, { projectDir: root, ...(info ? { projectInfo: info } : {}) });
     if (full) content += `\n## Full skill instructions (--full)\n\n${loaded.formattedInstructions.replace(/^# .*\n+/, '')}`;
-    const { file, archived } = writeActiveTask(ctx.cwd, content);
+    const { file, archived } = writeActiveTask(root, content);
     ctx.out(`Wrote the active task (~${Math.round(content.length / 4)} tokens) to ${file}`);
     if (archived) ctx.out(`The previous task was archived to ${archived}.`);
     for (const s of loaded.skills) ctx.out(`  ${s.id}: ${s.reason}`);
@@ -188,8 +191,9 @@ async function select(args: string[], ctx: CliContext): Promise<number> {
   const reason = takeOption(args, '--reason') ?? '';
   if (!args.length) { ctx.err(`Usage: ${cmd('skills select <name...> [--reason <text>]')}`); return 1; }
   const registry = registryFor();
-  const res = await selectSkills(ctx.cwd, registry, args, reason);
-  await writeCatalog(ctx.cwd, registry);
+  const root = projectRootOf(ctx);
+  const res = await selectSkills(root, registry, args, reason);
+  await writeCatalog(root, registry);
   if (res.added.length) ctx.out(`Selected for this project: ${res.added.join(', ')}`);
   if (res.already.length) ctx.out(`Already selected: ${res.already.join(', ')}`);
   if (res.unknown.length) ctx.err(`Not found: ${res.unknown.join(', ')} (search with: ${cmd('skills search "<keyword>"')})`);
@@ -200,15 +204,17 @@ async function select(args: string[], ctx: CliContext): Promise<number> {
 async function deselect(args: string[], ctx: CliContext): Promise<number> {
   if (!needProject(ctx)) return 1;
   if (!args.length) { ctx.err(`Usage: ${cmd('skills deselect <name...>')}`); return 1; }
-  const removed = deselectSkills(ctx.cwd, args);
-  await writeCatalog(ctx.cwd, registryFor());
+  const root = projectRootOf(ctx);
+  const removed = deselectSkills(root, args);
+  await writeCatalog(root, registryFor());
   ctx.out(removed.length ? `No longer used in this project: ${removed.join(', ')}` : 'None of those skills were selected.');
   return 0;
 }
 
 async function selected(_args: string[], ctx: CliContext): Promise<number> {
   if (!needProject(ctx)) return 1;
-  const set = await projectSkillSet(ctx.cwd, registryFor());
+  const root = projectRootOf(ctx);
+  const set = await projectSkillSet(root, registryFor());
   if (!set.selected.length && !set.own.length) { ctx.out(`No skills yet. Add some with: ${cmd('skills select <name>')} or ${cmd('packs')}`); return 0; }
   for (const s of set.selected) ctx.out(`  ${s.id.padEnd(28)} [${trustLevel(s)}${s.selection?.packs ? ` · pack ${s.selection.packs.join(', ')}` : ''}] ${s.selection?.reason ?? ''}`);
   for (const s of set.own) ctx.out(`  ${s.id.padEnd(28)} [project] ${short(s.description, 70)}`);
@@ -253,8 +259,9 @@ async function addPrepared(
   ctx: CliContext
 ): Promise<number> {
   const { toProject, yes, category, name } = opts;
+  const projectRoot = projectRootOf(ctx);
   const prepared = await prepareSkill(source, isGitHub ? { github: new GitHubClient() } : {});
-  const root = toProject ? path.join(memoryDir(ctx.cwd), MEMORY_FILES.skills) : userSkillsDir();
+  const root = toProject ? path.join(memoryDir(projectRoot), MEMORY_FILES.skills) : userSkillsDir();
   const preview = previewSkill(prepared, { root, flat: toProject, ...(category ? { category } : {}), ...(name ? { name } : {}) });
 
   ctx.out(`\n${preview.name} -> ${preview.dir}`);
@@ -274,7 +281,7 @@ async function addPrepared(
   }
   const { dir, copied } = await installSkill(prepared, preview);
   ctx.out(`\nAdded ${preview.name} (${copied} supporting file${copied === 1 ? '' : 's'} copied) to ${toProject ? 'this project' : 'your personal library'}: ${dir}`);
-  if (toProject) await writeCatalog(ctx.cwd, registryFor());
+  if (toProject) await writeCatalog(projectRoot, registryFor());
   else ctx.out(`Use it in a project with: ${cmd(`skills select ${preview.name}`)}`);
   return 0;
 }
@@ -295,15 +302,17 @@ async function share(args: string[], ctx: CliContext): Promise<number> {
   const registry = registryFor();
   const skill = await registry.getSkill(id);
   if (!skill) { ctx.err(`Not found: ${id}`); return 1; }
-  const { dir } = shareSkillWithProject(ctx.cwd, skill);
-  await writeCatalog(ctx.cwd, registry);
+  const projectRoot = projectRootOf(ctx);
+  const { dir } = shareSkillWithProject(projectRoot, skill);
+  await writeCatalog(projectRoot, registry);
   ctx.out(`Copied ${id} into this project: ${path.relative(ctx.cwd, dir)}. Commit it so teammates have it.`);
   return 0;
 }
 
 async function lint(args: string[], ctx: CliContext): Promise<number> {
   const levels = takeFlag(args, '--levels');
-  const folder = args[0] ? path.resolve(ctx.cwd, args[0]) : (fs.existsSync(path.join(memoryDir(ctx.cwd), MEMORY_FILES.skills)) ? path.join(memoryDir(ctx.cwd), MEMORY_FILES.skills) : userSkillsDir());
+  const projectRoot = projectRootOf(ctx);
+  const folder = args[0] ? path.resolve(ctx.cwd, args[0]) : (fs.existsSync(path.join(memoryDir(projectRoot), MEMORY_FILES.skills)) ? path.join(memoryDir(projectRoot), MEMORY_FILES.skills) : userSkillsDir());
   if (!fs.existsSync(folder)) { ctx.err(`Not found: ${folder}`); return 1; }
   const result = lintLibrary(folder);
   ctx.out(`Checked ${result.results.length} skill${result.results.length === 1 ? '' : 's'} in ${folder}`);

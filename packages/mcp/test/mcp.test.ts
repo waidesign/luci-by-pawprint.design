@@ -93,6 +93,28 @@ describe('luci-mcp tools (B11)', () => {
     expect(r.text).toContain('## Skills to open');
   });
 
+  it('get_project_context and get_active_task from inside a monorepo sub-package (B16)', async () => {
+    const root = tempProject({
+      'pnpm-workspace.yaml': 'packages:\n  - "packages/*"\n',
+      'package.json': JSON.stringify({ name: 'monorepo-root', private: true })
+    });
+    fs.mkdirSync(path.join(root, 'packages', 'cli'), { recursive: true });
+    fs.writeFileSync(path.join(root, 'packages', 'cli', 'package.json'), JSON.stringify({ name: '@scope/cli', bin: { cli: 'bin.js' } }), 'utf8');
+    await initProject(root, { registry });
+    writeActiveTask(root, '# Active Task\n\n- **Task**: Monorepo subtask\n- **Status**: active\n- **Started**: 2026-11-15\n\n## Skills to open\n- none\n');
+    fs.appendFileSync(path.join(root, '.luci', 'rules.md'), '\n## Package: packages/cli\n- CLI rule 1\n');
+
+    const cliDir = path.join(root, 'packages', 'cli');
+    const ctxResult = await call(cliDir, 'get_project_context');
+    const ctx = JSON.parse(ctxResult.text);
+    expect(ctx.project.activePackage?.path).toBe('packages/cli');
+    expect(ctx.project.activePackage?.rules).toEqual(['CLI rule 1']);
+    expect(ctx.packageRules['packages/cli']).toEqual(['CLI rule 1']);
+
+    const taskResult = await call(cliDir, 'get_active_task');
+    expect(taskResult.text).toContain('Monorepo subtask');
+  });
+
   it('update_project_memory writes a decision record, and fails loudly without .luci/', async () => {
     const bare = tempProject();
     const failed = await call(bare, 'update_project_memory', { category: 'UI', decision: 'Use euros', context: 'Shop is in Germany' });

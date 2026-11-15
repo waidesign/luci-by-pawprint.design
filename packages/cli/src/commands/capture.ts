@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { MEMORY_FILES, PRODUCT } from '@luci/format';
 import { STITCH_FILE_NAME, compareComponentFiles, formatCompareReport, formatStitch } from '@luci/format/capture';
-import { DesignStore, canWriteBaseline, captureRule, proposeCaptureRule, writeBaseline } from '@luci/brain';
+import { DesignStore, canWriteBaseline, captureRule, findProjectRoot, proposeCaptureRule, writeBaseline } from '@luci/brain';
 import { parseFlags, type Command } from '../context.js';
 
 export const CAPTURE_HELP = `capture [rule <file> | baseline [--stitch] | compare <a> <b>]
@@ -21,7 +21,8 @@ export const captureCommand: Command = async (args, ctx) => {
     return 1;
   }
   const [sub, file, ...extra] = positional;
-  const store = new DesignStore(ctx.cwd);
+  const root = findProjectRoot(ctx.cwd).root;
+  const store = new DesignStore(root);
 
   if (!sub) {
     const files = store.list();
@@ -38,9 +39,9 @@ export const captureCommand: Command = async (args, ctx) => {
   // The project design baseline (B14), rebuilt from the project's stylesheets
   if (sub === 'baseline') {
     if (file) { ctx.err(`baseline takes no file.\n${usage()}`); return 1; }
-    if (!canWriteBaseline(ctx.cwd)) { ctx.err(`No ${PRODUCT.projectDir}/ here yet: run \`${PRODUCT.command} init\` first.`); return 1; }
+    if (!canWriteBaseline(root)) { ctx.err(`No ${PRODUCT.projectDir}/ here yet: run \`${PRODUCT.command} init\` first.`); return 1; }
     const dryRun = flags.has('--dry-run');
-    const r = writeBaseline(ctx.cwd, { dryRun });
+    const r = writeBaseline(root, { dryRun });
     if (!r.stylesheets.length) {
       ctx.out(`No stylesheets found in this project (CSS, Sass, Less, or <style> in Vue, Svelte and Astro files), so there is no design baseline.`);
       return 0;
@@ -52,13 +53,13 @@ export const captureCommand: Command = async (args, ctx) => {
     if (r.written.length && !dryRun) ctx.out(`\nYour agent finds them with list_captures. Your own instructions in these files stay when they are rebuilt.`);
     // The same baseline as DESIGN.md (the open format Google Stitch reads), at the project's root
     if (flags.has('--stitch') && r.written.length) {
-      const file = path.join(ctx.cwd, STITCH_FILE_NAME);
+      const file = path.join(root, STITCH_FILE_NAME);
       if (fs.existsSync(file) && !flags.has('--force')) {
         ctx.err(`${STITCH_FILE_NAME} is already in this project. Run again with --force to replace it.`);
         return 1;
       }
       const systems = [r.baseline.typography, r.baseline.color, r.baseline.spacing].filter((c): c is NonNullable<typeof c> => c !== null);
-      if (!dryRun) fs.writeFileSync(file, formatStitch(systems, { name: `${path.basename(ctx.cwd)} design` }), 'utf8');
+      if (!dryRun) fs.writeFileSync(file, formatStitch(systems, { name: `${path.basename(root)} design` }), 'utf8');
       ctx.out(`  ${dryRun ? 'Would write' : 'Wrote'} ${STITCH_FILE_NAME} (DESIGN.md format, for Google Stitch and other DESIGN.md tools)`);
     }
     return 0;
@@ -84,11 +85,11 @@ export const captureCommand: Command = async (args, ctx) => {
   // A path to the file works too; only its name inside .luci/design/ counts
   const name = path.basename(file);
   if (flags.has('--dry-run')) {
-    ctx.out(captureRule(ctx.cwd, name).text.trimEnd());
+    ctx.out(captureRule(root, name).text.trimEnd());
     ctx.out('\n(Dry run: nothing was written.)');
     return 0;
   }
-  const rule = proposeCaptureRule(ctx.cwd, name);
+  const rule = proposeCaptureRule(root, name);
   ctx.out(rule.existed ? `This rule is already waiting for your review: ${rule.path}` : `Proposed a rule: ${rule.path}`);
   ctx.out(`\n  ${rule.proposal.proposed}\n`);
   ctx.out(`To keep it, move that line into ${PRODUCT.projectDir}/${MEMORY_FILES.rules} (under Project-Specific Rules) and delete the proposal. ${PRODUCT.name} never edits ${MEMORY_FILES.rules} itself.`);

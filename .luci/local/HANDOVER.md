@@ -53,8 +53,12 @@
 
 Do not start any of these until the user explicitly directs which one to tackle next:
 
-1. **`B14` — Monorepo & Sub-package Scoping (`packages/brain` + `packages/cli` + `packages/mcp`)**
-   - Support per-package rules/context in workspaces (e.g., `packages/*` or `apps/*`) so `luci start` and `get_project_context` load root rules plus the active package's stack and rules when working inside a sub-package.
+1. **`B16` — Monorepo & Sub-package Scoping (`packages/brain` + `packages/cli` + `packages/mcp`) — COMPLETED (2026-11-15)**
+   - Project root discovery via `findProjectRoot` walking up directory ancestors.
+   - Package-scoped rules under `## Package: <path-or-name>` in root `.luci/rules.md`.
+   - `activePackage` stack and rules reported in `get_project_context`, `luci start`, and `luci doctor`.
+   - CLI commands (`task`, `skills`, `capture`, `map`, `serve`) resolve root `.luci/`.
+   - 14 tests in `packages/brain/test/workspace.test.ts` and `packages/cli/test/workspace.test.ts` + MCP workspace test. Total 566 tests passing.
 2. **Post-v0.3 Design Workflow Enhancements (`v0.4.1–v0.4.4`):**
    - **`v0.4.1` Watch & Auto-check:** Re-run Design Check (`checkCapture`) when source files change during `luci serve` and update feedback items automatically.
    - **`v0.4.2` Multi-page Crawl:** Capture a list of routes/URLs in one pass and merge into a site-level `DESIGN.md` system.

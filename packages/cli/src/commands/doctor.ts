@@ -36,8 +36,16 @@ export const doctorCommand: Command = async (args, ctx) => {
   if (p) {
     ctx.out('\nContext agents get');
     ctx.out(`  Project:      ${p.name} (${p.framework})`);
+    if (p.activePackage) {
+      ctx.out(`  Package:      ${p.activePackage.path} (${p.activePackage.name}) — ${p.activePackage.kind}, ${p.activePackage.framework}`);
+    }
     ctx.out(`  Goal:         ${p.goal ? p.goal.split('\n')[0] : '(not written yet)'}`);
     ctx.out(`  Own rules:    ${p.projectRules}`);
+    if (p.activePackage?.rules?.length) {
+      ctx.out(`  Package rules:${p.activePackage.rules.length}`);
+    } else if (p.packageRules) {
+      ctx.out(`  Package rules:${p.packageRules}`);
+    }
     ctx.out(`  Skills:       ${p.skills} (listed in ${PRODUCT.projectDir}/project-skills.md)`);
     ctx.out(`  Active task:  ${p.activeTask ? `${p.activeTask.task ?? '(untitled)'}${p.activeTask.started ? `, since ${p.activeTask.started}` : ''}` : '(none)'}`);
     ctx.out(`  Code map:     ${p.hasCodeMap ? 'graphify-out/graph.json' : '(not built)'}`);

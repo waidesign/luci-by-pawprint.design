@@ -15,7 +15,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { MEMORY_FILES, PRODUCT } from '@luci/format';
-import { memoryDir, memoryPath } from '../layout/brainLayout.js';
+import { findProjectRoot, memoryDir, memoryPath } from '../layout/brainLayout.js';
 import { DECISION_HISTORY_FILE } from './memoryEngine.js';
 import { userBrainDir } from './paths.js';
 
@@ -380,7 +380,12 @@ function buildConflict(subject: string, project: RuleEntry, other: RuleEntry): R
   return { subject, project, other, winner, summary, fix };
 }
 
+const isPackageSection = (s?: string) => Boolean(s && /^Package(?:\s+Rules)?:\s*/i.test(s));
+
 function comparePair(a: RuleEntry, b: RuleEntry): RuleConflict | null {
+  if (isPackageSection(a.section) && isPackageSection(b.section) && a.section?.toLowerCase().trim() !== b.section?.toLowerCase().trim()) {
+    return null;
+  }
   const clausesA = splitClauses(a.text);
   const clausesB = splitClauses(b.text);
 
@@ -438,7 +443,8 @@ export function detectProjectRuleConflicts(
   projectDir: string,
   globalBrainDir: string = userBrainDir()
 ): RuleConflict[] {
-  const rulesPath = path.join(memoryDir(projectDir), MEMORY_FILES.rules);
+  const root = findProjectRoot(projectDir).root;
+  const rulesPath = path.join(memoryDir(root), MEMORY_FILES.rules);
   if (!fs.existsSync(rulesPath)) return [];
 
   const projectRules = extractRulesFromMarkdown(

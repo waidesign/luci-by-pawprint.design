@@ -17,6 +17,7 @@ export {
 export {
   type ProjectFacts,
   TEMPLATES_DIR,
+  findProjectRoot,
   memoryDir,
   memoryPath,
   projectFacts,
@@ -62,6 +63,8 @@ export {
   type ProjectContextOptions,
   CONTEXT_VERSION,
   loadProjectContext,
+  readAllPackageRules,
+  readPackageRules,
   readProjectGoal,
   readProjectRules
 } from './context/projectContext.js';

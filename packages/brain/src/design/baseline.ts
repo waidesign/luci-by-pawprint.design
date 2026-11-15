@@ -11,7 +11,7 @@ import {
   BASELINE_FILES, INSTRUCTIONS_HEADING, buildBaseline, formatCapture, withInstructions,
   type Baseline, type StylesheetSource
 } from '@luci/format/capture';
-import { memoryDir } from '../layout/brainLayout.js';
+import { findProjectRoot, memoryDir } from '../layout/brainLayout.js';
 import { DesignStore } from './designStore.js';
 
 /** Folders never read: dependencies, builds, caches, Luci's own and version control. */
@@ -71,7 +71,7 @@ export interface BaselineReport {
 
 /** Build the baseline from the project's stylesheets and write it into .luci/design/ (needs .luci/). */
 export function writeBaseline(projectDir: string, options: { dryRun?: boolean; captured?: string } = {}): BaselineReport {
-  const dir = path.resolve(projectDir);
+  const dir = path.resolve(findProjectRoot(projectDir).root);
   const sources = findStylesheets(dir);
   const baseline = buildBaseline(sources, { project: path.basename(dir), captured: options.captured ?? new Date().toISOString().slice(0, 10) });
   const store = new DesignStore(dir);
@@ -98,4 +98,4 @@ export function writeBaseline(projectDir: string, options: { dryRun?: boolean; c
 }
 
 /** Whether a project has a .luci/ to write the baseline into. */
-export const canWriteBaseline = (projectDir: string) => fs.existsSync(memoryDir(projectDir));
+export const canWriteBaseline = (projectDir: string) => fs.existsSync(memoryDir(findProjectRoot(projectDir).root));

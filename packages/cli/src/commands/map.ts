@@ -1,5 +1,5 @@
 import { PRODUCT } from '@luci/format';
-import { CODE_MAP_SETUP_HINT, CodeMap, GraphifyInstaller, ensureGraphify, locateGraph, mapFreshness, readGraphStats } from '@luci/brain';
+import { CODE_MAP_SETUP_HINT, CodeMap, GraphifyInstaller, ensureGraphify, findProjectRoot, locateGraph, mapFreshness, readGraphStats } from '@luci/brain';
 import { parseFlags, type Command } from '../context.js';
 import { createLineAsker } from '../onboarding.js';
 
@@ -19,7 +19,8 @@ export const mapCommand: Command = async (args, ctx) => {
     ctx.err(`Unknown option: ${unknown.join(' ')}\nUsage: ${PRODUCT.command} ${MAP_HELP}`);
     return 1;
   }
-  const codeMap = mapServices.codeMap(ctx.cwd);
+  const root = findProjectRoot(ctx.cwd).root;
+  const codeMap = mapServices.codeMap(root);
 
   if (flags.has('--install')) {
     // Running this command is consent to install Graphify; the uv script (a remote installer) is still confirmed unless --yes
@@ -44,7 +45,7 @@ export const mapCommand: Command = async (args, ctx) => {
   }
 
   if (flags.has('--update') || flags.has('--full')) {
-    const res = await codeMap.generate({ targetDir: ctx.cwd, force: true, full: flags.has('--full') });
+    const res = await codeMap.generate({ targetDir: root, force: true, full: flags.has('--full') });
     if (res.skipped) {
       ctx.err(`Graphify is not installed, so there is no code map yet.\n${CODE_MAP_SETUP_HINT}`);
       return 1;
@@ -57,14 +58,14 @@ export const mapCommand: Command = async (args, ctx) => {
   }
 
   // Status only: reads files and git, never runs Graphify
-  const map = mapFreshness(ctx.cwd);
+  const map = mapFreshness(root);
   if (map.status === 'missing') {
     const version = codeMap.getCliVersion();
     ctx.out('No code map in this project yet.');
     ctx.out(version ? `Graphify is installed (${version}). Build the map with ${cmd('map --update')}.` : CODE_MAP_SETUP_HINT);
     return 0;
   }
-  const paths = locateGraph(ctx.cwd)!;
+  const paths = locateGraph(root)!;
   const stats = readGraphStats(paths.jsonPath);
   ctx.out(`Code map: ${paths.jsonPath}${stats ? ` (${stats.nodeCount} nodes, ${stats.edgeCount} relationships)` : ' (empty or unreadable)'}`);
   if (map.status === 'stale') {

@@ -30,6 +30,13 @@ Later milestones add `design/` (M4, M5) and `feedback/` (M6).
 
 **Monorepos** (added 14 Nov 2026): when `pnpm-workspace.yaml`, or `workspaces` in `package.json`, lists packages, each package is read on its own: its kind (`app`, `library`, `cli`, `mcp-server`, `server`, `browser-extension`) and its stack. The project's framework is then `monorepo` (unless the root is an app itself), and its UI, React, test and dependency signals are those of all packages together. The Stack section of `context.md` lists the packages (`` `packages/cli` (luci): command line ``), `brain.json` has them under `project.packages`, `get_project_context` returns them, and agent files say `Framework: monorepo of 9 packages (node, preact, browser extension)`. A framework counts when the app runs on it (`dependencies`, `peerDependencies`); one only in `devDependencies` counts when the project's own files show it (`.jsx`/`.tsx`, `.vue`, `.svelte` files, or the framework's config).
 
+**Sub-package scoping and package rules (B16, 15 Nov 2026):** in monorepos, all project memory sits in the root's `.luci/` folder; sub-packages do not keep separate `.luci/` folders. `findProjectRoot` walks up directory ancestors to find `.luci/`. Package rules are authored in the root's `.luci/rules.md` under `## Package: <path-or-name>` or `## Package Rules: <path-or-name>` (e.g. `## Package: packages/cli` or `## Package: @luci/cli`). When operating inside a package:
+- `loadProjectContext` and MCP `get_project_context` set `activePackage` with that package's stack and package-specific rules, alongside root rules and all workspace packages.
+- `luci start` prints the active package, its kind, framework, and package rules (`Package rules (<n>): ...`). At the monorepo root, it lists all packages with their stack and rule counts.
+- `luci doctor` identifies the active package and reports package rules.
+- CLI commands (`task`, `skills`, `capture`, `map`, `serve`) resolve the project root and operate transparently on root memory.
+- Conflict detection (B12) scopes rules by package, so different packages with differing conventions (e.g. ESM vs CommonJS) do not conflict.
+
 A `## heading` ending in `(auto-detected)` is rewritten from the project's files by `luci update`. Renaming it to `(confirmed)` keeps it as written. Every other section belongs to the team and is never overwritten. `brain.json` is Luci's own record: it is rewritten every time, and top-level keys someone added are kept.
 
 ### Precedence

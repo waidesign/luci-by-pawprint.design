@@ -17,7 +17,7 @@ import { SkillRegistry, addedPacks, missingSkillWarnings, projectSkillSet, readL
 import { mapFreshness, type MapFreshness } from '../codemap/codeMap.js';
 import { GRAPH_JSON, detectProject, type WorkspacePackage } from '../detect/detector.js';
 import { suggestPacks, type PackSuggestion } from '../init/initProject.js';
-import { memoryDir, memoryPath, readBrainJson } from '../layout/brainLayout.js';
+import { memoryDir, memoryPath, readBrainJson, findProjectRoot } from '../layout/brainLayout.js';
 import { readActiveTask, type ActiveTask } from '../memory/activeTask.js';
 import { detectProjectRuleConflicts } from '../memory/conflicts.js';
 import { GLOBAL_PREFERENCE_FILES } from '../memory/globalLink.js';
@@ -29,7 +29,8 @@ const GRAPH_REPORT = path.join('graphify-out', 'GRAPH_REPORT.md');
 
 /** The goal written under "## Project Goal" in context.md, or null while it is the placeholder. */
 export function readProjectGoal(projectDir: string): string | null {
-  const file = path.join(memoryDir(projectDir), MEMORY_FILES.context);
+  const root = findProjectRoot(projectDir).root;
+  const file = path.join(memoryDir(root), MEMORY_FILES.context);
   if (!fs.existsSync(file)) return null;
   const goal = sectionBody(fs.readFileSync(file, 'utf8'), PROJECT_GOAL_HEADING);
   return goal && !goal.startsWith(GOAL_PLACEHOLDER) ? goal : null;
@@ -37,12 +38,73 @@ export function readProjectGoal(projectDir: string): string | null {
 
 /** The bullet items under "## Project-Specific Rules" in rules.md. */
 export function readProjectRules(projectDir: string): string[] {
-  const file = path.join(memoryDir(projectDir), MEMORY_FILES.rules);
+  const root = findProjectRoot(projectDir).root;
+  const file = path.join(memoryDir(root), MEMORY_FILES.rules);
   if (!fs.existsSync(file)) return [];
   return sectionBody(fs.readFileSync(file, 'utf8'), PROJECT_RULES_HEADING)
     .split('\n')
     .filter(l => /^\s*-\s+/.test(l))
     .map(l => l.replace(/^\s*-\s+/, '').trim());
+}
+
+/**
+ * Package rules written under "## Package: <id>" or "## Package Rules: <id>" in rules.md,
+ * where <id> is a package path (e.g. "packages/cli") or package name (e.g. "@luci/cli" or "luci").
+ */
+export function readAllPackageRules(projectDir: string): Record<string, string[]> {
+  const root = findProjectRoot(projectDir).root;
+  const file = path.join(memoryDir(root), MEMORY_FILES.rules);
+  if (!fs.existsSync(file)) return {};
+  const content = fs.readFileSync(file, 'utf8');
+  const rulesByPkg: Record<string, string[]> = {};
+
+  const lines = content.split('\n');
+  let currentPkg: string | null = null;
+  let currentRules: string[] = [];
+
+  for (const line of lines) {
+    const heading = /^##\s+(?:Package(?:\s+Rules)?|Package):\s*(.+)$/i.exec(line.trim());
+    if (heading) {
+      if (currentPkg && currentRules.length) {
+        rulesByPkg[currentPkg] = [...(rulesByPkg[currentPkg] ?? []), ...currentRules];
+      }
+      currentPkg = heading[1]!.trim().replace(/`/g, '');
+      currentRules = [];
+      continue;
+    }
+    if (/^##\s+/.test(line.trim())) {
+      if (currentPkg && currentRules.length) {
+        rulesByPkg[currentPkg] = [...(rulesByPkg[currentPkg] ?? []), ...currentRules];
+      }
+      currentPkg = null;
+      currentRules = [];
+      continue;
+    }
+    if (currentPkg && /^\s*-\s+/.test(line)) {
+      const rule = line.replace(/^\s*-\s+/, '').trim();
+      if (rule && !rule.startsWith('<!--')) {
+        currentRules.push(rule);
+      }
+    }
+  }
+  if (currentPkg && currentRules.length) {
+    rulesByPkg[currentPkg] = [...(rulesByPkg[currentPkg] ?? []), ...currentRules];
+  }
+  return rulesByPkg;
+}
+
+/**
+ * Rules for a specific package, matched by its path (e.g. "packages/cli") or name ("luci", "@luci/cli").
+ */
+export function readPackageRules(projectDir: string, pkg: { path: string; name?: string }): string[] {
+  const all = readAllPackageRules(projectDir);
+  if (all[pkg.path]?.length) return all[pkg.path]!;
+  if (pkg.name && all[pkg.name]?.length) return all[pkg.name]!;
+  if (pkg.name && pkg.name.startsWith('@')) {
+    const unscope = pkg.name.replace(/^@[^/]+\//, '');
+    if (all[unscope]?.length) return all[unscope]!;
+  }
+  return [];
 }
 
 export interface ContextSkill {
@@ -65,12 +127,16 @@ export interface ProjectContext {
     name: string; path: string; framework: string; languages: string[]; packageManager: string; uiLibraries: string[];
     /** A monorepo's packages: path, name, kind and stack. */
     packages?: WorkspacePackage[];
+    /** If working inside a package of a monorepo, that package's entry and its own rules. */
+    activePackage?: WorkspacePackage;
   };
   initialized: boolean;
   layout: number | null;
   goal: string | null;
   /** The project's own rules (the Project-Specific Rules section). */
   rules: string[];
+  /** Rules by package path or name from rules.md. */
+  packageRules?: Record<string, string[]>;
   commands: ProjectCommands;
   precedence: readonly string[];
   /** Project-relative paths of the memory files that exist. */
@@ -107,7 +173,7 @@ function describe(projectDir: string, s: Skill): ContextSkill {
 }
 
 export async function loadProjectContext(projectDir: string = process.cwd(), options: ProjectContextOptions = {}): Promise<ProjectContext> {
-  const dir = path.resolve(projectDir);
+  const { root: dir, subPath, isInside } = findProjectRoot(projectDir);
   const registry = options.registry ?? new SkillRegistry({ user: true });
   const info = detectProject(dir);
   const root = memoryDir(dir);
@@ -116,6 +182,18 @@ export async function loadProjectContext(projectDir: string = process.cwd(), opt
   const existing = (rel: string) => (fs.existsSync(path.join(root, rel)) ? memoryPath(rel) : null);
 
   if (!initialized) warnings.push(`No ${PRODUCT.projectDir}/ folder: run ${run('init')} in this project.`);
+
+  const allPkgRules = initialized ? readAllPackageRules(dir) : {};
+  const packagesWithRules: WorkspacePackage[] = info.packages.map(p => {
+    const rules = readPackageRules(dir, p);
+    return rules.length ? { ...p, rules } : p;
+  });
+
+  const activePackage = isInside && subPath
+    ? packagesWithRules
+        .filter(p => p.path === subPath || subPath.startsWith(p.path + '/'))
+        .sort((a, b) => b.path.length - a.path.length)[0]
+    : undefined;
 
   const lock = readLock(dir);
   if (lock.invalid) warnings.push(`${memoryPath(MEMORY_FILES.skillsLock)} is not valid JSON; no library skills are selected until it is fixed.`);
@@ -157,12 +235,14 @@ export async function loadProjectContext(projectDir: string = process.cwd(), opt
       languages: info.languages,
       packageManager: info.packageManager,
       uiLibraries: info.uiLibraries,
-      ...(info.packages.length ? { packages: info.packages } : {})
+      ...(packagesWithRules.length ? { packages: packagesWithRules } : {}),
+      ...(activePackage ? { activePackage } : {})
     },
     initialized,
     layout: brainJson?.layout ?? null,
     goal,
     rules: initialized ? readProjectRules(dir) : [],
+    ...(Object.keys(allPkgRules).length ? { packageRules: allPkgRules } : {}),
     commands: brainJson?.project.commands ?? info.commands,
     precedence: brainJson?.precedence ?? PRECEDENCE,
     files: {

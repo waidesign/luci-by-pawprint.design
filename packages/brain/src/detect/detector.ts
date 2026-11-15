@@ -45,6 +45,8 @@ export interface WorkspacePackage {
   kind: PackageKind;
   /** Its own framework ("node" when it has none). */
   framework: string;
+  /** Package-specific rules from .luci/rules.md, if any. */
+  rules?: string[];
 }
 
 export type PackageManager = 'npm' | 'pnpm' | 'yarn' | 'bun';

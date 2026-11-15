@@ -4,6 +4,7 @@
  * See docs/format/memory-layout.md.
  */
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -16,6 +17,7 @@ import {
   MEMORY_FILES,
   PRECEDENCE,
   PRODUCT,
+  luciHome,
   brainJsonSchema,
   parseBrainJson,
   parseJsonText,
@@ -33,6 +35,44 @@ export const TEMPLATES_DIR = fileURLToPath(new URL('../../templates/luci/', impo
 export const memoryDir = (projectDir: string) => path.join(projectDir, PRODUCT.projectDir);
 /** A path inside .luci/, written with forward slashes for reports. */
 export const memoryPath = (rel: string) => `${PRODUCT.projectDir}/${rel.replace(/\\/g, '/')}`;
+
+const isProjectMemory = (curr: string): boolean => {
+  const mem = memoryDir(curr);
+  if (!fs.existsSync(mem)) return false;
+  // ~/.luci and LUCI_HOME are the global brain; they are only projects if they contain project files
+  const normMem = path.resolve(mem).toLowerCase();
+  const normHome = path.resolve(os.homedir(), PRODUCT.homeDir).toLowerCase();
+  const normLuciHome = path.resolve(luciHome()).toLowerCase();
+  if (normMem === normHome || normMem === normLuciHome) {
+    return fs.existsSync(path.join(mem, MEMORY_FILES.rules)) ||
+           fs.existsSync(path.join(mem, MEMORY_FILES.brain)) ||
+           fs.existsSync(path.join(mem, MEMORY_FILES.context));
+  }
+  return true;
+};
+
+/**
+ * Find the project root containing .luci/ starting from startDir and walking up.
+ * Returns { root, subPath, isInside } where:
+ * - root: the absolute directory containing .luci/ (or startDir if not found)
+ * - subPath: relative path from root to startDir, normalized with forward slashes (empty string if at root or not found)
+ * - isInside: true when startDir is a subdirectory of a project root
+ */
+export function findProjectRoot(startDir: string = process.cwd()): { root: string; subPath: string; isInside: boolean } {
+  let curr = path.resolve(startDir);
+  const { root: fsRoot } = path.parse(curr);
+  while (true) {
+    if (isProjectMemory(curr)) {
+      const subPath = path.relative(curr, path.resolve(startDir)).replace(/\\/g, '/');
+      return { root: curr, subPath, isInside: subPath.length > 0 };
+    }
+    if (curr === fsRoot || !curr) break;
+    const parent = path.dirname(curr);
+    if (parent === curr) break;
+    curr = parent;
+  }
+  return { root: path.resolve(startDir), subPath: '', isInside: false };
+}
 
 const FOLDER_NOTES: Readonly<Record<string, string>> = {
   src: 'source code', app: 'app routes and pages', pages: 'pages/routes', components: 'shared components',

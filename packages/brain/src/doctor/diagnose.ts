@@ -21,9 +21,9 @@ import { SkillRegistry, missingSkillWarnings, projectSkillSet, readLock, type Sk
 import { configureAgent, projectAgents } from '../agents/agentFiles.js';
 import { cleanPrototypeSections } from '../import/importPrototype.js';
 import { mapFreshness } from '../codemap/codeMap.js';
-import { readProjectGoal, readProjectRules } from '../context/projectContext.js';
-import { detectProject } from '../detect/detector.js';
-import { TEMPLATES_DIR, memoryDir, memoryPath, readBrainJson } from '../layout/brainLayout.js';
+import { readAllPackageRules, readPackageRules, readProjectGoal, readProjectRules } from '../context/projectContext.js';
+import { detectProject, type WorkspacePackage } from '../detect/detector.js';
+import { TEMPLATES_DIR, findProjectRoot, memoryDir, memoryPath, readBrainJson } from '../layout/brainLayout.js';
 import { detectProjectRuleConflicts } from '../memory/conflicts.js';
 import { DEFAULT_BRAIN_DIR, userBrainDir } from '../memory/paths.js';
 
@@ -44,6 +44,9 @@ export interface ProjectSummary {
   framework: string;
   goal: string | null;
   projectRules: number;
+  packageRules?: number;
+  activePackage?: WorkspacePackage | null;
+  packages?: WorkspacePackage[];
   activeTask: ActiveTaskHeader | null;
   pendingProposals: number;
   /** Library skills selected plus project skills. */
@@ -123,7 +126,12 @@ async function skillChecks(dir: string, registry: SkillSource, add: (status: Che
   return set.selected.length + set.own.length;
 }
 
-async function projectChecks(dir: string, registry: SkillSource, globalBrainDir: string): Promise<{ checks: Check[]; project: ProjectSummary | null }> {
+async function projectChecks(
+  dir: string,
+  registry: SkillSource,
+  globalBrainDir: string,
+  location?: { subPath: string; isInside: boolean }
+): Promise<{ checks: Check[]; project: ProjectSummary | null }> {
   const root = memoryDir(dir);
   const checks: Check[] = [];
   const add = (status: CheckStatus, label: string, detail?: string, fix?: string) =>
@@ -156,6 +164,20 @@ async function projectChecks(dir: string, registry: SkillSource, globalBrainDir:
   }
 
   const info = detectProject(dir);
+  const allPkgRules = readAllPackageRules(dir);
+  const totalPackageRules = Object.values(allPkgRules).reduce((sum, rules) => sum + rules.length, 0);
+  const packagesWithRules: WorkspacePackage[] = info.packages.map(p => {
+    const rules = readPackageRules(dir, p);
+    return rules.length ? { ...p, rules } : p;
+  });
+  const isInside = location?.isInside ?? false;
+  const subPath = location?.subPath ?? '';
+  const activePackage = isInside && subPath
+    ? packagesWithRules
+        .filter(p => p.path === subPath || subPath.startsWith(p.path + '/'))
+        .sort((a, b) => b.path.length - a.path.length)[0] ?? null
+    : null;
+
   for (const id of projectAgents(dir)) agentCheck(id, dir, info, add);
   for (const file of cleanPrototypeSections(dir, { dryRun: true })) {
     add('warn', file, `still has the old section from before the import, which points agents to a memory folder that is gone`, `${run('update')} removes it; the rest of the file is kept.`);
@@ -214,6 +236,9 @@ async function projectChecks(dir: string, registry: SkillSource, globalBrainDir:
       framework: info.framework,
       goal,
       projectRules,
+      packageRules: totalPackageRules,
+      activePackage,
+      packages: packagesWithRules.length ? packagesWithRules : undefined,
       activeTask,
       pendingProposals: proposals.length,
       skills,
@@ -237,9 +262,9 @@ function agentCheck(
 }
 
 export async function diagnose(projectDir: string = process.cwd(), options: DiagnoseOptions = {}): Promise<Diagnosis> {
-  const dir = path.resolve(projectDir);
+  const { root: dir, subPath, isInside } = findProjectRoot(projectDir);
   const globalBrainDir = options.globalBrainDir ?? userBrainDir();
-  const project = await projectChecks(dir, options.registry ?? new SkillRegistry({ user: true }), globalBrainDir);
+  const project = await projectChecks(dir, options.registry ?? new SkillRegistry({ user: true }), globalBrainDir, { subPath, isInside });
   const checks = [...installChecks(options), ...project.checks];
   return { checks, project: project.project, ok: !checks.some(c => c.status === 'fail') };
 }

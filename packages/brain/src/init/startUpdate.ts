@@ -5,9 +5,10 @@ import { SkillRegistry, writeCatalog, type SkillSource } from '@luci/skills';
 import { configureAgents } from '../agents/agentFiles.js';
 import { cleanPrototypeSections } from '../import/importPrototype.js';
 import { CodeMap, mapFreshness } from '../codemap/codeMap.js';
-import { detectProject } from '../detect/detector.js';
+import { readPackageRules } from '../context/projectContext.js';
+import { detectProject, type WorkspacePackage } from '../detect/detector.js';
 import { diagnose, type Diagnosis } from '../doctor/diagnose.js';
-import { autoSections, memoryDir, memoryPath, projectFacts } from '../layout/brainLayout.js';
+import { autoSections, findProjectRoot, memoryDir, memoryPath, projectFacts } from '../layout/brainLayout.js';
 import { writeBrain } from '../layout/writeBrain.js';
 import { writeGlobalBrainSnapshot } from '../memory/globalLink.js';
 import { MemoryEngine } from '../memory/memoryEngine.js';
@@ -17,6 +18,10 @@ export interface StartReport {
   initialized: boolean;
   /** The doctor's view: checks and the context agents get. */
   diagnosis: Diagnosis | null;
+  /** Present when start was invoked inside a monorepo package. */
+  activePackage?: WorkspacePackage | null;
+  /** All workspace packages when in a monorepo. */
+  packages?: WorkspacePackage[];
 }
 
 /**
@@ -25,16 +30,32 @@ export interface StartReport {
  * rules, skills) and any problems.
  */
 export async function startProject(targetDir: string = process.cwd(), options: { globalBrainDir?: string; registry?: SkillSource } = {}): Promise<StartReport> {
-  const dir = path.resolve(targetDir);
+  const { root: dir, subPath, isInside } = findProjectRoot(targetDir);
   if (!fs.existsSync(memoryDir(dir))) return { projectPath: dir, initialized: false, diagnosis: null };
   const memory = new MemoryEngine(options.globalBrainDir ? { globalBrainDir: options.globalBrainDir } : {});
   memory.initGlobalBrain();
   writeGlobalBrainSnapshot(dir, memory.globalBrainDir);
-  const diagnosis = await diagnose(dir, {
+  const diagnosis = await diagnose(targetDir, {
     ...(options.globalBrainDir ? { globalBrainDir: options.globalBrainDir } : {}),
     ...(options.registry ? { registry: options.registry } : {})
   });
-  return { projectPath: dir, initialized: true, diagnosis };
+  const info = detectProject(dir);
+  const packagesWithRules: WorkspacePackage[] = info.packages.map(p => {
+    const rules = readPackageRules(dir, p);
+    return rules.length ? { ...p, rules } : p;
+  });
+  const activePackage = isInside && subPath
+    ? packagesWithRules
+        .filter(p => p.path === subPath || subPath.startsWith(p.path + '/'))
+        .sort((a, b) => b.path.length - a.path.length)[0] ?? null
+    : null;
+  return {
+    projectPath: dir,
+    initialized: true,
+    diagnosis,
+    activePackage,
+    packages: packagesWithRules.length ? packagesWithRules : undefined
+  };
 }
 
 export interface UpdateReport {
@@ -61,7 +82,7 @@ export async function updateProject(
   targetDir: string = process.cwd(),
   options: { globalBrainDir?: string; registry?: SkillSource; version?: string; codeMap?: CodeMap } = {}
 ): Promise<UpdateReport> {
-  const dir = path.resolve(targetDir);
+  const { root: dir } = findProjectRoot(targetDir);
   const report: UpdateReport = { projectPath: dir, initialized: fs.existsSync(memoryDir(dir)), added: [], refreshedSections: [], agentFiles: [], oldSectionsRemoved: [], codeMap: null };
   if (!report.initialized) return report;
 

@@ -15,7 +15,25 @@ export const startCommand: Command = async (_args, ctx) => {
   const report = await startProject(ctx.cwd);
   if (!report.initialized || !report.diagnosis) return notInitialized(ctx);
   const p = report.diagnosis.project;
-  ctx.out(`${PRODUCT.name} start: ${report.projectPath}`);
+  const header = report.activePackage
+    ? `${PRODUCT.name} start: ${report.projectPath} (package: ${report.activePackage.path})`
+    : `${PRODUCT.name} start: ${report.projectPath}`;
+  ctx.out(header);
+  if (report.activePackage) {
+    ctx.out(`Package:      ${report.activePackage.path} (${report.activePackage.name}) — ${report.activePackage.kind}, ${report.activePackage.framework}`);
+    if (report.activePackage.rules?.length) {
+      ctx.out(`Package rules (${report.activePackage.rules.length}):`);
+      for (const r of report.activePackage.rules) {
+        ctx.out(`  - ${r}`);
+      }
+    }
+  } else if (report.packages?.length) {
+    ctx.out(`Packages (${report.packages.length}):`);
+    for (const pkg of report.packages) {
+      const ruleCount = pkg.rules?.length ?? 0;
+      ctx.out(`  - ${pkg.path} (${pkg.name}) — ${pkg.kind}, ${pkg.framework}${ruleCount ? ` (${ruleCount} rule${ruleCount === 1 ? '' : 's'})` : ''}`);
+    }
+  }
   if (p) {
     ctx.out(`\nActive task:  ${p.activeTask ? `${p.activeTask.task ?? '(no title)'}${p.activeTask.started ? ` (since ${p.activeTask.started})` : ''}` : '(none)'}`);
     ctx.out(`Goal:         ${p.goal ? p.goal.split('\n')[0] : '(not written yet)'}`);

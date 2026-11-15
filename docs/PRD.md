@@ -157,6 +157,7 @@ Version 0.1 covers all four modules: 56 requirements, 49 of them must-have (P0).
 | --- | --- | --- |
 | B14 | **Project design baseline.** For UI projects, build a design.md from values already in the project's stylesheets, in Luci's format, so agents reuse them. (Built 15 Nov 2026: `luci init` and `luci capture baseline` write `project.system.{typography,color,spacing}.design.md`, method `authored`; see docs/format/capture.md.) | P0 |
 | B15 | **Memory updates.** Agents can propose additions to project memory; proposals wait in a review folder until a person accepts them. | P0 |
+| B16 | **Sub-package scoping and package rules.** Monorepo project discovery and package-scoped rules in root memory. Inside a package, `luci start` and `get_project_context` discover the project root, report that package's stack and package-specific rules, and set `activePackage`. (Built 15 Nov 2026: `findProjectRoot` walks up ancestors; `rules.md` supports `## Package: <path-or-name>`; see docs/format/memory-layout.md.) | P1 |
 | S8 | **Skill packs.** Small curated sets of skills for one kind of work, offered at init when they fit the project, and removable without touching hand-picked skills. | P0 |
 | S9 | **Skill import and trust levels.** Import skills from a GitHub repository; every skill shows where it came from and who has checked it. | P0 |
 | S10 | **Ranking quality levels.** Each skill gets a level from incomplete to precise, and AI-drafted ranking fields are ignored until a person approves them. | P0 |

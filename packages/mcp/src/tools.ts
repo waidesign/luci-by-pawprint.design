@@ -18,6 +18,7 @@ import {
   FeedbackStore,
   MemoryEngine,
   detectProject,
+  findProjectRoot,
   locateGraph,
   mapFreshness,
   readGraphStats,
@@ -114,9 +115,10 @@ function tool<S extends z.ZodRawShape>(
 
 const projectPath = z.string().optional().describe('Project folder (defaults to the folder the server was started in)');
 const target = (args: { projectPath?: string | undefined }, deps: ToolDeps) => path.resolve(deps.cwd, args.projectPath ?? '.');
+const targetRoot = (args: { projectPath?: string | undefined }, deps: ToolDeps) => findProjectRoot(target(args, deps)).root;
 const notInitialized = (dir: string) =>
   error(`No ${PRODUCT.projectDir}/ in ${dir}. Ask the user to run \`${PRODUCT.command} init\` there (or call initialize_project once they agree). Nothing was written.`);
-const hasMemory = (dir: string) => fs.existsSync(memoryDir(dir));
+const hasMemory = (dir: string) => fs.existsSync(memoryDir(findProjectRoot(dir).root));
 const hints = (dir: string) => {
   if (!fs.existsSync(path.join(dir, 'package.json'))) return {};
   const info = detectProject(dir);
@@ -137,13 +139,14 @@ export const TOOLS: readonly LuciTool[] = [
     `The current task (${PRODUCT.projectDir}/${MEMORY_FILES.activeTask}) while its status is active: the task, which skill files to open and why, and acceptance criteria. Call this when resuming work so the user does not have to brief you again.`,
     { projectPath }, READ,
     (args, deps) => {
+      const root = targetRoot(args, deps);
       const dir = target(args, deps);
       const task = readActiveTask(dir);
       if (!task) return text(`No active task in ${dir}. Ask the user what to work on.`);
       if (task.status !== 'active') {
         return text(`${task.file} has status "${task.status}", so it is not the current task. Ask the user what to work on; \`${PRODUCT.command} task done\` archives it.`);
       }
-      return text(fs.readFileSync(path.join(dir, task.file), 'utf8'));
+      return text(fs.readFileSync(path.join(root, task.file), 'utf8'));
     }),
 
   tool('get_project_status',
@@ -258,7 +261,7 @@ export const TOOLS: readonly LuciTool[] = [
       tokenBudget: z.number().int().positive().optional().describe('Max tokens of full skill instructions (default 8000)')
     }, READ,
     async (args, deps) => {
-      const dir = target(args, deps);
+      const dir = targetRoot(args, deps);
       if (!hasMemory(dir)) return notInitialized(dir);
       const loaded = await loadProjectSkillsForTask(dir, deps.registry, args.taskPrompt, args.tokenBudget ? { tokenBudget: args.tokenBudget } : {});
       return text(loaded.formattedInstructions);
@@ -272,7 +275,7 @@ export const TOOLS: readonly LuciTool[] = [
       projectPath
     }, WRITE,
     async (args, deps) => {
-      const dir = target(args, deps);
+      const dir = targetRoot(args, deps);
       if (!hasMemory(dir)) return notInitialized(dir);
       const result = await selectSkills(dir, deps.registry, args.ids, args.reason ?? '');
       await writeCatalog(dir, deps.registry);
@@ -310,7 +313,7 @@ export const TOOLS: readonly LuciTool[] = [
     { names: z.array(z.string()).min(1).describe('Pack names, from list_skill_packs'), projectPath },
     action === 'add' ? WRITE : { ...WRITE, destructiveHint: true },
     async (args, deps) => {
-      const dir = target(args, deps);
+      const dir = targetRoot(args, deps);
       if (!hasMemory(dir)) return notInitialized(dir);
       const byName = new Map(loadPacks().map(p => [p.name, p]));
       const unknown = args.names.filter(n => !byName.has(n));
@@ -334,7 +337,7 @@ export const TOOLS: readonly LuciTool[] = [
       projectPath
     }, WRITE,
     (args, deps) => {
-      const dir = target(args, deps);
+      const dir = targetRoot(args, deps);
       if (!hasMemory(dir)) return notInitialized(dir);
       const file = new MemoryEngine(brainOptions(deps)).recordProjectDecision(dir, args);
       return text(`Recorded the decision in ${file}: [${args.category}] ${args.decision}`);
@@ -350,7 +353,7 @@ export const TOOLS: readonly LuciTool[] = [
       projectPath
     }, WRITE,
     (args, deps) => {
-      const dir = target(args, deps);
+      const dir = targetRoot(args, deps);
       if (!hasMemory(dir)) return notInitialized(dir);
       const folder = path.join(memoryDir(dir), MEMORY_FILES.proposedMemory);
       fs.mkdirSync(folder, { recursive: true });
@@ -397,7 +400,7 @@ export const TOOLS: readonly LuciTool[] = [
       projectPath
     }, READ,
     (args, deps) => {
-      const store = new FeedbackStore(target(args, deps));
+      const store = new FeedbackStore(targetRoot(args, deps));
       if (!store.available) return notInitialized(store.projectDir);
       const which = args.status ?? 'open';
       const items = which === 'all' ? store.list() : which === 'open' ? store.open() : store.list({ status: [which] });
@@ -412,7 +415,7 @@ export const TOOLS: readonly LuciTool[] = [
       projectPath
     }, READ,
     (args, deps) => {
-      const store = new FeedbackStore(target(args, deps));
+      const store = new FeedbackStore(targetRoot(args, deps));
       if (!store.available) return notInitialized(store.projectDir);
       const items = store.open();
       if (!items.length) return text('No open feedback. The person can add some with the dev toolbar.');
@@ -428,7 +431,7 @@ export const TOOLS: readonly LuciTool[] = [
       projectPath
     }, READ,
     async (args, deps) => {
-      const store = new FeedbackStore(target(args, deps));
+      const store = new FeedbackStore(targetRoot(args, deps));
       if (!store.available) return notInitialized(store.projectDir);
       const since = args.since ?? new Date().toISOString();
       const seconds = args.seconds ?? WATCH_DEFAULT_SECONDS;
@@ -452,7 +455,7 @@ export const TOOLS: readonly LuciTool[] = [
     `Design captures saved into this project (${PRODUCT.projectDir}/${MEMORY_FILES.design}/): components, text, colors, spacing, systems, whole pages and basket exports, measured from live pages, and the project's own design baseline (project.system.typography/color/spacing.design.md, method authored: the values and tokens its stylesheets already have; reuse them). Read one with get_capture before building or restyling UI it describes. Reads only.`,
     { projectPath }, READ,
     (args, deps) => {
-      const store = new DesignStore(target(args, deps));
+      const store = new DesignStore(targetRoot(args, deps));
       if (!store.available) return notInitialized(store.projectDir);
       const files = store.list();
       return files.length ? json(files) : text('No design captures saved in this project yet.');
@@ -462,7 +465,7 @@ export const TOOLS: readonly LuciTool[] = [
     'One saved design capture (a .design.md file from list_captures), as written. Use its values, tokens, states and image slots as the reference; the "Your instructions" section, when present, is the person\'s own request.',
     { file: z.string().min(1).describe('File name from list_captures, e.g. example-com.component.card.design.md'), projectPath }, READ,
     (args, deps) => {
-      const store = new DesignStore(target(args, deps));
+      const store = new DesignStore(targetRoot(args, deps));
       if (!store.available) return notInitialized(store.projectDir);
       const content = store.read(args.file);
       return content === null ? error(`No capture named ${args.file}. list_captures shows the saved ones.`) : text(content);
@@ -472,7 +475,7 @@ export const TOOLS: readonly LuciTool[] = [
     `The latest design checks from the dev toolbar (v0.4, automatic design check): each built component checked against its design file, re-checked by the toolbar whenever the page changes (after your edits reload it), with every difference left. Use it after changing a component the person is checking, to see whether it now matches; when differences remain, fix them and read this again. Reads only (${PRODUCT.projectDir}/${MEMORY_FILES.design}/checks.json).`,
     { projectPath }, READ,
     (args, deps) => {
-      const store = new CheckStore(target(args, deps));
+      const store = new CheckStore(targetRoot(args, deps));
       if (!store.available) return notInitialized(store.projectDir);
       const runs = store.list();
       return runs.length
@@ -488,7 +491,7 @@ export const TOOLS: readonly LuciTool[] = [
       projectPath
     }, READ,
     (args, deps) => {
-      const store = new DesignStore(target(args, deps));
+      const store = new DesignStore(targetRoot(args, deps));
       if (!store.available) return notInitialized(store.projectDir);
       const [a, b] = [store.read(args.a), store.read(args.b)];
       if (a === null || b === null) return error(`No capture named ${a === null ? args.a : args.b}. list_captures shows the saved ones.`);
@@ -500,7 +503,7 @@ export const TOOLS: readonly LuciTool[] = [
     `Propose a project rule from a saved component capture: one line for rules.md ("Build every primary button like ${PRODUCT.projectDir}/${MEMORY_FILES.design}/<file>: ...") with its key values and state changes, written to ${PRODUCT.projectDir}/${MEMORY_FILES.proposedMemory}/ for the user to accept or delete. rules.md is never edited. Only when the user asks to make a capture a rule.`,
     { file: z.string().min(1).describe('A component capture from list_captures, e.g. example-com.component.primary-button.design.md'), projectPath }, WRITE,
     (args, deps) => {
-      const dir = target(args, deps);
+      const dir = targetRoot(args, deps);
       if (!hasMemory(dir)) return notInitialized(dir);
       try {
         const rule = proposeCaptureRule(dir, args.file);
