@@ -1,12 +1,13 @@
 import { defineConfig } from 'wxt';
 
 // Chrome, Manifest V3. Permissions stay minimal: the toolbar is injected only into the tab where the
-// user clicks Luci's icon (activeTab + scripting), settings live in extension storage, and `debugger`
-// reads exact component states (attached only during a component capture, detached right after).
-// No host permissions and no content scripts that run on every page.
+// user clicks Luci's icon (activeTab + scripting), and settings live in extension storage. `debugger`
+// is an optional permission requested on-demand for exact CDP component states and responsive tab
+// resizing; without it, Luci falls back gracefully to CSS stylesheet rules and hidden frames.
+// No content scripts that run on every page.
 //
-// LUCI_EXTENSION_TEST=1 builds a test-only copy into .output-test/ with access to all sites, because a
-// test can't click the icon to grant activeTab. The production build never has host permissions.
+// LUCI_EXTENSION_TEST=1 builds a test-only copy into .output-test/ with access to all sites and pre-granted
+// debugger, because automated headless tests cannot click the extension icon or accept Chrome permission modals.
 const testBuild = process.env['LUCI_EXTENSION_TEST'] === '1';
 // Tests build into their own folders, never into .output/ (the copy you load in Chrome): rebuilding a
 // loaded extension's folder under it breaks it until it is reloaded

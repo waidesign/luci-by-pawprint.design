@@ -13,6 +13,7 @@ export const READ_CAPTURE = 'luci:read-capture';
 export const PROPOSE_RULE = 'luci:propose-rule';
 export const PROJECT_TOKENS = 'luci:project-tokens';
 export const SET_BRIDGE_URL = 'luci:set-bridge-url';
+export const CHECK_DEBUGGER = 'luci:check-debugger';
 
 const DEFAULT_BRIDGE_URL = 'http://127.0.0.1:4545';
 async function bridgeUrl(): Promise<string> {
@@ -21,6 +22,15 @@ async function bridgeUrl(): Promise<string> {
     return typeof custom === 'string' && custom ? custom.replace(/\/+$/, '') : DEFAULT_BRIDGE_URL;
   } catch {
     return DEFAULT_BRIDGE_URL;
+  }
+}
+
+/** Check if optional debugger permission has been granted (v0.4.4 Option 3). */
+async function hasDebuggerPermission(): Promise<boolean> {
+  try {
+    return Boolean(await browser.permissions?.contains?.({ permissions: ['debugger'] }));
+  } catch {
+    return false;
   }
 }
 
@@ -42,6 +52,9 @@ async function setViewport(tabId: number, width: number | null): Promise<void> {
       await browser.debugger.detach(target).catch(() => undefined);
     }
     return;
+  }
+  if (!await hasDebuggerPermission()) {
+    throw new Error('Debugger permission not granted. Enable it in Luci settings or help page to resize tabs.');
   }
   if (!emulating.has(tabId)) {
     await browser.debugger.attach(target, '1.3');
@@ -236,6 +249,14 @@ export default defineBackground(() => {
         .catch((err: unknown) => sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) }));
       return true;
     }
+    // Check debugger permission (v0.4.4 Option 3)
+    if (m?.type === CHECK_DEBUGGER) {
+      void (async () => {
+        const granted = await hasDebuggerPermission();
+        sendResponse({ ok: true, granted });
+      })();
+      return true;
+    }
     // Responsive capture (v0.3.4): the tab's width set through the debugger for each reading, then put back
     if (m?.type === SET_VIEWPORT && tabId !== undefined) {
       const width = (message as { width?: number | null }).width ?? null;
@@ -244,6 +265,10 @@ export default defineBackground(() => {
     }
     if (m?.type !== READ_STATES || tabId === undefined || typeof m.count !== 'number') return false;
     void (async () => {
+      if (!await hasDebuggerPermission()) {
+        sendResponse({ ok: false, error: 'Debugger permission not granted. Enable it in Luci settings or help page to capture exact CDP states.' });
+        return;
+      }
       const target = { tabId };
       try {
         await browser.debugger.attach(target, '1.3');

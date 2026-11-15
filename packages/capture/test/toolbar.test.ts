@@ -789,5 +789,32 @@ describe('extension branding, settings panel and the brand kit themes', { timeou
 
     await page.context().close();
   });
+
+  it('displays debugger permission status in settings and triggers help flow on enable (v0.4.4 Option 3)', async () => {
+    const page = await open('css-variables');
+    await page.evaluate(() => {
+      const w = window as any;
+      w.toolbar?.destroy();
+      w.toolbar = w.LuciCapture.mountToolbar({
+        doc: document,
+        settings: {},
+        debuggerPermission: {
+          get: async () => false,
+          request: () => { (window as any).requestedDbg = true; }
+        },
+        onHelp: (section?: string) => { (window as any).helpSection = section; }
+      });
+    });
+
+    await page.click('[data-action="settings"]');
+    await page.locator('[data-part="debugger-permission"]').waitFor();
+    expect(await page.locator('[data-part="debugger-permission"] .project-name').innerText()).toBe('Debugger: optional (not enabled)');
+    expect(await page.locator('[data-part="debugger-permission"] .status-dot.offline').count()).toBe(1);
+
+    await page.click('[data-action="enable-debugger"]');
+    expect(await page.evaluate(() => (window as any).requestedDbg)).toBe(true);
+
+    await page.context().close();
+  });
 });
 

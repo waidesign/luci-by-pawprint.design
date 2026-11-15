@@ -29,7 +29,67 @@
   .lead { font-size: var(--luci-type-heading-size); line-height: var(--luci-type-heading-line); }
   @media (prefers-color-scheme: dark) { .logo-light { display: none; } .logo-dark { display: block; } }
   @media (max-width: 520px) { .mascot { display: none; } }
+  .permission-card {
+    padding: var(--luci-space-16);
+    border-radius: var(--luci-radius-md);
+    background: var(--luci-color-surface-sunken);
+    margin: var(--luci-space-16) 0;
+  }
+  .permission-status {
+    display: flex;
+    align-items: center;
+    gap: var(--luci-space-8);
+    margin: var(--luci-space-12) 0;
+    font-weight: var(--luci-type-heading-weight);
+  }
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: var(--luci-radius-full);
+    background: var(--luci-color-ink-disabled);
+    flex-shrink: 0;
+  }
+  .status-dot.online {
+    background: var(--luci-color-success);
+    box-shadow: 0 0 6px var(--luci-color-success);
+  }
+  .status-dot.offline {
+    background: var(--luci-color-ink-disabled);
+  }
+  .permission-actions {
+    display: flex;
+    gap: var(--luci-space-8);
+    margin-top: var(--luci-space-12);
+  }
+  .action-btn {
+    appearance: none;
+    border: none;
+    border-radius: var(--luci-radius-sm);
+    padding: var(--luci-space-8) var(--luci-space-16);
+    font: var(--luci-type-small-weight) var(--luci-type-small-size)/var(--luci-type-small-line) var(--luci-font-body);
+    background: var(--luci-color-primary);
+    color: var(--luci-color-on-primary);
+    cursor: pointer;
+  }
+  .action-btn:hover {
+    background: var(--luci-color-primary-hover);
+  }
+  .action-btn-secondary {
+    background: var(--luci-color-surface);
+    color: var(--luci-color-ink);
+    border: 1px solid var(--luci-color-stroke-muzzle);
+  }
+  .action-btn-secondary:hover {
+    background: var(--luci-color-surface-raised);
+  }
+  .permission-hint {
+    font-size: var(--luci-type-micro-size);
+    line-height: var(--luci-type-micro-line);
+    color: var(--luci-color-ink-secondary);
+    margin: var(--luci-space-8) 0 0;
+  }
 </style>
+<script type="module" src="../src/help.ts"></script>
 </head>
 <body>
 <main>
@@ -66,6 +126,19 @@
   <p>With the Component tool, select a section of the page (press <strong>↑ Wider</strong> until all of it is selected), then <strong>This section</strong>. You get a section file with its layout, and a file for each kind of component in it, each described once. <strong>Download .zip</strong> saves them all.</p>
   <h2>How it changes by width</h2>
   <p>After capturing a component or a section, press <strong>How it changes by width</strong>. Luci finds the site's breakpoints that style it, reads it at 2 or 3 widths (the page is resized for a moment, with Chrome's debugging bar), puts the page back, and adds a <strong>Responsive</strong> table to the file: what changes at each width, such as padding, text size or the number of columns.</p>
+  <h2 id="debugger-permission">Optional debugger permission</h2>
+  <div class="permission-card" id="dbg-card">
+    <p>By default, Luci captures states from stylesheet rules and reads responsive layouts in a hidden frame—without needing Chrome's debugger. To enable exact CDP state capture and window resizing, you can grant the optional debugger permission below.</p>
+    <div class="permission-status">
+      <span class="status-dot offline" id="dbg-dot" aria-hidden="true"></span>
+      <span id="dbg-status-text">Checking permission…</span>
+    </div>
+    <div class="permission-actions">
+      <button type="button" id="dbg-request-btn" class="action-btn">Enable debugger permission</button>
+      <button type="button" id="dbg-remove-btn" class="action-btn action-btn-secondary" style="display: none;">Revoke permission</button>
+    </div>
+    <p class="permission-hint">Chrome will prompt for confirmation. Luci attaches the debugger only briefly during a capture, and detaches immediately after.</p>
+  </div>
   <h2>One system for the whole site</h2>
   <p>Capture the text styles, colors or spacing with <strong>The whole system</strong> on two or more pages of a site, and add each to the basket. In the basket, <strong>Merge into site systems</strong> makes one file per kind for the site: each row says which pages use it, and <strong>Conflicts</strong> lists anything named the same but different between pages (a heading size, a brand color token), so you can decide which one the site means.</p>
   <h2>Check what was built against its design</h2>

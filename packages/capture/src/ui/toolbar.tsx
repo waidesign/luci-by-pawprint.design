@@ -89,6 +89,11 @@ export interface ToolbarProps {
   movable?: boolean;
   /** Where "Use my tokens" finds the person's tokens (v0.4). Default: tokens pasted, kept in the page's storage. */
   myTokens?: MyTokensSource;
+  /** Debugger permission status and request helper (optional in extension, v0.4.4 Option 3). */
+  debuggerPermission?: {
+    get: () => Promise<boolean>;
+    request?: () => void;
+  };
   /** Check again whenever the page changes, from the start (v0.4, the dev toolbar); the person can switch it. */
   autoCheck?: boolean;
   /** Every design check run (and each automatic re-check), for the project (v0.4). */
@@ -109,7 +114,7 @@ function SaveButton(props: { save: () => Promise<{ path: string; replaced: boole
     setState({ busy: true });
     try {
       const r = await props.save();
-      setState({ done: `${r.replaced ? 'Replaced in' : 'Saved to'} ${props.projectName ? `${props.projectName}/` : ''}${r.path}` });
+      setState({ done: `${r.replaced ? 'Replaced' : 'Saved'} ${r.path}` });
     } catch (err) {
       setState({ error: err instanceof Error ? err.message : String(err) });
     }
@@ -1026,6 +1031,13 @@ export function Toolbar(props: ToolbarProps) {
     refreshProject();
   }, [props.projectInfo]);
 
+  // Debugger permission status (v0.4.4 Option 3)
+  const [debuggerGranted, setDebuggerGranted] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!props.debuggerPermission) return;
+    props.debuggerPermission.get().then(setDebuggerGranted).catch(() => setDebuggerGranted(false));
+  }, [props.debuggerPermission, settingsOpen]);
+
   // Direct send to project (v0.4.4): push basket captures straight to .luci/design/
   const [itemSent, setItemSent] = useState<Record<string, { path?: string; error?: string }>>({});
   const [basketSending, setBasketSending] = useState(false);
@@ -1444,7 +1456,39 @@ export function Toolbar(props: ToolbarProps) {
                 </div>
               )}
             </div>
-            <hr class="settings-divider" />
+            {props.debuggerPermission && (
+              <div class="project-card" data-part="debugger-permission">
+                <div class="project-header">
+                  <span class={`status-dot ${debuggerGranted ? 'online' : 'offline'}`} aria-hidden="true"></span>
+                  <div class="project-info">
+                    <span class="project-name">{debuggerGranted ? 'Debugger: active' : 'Debugger: optional (not enabled)'}</span>
+                    <span class="project-hint dim">
+                      {debuggerGranted
+                        ? 'Exact CDP states & viewport emulation enabled'
+                        : 'CSS rules & frame fallback active'}
+                    </span>
+                  </div>
+                </div>
+                {!debuggerGranted && (
+                  <div class="project-port-row">
+                    <button
+                      type="button"
+                      class="btn-secondary"
+                      data-action="enable-debugger"
+                      onClick={() => {
+                        if (props.debuggerPermission?.request) {
+                          props.debuggerPermission.request();
+                        } else if (props.onHelp) {
+                          props.onHelp('debugger-permission');
+                        }
+                      }}
+                    >
+                      Enable in Help
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
             <hr class="settings-divider" />
             <AppearanceControls prefs={uiPrefs} onChange={setUiPrefs} movable={Boolean(props.movable || props.modes)}
               moved={props.movable ? Boolean(place) : Boolean(props.modes && uiPrefs.devPlace)} />

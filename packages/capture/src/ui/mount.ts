@@ -57,6 +57,11 @@ export interface MountOptions {
   movable?: boolean;
   /** Where "Use my tokens" finds the person's tokens (v0.4). */
   myTokens?: MyTokensSource;
+  /** Debugger permission status and request helper (optional in extension, v0.4.4 Option 3). */
+  debuggerPermission?: {
+    get: () => Promise<boolean>;
+    request?: () => void;
+  };
   /** Check again whenever the page changes, from the start (v0.4, the dev toolbar). */
   autoCheck?: boolean;
   /** Every design check run, for the project (v0.4, the dev toolbar). */
@@ -127,6 +132,7 @@ export function mountToolbar(options: MountOptions = {}): ToolbarHandle {
     ...(options.setViewportWidth ? { setViewportWidth: options.setViewportWidth } : {}),
     ...(options.movable ? { movable: true } : {}),
     ...(options.myTokens ? { myTokens: options.myTokens } : {}),
+    ...(options.debuggerPermission ? { debuggerPermission: options.debuggerPermission } : {}),
     ...(options.autoCheck ? { autoCheck: true } : {}),
     ...(options.onCheckRun ? { onCheckRun: options.onCheckRun } : {}),
     onClose: () => { destroy(); options.onClose?.(); },

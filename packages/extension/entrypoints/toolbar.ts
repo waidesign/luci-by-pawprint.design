@@ -69,6 +69,20 @@ export default defineUnlistedScript(async () => {
         await ask({ type: 'luci:set-bridge-url', url });
       }
     },
+    // Optional debugger permission (v0.4.4 Option 3)
+    debuggerPermission: {
+      get: async () => {
+        try {
+          const res = await ask<{ granted?: boolean }>({ type: 'luci:check-debugger' });
+          return Boolean(res?.granted);
+        } catch {
+          return false;
+        }
+      },
+      request: () => {
+        void ask<string>({ type: 'luci:open-help', section: 'debugger-permission' }).catch(() => undefined);
+      }
+    },
     // Design check: load saved captures from project if luci serve is running
     designs: {
       list: async () => {

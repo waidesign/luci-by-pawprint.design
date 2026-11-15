@@ -49,6 +49,16 @@ describe('extension build (M4.6)', { timeout: 120_000 }, () => {
     const tb = fs.readFileSync(path.join(dir, 'toolbar.js'), 'utf8');
     expect(tb).toContain('luci:save-to-project');
   });
+
+  it('bundles check-debugger message handler and help page debugger section (v0.4.4 Option 3)', () => {
+    const dir = build(false);
+    const bg = fs.readFileSync(path.join(dir, 'background.js'), 'utf8');
+    expect(bg).toContain('luci:check-debugger');
+    const help = fs.readFileSync(path.join(dir, 'help.html'), 'utf8');
+    expect(help).toContain('debugger-permission');
+    expect(help).toContain('dbg-request-btn');
+    expect(help).toContain('dbg-dot');
+  });
 });
 
 // Loading an unpacked extension hangs Chromium's start-up in some sandboxed environments (seen here
