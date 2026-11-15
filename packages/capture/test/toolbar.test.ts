@@ -40,6 +40,22 @@ describe('toolbar (M4.4)', { timeout: 30_000 }, () => {
   afterAll(async () => { await page.context().close(); });
 
   it('lives in its own shadow root, and captures never include it (FR1)', async () => {
+    const pill = page.locator('luci-toolbar .basket-pill');
+    const bg = () => pill.evaluate(el => window.getComputedStyle(el).backgroundColor);
+    const initialBg = await bg();
+    await pill.hover();
+    await page.waitForTimeout(100);
+    const hoverClosedBg = await bg();
+    await pill.click();
+    await pill.hover();
+    await page.waitForTimeout(100);
+    const openHoveredBg = await bg();
+    await pill.click();
+    // Collar Lime 500 when closed, Collar Lime 300 on hover / open (never ginger-400 tool-active)
+    expect(initialBg).toContain('180, 212, 60');
+    expect(hoverClosedBg).not.toContain('246, 162, 79');
+    expect(openHoveredBg).not.toContain('246, 162, 79');
+
     const info = await page.evaluate(() => {
       const host = document.querySelector('luci-toolbar')!;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
