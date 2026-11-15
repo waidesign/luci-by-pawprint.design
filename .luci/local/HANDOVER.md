@@ -1,86 +1,70 @@
-# Handover: continuing the Luci build (2026-11-15)
+# Handover: continuing the Luci build (2026-11-15 19:15)
 
 > [!IMPORTANT]
-> **CRITICAL NOTE FOR CLAUDE CODE (DO NOT RESUME THE UNFINISHED SESSION WORK):**
-> *Timestamp: Claude Code session stopped at **3:26 AM (2026-11-15)** due to token limit.*
-> Do **NOT** attempt to resume, recreate, or reapply the uncommitted edits you were working on at 3:26 AM (the basket card layout reorder and the help page Node 18+ notice).
-> **All of that work was completed, verified, and committed in `2eab681`.**
-> Furthermore, two subsequent UI/UX fixes requested by the user were completed:
-> 1. `6e9ae9f`: Panel position `Right` is selected/active by default and reflects the dragged side.
-> 2. `d8c8eae`: Tooltip container expansion (`max-width: 340px; white-space: pre-wrap`) fixing the Pause tooltip text overflow.
-> All 15 commits are tested (502 tests green) and pushed to GitHub `origin/main`.
-> Read this file, inspect the git history (`git log --oneline -15`), and **wait for the user's next instructions** rather than restarting old work.
+> **CRITICAL NOTE FOR CLAUDE CODE:**
+> All work through **v0.4.4** is complete, verified (67/67 test files passing, 598 tests passed), committed locally, and pushed to GitHub `origin/main` (latest commit: `bd32d3d`).
+> Working tree is 100% clean. Do **NOT** attempt to re-implement or roll back any recent work.
+> Read this file, inspect `git log --oneline -10`, and wait for the user's explicit instructions.
 
 ---
 
-## 1. Where things stand
+## 1. Where Things Stand
 
-- **Project:** Luci, a local-first toolkit for AI coding agents: project memory, skill selection, design capture (browser extension and dev toolbar) and UI feedback. Spec: `docs/PRD.md` (Part 4 is the build brief). Monorepo, pnpm, TypeScript, vitest, Playwright, Preact; 10 packages including `@luci/ui` (see `.luci/context.md`).
-- **Git State:** Working tree clean. `7e680e8` pushed to `origin/main`. Option A (`v0.4.1`), Option B (`v0.4.2`), and Option C (`v0.4.3`) are all complete and pushed.
-- **Recent Commit History (Latest commits on main):**
-  - `7e680e8` — **feat(v0.4.3)**: computed layout tree: extract parent/child flex and grid layout relationships in component and section captures.
-  - `eb6cf2a` — **feat(v0.4.2)**: multi-page crawl: capture routes in one pass and merge into site-level DESIGN.md.
-  - `7567b01` — **docs**: sync HANDOVER.md with v0.4.1 and tooltip fix.
-  - `6b0e787` — **fix(ui)**: prevent tooltip masking inside cards/panels (left-align first-child tooltips inside `.panel`, right-align last-child) and elevate hover `z-index`.
-  - `976e985` — **v0.4.1 Watch & Auto-Check**: automatic reconciliation of open feedback notes against design check runs (auto-resolving fixed notes, updating shifting values), `luci capture checks` CLI command, and MCP check note refs.
-  - `4bddd51` — **test(capture)**: verify basket button hover never flashes orange tool-active.
-  - `bffcbdf` — **Capture**: component color set, basket button hover lime, mode switch active black text.
-  - `329a83e` — **B16: monorepo sub-package scoping and package rules**: ancestor directory climbing (`findProjectRoot`), package-scoped rules under `## Package: <path-or-name>` in root `.luci/rules.md`, active package stack & rules reporting in `get_project_context`, `luci start`, `luci doctor`, and transparent monorepo scoping for all CLI commands (`task`, `skills`, `capture`, `map`, `serve`).
-  - `2e7db6f` — **DESIGN.md export for Google Stitch**: prose-first design export format with markdown tables and design token sections.
-  - `3428a59` — **v0.4 screenshot mode and automatic design check**: visual inspection, token diffing against design baseline, and automatic checking during serve.
-  - `dee604e` — **v0.4 remap to my tokens, and compare in the basket**: token remapping engine and basket comparison views.
-  - `db13734` — **B14 project design baseline, and compare mode's core (v0.4)**: design baseline storage, baseline checks, and comparison infrastructure.
-  - `e2c3766` — **Decision record: install command waits for npm registration**: package naming and publication decision record.
-  - `65c2ad8` — **docs**: add 3:26 AM (2026-11-15) Claude Code cutoff timestamp to handover.
-  - `7a4d2cf` — **docs**: update handover notes for Claude Code with recent commits and UI fixes.
-  - `d8c8eae` — **Tooltip**: expand max-width to 340px and pre-wrap so hints do not overflow container.
-  - `6e9ae9f` — **Panel position**: Right active by default and follows dragged side.
-  - `2eab681` — **Basket**: meta on top, name and actions in one row; help page note on Node 18+.
+- **Project:** Luci — local-first toolkit for AI coding agents: project memory, skill selection, design capture (browser extension & dev toolbar), and UI feedback. Monorepo with 10 packages (`brain`, `skills`, `capture`, `feedback`, `format`, `cli`, `mcp`, `extension`, `toolbar`, `ui`).
+- **Git State:** Clean working tree. Branch `main` is up to date with `origin/main`.
+- **Latest Commit History on `main`:**
+  - `bd32d3d` — **feat(v0.4.4)**: unified devtool settings tabs and consistent mascot eyebrow colors
+    - DevToolbar settings dialog unified across all three modes (`feedback`, `layout`, `capture`):
+      - Shared settings at top (outside tabs): Connected Project info card (`data-part="connected-project"`) and Appearance controls (`data-part="appearance-settings"`: System/Light/Dark theme, Left/Right dock).
+      - Segmented tool tabs (`[ Feedback ]` | `[ Layout ]` | `[ Capture ]`): initial tab matches active canvas mode; lets user switch tabs and adjust any tool's settings without leaving the settings modal or disrupting canvas mode.
+      - Extension settings modal remains single-tool (Capture settings only, no tabs).
+    - Mascot eyebrow consistency fix: replaced all `#2B2B2B` strokes with canonical `#AD4F1A` (Ginger-700) across 30 SVG files (`brand/layered/`, `brand/animated/`, `brand/mascot/`, and `packages/ui`); ran `pnpm brand:sync`.
+  - `5da323c` — **feat(v0.4.4)**: add toggle to disable/enable debugger in settings with full CSS fallback
+    - Runtime toggle in Settings to disallow CDP attachment and fallback to stylesheet rules and hidden frames.
+  - `86f0d48` — **feat(v0.4.4)**: optional debugger permission status, help request flow, and graceful fallback
+    - Extension `#debugger-permission` help section and zero-CDP fallback.
+  - `93a21ea` — **feat(v0.4.4)**: direct extension bridge: send captures and basket items directly to project via localhost:4545
+    - Bridge `POST /design`, `POST /rule`, `GET /health`, custom bridge URL/port input in settings.
+  - `418e37b` — **feat(v0.4.4)**: visual screenshot diff overlay in design check
+    - Slider overlay with onion skin, split side-by-side, and difference inverted modes.
+  - `7e680e8` — **feat(v0.4.3)**: computed layout tree (`flex` / `grid` structure extraction).
+  - `eb6cf2a` — **feat(v0.4.2)**: multi-page crawl (`luci capture crawl`).
+  - `976e985` — **v0.4.1 Watch & Auto-Check**: automatic reconciliation of feedback notes against design checks.
 
 ---
 
 ## 2. Environment & Testing Verification
 
-- **Global CLI:** `packages/cli` has been linked globally via `npm link` so `luci` is a recognized command in terminal / PowerShell on this machine.
-- **Next.js Integration Tested:** `E:\vht - Copy` was initialized with `luci init`, `luci serve` runs on port 4545, and `Script` tag was wired into `apps/web/src/app/layout.tsx`.
-- **Test Suite Status:**
-  - `pnpm typecheck` passes with 0 errors.
-  - `pnpm test` passes cleanly: **67 test files passed (591 tests passed, 6 skipped)**.
+- **Global CLI:** `packages/cli` is linked globally (`npm link`).
+- **Test Suite:**
+  - `pnpm typecheck`: 100% clean pass across all 9 packages, test tsconfig, built toolbars, and extension.
+  - `pnpm test`: **67/67 test files pass** (598 passed, 6 skipped).
+  - `pnpm --filter @luci/extension build`: Builds clean production bundle in ~1.4s.
 - **Builds:**
-  - `packages/toolbar/dist/luci-toolbar.js` freshly built.
-  - `packages/capture/dist/luci-capture.js` freshly built.
-  - `packages/extension/.output/chrome-mv3` freshly built.
-  - `graphify-out/` code graph is current.
+  - `packages/toolbar/dist/luci-toolbar.js`
+  - `packages/capture/dist/luci-capture.js`
+  - `packages/extension/.output/chrome-mv3`
 
 ---
 
-## 3. What is next: Roadmap (Wait for User Approval)
+## 3. PRD Status & What is Next
 
-Do not start any of these until the user explicitly directs which one to tackle next:
+All functional requirements (`FR1`–`FR36`, `B1`–`B16`, `S1`–`S10`) across **v0.1, v0.2, v0.3, and v0.4** are 100% implemented and tested.
 
-1. **`B16` — Monorepo & Sub-package Scoping (`packages/brain` + `packages/cli` + `packages/mcp`) — COMPLETED (2026-11-15)**
-   - Project root discovery via `findProjectRoot` walking up directory ancestors.
-   - Package-scoped rules under `## Package: <path-or-name>` in root `.luci/rules.md`.
-   - `activePackage` stack and rules reported in `get_project_context`, `luci start`, and `luci doctor`.
-   - CLI commands (`task`, `skills`, `capture`, `map`, `serve`) resolve root `.luci/`.
-   - 14 tests in `packages/brain/test/workspace.test.ts` and `packages/cli/test/workspace.test.ts` + MCP workspace test. Total 566 tests passing.
-2. **Post-v0.3 Design Workflow Enhancements (`v0.4.1–v0.4.4`):**
-   - **`v0.4.1` Watch & Auto-check:** Re-run Design Check (`checkCapture`) when source files change during `luci serve` and update feedback items automatically.
-   - **`v0.4.2` Multi-page Crawl:** Capture a list of routes/URLs in one pass and merge into a site-level `DESIGN.md` system.
-   - **`v0.4.3` Computed Layout Tree (`flex` / `grid`):** Include parent/child flex and grid layout relationships inside component and section captures.
-   - **`v0.4.4` Screenshot Diff Overlay:** Visual pixel/overlay comparison alongside token diffing in Design Check.
-3. **Google Stitch `DESIGN.md` Prose Export Compatibility**
-   - Optional prose-first export format alongside Luci's structured tables so teams using Google Stitch or prose-based `DESIGN.md` workflows can export directly.
-4. **On hold (do not build until asked):**
-   - Public Release Prep (fresh public repo from a clean snapshot without local paths, third-party skill licence check, GitHub / npm / Chrome Web Store).
-   - "Send to project" button in the browser extension when `luci serve` runs.
-   - Making the `debugger` permission optional before a Chrome Web Store release.
+### What remains (on hold until user explicitly directs):
+1. **Public Launch & Distribution:**
+   - **npm Package Publication (`luci` CLI):** publish global CLI package to npm.
+   - **Chrome Web Store Submission:** package `@luci/extension` for Web Store review, prepare store promotional assets and privacy disclosures.
+   - **Repository Sanitization for Open-Source:** clean up local test paths in fixtures and review licenses.
+2. **Post-MVP Feature Ideas (PRD later steps):**
+   - **Design System to Project Skill (PRD Rank 2):** generate whole-system `.luci/skills/<name>/SKILL.md` from multi-page captures.
+   - **Full Screenshot Extraction (PRD Rank 9):** visual estimation of typography and layout without DOM.
 
 ---
 
-## 4. How the user works with agents (Strict Rules)
+## 4. How the User Works with Agents (Strict Rules)
 
-- **Explain before changing.** A question or concern gets an explanation, options, and a recommendation; make no edits until the user says "go" (or "do it").
-- **Do not edit `.luci/local/active-task.md` if the user has it open in an editor tab** (prevents file conflict toasts).
-- **Plain, short answers.** Tables help. Say plainly what was done and verified.
-- **Push only when the user explicitly asks.** Commit locally after each finished task.
+- **Explain before changing.** Provide clear explanation and recommendations; make no edits until user says "go" or approves.
+- **Do not edit `.luci/local/active-task.md` if the user has it open in an editor tab.**
+- **Commit locally, verify with tests/typecheck, report for review, and push ONLY when the user explicitly confirms.**
+- **Zero raw color values in UI code (strict token purity).**
