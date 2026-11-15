@@ -416,6 +416,33 @@ describe('v0.4: use my tokens, and compare two basket items', { timeout: 30_000 
     await page.context().close();
   });
 
+  it('screenshot mode: the Colour tool\'s Image estimates a color system from a chosen image, every value marked estimated', async () => {
+    const page = await open('css-variables');
+    await page.click('button[data-tool="color"]');
+    await page.click('[data-color-mode="image"]');
+    expect(await page.locator('[data-color-mode="image"]').getAttribute('aria-pressed')).toBe('true');
+    expect(await page.locator('button[data-tool="color"]').getAttribute('aria-pressed')).toBe('true');
+    expect(await page.locator('[data-part="hint"]').innerText()).toContain('Drop a screenshot here, paste one, or choose a file.');
+    // A 40 x 30 PNG: a white page with a blue band, drawn in the page and handed to the file input
+    const png = await page.evaluate(async () => {
+      const c = document.createElement('canvas');
+      c.width = 40; c.height = 30;
+      const g = c.getContext('2d')!;
+      g.fillStyle = '#ffffff'; g.fillRect(0, 0, 40, 30);
+      g.fillStyle = '#0f62fe'; g.fillRect(0, 20, 40, 10);
+      const blob = await new Promise<Blob>(r => c.toBlob(b => r(b!), 'image/png'));
+      return Array.from(new Uint8Array(await blob.arrayBuffer()));
+    });
+    await page.locator('[data-part="image-file"]').setInputFiles({ name: 'Checkout.png', mimeType: 'image/png', buffer: Buffer.from(png) });
+    await page.locator('[data-part="file-name"]').waitFor();
+    expect(await page.locator('[data-part="file-name"]').innerText()).toBe('image-checkout.system.color.design.md');
+    const md = await preview(page);
+    expect(md).toContain('method: estimated');
+    expect(md).toContain('| background | #ffffff | 67% |');
+    expect(md).toContain('| accent | #0f62fe | 33% |');
+    await page.context().close();
+  });
+
   it('compares two basket items: what differs, A and B, and copies it', async () => {
     const page = await open('css-variables');
     for (const sel of ['.card:first-child .button', '.card:nth-child(2) .button']) {
@@ -442,7 +469,7 @@ describe('v0.4: use my tokens, and compare two basket items', { timeout: 30_000 
   });
 });
 
-describe('tool hints and the Color tool\'s two ways to pick (user feedback, M4)', { timeout: 30_000 }, () => {
+describe('tool hints and the Color tool\'s ways to pick (user feedback, M4; Image in v0.4)', { timeout: 30_000 }, () => {
   it('each tool says what to do; Color offers Element and Pixel side by side, Pixel off without an eyedropper', async () => {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const page = await context.newPage();
@@ -466,7 +493,7 @@ describe('tool hints and the Color tool\'s two ways to pick (user feedback, M4)'
     expect(await pose()).toBe('measure');
     await page.click('button[data-tool="color"]');
     expect(await pose()).toBe('swatch');
-    expect(await page.locator('[data-color-mode]').allInnerTexts()).toEqual(['Element', 'Pixel']);
+    expect(await page.locator('[data-color-mode]').allInnerTexts()).toEqual(['Element', 'Pixel', 'Image']);
     expect(await page.locator('[data-color-mode="element"]').getAttribute('aria-pressed')).toBe('true');
     // Without an eyedropper, Pixel stays visible but off, with the reason
     expect(await page.locator('[data-color-mode="pixel"]').isDisabled()).toBe(true);

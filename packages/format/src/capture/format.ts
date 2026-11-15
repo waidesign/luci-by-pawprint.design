@@ -247,11 +247,18 @@ function typographySystem(c: TypographySystem, s: CaptureSettings): string[] {
   ];
 }
 
+/** Screenshot mode (v0.4): what an estimated color system says about itself. */
+export const ESTIMATED_IMAGE_NOTE = '- Estimated from an image: an image has no custom properties, and every color here is a guess from its pixels (Share is its share of the picture). Text styles and spacing cannot be read from an image.';
+
 function colorSystem(c: ColorSystem, s: CaptureSettings): string[] {
   const all = sitePages(c);
+  // A palette estimated from an image: its rows say how much of the picture each color covers
+  const image = c.meta.method === 'estimated' && c.roles.every(r => r.properties.length === 1 && r.properties[0] === 'image');
   const tokens = c.tokens.length
     ? table(withPages(['Token', 'Value', 'Uses'], all), c.tokens.map(t => [code(t.token), formatColor(t.value, s), String(t.count), ...pageCol(t, all)]))
+    : image ? ESTIMATED_IMAGE_NOTE
     : `- The ${all ? 'site' : 'page'} defines no color custom properties.`;
+  if (image) return ['## Roles', table(['Role', 'Value', 'Share'], c.roles.map(r => [r.role, show(r.value, 'color', s), `${r.count}%`])), '', '## Tokens', tokens];
   return [
     '## Roles', table(withPages(['Role', 'Value', 'Authored', 'Token', 'Uses', 'Properties'], all), c.roles.map(r => [r.role, show(r.value, 'color', s), authored(r.value), code(r.value.token), String(r.count), r.properties.join(', '), ...pageCol(r, all)])),
     '', '## Tokens', tokens,

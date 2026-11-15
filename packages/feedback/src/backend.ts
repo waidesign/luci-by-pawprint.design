@@ -20,6 +20,7 @@ import {
   type Wireframe
 } from '@luci/format/feedback';
 import type { ServerResolver } from './react.js';
+import type { CheckRun } from '@luci/format/capture';
 
 export interface NewItem {
   page: { url: string; route?: string; title?: string; source?: string };
@@ -78,6 +79,8 @@ export interface FeedbackBackend {
   resolveFrames?: ServerResolver;
   /** The project's own tokens, read from its stylesheets (project only; v0.4, remap to my tokens). */
   projectTokens?(): Promise<{ token: string; value: string }[]>;
+  /** Keep a design check's latest run for the agent (project only; v0.4, automatic design check). */
+  saveCheck?(run: CheckRun): Promise<void>;
 }
 
 export class BridgeError extends Error {}
@@ -112,7 +115,8 @@ export function bridgeBackend(url: string, fetchImpl: typeof fetch = (...a) => f
     proposeRule: (file) => call('POST', '/rule', { file }),
     readCapture: async (file) => (await call<{ markdown: string }>('GET', `/design/${encodeURIComponent(file)}`)).markdown,
     resolveFrames: async (frames) => (await call<{ locations: (SourceLocation | null)[] }>('POST', '/resolve', { frames })).locations,
-    projectTokens: async () => (await call<{ tokens: { token: string; value: string }[] }>('GET', '/tokens')).tokens
+    projectTokens: async () => (await call<{ tokens: { token: string; value: string }[] }>('GET', '/tokens')).tokens,
+    saveCheck: async (run) => { await call('POST', '/checks', run); }
   };
 }
 

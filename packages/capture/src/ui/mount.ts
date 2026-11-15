@@ -1,6 +1,6 @@
 /** Put the toolbar on a page, inside its own shadow root (FR1). Both shells call this. */
 import { h, render } from 'preact';
-import type { CaptureSettings } from '@luci/format/capture';
+import type { CaptureSettings, CheckRun } from '@luci/format/capture';
 import { loadFonts } from '@luci/ui';
 import { LUCI_UI_ATTRIBUTE } from '../dom.js';
 import { TOOLBAR_CSS } from './styles.js';
@@ -52,6 +52,10 @@ export interface MountOptions {
   movable?: boolean;
   /** Where "Use my tokens" finds the person's tokens (v0.4). */
   myTokens?: MyTokensSource;
+  /** Check again whenever the page changes, from the start (v0.4, the dev toolbar). */
+  autoCheck?: boolean;
+  /** Every design check run, for the project (v0.4, the dev toolbar). */
+  onCheckRun?: (run: CheckRun) => void;
 }
 
 export interface ToolbarHandle {
@@ -117,6 +121,8 @@ export function mountToolbar(options: MountOptions = {}): ToolbarHandle {
     ...(options.setViewportWidth ? { setViewportWidth: options.setViewportWidth } : {}),
     ...(options.movable ? { movable: true } : {}),
     ...(options.myTokens ? { myTokens: options.myTokens } : {}),
+    ...(options.autoCheck ? { autoCheck: true } : {}),
+    ...(options.onCheckRun ? { onCheckRun: options.onCheckRun } : {}),
     onClose: () => { destroy(); options.onClose?.(); },
     registerPixelInput: (pick: (hex: string) => void) => { pixelInput = pick; }
   }), mountPoint);

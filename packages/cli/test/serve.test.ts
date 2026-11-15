@@ -7,7 +7,7 @@ import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
-import { FeedbackStore, initProject } from '@luci/brain';
+import { CheckStore, FeedbackStore, initProject } from '@luci/brain';
 import { SkillRegistry } from '@luci/skills';
 import { isLoopbackOrigin, relativeSource, startBridge, type Bridge } from '../src/serve/bridge.js';
 import { run } from '../src/index.js';
@@ -78,6 +78,22 @@ describe('luci serve: the bridge (M6.3)', () => {
     expect((await request(bridge, 'DELETE', '/feedback/P2-A1')).json()).toEqual({ removed: ['P2-A1'] });
     expect((await request(bridge, 'DELETE', '/feedback/P2-A1')).status).toBe(404);
     expect((await request(bridge, 'GET', '/feedback')).json().items.map((i: { ref: string }) => i.ref)).toEqual(['P1-A1', 'P1-A2']);
+  });
+
+  it('keeps the latest run of each design check for the agent (v0.4, automatic design check)', async () => {
+    const { dir, bridge } = await project();
+    const run = (n: number, at: string) => ({
+      design: '.luci/design/example-com.component.button.design.md', label: 'button (button) from example.com', selector: '#built', page: `${PAGE}/checkout`, checkedAt: at, matches: 12,
+      differences: Array.from({ length: n }, (_, i) => ({ kind: 'style', part: 'container', property: `p${i}`, expected: '8px', actual: '4px', comment: `Difference ${i}.`, priority: 'medium' }))
+    });
+    expect((await request(bridge, 'POST', '/checks', { body: run(3, '2026-11-15T10:00:00.000Z') })).status).toBe(201);
+    expect((await request(bridge, 'POST', '/checks', { body: run(1, '2026-11-15T10:05:00.000Z') })).status).toBe(201);
+    const runs = (await request(bridge, 'GET', '/checks')).json().runs;
+    // The same check keeps only its latest run
+    expect(runs).toHaveLength(1);
+    expect(runs[0].differences).toHaveLength(1);
+    expect(new CheckStore(dir).list()[0]!.checkedAt).toBe('2026-11-15T10:05:00.000Z');
+    expect((await request(bridge, 'POST', '/checks', { body: { design: 'x' } })).status).toBe(400);
   });
 
   it('gives the project\'s own tokens, read from its stylesheets now (v0.4, use my tokens)', async () => {

@@ -6,12 +6,13 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { RemapSection, pageTokenStore, remapOutput, type MyTokensSource } from './remap.js';
 import type { ViewportWidth } from '../responsive.js';
-import { compareCaptures, formatCapture, formatCompareReport, groupOf, mergeGroups, withInstructions, type CompareResult, type Responsive, type BasketItem, type CaptureSettings, type ComponentCapture } from '@luci/format/capture';
+import { cleanSource, compareCaptures, estimatePalette, formatCapture, type CheckRun, formatCompareReport, groupOf, imageColorSystem, imageFileName, mergeGroups, withInstructions, type CompareResult, type Responsive, type BasketItem, type CaptureSettings, type ComponentCapture } from '@luci/format/capture';
 import { addToBasket, exportBasket, exportItem, mergeInBasket, noteInBasket, removeFromBasket, renameInBasket, sourceLabel, type BasketStore } from './basket.js';
 import type { Eligibility } from '../eligibility.js';
 import type { ElementSnapshot } from '../model.js';
 import { manualState, type ComputedMap, type StateName } from '../states.js';
 import { elementName } from '../naming.js';
+import { LUCI_UI_ATTRIBUTE } from '../dom.js';
 import { elementAt, eligibilityOf, eventTarget, firstChildOf, hoverLabel, parentOf, scrollableAncestor } from './picker.js';
 import { ButtonSpinner, Loading, nextPaint } from './loading.js';
 import { ModeSwitch, type ModeSwitchProps } from './modeSwitch.js';
@@ -83,7 +84,14 @@ export interface ToolbarProps {
   movable?: boolean;
   /** Where "Use my tokens" finds the person's tokens (v0.4). Default: tokens pasted, kept in the page's storage. */
   myTokens?: MyTokensSource;
+  /** Check again whenever the page changes, from the start (v0.4, the dev toolbar); the person can switch it. */
+  autoCheck?: boolean;
+  /** Every design check run (and each automatic re-check), for the project (v0.4). */
+  onCheckRun?: (run: CheckRun) => void;
 }
+
+/** The check being watched, kept for this tab so a reload picks it up again (v0.4). */
+const AUTO_CHECK_KEY = 'luci.autoCheck';
 
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(v, Math.max(min, max)));
 /** Keep at least this much of the window between the dragged bar and its edges. */
@@ -345,19 +353,112 @@ export function Toolbar(props: ToolbarProps) {
   const [checkOpen, setCheckOpen] = useState(false);
   const [checkDesign, setCheckDesign] = useState<DesignChoice | null>(null);
   const [checkOutcome, setCheckOutcome] = useState<Extract<CheckOutcome, { ok: true }> | null>(null);
+  /*
+   * Automatic design check (v0.4): after a check, Luci watches the page and checks the built component
+   * again whenever it changes (an edit reloading it, hot module replacement), says what changed, and
+   * sends each run to the project (dev toolbar) where the agent reads it. The watch survives a reload of
+   * the tab. Its own reading never counts as a change.
+   */
+  const [watchCheck, setWatchCheck] = useState(Boolean(props.autoCheck));
+  const [checkVersion, setCheckVersion] = useState(0);
+  const [autoNote, setAutoNote] = useState<string | null>(null);
+  const checkingNow = useRef(false);
+  const checkRun = useRef(0);
+  const session = (() => { try { return win.sessionStorage; } catch { return null; } })();
+  const forgetWatch = () => { try { session?.removeItem(AUTO_CHECK_KEY); } catch { /* storage blocked */ } };
+  const afterCheck = (outcome: Extract<CheckOutcome, { ok: true }>, design: DesignChoice, selector: string) => {
+    setCheckOutcome(outcome);
+    setCheckVersion(v => v + 1);
+    props.onCheckRun?.({
+      design: design.file, label: design.label, selector, page: cleanSource(doc.location.href), checkedAt: new Date().toISOString(),
+      matches: outcome.result.matches.length,
+      differences: outcome.result.differences.map(d => ({ kind: d.kind, part: d.part, ...(d.state ? { state: d.state } : {}), property: d.property, expected: d.expected, actual: d.actual, comment: d.comment, priority: d.priority }))
+    });
+    if (watchCheck) { try { session?.setItem(AUTO_CHECK_KEY, JSON.stringify({ selector, design, path: doc.location.pathname })); } catch { /* storage blocked */ } }
+  };
   const runCheck = async () => {
     if (!picked || !checkDesign) return;
     setBusy('Reading the built component and its states, then comparing it with the design…');
+    setAutoNote(null);
+    checkingNow.current = true;
     try {
       const outcome = await checkAgainst(picked.live, picked.entry, checkDesign, props.readForcedStates);
-      if (outcome.ok) setCheckOutcome(outcome);
+      if (outcome.ok) afterCheck(outcome, checkDesign, picked.entry.selector);
       else show(outcome);
     } catch (err) {
       failed(err);
     } finally {
+      checkingNow.current = false;
       setBusy(null);
     }
   };
+  /** Check the same built component again (it may be a new node after a reload of the component). */
+  const recheck = async () => {
+    if (!checkDesign || !checkOutcome || !picked) return;
+    const run = ++checkRun.current;
+    const selector = picked.entry.selector;
+    const el = doc.querySelector(selector);
+    if (!el) { setAutoNote('The built component is not on the page right now. Luci checks again when it is back.'); return; }
+    checkingNow.current = true;
+    try {
+      const live = liveSnapshot(doc);
+      const entry = entryFor(live, el);
+      if (!entry) return;
+      const before = checkOutcome.result.differences.length;
+      const outcome = await checkAgainst(live, entry, checkDesign, props.readForcedStates);
+      if (run !== checkRun.current || !outcome.ok) return;
+      setPicked(p => (p ? { ...p, el, entry, live } : p));
+      afterCheck(outcome, checkDesign, selector);
+      const n = outcome.result.differences.length;
+      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      setAutoNote(`Checked again at ${time}: ${n ? `${n} difference${n === 1 ? '' : 's'}` : 'it matches the design'}${n !== before ? ` (was ${before})` : ''}.`);
+    } catch {
+      // A page in the middle of reloading: the next change checks again
+    } finally {
+      checkingNow.current = false;
+    }
+  };
+  useEffect(() => {
+    if (!watchCheck || !checkOutcome || !checkDesign || !picked || typeof MutationObserver === 'undefined') return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const ours = (n: Node) => {
+      const el = n instanceof Element ? n : n.parentElement;
+      return Boolean(el?.closest(`[${LUCI_UI_ATTRIBUTE}]`));
+    };
+    const observer = new MutationObserver(records => {
+      // Luci's own reading (a state set for a moment) and Luci's own UI never count
+      if (checkingNow.current || records.every(r => ours(r.target))) return;
+      clearTimeout(timer);
+      timer = setTimeout(() => { void recheck(); }, 700);
+    });
+    observer.observe(doc.documentElement, { subtree: true, childList: true, attributes: true, characterData: true });
+    return () => { observer.disconnect(); clearTimeout(timer); };
+  }, [watchCheck, checkVersion, checkDesign, picked?.entry.selector]);
+  // After a reload of the tab: pick up the check that was being watched, once the component is on the page
+  useEffect(() => {
+    let saved: { selector: string; design: DesignChoice; path: string } | null = null;
+    try { saved = JSON.parse(session?.getItem(AUTO_CHECK_KEY) ?? 'null'); } catch { saved = null; }
+    if (!saved || !props.autoCheck || saved.path !== doc.location.pathname) return;
+    const watch = saved;
+    let tries = 0;
+    const timer = setInterval(() => {
+      const el = doc.querySelector(watch.selector);
+      if (!el && ++tries < 40) return;
+      clearInterval(timer);
+      if (!el) { forgetWatch(); return; }
+      const live = liveSnapshot(doc);
+      const entry = entryFor(live, el);
+      if (!entry) return;
+      setTool('component');
+      setCheckDesign(watch.design);
+      setPicked({ el, entry, live, eligibility: eligibilityOf(el) });
+      checkingNow.current = true;
+      void checkAgainst(live, entry, watch.design, props.readForcedStates)
+        .then(outcome => { if (outcome.ok) { afterCheck(outcome, watch.design, watch.selector); setAutoNote('Checked again after the page reloaded.'); } })
+        .finally(() => { checkingNow.current = false; });
+    }, 250);
+    return () => clearInterval(timer);
+  }, []);
 
   const produce = async (system: boolean, section = false) => {
     if (!picked || !tool) return;
@@ -462,6 +563,8 @@ export function Toolbar(props: ToolbarProps) {
     setCheckOpen(false);
     setCheckDesign(null);
     setCheckOutcome(null);
+    setAutoNote(null);
+    forgetWatch();
   };
   /** The bar's "Check": choose the design first. */
   const openCheck = () => {
@@ -521,6 +624,7 @@ export function Toolbar(props: ToolbarProps) {
     cancelCapture();
     pageRun.current++;
     setPageBusy(false);
+    setImageMode(false);
     setPageStep(null);
     setWholePage(false);
     // A design check keeps its design while picking the built component; its last result goes
@@ -979,6 +1083,66 @@ export function Toolbar(props: ToolbarProps) {
       win.removeEventListener('resize', onScroll);
     };
   }, [pixelMode]);
+  /*
+   * Screenshot mode (v0.4): the Colour tool's Image. A screenshot (dropped, pasted or chosen) gives a
+   * color system estimated from its pixels: the palette, each color's share and a guessed role.
+   */
+  const [imageMode, setImageMode] = useState(false);
+  const [imageBusy, setImageBusy] = useState(false);
+  const imageInput = useRef<HTMLInputElement>(null);
+  const startImage = () => {
+    setPicking(false);
+    aim(null);
+    setPicked(null);
+    setResult(null);
+    setPixelMode(false);
+    setTool('color');
+    setNotice(null);
+    setImageMode(true);
+  };
+  const readImageFile = async (file: Blob, name: string) => {
+    if (!/^image\//.test(file.type)) { setNotice(`${name} is not an image. Drop a PNG, JPEG or WebP screenshot.`); return; }
+    setImageBusy(true);
+    try {
+      const bitmap = await createImageBitmap(file);
+      // A small copy is enough for a palette, and keeps a large screenshot fast
+      const scale = Math.min(1, 240 / Math.max(bitmap.width, bitmap.height, 1));
+      const canvas = doc.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+      canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+      const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+      ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      bitmap.close?.();
+      const system = imageColorSystem(estimatePalette(ctx.getImageData(0, 0, canvas.width, canvas.height).data), { file: name, captured: new Date().toISOString().slice(0, 10) });
+      setImageMode(false);
+      show(system
+        ? { ok: true, output: { capture: system, fileName: imageFileName(name), markdown: formatCapture(system, settingsRef.current) } }
+        : { ok: false, message: 'Luci found no colours in this image: it is empty or see-through.' });
+    } catch (err) {
+      setNotice(`Luci could not read this image (${err instanceof Error ? err.message : String(err)}).`);
+    } finally {
+      setImageBusy(false);
+    }
+  };
+  useLayoutEffect(() => {
+    if (!imageMode) return;
+    // Paste a screenshot from the clipboard; Esc goes back to Element
+    const onPaste = (e: ClipboardEvent) => {
+      const file = [...(e.clipboardData?.items ?? [])].find(i => i.kind === 'file' && i.type.startsWith('image/'))?.getAsFile();
+      if (!file) return;
+      e.preventDefault();
+      void readImageFile(file, file.name && file.name !== 'image.png' ? file.name : 'pasted-image.png');
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.preventDefault();
+      setImageMode(false);
+      startPicking('color');
+    };
+    doc.addEventListener('paste', onPaste, true);
+    doc.addEventListener('keydown', onKey, true);
+    return () => { doc.removeEventListener('paste', onPaste, true); doc.removeEventListener('keydown', onKey, true); };
+  }, [imageMode]);
   const pickPixel = async () => {
     if (!Dropper) return;
     // While the eyedropper is open, the page picker steps aside
@@ -997,7 +1161,7 @@ export function Toolbar(props: ToolbarProps) {
   };
 
   // The tool in use, for the pill (including Pixel mode and the eyedropper)
-  const currentTool: ToolId | null = !checking && !wholePage && tool && (picking || dropperOpen || pixelMode || Boolean(picked) || Boolean(result)) ? tool : null;
+  const currentTool: ToolId | null = !checking && !wholePage && tool && (picking || dropperOpen || pixelMode || imageMode || Boolean(picked) || Boolean(result)) ? tool : null;
   const pickTool = (t: ToolId) => { setSettingsOpen(false); setBasketOpen(false); setCheckDesign(null); startPicking(t); };
   const toggleMenu = () => setSettingsOpen(s => !s);
   const toggleBasket = () => { setSettingsOpen(false); if (basketOpen) setBasketOpen(false); else openBasket(); };
@@ -1011,7 +1175,7 @@ export function Toolbar(props: ToolbarProps) {
   ], countdown === null);
 
   // First run: Luci greets once, until the first tool or panel is opened (BRAND.md: first run, slow blink)
-  const idle = !settingsOpen && !basketOpen && !picking && !picked && !result && !pageBusy && !checkOpen && !pixelMode && !dropperOpen;
+  const idle = !settingsOpen && !basketOpen && !picking && !picked && !result && !pageBusy && !checkOpen && !pixelMode && !dropperOpen && !imageMode;
   const greeting = idle && !uiPrefs.greeted;
   useEffect(() => { if (!idle && !uiPrefs.greeted) setUiPrefs({ greeted: true }); }, [idle]);
 
@@ -1316,24 +1480,41 @@ export function Toolbar(props: ToolbarProps) {
           </div>
         )}
 
-        {!settingsOpen && (picking || dropperOpen || pixelMode) && tool && (
-          <div class="sub with-luci" data-part="tool-hint" role="note">
+        {!settingsOpen && (picking || dropperOpen || pixelMode || imageMode) && tool && (
+          <div class={`sub with-luci${imageMode ? ' image-drop' : ''}`} data-part="tool-hint" role="note"
+            {...(imageMode ? {
+              onDragOver: (e: DragEvent) => { e.preventDefault(); },
+              onDrop: (e: DragEvent) => {
+                e.preventDefault();
+                const file = [...(e.dataTransfer?.files ?? [])][0];
+                if (file) void readImageFile(file, file.name || 'dropped-image.png');
+              }
+            } : {})}>
             <Mascot pose={checkDesign ? 'compare' : TOOL_POSES[tool]} size={96} />
 
             <div class="sub-body">
               {tool === 'color' && (
                 <div class="seg" role="group" aria-label="Pick a colour from">
-                  <button type="button" aria-pressed={!dropperOpen && !pixelMode} data-color-mode="element" onClick={() => { setPixelMode(false); startPicking('color'); }}>Element</button>
+                  <button type="button" aria-pressed={!dropperOpen && !pixelMode && !imageMode} data-color-mode="element" onClick={() => { setPixelMode(false); setImageMode(false); startPicking('color'); }}>Element</button>
                   <button type="button" aria-pressed={dropperOpen || pixelMode} data-color-mode="pixel" data-action="eyedropper" disabled={!canPickPixels}
-                    title={canPickPixels ? 'Pick any spot on the page' : 'This browser cannot pick pixels. Click an element instead.'} onClick={() => void startPixel()}>Pixel</button>
+                    title={canPickPixels ? 'Pick any spot on the page' : 'This browser cannot pick pixels. Click an element instead.'} onClick={() => { setImageMode(false); void startPixel(); }}>Pixel</button>
+                  <button type="button" aria-pressed={imageMode} data-color-mode="image" title="Estimate the colours of a screenshot or any image" onClick={startImage}>Image</button>
                 </div>
               )}
               <p class="hint" data-part="hint">
-                {pixelMode ? 'Point at any spot. Click to take its colour.'
+                {imageMode ? (imageBusy ? 'Reading the image…' : 'Drop a screenshot here, paste one, or choose a file. Luci estimates its colours: every value is a guess.')
+                  : pixelMode ? 'Point at any spot. Click to take its colour.'
                   : checkDesign ? `Click the component you built. Luci checks it against ${checkDesign.label}.`
                   : `${TOOL_HINTS[tool]}${tool === 'color' && !canPickPixels ? ' This browser cannot pick pixels.' : ''}`}
               </p>
-              <p class="keys">{pixelMode ? 'Esc: back to Element' : '↑ ↓ after clicking: wider or narrower · Esc: stop'}</p>
+              {imageMode && (
+                <div class="row">
+                  <input ref={imageInput} type="file" accept="image/*" data-part="image-file" hidden
+                    onChange={e => { const f = (e.currentTarget as HTMLInputElement).files?.[0]; if (f) void readImageFile(f, f.name); }} />
+                  <button type="button" class="btn-secondary" data-action="choose-image" disabled={imageBusy} onClick={() => imageInput.current?.click()}>Choose an image</button>
+                </div>
+              )}
+              <p class="keys">{pixelMode || imageMode ? 'Esc: back to Element' : '↑ ↓ after clicking: wider or narrower · Esc: stop'}</p>
             </div>
           </div>
         )}
@@ -1348,8 +1529,11 @@ export function Toolbar(props: ToolbarProps) {
 
         {!settingsOpen && !picking && !basketOpen && checkOutcome && checkDesign && picked && (
           <CheckResultPanel
-            key={`${picked.entry.selector} ${checkDesign.file}`}
+            key={`${picked.entry.selector} ${checkDesign.file} ${checkVersion}`}
             outcome={checkOutcome}
+            watching={watchCheck}
+            onWatch={on => { setWatchCheck(on); setAutoNote(null); if (!on) forgetWatch(); }}
+            autoNote={autoNote}
             design={checkDesign}
             el={picked.el}
             selector={picked.entry.selector}

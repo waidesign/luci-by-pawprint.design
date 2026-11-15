@@ -216,6 +216,10 @@ ${UI_CSS}
 .items .meta { grid-column: 1; color: var(--luci-color-ink-secondary); font-size: var(--luci-type-small-size); }
 .items .meta:not(:has(+ .compare-pick)) { grid-column: 1 / -1; }
 .items .compare-pick { grid-column: 2; justify-self: end; gap: var(--luci-space-4); font-size: var(--luci-type-small-size); }
+/* Automatic design check (v0.4) */
+.check-watch { gap: var(--luci-space-8); font-size: var(--luci-type-small-size); color: var(--luci-color-ink); }
+/* Screenshot mode (v0.4): the hint card is where an image is dropped */
+.sub.image-drop { outline: 2px dashed var(--luci-color-stroke-subtle); outline-offset: -6px; }
 /* Compare mode (v0.4): What, A, B */
 .compare-scroll { max-height: 50vh; overflow: auto; border-radius: var(--luci-radius-md); background: var(--luci-color-surface-sunken); }
 .compare { width: 100%; border-collapse: collapse; font-size: var(--luci-type-small-size); line-height: var(--luci-type-small-line); }

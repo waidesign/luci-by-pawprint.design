@@ -79,6 +79,10 @@ describe('design check in the capture toolbar (v0.3.1)', { timeout: 60_000 }, ()
     expect(two).not.toContain('border-radius');
   });
 
+  it('the extension does not check again by itself unless asked (its states use the debugger)', async () => {
+    expect(await page.locator('[data-action="check-watch"]').isChecked()).toBe(false);
+  });
+
   it('the design itself matches; a pasted file that is not a component says what to pick', async () => {
     // Check another: the same design, now against the design button itself
     await page.click('[data-action="check-again"]');
@@ -94,5 +98,57 @@ describe('design check in the capture toolbar (v0.3.1)', { timeout: 60_000 }, ()
     // Esc closes the check
     await page.keyboard.press('Escape');
     await page.locator('[data-part="check-chooser"]').waitFor({ state: 'detached' });
+  });
+});
+
+describe('automatic design check (v0.4)', { timeout: 60_000 }, () => {
+  it('checks again when the page changes, says what changed, sends each run, and picks the check up after a reload', async () => {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
+    page.setDefaultTimeout(10_000);
+    const mount = async () => {
+      await page.addScriptTag({ content: bundle });
+      // The dev toolbar's way: check again from the start, and keep every run (here, on the page)
+      await page.evaluate(() => {
+        const w = window as unknown as { runs: unknown[]; LuciCapture: { mountToolbar(o: object): unknown } };
+        w.runs = [];
+        w.LuciCapture.mountToolbar({ autoCheck: true, onCheckRun: (run: unknown) => w.runs.push(run) });
+      });
+    };
+    await page.goto(`${server.origin}/check/`);
+    await mount();
+    await page.click('button[data-tool="component"]');
+    await page.click('#design', { force: true });
+    await page.click('[data-output="one"]');
+    await page.click('[data-action="add-to-basket"]');
+    await page.click('[data-action="check"]');
+    await page.click('[data-part="check-basket"] [data-design-use]');
+    await page.click('#built', { force: true });
+    await page.click('[data-action="check-run"]');
+    await page.locator('[data-part="check-result"]').waitFor();
+    expect(await page.locator('[data-action="check-watch"]').isChecked()).toBe(true);
+    expect(await page.locator('[data-part="check-summary"]').innerText()).toMatch(/· 3 differences$/);
+
+    // An edit fixes the radius (as a hot reload of the stylesheet would): Luci checks again by itself
+    // (through the design's token: a plain 8px would still be "use var(--radius)")
+    await page.addStyleTag({ content: '#built { border-radius: var(--radius); }' });
+    await page.locator('[data-part="check-auto"]', { hasText: '2 differences' }).waitFor();
+    expect(await page.locator('[data-part="check-auto"]').innerText()).toMatch(/^Checked again at .+: 2 differences \(was 3\)\.$/);
+    expect(await page.locator('[data-part="check-summary"]').innerText()).toMatch(/· 2 differences$/);
+    // Each run went to the project's side: the first check, then each re-check
+    const runs = await page.evaluate(() => (window as unknown as { runs: { differences: unknown[]; selector: string; design: string }[] }).runs);
+    expect(runs[0]!.differences.length).toBe(3);
+    expect(runs.at(-1)!.differences.length).toBe(2);
+    expect(runs.at(-1)).toMatchObject({ selector: expect.any(String), design: expect.stringMatching(/\.design\.md$/) });
+
+    // A reload of the tab picks the watched check up again
+    await page.reload();
+    await mount();
+    await page.locator('[data-part="check-result"]').waitFor();
+    expect(await page.locator('[data-part="check-auto"]').innerText()).toBe('Checked again after the page reloaded.');
+    // Switched off: the watch is forgotten
+    await page.click('[data-action="check-watch"]');
+    expect(await page.evaluate(() => sessionStorage.getItem('luci.autoCheck'))).toBeNull();
+    await context.close();
   });
 });

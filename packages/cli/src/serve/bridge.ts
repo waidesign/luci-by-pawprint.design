@@ -12,8 +12,8 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import path from 'node:path';
 import { z } from 'zod';
-import { DesignError, DesignStore, FeedbackError, FeedbackStore, findStylesheets, proposeCaptureRule } from '@luci/brain';
-import { buildBaseline } from '@luci/format/capture';
+import { CheckStore, DesignError, DesignStore, FeedbackError, FeedbackStore, findStylesheets, proposeCaptureRule } from '@luci/brain';
+import { buildBaseline, checkRunSchema } from '@luci/format/capture';
 import { serverResolver } from './resolve.js';
 import { PRODUCT } from '@luci/format';
 import { DETAIL_LEVELS, FEEDBACK_INTENTS, FEEDBACK_PRIORITIES, designCheckSchema, feedbackItemSchema, formatFeedbackPrompt, layoutSchema, wireframeSchema } from '@luci/format/feedback';
@@ -115,6 +115,7 @@ const parse = <T>(schema: z.ZodType<T>, value: unknown): T => {
 export function startBridge(options: BridgeOptions): Promise<Bridge> {
   const feedback = new FeedbackStore(options.projectDir);
   const design = new DesignStore(options.projectDir);
+  const checks = new CheckStore(options.projectDir);
   const resolveServer = serverResolver(options.projectDir);
   let port = options.port ?? DEFAULT_PORT;
 
@@ -206,6 +207,14 @@ export function startBridge(options: BridgeOptions): Promise<Bridge> {
         return;
       }
       if (route === '/design' && req.method === 'GET') { send(200, { files: design.list() }); return; }
+      // Automatic design check (v0.4): the toolbar's latest run of each check, for the agent
+      if (route === '/checks' && req.method === 'GET') { send(200, { runs: checks.list() }); return; }
+      if (route === '/checks' && req.method === 'POST') {
+        if (!checks.available) throw new HttpError(409, `No ${PRODUCT.projectDir}/ in this project yet: run \`${PRODUCT.command} init\` there.`);
+        checks.save(parse(checkRunSchema, await readBody(req)));
+        send(201, { saved: true });
+        return;
+      }
       // The project's own tokens (v0.4, remap to my tokens): read from its stylesheets now, so they are current
       if (route === '/tokens' && req.method === 'GET') {
         const baseline = buildBaseline(findStylesheets(options.projectDir), { project: 'project', captured: new Date().toISOString().slice(0, 10) });

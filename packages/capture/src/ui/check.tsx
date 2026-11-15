@@ -122,6 +122,10 @@ export function CheckResultPanel(props: {
   onCopy: (text: string) => Promise<void>;
   onAgain: () => void;
   onChangeDesign: () => void;
+  /** Automatic design check (v0.4): checking again whenever the page changes, and what the last re-check found. */
+  watching?: boolean;
+  onWatch?: (on: boolean) => void;
+  autoNote?: string | null;
 }) {
   const { result, note } = props.outcome;
   const diffs = result.differences;
@@ -158,6 +162,13 @@ export function CheckResultPanel(props: {
         {result.matches.length} value{result.matches.length === 1 ? '' : 's'} match · <strong>{diffs.length} difference{diffs.length === 1 ? '' : 's'}</strong>
       </p>
       {note && <p class="hint" data-part="state-note">{note}</p>}
+      {props.onWatch && (
+        <label class="check-watch" title="When the page changes (an edit reloads it), Luci checks the built component again">
+          <input type="checkbox" data-action="check-watch" checked={Boolean(props.watching)} onChange={e => props.onWatch!((e.currentTarget as HTMLInputElement).checked)} />
+          Check again when the page changes
+        </label>
+      )}
+      {props.autoNote && <p class="hint" data-part="check-auto">{props.autoNote}</p>}
       {diffs.length === 0 ? (
         <p class="hint" data-part="check-match">It matches the design: nothing to fix.</p>
       ) : (

@@ -5,6 +5,7 @@
  * colors by colorKey (any notation), times in ms, functions argument by argument. Each difference
  * is one sentence a person can pin on the element as a feedback note. Pure and browser-safe.
  */
+import { z } from 'zod';
 import { colorKey } from './values.js';
 import type { ComponentSpec, SpecChange, SpecCheck, SpecMotion, SpecPart, SpecState, ComponentStateName } from './read.js';
 
@@ -282,6 +283,45 @@ export function checkComponent(design: ComponentSpec, built: ComponentSpec, opti
   compareMotion(design.motion, built.motion, both, options, out);
   compareAccessibility(design.accessibility, built.accessibility, out);
   return out;
+}
+
+/**
+ * One run of the design check (v0.4, automatic design check), as the dev toolbar sends it to the
+ * project each time it checks (again): the design, the built component and page, when, how many
+ * values match and every difference. The project keeps the latest run of each check for the agent.
+ */
+export const checkRunSchema = z.object({
+  /** The design file (".luci/design/<file>", a basket export's name, or a pasted file's name). */
+  design: z.string().min(1).max(300),
+  /** How the toolbar names the design ("primary-button (button) from example.com"). */
+  label: z.string().max(300),
+  selector: z.string().min(1).max(1000),
+  /** The page (origin and path). */
+  page: z.url().max(2000),
+  checkedAt: z.iso.datetime(),
+  matches: z.number().int().nonnegative(),
+  differences: z.array(z.object({
+    kind: z.enum(CHECK_KINDS),
+    part: z.string().max(200),
+    state: z.string().max(40).optional(),
+    property: z.string().max(200),
+    expected: z.string().max(1000),
+    actual: z.string().max(1000),
+    comment: z.string().max(2000),
+    priority: z.enum(['high', 'medium', 'low'])
+  })).max(500)
+});
+export type CheckRun = z.infer<typeof checkRunSchema>;
+
+/** A check run as text for the agent: what was checked, when, and each difference to fix. */
+export function formatCheckRun(run: CheckRun): string {
+  const d = run.differences;
+  return [
+    `## ${run.label || run.design}: ${d.length ? `${d.length} difference${d.length === 1 ? '' : 's'}` : 'matches'}`,
+    `- Design: ${run.design}; built: \`${run.selector}\` on ${run.page}`,
+    `- Checked ${run.checkedAt}; ${run.matches} value${run.matches === 1 ? '' : 's'} match.`,
+    ...(d.length ? ['', ...d.map((x, i) => `${i + 1}. ${x.comment}${x.priority === 'high' ? ' (accessibility)' : ''}`)] : [])
+  ].join('\n');
 }
 
 /**

@@ -119,6 +119,7 @@ export { type NewFeedback, FeedbackError, FeedbackStore, writeAtomic } from './f
 export { type DesignFile, DESIGN_FILE_NAME, MAX_DESIGN_BYTES, DesignError, DesignStore } from './design/designStore.js';
 export { type CaptureRule, captureRule, proposeCaptureRule } from './design/captureRule.js';
 export { type BaselineReport, MAX_STYLESHEETS, canWriteBaseline, findStylesheets, writeBaseline } from './design/baseline.js';
+export { CHECKS_FILE, CheckStore, MAX_CHECK_RUNS } from './design/checkStore.js';
 export { type StartReport, type UpdateReport, startProject, updateProject, generatedFiles } from './init/startUpdate.js';
 export {
   type Check,

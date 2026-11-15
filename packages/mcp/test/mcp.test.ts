@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { parseDecision, parseProposal } from '@luci/format';
-import { CodeMap, DesignStore, FeedbackStore, initProject, writeActiveTask } from '@luci/brain';
+import { CheckStore, CodeMap, DesignStore, FeedbackStore, initProject, writeActiveTask } from '@luci/brain';
 import { SkillRegistry } from '@luci/skills';
 import { TOOLS, handleTool, type ToolDeps } from '../src/index.js';
 
@@ -32,13 +32,29 @@ const initialized = async () => {
   return dir;
 };
 
+describe('v0.4 design tools', () => {
+  it('get_design_checks gives the toolbar\'s latest check runs, each difference to fix', async () => {
+    const dir = await initialized();
+    expect((await call(dir, 'get_design_checks')).text).toContain('No design checks yet.');
+    new CheckStore(dir).save({
+      design: '.luci/design/example-com.component.button.design.md', label: 'button (button) from example.com', selector: '#built', page: 'http://localhost:5173/checkout',
+      checkedAt: '2026-11-15T10:05:00.000Z', matches: 12,
+      differences: [{ kind: 'style', part: 'container', property: 'border-radius', expected: '8px (--radius)', actual: '4px', comment: 'Its border-radius is 4px; the design says 8px (--radius).', priority: 'medium' }]
+    });
+    const text = (await call(dir, 'get_design_checks')).text;
+    expect(text).toContain('# Design checks: 1');
+    expect(text).toContain('## button (button) from example.com: 1 difference');
+    expect(text).toContain('1. Its border-radius is 4px; the design says 8px (--radius).');
+  });
+});
+
 // Ported from the prototype's mcp/server.js tool list (presets and agentation are dropped)
 describe('luci-mcp tools (B11)', () => {
   it('serves the ported tools plus get_active_task and propose_memory, and the feedback and capture tools (M6)', () => {
     const names = TOOLS.map(t => t.name).sort();
     expect(names).toEqual([
       'add_skill_packs', 'analyze_project', 'compare_captures',
-      'get_active_task', 'get_capture', 'get_feedback_prompt', 'get_global_brain', 'get_project_context', 'get_project_graph',
+      'get_active_task', 'get_capture', 'get_design_checks', 'get_feedback_prompt', 'get_global_brain', 'get_project_context', 'get_project_graph',
       'get_project_skills', 'get_project_status', 'get_skill', 'initialize_project', 'intake_docs', 'list_captures', 'list_feedback',
       'list_skill_packs', 'list_skills', 'load_project_skills', 'load_skills', 'propose_capture_rule', 'propose_memory', 'recommend_skills',
       'remove_skill_packs', 'search_skills', 'select_project_skills', 'update_project_memory', 'watch_feedback'
@@ -46,6 +62,7 @@ describe('luci-mcp tools (B11)', () => {
     const readOnly = TOOLS.filter(t => t.annotations.readOnlyHint).map(t => t.name);
     expect(readOnly).toContain('get_project_context');
     expect(readOnly).toContain('compare_captures');
+    expect(readOnly).toContain('get_design_checks');
     expect(readOnly).not.toContain('update_project_memory');
     for (const t of TOOLS) expect(t.description).not.toMatch(/\b(gaw|GAW|ai-brain|Guided Agent)\b/);
   });

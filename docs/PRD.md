@@ -359,7 +359,7 @@ Version 0.1 is built in six milestones, each usable on its own. The shared found
 | v0.1 M6 | Dev toolbar: feedback for React, page-grouped prompt, agent sync; captures saved into project memory | Feedback from three pages is applied in one agent run with a full report |
 | v0.2 | Section scope, accessibility notes, notes on captures from any site, remaining agents | A picked pricing section yields one section file plus its component files |
 | v0.3 | Design check (manual), capture to rule, responsive capture, multi-page system merge, conflict detection, source paths beyond React | A built button is checked against its design.md and each difference becomes a feedback item |
-| v0.4 | Remap to your own tokens, compare mode, screenshot mode marked as estimated, automatic design check | A capture is rewritten onto your own tokens in one step |
+| v0.4 | Remap to your own tokens, compare mode, screenshot mode marked as estimated, automatic design check (built 15 Nov 2026; see docs/format/capture.md) | A capture is rewritten onto your own tokens in one step |
 
 ## Success measures
 
@@ -459,15 +459,15 @@ These ideas sit outside v0.1 and are ranked by how much each widens the gap from
 
 | Rank | Idea | Why it matters | Version |
 | --- | --- | --- | --- |
-| 1 | **Design check.** Point the capture tools at a page the agent built, compare it with the design.md it was given, and raise the differences as feedback items. | Makes agent-built interface verifiable; no other tool closes this loop | v0.3 manual (built 14 Nov 2026: FR33), v0.4 automatic |
+| 1 | **Design check.** Point the capture tools at a page the agent built, compare it with the design.md it was given, and raise the differences as feedback items. | Makes agent-built interface verifiable; no other tool closes this loop | v0.3 manual (built 14 Nov 2026: FR33), v0.4 automatic (built 15 Nov 2026: re-checks on every page change; the agent reads each run with `get_design_checks`) |
 | 2 | **Capture to rule.** Turn a captured component into a project rule or skill, such as "build every button like this". | Design reference becomes lasting memory, not a one-off file | v0.3 (built 14 Nov 2026 as a proposed rule: FR34; a project skill for a whole design system is a later step) |
 | 3 | **Section scope with component references.** | Fills the second half of the original capture gap | v0.2 |
 | 4 | **Accessibility notes.** Contrast ratio, target size and focus visibility, computed from the capture. | Cheap to add, and agents rarely get this right unaided | v0.2 |
 | 5 | **Responsive capture.** Values at two or three breakpoints, plus the queries that apply. | Sections change most across screen sizes | v0.3 (built 14 Nov 2026: FR36) |
 | 6 | **Multi-page system merge.** Combine system captures from several pages into one site-level file. | Gets closer to a true site-wide system without crawling | v0.3 (built 14 Nov 2026: FR35) |
-| 7 | **Remap to my tokens.** Rewrite a capture onto your own design tokens. | Borrow structure and behaviour without borrowing the brand | v0.4 |
-| 8 | **Compare mode.** Diff two captures, such as two sites' buttons. | Useful for research and design reviews | v0.4 |
-| 9 | **Screenshot mode.** Estimate a file from an image, with every value flagged as estimated. | A fallback for apps and images you cannot inspect | v0.4 |
+| 7 | **Remap to my tokens.** Rewrite a capture onto your own design tokens. | Borrow structure and behaviour without borrowing the brand | v0.4 (built 15 Nov 2026: "Use my tokens", from the project's stylesheets or pasted CSS) |
+| 8 | **Compare mode.** Diff two captures, such as two sites' buttons. | Useful for research and design reviews | v0.4 (built 15 Nov 2026: the basket, `luci capture compare`, `compare_captures`) |
+| 9 | **Screenshot mode.** Estimate a file from an image, with every value flagged as estimated. | A fallback for apps and images you cannot inspect | v0.4 (built 15 Nov 2026: the Colour tool's Image, a color system estimated from a screenshot; colors only) |
 
 ## Recommended first step
 

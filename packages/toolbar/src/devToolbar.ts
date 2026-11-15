@@ -9,7 +9,7 @@ import {
   LUCI_UI_ATTRIBUTE, TOOLBAR_REPLACE_EVENT, UI_PREFS_EVENT, mountToolbar, readUiPrefs, writeUiPrefs,
   type BarPlace, type BasketStore, type CheckNote
 } from '@luci/capture';
-import { basketItemSchema, type BasketItem, type CaptureSettings } from '@luci/format/capture';
+import { basketItemSchema, type BasketItem, type CaptureSettings, type CheckRun } from '@luci/format/capture';
 import { ANIMATIONS_CSS, COPY, TOKENS_CSS, mascotSvg } from '@luci/ui';
 import {
   DEFAULT_FEEDBACK_SETTINGS,
@@ -419,6 +419,9 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
         // Design check (v0.3): the project's design files, and each difference as a feedback note
         ...(backend.listCaptures && backend.readCapture ? { designs: { list: backend.listCaptures, read: backend.readCapture } } : {}),
         addCheckNotes: (el, notes) => addCheckNotes(backend, doc, el, notes),
+        // Automatic design check (v0.4): check again when the page changes; each run goes to the project for the agent
+        autoCheck: true,
+        ...(backend.saveCheck ? { onCheckRun: (run: CheckRun) => { void backend.saveCheck!(run).catch(() => { /* luci serve stopped: the next run tries again */ }); } } : {}),
         // "Use my tokens" (v0.4): the project's own tokens through luci serve, or tokens pasted in this browser
         myTokens: {
           ...(backend.projectTokens ? { project: backend.projectTokens } : {}),

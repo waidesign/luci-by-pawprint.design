@@ -9,10 +9,11 @@ import path from 'node:path';
 import { z } from 'zod';
 import { MEMORY_FILES, PROPOSAL_TARGETS, PRODUCT, formatProposal } from '@luci/format';
 import { DETAIL_LEVELS, FEEDBACK_STATUSES, formatFeedbackPrompt, layoutChangeText, sourceText as feedbackSourceText, type FeedbackItem } from '@luci/format/feedback';
-import { compareComponentFiles, formatCompareReport } from '@luci/format/capture';
+import { compareComponentFiles, formatCheckRun, formatCompareReport } from '@luci/format/capture';
 import {
   CODE_MAP_SETUP_HINT,
   CodeMap,
+  CheckStore,
   DesignStore,
   FeedbackStore,
   MemoryEngine,
@@ -465,6 +466,18 @@ export const TOOLS: readonly LuciTool[] = [
       if (!store.available) return notInitialized(store.projectDir);
       const content = store.read(args.file);
       return content === null ? error(`No capture named ${args.file}. list_captures shows the saved ones.`) : text(content);
+    }),
+
+  tool('get_design_checks',
+    `The latest design checks from the dev toolbar (v0.4, automatic design check): each built component checked against its design file, re-checked by the toolbar whenever the page changes (after your edits reload it), with every difference left. Use it after changing a component the person is checking, to see whether it now matches; when differences remain, fix them and read this again. Reads only (${PRODUCT.projectDir}/${MEMORY_FILES.design}/checks.json).`,
+    { projectPath }, READ,
+    (args, deps) => {
+      const store = new CheckStore(target(args, deps));
+      if (!store.available) return notInitialized(store.projectDir);
+      const runs = store.list();
+      return runs.length
+        ? text(`# Design checks: ${runs.length}\n\n${runs.map(formatCheckRun).join('\n\n')}\n`)
+        : text('No design checks yet. The person runs one with the dev toolbar (Capture, Check), and the toolbar sends each run here.');
     }),
 
   tool('compare_captures',
