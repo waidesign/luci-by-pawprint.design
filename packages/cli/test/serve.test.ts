@@ -80,6 +80,18 @@ describe('luci serve: the bridge (M6.3)', () => {
     expect((await request(bridge, 'GET', '/feedback')).json().items.map((i: { ref: string }) => i.ref)).toEqual(['P1-A1', 'P1-A2']);
   });
 
+  it('gives the project\'s own tokens, read from its stylesheets now (v0.4, use my tokens)', async () => {
+    const { dir, bridge } = await project();
+    fs.mkdirSync(path.join(dir, 'src'));
+    fs.writeFileSync(path.join(dir, 'src', 'app.css'), ':root { --brand: #0f62fe; --action: var(--brand); }\n');
+    const r = await request(bridge, 'GET', '/tokens');
+    expect(r.status).toBe(200);
+    expect(r.json()).toEqual({ tokens: [{ token: '--brand', value: '#0f62fe' }, { token: '--action', value: '#0f62fe' }], stylesheets: 1 });
+    // A change shows at once
+    fs.writeFileSync(path.join(dir, 'src', 'app.css'), ':root { --brand: #ff0000; }\n');
+    expect((await request(bridge, 'GET', '/tokens')).json().tokens).toEqual([{ token: '--brand', value: '#ff0000' }]);
+  });
+
   it('saves captures to .luci/design/ and refuses anything that is not a capture file', async () => {
     const { dir, bridge } = await project();
     const golden = fs.readFileSync(fileURLToPath(new URL('../../format/fixtures/capture/example-com.component.card.design.md', import.meta.url)), 'utf8');

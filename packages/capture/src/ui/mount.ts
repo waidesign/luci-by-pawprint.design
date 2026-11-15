@@ -10,6 +10,7 @@ import { memoryBasketStore, type BasketStore } from './basket.js';
 import type { ModeSwitchProps } from './modeSwitch.js';
 import type { AddCheckNotes, DesignSource } from './check.js';
 import type { ViewportWidth } from '../responsive.js';
+import type { MyTokensSource } from './remap.js';
 
 export const TOOLBAR_TAG = 'luci-toolbar';
 /**
@@ -49,6 +50,8 @@ export interface MountOptions {
   setViewportWidth?: ViewportWidth;
   /** The bar can be dragged anywhere in the window and stays there on this site (the extension). */
   movable?: boolean;
+  /** Where "Use my tokens" finds the person's tokens (v0.4). */
+  myTokens?: MyTokensSource;
 }
 
 export interface ToolbarHandle {
@@ -113,6 +116,7 @@ export function mountToolbar(options: MountOptions = {}): ToolbarHandle {
     ...(options.makeRule ? { makeRule: options.makeRule } : {}),
     ...(options.setViewportWidth ? { setViewportWidth: options.setViewportWidth } : {}),
     ...(options.movable ? { movable: true } : {}),
+    ...(options.myTokens ? { myTokens: options.myTokens } : {}),
     onClose: () => { destroy(); options.onClose?.(); },
     registerPixelInput: (pick: (hex: string) => void) => { pixelInput = pick; }
   }), mountPoint);

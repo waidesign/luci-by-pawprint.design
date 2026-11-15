@@ -76,6 +76,8 @@ export interface FeedbackBackend {
   proposeRule?(file: string): Promise<{ path: string; existed: boolean; rule: string }>;
   /** Map server-side positions (server components) to the project's files (project only). */
   resolveFrames?: ServerResolver;
+  /** The project's own tokens, read from its stylesheets (project only; v0.4, remap to my tokens). */
+  projectTokens?(): Promise<{ token: string; value: string }[]>;
 }
 
 export class BridgeError extends Error {}
@@ -109,7 +111,8 @@ export function bridgeBackend(url: string, fetchImpl: typeof fetch = (...a) => f
     listCaptures: async () => (await call<{ files: SavedCapture[] }>('GET', '/design')).files,
     proposeRule: (file) => call('POST', '/rule', { file }),
     readCapture: async (file) => (await call<{ markdown: string }>('GET', `/design/${encodeURIComponent(file)}`)).markdown,
-    resolveFrames: async (frames) => (await call<{ locations: (SourceLocation | null)[] }>('POST', '/resolve', { frames })).locations
+    resolveFrames: async (frames) => (await call<{ locations: (SourceLocation | null)[] }>('POST', '/resolve', { frames })).locations,
+    projectTokens: async () => (await call<{ tokens: { token: string; value: string }[] }>('GET', '/tokens')).tokens
   };
 }
 

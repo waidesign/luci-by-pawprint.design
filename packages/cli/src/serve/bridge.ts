@@ -12,7 +12,8 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import path from 'node:path';
 import { z } from 'zod';
-import { DesignError, DesignStore, FeedbackError, FeedbackStore, proposeCaptureRule } from '@luci/brain';
+import { DesignError, DesignStore, FeedbackError, FeedbackStore, findStylesheets, proposeCaptureRule } from '@luci/brain';
+import { buildBaseline } from '@luci/format/capture';
 import { serverResolver } from './resolve.js';
 import { PRODUCT } from '@luci/format';
 import { DETAIL_LEVELS, FEEDBACK_INTENTS, FEEDBACK_PRIORITIES, designCheckSchema, feedbackItemSchema, formatFeedbackPrompt, layoutSchema, wireframeSchema } from '@luci/format/feedback';
@@ -205,6 +206,12 @@ export function startBridge(options: BridgeOptions): Promise<Bridge> {
         return;
       }
       if (route === '/design' && req.method === 'GET') { send(200, { files: design.list() }); return; }
+      // The project's own tokens (v0.4, remap to my tokens): read from its stylesheets now, so they are current
+      if (route === '/tokens' && req.method === 'GET') {
+        const baseline = buildBaseline(findStylesheets(options.projectDir), { project: 'project', captured: new Date().toISOString().slice(0, 10) });
+        send(200, { tokens: baseline.tokens.map(t => ({ token: t.token, value: t.resolved })), stylesheets: baseline.files.length });
+        return;
+      }
       // One saved file's text (a design check reads its design file); only names in .luci/design/
       const designFile = /^\/design\/([^/]+)$/.exec(route)?.[1];
       if (designFile && req.method === 'GET') {

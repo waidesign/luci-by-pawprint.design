@@ -213,7 +213,15 @@ ${UI_CSS}
 .items textarea { grid-column: 1 / -1; min-height: 40px; font-size: var(--luci-type-small-size); line-height: var(--luci-type-small-line); }
 .items input { min-width: 0; }
 /* A basket item: what it is, then its name with Export and Remove in one row, then its note */
-.items .meta { grid-column: 1 / -1; color: var(--luci-color-ink-secondary); font-size: var(--luci-type-small-size); }
+.items .meta { grid-column: 1; color: var(--luci-color-ink-secondary); font-size: var(--luci-type-small-size); }
+.items .meta:not(:has(+ .compare-pick)) { grid-column: 1 / -1; }
+.items .compare-pick { grid-column: 2; justify-self: end; gap: var(--luci-space-4); font-size: var(--luci-type-small-size); }
+/* Compare mode (v0.4): What, A, B */
+.compare-scroll { max-height: 50vh; overflow: auto; border-radius: var(--luci-radius-md); background: var(--luci-color-surface-sunken); }
+.compare { width: 100%; border-collapse: collapse; font-size: var(--luci-type-small-size); line-height: var(--luci-type-small-line); }
+.compare th, .compare td { padding: var(--luci-space-4) var(--luci-space-8); text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.compare th { position: sticky; top: 0; background: var(--luci-color-surface-sunken); color: var(--luci-color-ink-secondary); font-weight: 600; }
+.compare tr + tr td { border-top: 1px solid var(--luci-color-stroke-subtle); }
 .items .row { grid-column: 2; flex-wrap: nowrap; }
 .stack { display: flex; flex-direction: column; align-items: stretch; gap: var(--luci-space-8); }
 

@@ -3,9 +3,10 @@
  * the eligibility check, the two outputs per pick, and the preview with copy and download.
  * Rendered by mount.ts inside a shadow root.
  */
-import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { RemapSection, pageTokenStore, remapOutput, type MyTokensSource } from './remap.js';
 import type { ViewportWidth } from '../responsive.js';
-import { formatCapture, groupOf, mergeGroups, withInstructions, type Responsive, type BasketItem, type CaptureSettings, type ComponentCapture } from '@luci/format/capture';
+import { compareCaptures, formatCapture, formatCompareReport, groupOf, mergeGroups, withInstructions, type CompareResult, type Responsive, type BasketItem, type CaptureSettings, type ComponentCapture } from '@luci/format/capture';
 import { addToBasket, exportBasket, exportItem, mergeInBasket, noteInBasket, removeFromBasket, renameInBasket, sourceLabel, type BasketStore } from './basket.js';
 import type { Eligibility } from '../eligibility.js';
 import type { ElementSnapshot } from '../model.js';
@@ -80,6 +81,8 @@ export interface ToolbarProps {
   setViewportWidth?: ViewportWidth;
   /** The bar can be dragged anywhere in the window, and stays there on this site (the extension). */
   movable?: boolean;
+  /** Where "Use my tokens" finds the person's tokens (v0.4). Default: tokens pasted, kept in the page's storage. */
+  myTokens?: MyTokensSource;
 }
 
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(v, Math.max(min, max)));
@@ -722,6 +725,9 @@ export function Toolbar(props: ToolbarProps) {
   };
 
   const output = result?.ok ? result.output : null;
+  // "Use my tokens" (v0.4): the person's tokens, and the rewrite in place (with the site's values to undo it)
+  const myTokens = useMemo<MyTokensSource>(() => props.myTokens ?? pageTokenStore(doc), [props.myTokens]);
+  const [remapped, setRemapped] = useState<{ fileName: string; original: Output; summary: string } | null>(null);
   // The user's instructions for their agent go into the file word for word; the file can also be edited
   // by hand, and then copy, download and the basket use exactly the edited text
   const [instructions, setInstructions] = useState('');
@@ -825,6 +831,13 @@ export function Toolbar(props: ToolbarProps) {
   // The basket (FR18, FR19): kept by the shell's store, so it survives pages and sites
   const [basket, setBasket] = useState<BasketItem[]>([]);
   const [basketExport, setBasketExport] = useState<{ title: string; item?: BasketItem } | null>(null);
+  // Compare mode (v0.4): two basket items picked, and their comparison when asked
+  const [compareIds, setCompareIds] = useState<string[]>([]);
+  const [comparison, setComparison] = useState<{ items: [BasketItem, BasketItem]; result: CompareResult } | null>(null);
+  const compareItems = (() => {
+    const picked2 = compareIds.map(id => basket.find(i => i.id === id)).filter((i): i is BasketItem => Boolean(i));
+    return picked2.length === 2 ? [picked2[0]!, picked2[1]!] as [BasketItem, BasketItem] : null;
+  })();
   const [added, setAdded] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const store = props.basket;
@@ -1213,7 +1226,28 @@ export function Toolbar(props: ToolbarProps) {
 
         {!settingsOpen && basketOpen && (
           <div class="panel" role="dialog" aria-label="Basket" data-part="basket">
-            {basketExport && exported ? (
+            {comparison ? (
+              <>
+                {/* Compare mode (v0.4): two basket items, every value that differs */}
+                <h2>Compare</h2>
+                <p class="hint" data-part="compare-summary">
+                  A: {comparison.result.a.name} ({sourceLabel(comparison.items[0])}). B: {comparison.result.b.name} ({sourceLabel(comparison.items[1])}). {comparison.result.same.length} value{comparison.result.same.length === 1 ? ' is' : 's are'} the same; {comparison.result.differences.length} differ{comparison.result.differences.length === 1 ? 's' : ''}.
+                </p>
+                {comparison.result.differences.length ? (
+                  <div class="compare-scroll">
+                    <table class="compare" data-part="compare-table">
+                      <thead><tr><th>What</th><th>A</th><th>B</th></tr></thead>
+                      <tbody>{comparison.result.differences.map(d => <tr><td>{d.what}</td><td>{d.a}</td><td>{d.b}</td></tr>)}</tbody>
+                    </table>
+                  </div>
+                ) : <p class="hint">No differences: every value compared is the same.</p>}
+                <div class="row actions">
+                  <Button variant="primary" size="md" iconOnly tipAbove icon={copied ? IconSuccess : IconCopy} label={copied ? COPY.common.copied : 'Copy the comparison'}
+                    data-action="copy-compare" onClick={() => void copyText(formatCompareReport(comparison.result, { a: comparison.items[0].name, b: comparison.items[1].name }))} />
+                  <button type="button" class="btn-secondary" data-action="compare-back" onClick={() => { setComparison(null); setCopied(false); }}>Back to the basket</button>
+                </div>
+              </>
+            ) : basketExport && exported ? (
               <>
                 <h2>{basketExport.title}</h2>
                 <div class="file" data-part="file-name">{exported.fileName}</div>
@@ -1238,6 +1272,13 @@ export function Toolbar(props: ToolbarProps) {
                       <li data-item={item.id}>
                         {/* What it is first; then its name and its actions in one row; then the note */}
                         <span class="meta">{groupOf(item.capture)} · {sourceLabel(item)}</span>
+                        {basket.length > 1 && (
+                          <label class="compare-pick" title="Pick two items to compare them">
+                            <input type="checkbox" data-item-compare checked={compareIds.includes(item.id)}
+                              onChange={e => setCompareIds(ids => ((e.currentTarget as HTMLInputElement).checked ? [...ids.filter(i => i !== item.id), item.id].slice(-2) : ids.filter(i => i !== item.id)))} />
+                            Compare
+                          </label>
+                        )}
                         <input type="text" aria-label="Name" data-item-name value={item.name}
                           onChange={e => saveBasket(renameInBasket(basket, item.id, (e.currentTarget as HTMLInputElement).value))} />
                         <span class="row">
@@ -1257,6 +1298,13 @@ export function Toolbar(props: ToolbarProps) {
                   </div>
                 )}
                 {mergedNote && <p class="hint" data-part="merged">{mergedNote}</p>}
+                {compareItems && (
+                  <div class="row" data-part="compare-pick">
+                    <span class="dim">{compareItems[0].name} and {compareItems[1].name}</span>
+                    <button type="button" class="btn-secondary" data-action="compare"
+                      onClick={() => { setComparison({ items: compareItems, result: compareCaptures(compareItems[0].capture, compareItems[1].capture) }); setCopied(false); }}>Compare the two</button>
+                  </div>
+                )}
                 <div class="row">
                   <button type="button" class="btn-primary" data-action="export-all" disabled={!basket.length} onClick={() => setBasketExport({ title: `All ${basket.length} items, one file` })}>Export all as one file</button>
                   {basket.length > 0 && (confirmClear
@@ -1494,6 +1542,20 @@ export function Toolbar(props: ToolbarProps) {
                       {widthNote && <p class={widthNote.error ? 'error' : 'hint'} data-part="responsive-note">{widthNote.text}</p>}
                     </div>
                   )}
+                  <hr class="settings-divider" />
+                  <RemapSection source={myTokens} edited={edited !== null}
+                    applied={remapped && remapped.fileName === result.output.fileName ? remapped.summary : null}
+                    onApply={tokens => {
+                      const next = remapOutput(result.output, tokens, settings.rootFontSize);
+                      setRemapped({ fileName: result.output.fileName, original: result.output, summary: next.summary });
+                      setResult({ ok: true, output: next.output });
+                      setCopied(false);
+                    }}
+                    onUndo={() => {
+                      if (remapped) setResult({ ok: true, output: remapped.original });
+                      setRemapped(null);
+                      setCopied(false);
+                    }} />
                   <hr class="settings-divider" />
                   <label class="field-stack">
                     <span class="field-label">Note for your agent <span class="dim">(optional)</span></span>

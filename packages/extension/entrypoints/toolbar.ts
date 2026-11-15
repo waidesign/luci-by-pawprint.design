@@ -5,6 +5,7 @@ import { basketItemSchema, type CaptureSettings } from '@luci/format/capture';
 
 const SETTINGS_KEY = 'captureSettings';
 const BASKET_KEY = 'basket';
+const MY_TOKENS_KEY = 'myTokens';
 // The extension's isolated world keeps this between injections; the page can't see it
 const holder = globalThis as typeof globalThis & { __luciToolbar?: ToolbarHandle };
 
@@ -44,6 +45,11 @@ export default defineUnlistedScript(async () => {
     onClose: () => { holder.__luciToolbar = undefined; },
     // The bar can be dragged anywhere, off the page's own header buttons and links
     movable: true,
+    // "Use my tokens" (v0.4): the tokens the person pasted, kept for every site
+    myTokens: {
+      load: async () => String((await browser.storage.local.get(MY_TOKENS_KEY))[MY_TOKENS_KEY] ?? ''),
+      save: async (css) => { await browser.storage.local.set({ [MY_TOKENS_KEY]: css }); }
+    },
     // Pixel mode reads colors from a screenshot of this tab, taken by the background
     captureScreen: () => ask<string>({ type: 'luci:capture-screen' }),
     // The basket lives in extension storage: every tab and site sees the same items, across restarts

@@ -10,3 +10,4 @@ export * from './spacingUnit.js';
 export * from './merge.js';
 export * from './baseline.js';
 export * from './compare.js';
+export * from './remap.js';

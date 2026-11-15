@@ -54,7 +54,7 @@ export interface DevToolbarHandle {
   destroy(): void;
 }
 
-const KEYS = { capture: 'luci.capture.settings', feedback: 'luci.feedback.settings', basket: 'luci.basket', items: 'luci.feedback', mode: 'luci.mode' } as const;
+const KEYS = { capture: 'luci.capture.settings', feedback: 'luci.feedback.settings', basket: 'luci.basket', items: 'luci.feedback', mode: 'luci.mode', myTokens: 'luci.myTokens' } as const;
 
 /** localStorage, or memory when the page cannot use it (a sandboxed frame, privacy settings). */
 function defaultStorage(win: Window): KeyValue {
@@ -419,6 +419,12 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
         // Design check (v0.3): the project's design files, and each difference as a feedback note
         ...(backend.listCaptures && backend.readCapture ? { designs: { list: backend.listCaptures, read: backend.readCapture } } : {}),
         addCheckNotes: (el, notes) => addCheckNotes(backend, doc, el, notes),
+        // "Use my tokens" (v0.4): the project's own tokens through luci serve, or tokens pasted in this browser
+        myTokens: {
+          ...(backend.projectTokens ? { project: backend.projectTokens } : {}),
+          load: async () => storage.getItem(KEYS.myTokens) ?? '',
+          save: async (css: string) => storage.setItem(KEYS.myTokens, css)
+        },
         checkNotesWhere: connected ? 'your project' : 'this browser',
         // Capture to rule (v0.3.2): save the capture, then propose a rule that points at it
         ...(backend.saveCapture && backend.proposeRule ? {

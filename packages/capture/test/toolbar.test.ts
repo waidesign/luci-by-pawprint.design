@@ -391,6 +391,57 @@ describe('the extension\'s bar moves anywhere in the window (user request, 2026-
   });
 });
 
+describe('v0.4: use my tokens, and compare two basket items', { timeout: 30_000 }, () => {
+  it('rewrites a capture onto pasted tokens in one step, says what it did, and puts the site\'s values back', async () => {
+    const page = await open('css-variables');
+    await page.click('button[data-tool="component"]');
+    await page.click('.card:first-child .button', { force: true });
+    await page.click('[data-output="one"]');
+    expect(await preview(page)).toContain('--color-primary');
+    await page.click('[data-action="remap-open"]');
+    await page.fill('[data-part="my-tokens"]', ':root { --brand-blue: #0f62fe; --gap-3: 12px; --gap-6: 1.5rem; }');
+    await page.click('[data-action="remap-run"]');
+    const md = await preview(page);
+    expect(md).toContain('background-color #0f62fe (`--brand-blue`)');
+    expect(md).toContain('padding 12px 24px (`var(--gap-3) var(--gap-6)`)');
+    expect(md).toContain('| `--brand-blue` | #0f62fe | container |');
+    // Never the site's own tokens: the person's project does not have them
+    expect(md).not.toContain('--color-primary');
+    expect(await page.locator('[data-part="remap-summary"]').innerText()).toMatch(/^\d+ of \d+ values now use your tokens\./);
+    await page.click('[data-action="remap-undo"]');
+    expect(await preview(page)).toContain('--color-primary');
+    // The pasted tokens are kept for next time
+    await page.click('[data-action="remap-open"]');
+    expect(await page.locator('[data-part="my-tokens"]').inputValue()).toContain('--brand-blue');
+    await page.context().close();
+  });
+
+  it('compares two basket items: what differs, A and B, and copies it', async () => {
+    const page = await open('css-variables');
+    for (const sel of ['.card:first-child .button', '.card:nth-child(2) .button']) {
+      await page.click('button[data-tool="component"]');
+      await page.click(sel, { force: true });
+      await page.click('[data-output="one"]');
+      await page.click('[data-action="add-to-basket"]');
+    }
+    await page.click('[data-action="basket"]');
+    const boxes = page.locator('[data-item-compare]');
+    expect(await boxes.count()).toBe(2);
+    await boxes.nth(0).check();
+    expect(await page.locator('[data-action="compare"]').count()).toBe(0);
+    await boxes.nth(1).check();
+    await page.click('[data-action="compare"]');
+    expect(await page.locator('[data-part="compare-summary"]').innerText()).toMatch(/A: .+ B: .+\d+ values? (is|are) the same; \d+ differs?\./);
+    // Two of the same button: nothing differs
+    expect(await page.locator('[data-part="compare-summary"]').innerText()).toMatch(/; 0 differ\.$/);
+    await page.click('[data-action="copy-compare"]');
+    expect((await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, '\n')).toMatch(/^# Compare: .+\n- A: /);
+    await page.click('[data-action="compare-back"]');
+    await page.locator('[data-item-compare]').first().waitFor();
+    await page.context().close();
+  });
+});
+
 describe('tool hints and the Color tool\'s two ways to pick (user feedback, M4)', { timeout: 30_000 }, () => {
   it('each tool says what to do; Color offers Element and Pixel side by side, Pixel off without an eyedropper', async () => {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
