@@ -16,11 +16,10 @@
 ## 1. Where things stand
 
 - **Project:** Luci, a local-first toolkit for AI coding agents: project memory, skill selection, design capture (browser extension and dev toolbar) and UI feedback. Spec: `docs/PRD.md` (Part 4 is the build brief). Monorepo, pnpm, TypeScript, vitest, Playwright, Preact; 10 packages including `@luci/ui` (see `.luci/context.md`).
-- **Git State:** Working tree clean. Local `main` is 9 commits ahead of `origin/main` (commits kept local per user instruction: push only upon explicit request).
+- **Git State:** Working tree clean. All commits pushed to GitHub `origin/main`.
 - **Recent Commit History (Latest commits on main):**
   - `4bddd51` — **test(capture)**: verify basket button hover never flashes orange tool-active.
   - `bffcbdf` — **Capture**: component color set, basket button hover lime, mode switch active black text.
-  - `b622d87` — **docs**: sync HANDOVER.md with recent commits and test status.
   - `329a83e` — **B16: monorepo sub-package scoping and package rules**: ancestor directory climbing (`findProjectRoot`), package-scoped rules under `## Package: <path-or-name>` in root `.luci/rules.md`, active package stack & rules reporting in `get_project_context`, `luci start`, `luci doctor`, and transparent monorepo scoping for all CLI commands (`task`, `skills`, `capture`, `map`, `serve`).
   - `2e7db6f` — **DESIGN.md export for Google Stitch**: prose-first design export format with markdown tables and design token sections.
   - `3428a59` — **v0.4 screenshot mode and automatic design check**: visual inspection, token diffing against design baseline, and automatic checking during serve.
