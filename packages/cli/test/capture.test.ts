@@ -154,4 +154,15 @@ describe('luci capture baseline (B14) and compare (v0.4)', () => {
     expect(f.text()).toContain('## primary-button (button): 1 difference');
     expect(f.text()).toContain('[Note: P1-A1]');
   });
+
+  it('validates crawl arguments (v0.4.2)', async () => {
+    const dir = await project();
+    const noUrls = fakeContext(dir);
+    expect(await run(['capture', 'crawl'], noUrls.ctx)).toBe(1);
+    expect(noUrls.errors()).toContain('Provide at least one URL or route to crawl.');
+
+    const relNoBase = fakeContext(dir);
+    expect(await run(['capture', 'crawl', '/pricing'], relNoBase.ctx)).toBe(1);
+    expect(relNoBase.errors()).toContain('requires a base URL');
+  });
 });

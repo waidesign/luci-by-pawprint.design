@@ -17,3 +17,18 @@ await build({
   logLevel: 'warning'
 });
 console.log(`built ${outfile}`);
+
+const captureEntry = fileURLToPath(new URL('../packages/capture/src/browser.ts', import.meta.url));
+const captureOutfile = fileURLToPath(new URL('../packages/capture/dist/luci-capture.js', import.meta.url));
+await build({
+  entryPoints: [captureEntry],
+  outfile: captureOutfile,
+  bundle: true,
+  format: 'iife',
+  globalName: 'LuciCapture',
+  platform: 'browser',
+  target: 'chrome110',
+  legalComments: 'none',
+  logLevel: 'warning'
+});
+console.log(`built ${captureOutfile}`);

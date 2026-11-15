@@ -7,6 +7,7 @@ import {
   captureSchema,
   formatCapture,
   mergeGroups,
+  mergeSiteSystems,
   mergeSystems,
   parseCapture,
   type Capture,
@@ -89,5 +90,22 @@ describe('which basket items can merge', () => {
     expect(mergeGroups(items).map(g => ({ site: g.site, type: g.type, items: g.items.map(i => i.id), pages: g.pages }))).toEqual([
       { site: 'example.com', type: 'typography', items: ['c', 'b'], pages: ['https://example.com/pricing', 'https://example.com/blog'] }
     ]);
+  });
+
+  it('mergeSiteSystems merges all three system kinds in one pass and collects conflicts', () => {
+    const typo1 = pageInputs['example-com.system.typography.design.md']!.capture as TypographySystem;
+    const typo2 = mergeInputs['example-com.system.site-typography.design.md']!.others[0]! as TypographySystem;
+    const color1 = pageInputs['example-com.system.color.design.md']!.capture as ColorSystem;
+    const color2 = mergeInputs['example-com.system.site-color.design.md']!.others[0]! as ColorSystem;
+
+    const res = mergeSiteSystems([typo1, typo2, color1, color2], { captured: '2026-11-14' });
+    expect(res.site).toBe('example.com');
+    expect(res.pages).toEqual(['https://example.com/pricing', 'https://example.com/blog']);
+    expect(res.typography).not.toBeNull();
+    expect(res.color).not.toBeNull();
+    expect(res.spacing).toBeNull();
+    expect(res.conflicts.length).toBeGreaterThan(0);
+    expect(res.conflicts.some(c => c.type === 'typography')).toBe(true);
+    expect(res.conflicts.some(c => c.type === 'color')).toBe(true);
   });
 });

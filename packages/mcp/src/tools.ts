@@ -14,6 +14,7 @@ import {
   CODE_MAP_SETUP_HINT,
   CodeMap,
   CheckStore,
+  crawlSite,
   DesignStore,
   FeedbackStore,
   MemoryEngine,
@@ -513,7 +514,41 @@ export const TOOLS: readonly LuciTool[] = [
       } catch (err) {
         return error(err instanceof Error ? err.message : String(err));
       }
-    })
+    }),
+
+  tool('crawl_site_design',
+    'Crawl a list of routes or URLs of a site in one pass, extract typography, color and spacing systems from each page, and merge them into a unified site-level design system. Saves site systems into .luci/design/ and writes root DESIGN.md when stitch is true.',
+    {
+      urls: z.array(z.string().min(1)).min(1).describe('URLs or routes to crawl, e.g. ["http://localhost:3000/", "/pricing", "/blog"]'),
+      base: z.string().optional().describe('Base URL if relative routes are given, e.g. "http://localhost:3000"'),
+      stitch: z.boolean().optional().describe('Write root DESIGN.md in Google Stitch format (default: true)'),
+      projectPath
+    },
+    WRITE,
+    async (args, deps) => {
+      const root = targetRoot(args, deps);
+      if (!hasMemory(root)) return notInitialized(root);
+      try {
+        const res = await crawlSite({
+          urls: args.urls,
+          base: args.base,
+          stitch: args.stitch ?? true,
+          projectRoot: root
+        });
+        const summary = [
+          `Crawled ${res.crawled.filter(c => !c.error).length} of ${res.pages.length} pages of ${res.site}:`,
+          res.typography ? `  Typography: ${res.typography.roles.length} roles, ${res.typography.families.length} families` : null,
+          res.color ? `  Color: ${res.color.roles.length} roles, ${res.color.tokens.length} tokens` : null,
+          res.spacing ? `  Spacing: ${res.spacing.scale.length} scale values${res.spacing.baseUnit ? `, base unit ${res.spacing.baseUnit.px}px` : ''}` : null,
+          res.conflicts.length ? `\nConflicts across pages (${res.conflicts.length}):\n${res.conflicts.map(c => `  - [${c.type}] ${c.conflict.what}`).join('\n')}` : null,
+          res.written.length ? `\nSaved:\n${res.written.map(w => `  ${w}`).join('\n')}` : null
+        ].filter(Boolean).join('\n');
+        return text(summary);
+      } catch (err) {
+        return error(err instanceof Error ? err.message : String(err));
+      }
+    }
+  )
 ];
 
 /** What an agent needs of an item to act on it. */

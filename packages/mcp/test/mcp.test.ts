@@ -57,6 +57,18 @@ describe('v0.4 design tools', () => {
     const textWithNote = (await call(dir, 'get_design_checks')).text;
     expect(textWithNote).toContain('[Note: P1-A1]');
   });
+
+  it('crawl_site_design tool validates project and inputs (v0.4.2)', async () => {
+    const uninit = tempProject();
+    const resUninit = await call(uninit, 'crawl_site_design', { urls: ['http://localhost:3000/'] });
+    expect(resUninit.isError).toBe(true);
+    expect(resUninit.text).toContain('run `luci init`');
+
+    const dir = await initialized();
+    const resRel = await call(dir, 'crawl_site_design', { urls: ['/pricing'] });
+    expect(resRel.isError).toBe(true);
+    expect(resRel.text).toContain('requires a base URL');
+  });
 });
 
 // Ported from the prototype's mcp/server.js tool list (presets and agentation are dropped)
@@ -64,7 +76,7 @@ describe('luci-mcp tools (B11)', () => {
   it('serves the ported tools plus get_active_task and propose_memory, and the feedback and capture tools (M6)', () => {
     const names = TOOLS.map(t => t.name).sort();
     expect(names).toEqual([
-      'add_skill_packs', 'analyze_project', 'compare_captures',
+      'add_skill_packs', 'analyze_project', 'compare_captures', 'crawl_site_design',
       'get_active_task', 'get_capture', 'get_design_checks', 'get_feedback_prompt', 'get_global_brain', 'get_project_context', 'get_project_graph',
       'get_project_skills', 'get_project_status', 'get_skill', 'initialize_project', 'intake_docs', 'list_captures', 'list_feedback',
       'list_skill_packs', 'list_skills', 'load_project_skills', 'load_skills', 'propose_capture_rule', 'propose_memory', 'recommend_skills',

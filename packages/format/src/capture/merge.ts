@@ -221,3 +221,47 @@ export function mergeSystems<T extends SystemCapture>(captures: readonly T[], op
     : mergeSpacing(captures as readonly SpacingSystem[]);
   return { meta, ...body } as T;
 }
+
+/**
+ * Merges a collection of typography, color, and spacing captures from multiple pages of a site.
+ * For each system type: if 2+ pages exist, runs mergeSystems; if 1 page exists, returns it; if 0, returns null.
+ */
+export function mergeSiteSystems(
+  captures: readonly SystemCapture[],
+  options: { captured?: string; name?: string } = {}
+): {
+  site: string;
+  pages: string[];
+  typography: TypographySystem | null;
+  color: ColorSystem | null;
+  spacing: SpacingSystem | null;
+  conflicts: { type: SystemType; conflict: SystemConflict }[];
+} {
+  const typos = captures.filter((c): c is TypographySystem => c.meta.type === 'typography');
+  const colors = captures.filter((c): c is ColorSystem => c.meta.type === 'color');
+  const spacings = captures.filter((c): c is SpacingSystem => c.meta.type === 'spacing');
+
+  const first = captures[0];
+  const site = first ? siteName(first.meta.source) || cleanSource(first.meta.source) : '';
+  const pages = union(...captures.map(pagesOf));
+
+  const mergeKind = <T extends SystemCapture>(list: readonly T[]): T | null => {
+    if (!list.length) return null;
+    if (list.length === 1) return list[0]!;
+    const p = union(...list.map(pagesOf));
+    if (p.length < 2) return list[list.length - 1]!;
+    return mergeSystems(list, options);
+  };
+
+  const typography = mergeKind(typos);
+  const color = mergeKind(colors);
+  const spacing = mergeKind(spacings);
+
+  const conflicts: { type: SystemType; conflict: SystemConflict }[] = [
+    ...(typography?.conflicts ?? []).map(conflict => ({ type: 'typography' as const, conflict })),
+    ...(color?.conflicts ?? []).map(conflict => ({ type: 'color' as const, conflict })),
+    ...(spacing?.conflicts ?? []).map(conflict => ({ type: 'spacing' as const, conflict }))
+  ];
+
+  return { site, pages, typography, color, spacing, conflicts };
+}

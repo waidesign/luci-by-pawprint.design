@@ -2,20 +2,33 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { MEMORY_FILES, PRODUCT } from '@luci/format';
 import { STITCH_FILE_NAME, compareComponentFiles, formatCheckRunWithNotes, formatCompareReport, formatStitch } from '@luci/format/capture';
-import { CheckStore, DesignStore, FeedbackStore, canWriteBaseline, captureRule, findProjectRoot, proposeCaptureRule, writeBaseline } from '@luci/brain';
+import { CheckStore, DesignStore, FeedbackStore, canWriteBaseline, captureRule, crawlSite, findProjectRoot, proposeCaptureRule, writeBaseline } from '@luci/brain';
 import { parseFlags, type Command } from '../context.js';
 
-export const CAPTURE_HELP = `capture [checks | rule <file> | baseline [--stitch] | compare <a> <b>]
+export const CAPTURE_HELP = `capture [checks | rule <file> | baseline [--stitch] | compare <a> <b> | crawl <urls...> [--stitch] [--base <url>]]
                         The design captures saved in the project. checks lists recent design check runs;
                         rule proposes a rule from a component capture; baseline rebuilds the project's own
                         typography, colors and spacing from its stylesheets (--stitch also writes them as
                         DESIGN.md for Google Stitch); compare lists the differences between two component
-                        captures (--dry-run shows what rule or baseline would write)`;
+                        captures; crawl visits a list of routes or URLs in one pass, merges them into site-level
+                        systems, and writes them to .luci/design/ (--stitch also writes DESIGN.md)`;
 
 const usage = () => `Usage: ${PRODUCT.command} ${CAPTURE_HELP}`;
 
 export const captureCommand: Command = async (args, ctx) => {
-  const { flags, rest: positional, unknown } = parseFlags(args, ['--dry-run', '--stitch', '--force']);
+  let baseOption: string | undefined;
+  const filteredArgs: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i]!;
+    if (a.startsWith('--base=')) {
+      baseOption = a.slice('--base='.length);
+    } else if (a === '--base' && i + 1 < args.length && !args[i + 1]!.startsWith('-')) {
+      baseOption = args[++i];
+    } else {
+      filteredArgs.push(a);
+    }
+  }
+  const { flags, rest: positional, unknown } = parseFlags(filteredArgs, ['--dry-run', '--stitch', '--force', '--no-stitch']);
   if (unknown.length) {
     ctx.err(`Unknown option: ${unknown.join(' ')}\n${usage()}`);
     return 1;
@@ -95,6 +108,51 @@ export const captureCommand: Command = async (args, ctx) => {
     if (!result.ok) { ctx.err(result.error); return 1; }
     ctx.out(formatCompareReport(result.value, { a: path.basename(a), b: path.basename(b) }).trimEnd());
     return 0;
+  }
+
+  // Crawl routes or URLs in one pass and merge into site-level systems (v0.4.2)
+  if (sub === 'crawl') {
+    const rawUrls = [file, ...extra].filter((u): u is string => Boolean(u));
+    if (!rawUrls.length) { ctx.err(`Provide at least one URL or route to crawl.\n${usage()}`); return 1; }
+    const dryRun = flags.has('--dry-run');
+    const stitch = !flags.has('--no-stitch');
+
+    ctx.out(`Crawling ${rawUrls.length} page${rawUrls.length === 1 ? '' : 's'}…`);
+    try {
+      const res = await crawlSite({
+        urls: rawUrls,
+        base: baseOption,
+        stitch,
+        dryRun,
+        projectRoot: root,
+        onProgress: (p) => {
+          if (p.status === 'crawling') ctx.out(`  [${p.current}/${p.total}] Crawling ${p.url}…`);
+          else if (p.status === 'failed') ctx.out(`  [${p.current}/${p.total}] Failed ${p.url}: ${p.error}`);
+        }
+      });
+
+      const successful = res.crawled.filter(c => !c.error).length;
+      ctx.out(`\nCrawled ${successful} of ${res.pages.length} pages of ${res.site}:`);
+      if (res.typography) ctx.out(`  Typography: ${res.typography.roles.length} text roles, ${res.typography.families.length} font families`);
+      if (res.color) ctx.out(`  Color: ${res.color.roles.length} color roles, ${res.color.tokens.length} tokens`);
+      if (res.spacing) ctx.out(`  Spacing: ${res.spacing.scale.length} scale values${res.spacing.baseUnit ? `, base unit ${res.spacing.baseUnit.px}px` : ''}`);
+
+      if (res.conflicts.length) {
+        ctx.out(`\nConflicts across pages (${res.conflicts.length}):`);
+        for (const c of res.conflicts) {
+          ctx.out(`  - [${c.type}] ${c.conflict.what}: ${c.conflict.values.map(v => `${v.value} on ${v.pages.join(', ')}`).join('; ')}`);
+        }
+      }
+
+      if (res.written.length) {
+        ctx.out(`\n${dryRun ? 'Would write' : 'Wrote'}:`);
+        for (const w of res.written) ctx.out(`  ${w}`);
+      }
+      return 0;
+    } catch (err) {
+      ctx.err(err instanceof Error ? err.message : String(err));
+      return 1;
+    }
   }
 
   if (sub !== 'rule' || !file || extra.length) {
