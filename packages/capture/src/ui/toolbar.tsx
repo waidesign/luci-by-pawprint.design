@@ -1653,7 +1653,7 @@ export function Toolbar(props: ToolbarProps) {
                 {/* Compare mode (v0.4): two basket items, every value that differs */}
                 <h2>Compare</h2>
                 <p class="hint" data-part="compare-summary">
-                  A: {comparison.result.a.name} ({sourceLabel(comparison.items[0])}). B: {comparison.result.b.name} ({sourceLabel(comparison.items[1])}). {comparison.result.same.length} value{comparison.result.same.length === 1 ? ' is' : 's are'} the same; {comparison.result.differences.length} differ{comparison.result.differences.length === 1 ? 's' : ''}.
+                  A: {comparison.result.a.name} ({sourceLabel(comparison.items[0])}{comparison.result.a.note ? `, your note: ${comparison.result.a.note}` : ''}). B: {comparison.result.b.name} ({sourceLabel(comparison.items[1])}{comparison.result.b.note ? `, your note: ${comparison.result.b.note}` : ''}). {comparison.result.same.length} value{comparison.result.same.length === 1 ? ' is' : 's are'} the same; {comparison.result.differences.length} differ{comparison.result.differences.length === 1 ? 's' : ''}.
                 </p>
                 {comparison.result.differences.length ? (
                   <div class="compare-scroll">

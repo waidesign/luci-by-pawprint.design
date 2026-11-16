@@ -82,9 +82,9 @@ interface Draft {
 type Act = (fn: () => Promise<unknown>) => Promise<void>;
 type NoteFields = { comment: string; intent: FeedbackIntent; priority: FeedbackPriority };
 
-/** Where a popover goes: below the point, kept inside the window. */
+/** Where a popover goes: below the point, kept inside the window with 16px gutter. */
 const popAt = (win: Window, x: number, y: number) => ({
-  left: `${Math.max(12, Math.min(x, win.innerWidth - 352))}px`,
+  left: `${Math.max(12, Math.min(x, win.innerWidth - 376))}px`,
   top: `${Math.max(12, Math.min(y + 12, win.innerHeight - 320))}px`
 });
 

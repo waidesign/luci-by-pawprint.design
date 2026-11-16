@@ -32,11 +32,11 @@ export const FEEDBACK_CSS = `${TOOLBAR_CSS}
 .marker.lost { opacity: 0.6; }
 
 /* The note popover */
-.pop { position: fixed; z-index: 2147483647; width: min(360px, calc(100vw - 24px)); display: flex; flex-direction: column; gap: var(--luci-space-12); padding: var(--luci-space-16);
-  background: var(--luci-color-surface); border-radius: var(--luci-radius-lg); box-shadow: var(--luci-shadow-float); }
+.pop { position: fixed; z-index: 2147483647; box-sizing: border-box; width: min(360px, calc(100vw - 24px)); max-width: calc(100vw - 24px); display: flex; flex-direction: column; gap: var(--luci-space-12); padding: var(--luci-space-16);
+  background: var(--luci-color-surface); border-radius: var(--luci-radius-lg); box-shadow: var(--luci-shadow-float); overflow-wrap: break-word; word-break: break-word; }
 .pop h3 { margin: 0; font: var(--luci-type-heading-weight) var(--luci-type-heading-size)/var(--luci-type-heading-line) var(--luci-font-body); }
 .pop textarea { min-height: 72px; }
-.pop .quote { margin: 0; padding: var(--luci-space-8) var(--luci-space-12); border-radius: var(--luci-radius-md); background: var(--luci-color-surface-sunken); color: var(--luci-color-ink-secondary); }
+.pop .quote, .details .quote { margin: 0; padding: var(--luci-space-8) var(--luci-space-12); border-radius: var(--luci-radius-md); background: var(--luci-color-surface-sunken); color: var(--luci-color-ink-secondary); overflow-wrap: break-word; word-break: break-word; }
 .thread { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--luci-space-4); }
 .thread li { padding: var(--luci-space-8) var(--luci-space-12); border-radius: var(--luci-radius-md); background: var(--luci-color-surface-sunken); }
 .thread li.agent { background: var(--luci-color-primary-soft); }
@@ -75,14 +75,16 @@ export const FEEDBACK_CSS = `${TOOLBAR_CSS}
   border-radius: var(--luci-radius-lg); text-align: left; white-space: normal; font-weight: 400; }
 .row-main .body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .row-main .comment { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-.meta { margin: 0; color: var(--luci-color-ink-secondary); font-size: var(--luci-type-small-size); }
+.meta { margin: 0; color: var(--luci-color-ink-secondary); font-size: var(--luci-type-small-size); overflow-wrap: anywhere; word-break: break-word; }
+.meta code, .details code, [data-part="note-source"] code { font: var(--luci-type-code-weight) 12px/1.4 var(--luci-font-code); color: var(--luci-color-ink); background: var(--luci-color-surface-sunken); padding: 1px var(--luci-space-4); border-radius: var(--luci-radius-sm); word-break: break-all; overflow-wrap: anywhere; white-space: normal; }
 .dot { flex: none; min-width: 22px; height: 22px; padding: 0 5px; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--luci-radius-full);
   background: var(--marker); color: var(--marker-ink); font: 600 11px/1 var(--luci-font-body); }
 .dot.copied { background: var(--luci-color-surface-sunken); color: var(--luci-color-ink); }
 .dot.done { background: var(--luci-color-success-bg); color: var(--luci-color-success); }
 .row-details { display: flex; flex-direction: column; gap: var(--luci-space-8); padding: 0 var(--luci-space-12) var(--luci-space-12) 46px; }
-.details h3 { display: flex; gap: var(--luci-space-8); align-items: center; }
-.details .comment { margin: 0; }
+.details { display: flex; flex-direction: column; gap: var(--luci-space-8); min-width: 0; max-width: 100%; overflow-wrap: break-word; word-break: break-word; }
+.details h3 { display: flex; gap: var(--luci-space-8); align-items: center; flex-wrap: wrap; margin: 0; }
+.details .comment { margin: 0; overflow-wrap: break-word; word-break: break-word; white-space: pre-wrap; }
 .row-details .details { gap: var(--luci-space-8); }
 .link, .luci-theme .link-button { color: var(--luci-color-link); align-self: flex-start; }
 .luci-theme .link-button { min-height: 0; padding: 0; text-decoration: underline; font-weight: 500; }

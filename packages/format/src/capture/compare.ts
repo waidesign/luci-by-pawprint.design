@@ -18,9 +18,12 @@ export interface CompareRow {
   b: string;
 }
 
+/** One side of a comparison. `note` is the person's own note on that capture, on one line ("dark mode"). */
+export interface CompareSide { name: string; type: string; source: string; note?: string }
+
 export interface CompareResult {
-  a: { name: string; type: string; source: string };
-  b: { name: string; type: string; source: string };
+  a: CompareSide;
+  b: CompareSide;
   /** Everything compared that is the same on both. */
   same: string[];
   differences: CompareRow[];
@@ -29,6 +32,12 @@ export interface CompareResult {
 const NONE = 'not set';
 const shown = (v: { value: string; token?: string | undefined }) => (v.token ? `${v.value} (${v.token})` : v.value);
 
+/** Who a side is, with the person's note when there is one: the note is often what tells A and B apart (light and dark mode). */
+function side(meta: { name: string; type: string; source: string }, instructions: string | undefined): CompareSide {
+  const note = instructions?.replace(/\s+/g, ' ').trim();
+  return { name: meta.name, type: meta.type, source: meta.source, ...(note ? { note } : {}) };
+}
+
 /** Two component files (as saved), compared part by part: parts, styles, states, motion and accessibility. */
 export function compareComponentFiles(a: string, b: string): ParseResult<CompareResult> {
   const left = readComponentFile(a);
@@ -36,10 +45,9 @@ export function compareComponentFiles(a: string, b: string): ParseResult<Compare
   const right = readComponentFile(b);
   if (!right.ok) return fail(`The second file is not a component capture: ${right.error}`);
   const check = checkComponent(left.value, right.value);
-  const meta = (m: { name: string; type: string; source: string }) => ({ name: m.name, type: m.type, source: m.source });
   return ok({
-    a: meta(left.value.meta),
-    b: meta(right.value.meta),
+    a: side(left.value.meta, left.value.instructions),
+    b: side(right.value.meta, right.value.instructions),
     same: check.matches,
     differences: check.differences.map(d => ({
       what: `${d.state ? `${d.state}: ` : ''}${d.kind === 'part' ? `part ${d.part}` : `${d.part} ${d.property}`}`,
@@ -133,8 +141,8 @@ function same(property: string, a: string, b: string): boolean {
 export function compareCaptures(a: Capture, b: Capture): CompareResult {
   const fa = flattenCapture(a), fb = flattenCapture(b);
   const out: CompareResult = {
-    a: { name: a.meta.name, type: a.meta.type, source: a.meta.source },
-    b: { name: b.meta.name, type: b.meta.type, source: b.meta.source },
+    a: side(a.meta, a.instructions),
+    b: side(b.meta, b.instructions),
     same: [],
     differences: []
   };
@@ -153,8 +161,8 @@ export function formatCompareReport(result: CompareResult, names: { a: string; b
   const d = result.differences;
   const out = [
     `# Compare: ${names.a} and ${names.b}`,
-    `- A: ${result.a.name} (${result.a.type}), from ${result.a.source}`,
-    `- B: ${result.b.name} (${result.b.type}), from ${result.b.source}`,
+    `- A: ${result.a.name} (${result.a.type}), from ${result.a.source}${result.a.note ? `. Your note: ${result.a.note}` : ''}`,
+    `- B: ${result.b.name} (${result.b.type}), from ${result.b.source}${result.b.note ? `. Your note: ${result.b.note}` : ''}`,
     `- ${result.same.length} value${result.same.length === 1 ? ' is' : 's are'} the same; ${d.length} differ${d.length === 1 ? 's' : ''}.`
   ];
   if (d.length) {
