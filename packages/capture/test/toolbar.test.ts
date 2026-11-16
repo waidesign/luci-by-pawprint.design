@@ -796,9 +796,11 @@ describe('extension branding, settings panel and the brand kit themes', { timeou
     await page.click('[data-action="basket"]');
     await page.locator('[data-part="basket"]').waitFor();
 
-    // Verify Send button on the item and Send all button at the bottom reflect the project name
-    expect(await page.locator('[data-item-send-project]').innerText()).toBe('Send to my-app');
-    expect(await page.locator('[data-action="send-all-project"]').innerText()).toBe('Send all to my-app');
+    // Verify Send button on the item and Send all button at the bottom have compact label with tooltip reflecting project name
+    expect(await page.locator('[data-item-send-project]').innerText()).toBe('Send to project');
+    expect(await page.locator('[data-item-send-project]').getAttribute('title')).toContain('my-app');
+    expect(await page.locator('[data-action="send-all-project"]').innerText()).toBe('Send all to project');
+    expect(await page.locator('[data-action="send-all-project"]').getAttribute('title')).toContain('my-app');
 
     // Click Send on the item
     await page.click('[data-item-send-project]');

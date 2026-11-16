@@ -1710,7 +1710,7 @@ export function Toolbar(props: ToolbarProps) {
                             <button type="button" class="btn-secondary" data-item-send-project
                               title={activeProject?.name ? `Save this capture to ${activeProject.name}/.luci/design/` : "Save this capture to .luci/design/ in your project"}
                               onClick={() => void sendOneToProject(item)}>
-                              {itemSent[item.id]?.error ? 'Failed' : itemSent[item.id] ? 'Saved' : activeProject?.name ? `Send to ${activeProject.name}` : 'Send'}
+                              {itemSent[item.id]?.error ? 'Failed' : itemSent[item.id] ? 'Saved' : 'Send to project'}
                             </button>
                           )}
                           <button class="btn-danger" type="button" data-item-remove aria-label={`Remove ${item.name}`} onClick={() => saveBasket(removeFromBasket(basket, item.id))}>Remove</button>
@@ -1741,7 +1741,7 @@ export function Toolbar(props: ToolbarProps) {
                     <button type="button" class="btn-secondary" data-action="send-all-project" disabled={!basket.length || basketSending}
                       title={activeProject?.name ? `Save each capture in the basket to ${activeProject.name}/.luci/design/` : "Save each capture in the basket to .luci/design/ in your project"}
                       onClick={() => void sendAllToProject()}>
-                      {basketSending ? <><ButtonSpinner />Sending…</> : activeProject?.name ? `Send all to ${activeProject.name}` : 'Send all to project'}
+                      {basketSending ? <><ButtonSpinner />Sending…</> : 'Send all to project'}
                     </button>
                   )}
                   {basket.length > 0 && (confirmClear
