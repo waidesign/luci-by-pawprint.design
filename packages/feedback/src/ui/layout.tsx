@@ -7,7 +7,7 @@
  * adding the plan to Feedback notes) puts the page back as it was.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import { Badge, Button, IconAdd, IconClose, IconCopy, IconNewPage, IconRedo, IconReset, IconSelect, IconUndo, Mascot, RepoButton, Select, useShortcuts } from '@luci-dev/ui';
+import { Button, IconAdd, IconClose, IconCopy, IconNewPage, IconRedo, IconReset, IconSelect, IconUndo, Mascot, RepoButton, Select, useShortcuts } from '@luci-dev/ui';
 
 /** Layout's single-key shortcuts (in each tooltip); Undo and Redo keep Ctrl+Z and Ctrl+Shift+Z. */
 export const LAYOUT_KEYS = { select: 'S', insert: 'I', newPage: 'N' } as const;
@@ -630,7 +630,7 @@ export function Layout(props: LayoutProps) {
           />
         ) : (
           <div class="panel" role="dialog" aria-label="Layout settings" data-part="settings">
-            <div class="settings-head"><div class="row" style={{ alignItems: 'center', gap: '8px' }}><h2>Settings</h2><Badge brand>Beta</Badge></div><RepoButton /></div>
+            <div class="settings-head"><div class="row" style={{ alignItems: 'center', gap: '8px' }}><h2>Settings</h2></div><RepoButton /></div>
             <AppearanceControls prefs={uiPrefs} onChange={setUiPrefs} movable moved={Boolean(uiPrefs.devPlace)} />
           </div>
         )

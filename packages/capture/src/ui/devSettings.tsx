@@ -1,6 +1,6 @@
 import { h } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
-import { Badge, PALETTE, RepoButton, Select } from '@luci-dev/ui';
+import { PALETTE, RepoButton, Select } from '@luci-dev/ui';
 import { DETAIL_LEVELS, type DetailLevel } from '@luci-dev/format/feedback';
 import type { CaptureSettings, StyleSetting } from '@luci-dev/format/capture';
 import { AppearanceControls, type UiPrefs } from './theme.js';
@@ -148,7 +148,6 @@ export function DevSettingsPanel(props: DevSettingsPanelProps) {
       <div class="settings-head">
         <div class="row" style={{ alignItems: 'center', gap: '8px' }}>
           <h2>Settings</h2>
-          <Badge brand>Beta</Badge>
         </div>
         <RepoButton />
       </div>

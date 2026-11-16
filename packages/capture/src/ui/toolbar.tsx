@@ -43,7 +43,7 @@ import { elementAt, eligibilityOf, eventTarget, firstChildOf, hoverLabel, parent
 import { ButtonSpinner, Loading, nextPaint } from './loading.js';
 import { ModeSwitch, type ModeSwitchProps } from './modeSwitch.js';
 import {
-  Badge, Button, COPY, EmptyState, Icon, IconBasket, IconCheck, IconClose, IconColour, IconComponent, IconCopy, IconDownload, IconInfo, IconPage,
+  Button, COPY, EmptyState, Icon, IconBasket, IconCheck, IconClose, IconColour, IconComponent, IconCopy, IconDownload, IconInfo, IconPage,
   IconSpacing, IconSuccess, IconText, LUCI_REPO_URL, Mascot, RepoButton, Select, useShortcuts, type LucideIcon, type MascotPose
 } from '@luci-dev/ui';
 import { AppearanceControls, LuciLogo, useUiPrefs } from './theme.js';
@@ -1495,7 +1495,6 @@ export function Toolbar(props: ToolbarProps) {
               <div class="brand-stack">
                 <div class="brand-title-line">
                   <span class="brand-title" data-part="brand-title">{props.modes ? COPY.capture.devTitle : COPY.capture.title}</span>
-                  <Badge brand>Beta</Badge>
                   <span class="brand-sub" data-part="brand-sub">{props.modes ? COPY.capture.devByline : COPY.capture.byline}</span>
                 </div>
                 <p class="brand-desc">{props.modes ? COPY.capture.devDescription : COPY.capture.description}</p>
