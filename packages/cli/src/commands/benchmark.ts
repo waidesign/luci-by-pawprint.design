@@ -1,77 +1,145 @@
 /**
- * Benchmark / Evals CLI command (v0.5, PRD Roadmap Priority 14):
- * Displays empirical multi-page agent benchmark results, comparative metrics against
- * Agentation and vanilla coding agents, and token efficiency statistics.
+ * Benchmark / Evals CLI command:
+ * Reads saved local evaluation reports from `eval/` when present without
+ * hardcoding unverified figures or competitor comparisons.
  */
+import fs from 'node:fs';
+import path from 'node:path';
 import { PRODUCT } from '@luci-dev/format';
-import type { Command } from '../context.js';
+import { parseFlags, type Command } from '../context.js';
 
-export const BENCHMARK_HELP = `benchmark [--json]
-                        Display empirical multi-page agent benchmark results, pass rates,
-                        token efficiency, and comparative metrics against competitor tools.`;
+export const BENCHMARK_HELP = `benchmark [--json]    Show saved local evaluation reports from eval/`;
 
-export const BENCHMARK_RESULTS = {
-  version: '0.5.0',
-  testedAt: '2026-11-15',
-  testName: 'PRD Test 2: Multi-Page Feedback Benchmark',
-  testScope: '3 distinct pages (/, /pricing, /checkout) with 6 cross-page UI feedback tasks',
-  harness: 'Automated 10-run test harness (scripts/eval-multipage.mjs)',
-  runs: [
-    { run: 1, applied: '6/6', reported: '6/6', status: 'PASS' },
-    { run: 2, applied: '6/6', reported: '6/6', status: 'PASS' },
-    { run: 3, applied: '6/6', reported: '6/6', status: 'PASS' },
-    { run: 4, applied: '6/6', reported: '6/6', status: 'PASS' },
-    { run: 5, applied: '6/6', reported: '6/6', status: 'PASS' },
-    { run: 6, applied: '6/6', reported: '6/6', status: 'PASS' },
-    { run: 7, applied: '6/6', reported: '6/6', status: 'PASS' },
-    { run: 8, applied: '6/6', reported: '6/6', status: 'PASS' },
-    { run: 9, applied: '6/6', reported: '6/6', status: 'PASS' },
-    { run: 10, applied: '6/6', reported: '6/6', status: 'PASS' }
-  ],
-  summary: {
-    luci: { passRate: '100% (10/10)', applied: '60/60 (100%)', reported: '60/60 (100%)', hallucinations: 0 },
-    agentation: { passRate: '0% (0/10)', applied: '20/60 (33%)', reported: '18/60 (30%)', notes: 'Drops pages 2 & 3; hallucinates non-scoped IDs' },
-    vanillaAgent: { passRate: '0% (0/10)', applied: '0/60 (0%)', notes: 'Fails to maintain cross-route state without structured feedback' }
-  },
-  tokenEfficiency: {
-    tokenReduction: '78%',
-    averagePromptTokens: '2.4k tokens (Luci) vs 11.2k tokens (raw DOM/screenshot dump)',
-    speedup: '3.2x faster agent task convergence'
+export interface SkillSystemMetrics {
+  hitRate?: number;
+  precision?: number;
+  noMatchAccuracy?: number;
+  avgSkills?: number;
+  avgTokens?: number;
+  score?: number;
+}
+
+export interface SkillSetMetrics {
+  cases?: number;
+  coveredCases?: number;
+  noMatchCases?: number;
+  systems?: Record<string, SkillSystemMetrics>;
+}
+
+export interface SkillBaselineReport {
+  generatedAt?: string;
+  sets?: Record<string, SkillSetMetrics>;
+  library?: {
+    skills?: number;
+    largestSkillTokens?: number;
+  };
+}
+
+export interface MultiPageRunEntry {
+  run: number;
+  format?: string;
+  applied: number;
+  reported: number;
+  durationMs?: number;
+  note?: string;
+  pass: boolean;
+}
+
+export interface MultiPageReport {
+  date?: string;
+  format?: string;
+  totalRuns?: number;
+  passedRuns?: number;
+  passRate?: number;
+  scoreSheet?: MultiPageRunEntry[];
+}
+
+export interface SavedBenchmarkReports {
+  cwd: string;
+  baseline: SkillBaselineReport | null;
+  multiPage: MultiPageReport | null;
+}
+
+function readJsonFile<T>(filePath: string): T | null {
+  try {
+    if (!fs.existsSync(filePath)) return null;
+    return JSON.parse(fs.readFileSync(filePath, 'utf8')) as T;
+  } catch {
+    return null;
   }
-};
+}
+
+export function loadSavedBenchmarkReports(cwd: string): SavedBenchmarkReports {
+  const evalDir = path.join(cwd, 'eval');
+  return {
+    cwd,
+    baseline: readJsonFile<SkillBaselineReport>(path.join(evalDir, 'baseline.json')),
+    multiPage: readJsonFile<MultiPageReport>(path.join(evalDir, 'multi-page-report.json'))
+  };
+}
+
+function printSkillBaseline(baseline: SkillBaselineReport, out: (line?: string) => void): void {
+  out('\nSkill selection baseline (eval/baseline.json):');
+  if (baseline.generatedAt) out(`  Saved at: ${baseline.generatedAt}`);
+  if (baseline.library?.skills !== undefined) {
+    out(`  Library:  ${baseline.library.skills} skills`);
+  }
+  if (!baseline.sets) return;
+
+  for (const [setName, set] of Object.entries(baseline.sets)) {
+    const casesInfo = set.cases !== undefined ? ` (${set.cases} cases)` : '';
+    out(`  Set: ${setName}${casesInfo}`);
+    for (const [systemName, m] of Object.entries(set.systems ?? {})) {
+      const parts: string[] = [];
+      if (m.hitRate !== undefined) parts.push(`hit ${m.hitRate}`);
+      if (m.precision !== undefined) parts.push(`precision ${m.precision}`);
+      if (m.noMatchAccuracy !== undefined) parts.push(`no-match ${m.noMatchAccuracy}`);
+      if (m.avgTokens !== undefined) parts.push(`avg tokens ${m.avgTokens}`);
+      out(`    - ${systemName}: ${parts.join(', ')}`);
+    }
+  }
+}
+
+function printMultiPageReport(report: MultiPageReport, out: (line?: string) => void): void {
+  out('\nMulti-page evaluation report (eval/multi-page-report.json):');
+  if (report.date) out(`  Saved at: ${report.date}`);
+  if (report.format) out(`  Format:   ${report.format}`);
+  if (report.passedRuns !== undefined && report.totalRuns !== undefined) {
+    const pct = report.passRate !== undefined ? ` (${report.passRate}%)` : '';
+    out(`  Result:   ${report.passedRuns}/${report.totalRuns} passed${pct}`);
+  }
+  for (const entry of report.scoreSheet ?? []) {
+    const status = entry.pass ? 'PASS' : 'FAIL';
+    const note = entry.note ? ` — ${entry.note}` : '';
+    out(`    - Run #${entry.run}: applied ${entry.applied}/6, reported ${entry.reported}/6 [${status}]${note}`);
+  }
+}
 
 export const benchmarkCommand: Command = async (args, ctx) => {
-  if (args.includes('--json')) {
-    ctx.out(JSON.stringify(BENCHMARK_RESULTS, null, 2));
+  const { flags, unknown, rest } = parseFlags(args, ['--json']);
+  if (unknown.length || rest.length) {
+    ctx.err(`Unknown option for benchmark: ${[...unknown, ...rest].join(' ')}`);
+    ctx.err(`Usage: ${PRODUCT.command} ${BENCHMARK_HELP}`);
+    return 1;
+  }
+
+  const reports = loadSavedBenchmarkReports(ctx.cwd);
+  if (flags.has('--json')) {
+    ctx.out(JSON.stringify(reports, null, 2));
     return 0;
   }
 
-  ctx.out(`${PRODUCT.name} Public Evaluation Benchmark & Scorecard`);
-  ctx.out('==================================================');
-  ctx.out(`Test: ${BENCHMARK_RESULTS.testName}`);
-  ctx.out(`Scope: ${BENCHMARK_RESULTS.testScope}`);
-  ctx.out(`Date: ${BENCHMARK_RESULTS.testedAt} (v${BENCHMARK_RESULTS.version})`);
-  ctx.out(`Harness: ${BENCHMARK_RESULTS.harness}\n`);
+  ctx.out(`${PRODUCT.name} evaluation reports (${ctx.cwd})`);
 
-  ctx.out('Scorecard (10 Consecutive Evaluation Runs):');
-  ctx.out('-------------------------------------------');
-  ctx.out('Run  | Luci (Applied) | Luci (Reported) | Status | Agentation Result');
-  ctx.out('----+----------------+-----------------+--------+------------------');
-  for (const r of BENCHMARK_RESULTS.runs) {
-    ctx.out(` #${r.run < 10 ? `${r.run} ` : r.run} |      ${r.applied}       |       ${r.reported}       |  ${r.status}  | Failed (dropped pages 2 & 3)`);
+  if (!reports.baseline && !reports.multiPage) {
+    ctx.out('No saved evaluation reports found in eval/.');
+    ctx.out('Run local evaluations in the source repository to generate saved logs:');
+    ctx.out('  node scripts/eval.mjs --save-baseline');
+    ctx.out('  pnpm test:multipage -- --save-report');
+    return 0;
   }
 
-  ctx.out('\nComparative Pass Rate Summary:');
-  ctx.out('------------------------------');
-  ctx.out(`- Luci:           ${BENCHMARK_RESULTS.summary.luci.passRate} — 0 hallucinations, 100% ID accuracy`);
-  ctx.out(`- Agentation:     ${BENCHMARK_RESULTS.summary.agentation.passRate} — ${BENCHMARK_RESULTS.summary.agentation.notes}`);
-  ctx.out(`- Vanilla Agent:  ${BENCHMARK_RESULTS.summary.vanillaAgent.passRate} — ${BENCHMARK_RESULTS.summary.vanillaAgent.notes}\n`);
-
-  ctx.out('Token Efficiency & Latency:');
-  ctx.out('---------------------------');
-  ctx.out(`- Token Reduction: ${BENCHMARK_RESULTS.tokenEfficiency.tokenReduction}`);
-  ctx.out(`- Prompt Footprint: ${BENCHMARK_RESULTS.tokenEfficiency.averagePromptTokens}`);
-  ctx.out(`- Task Convergence: ${BENCHMARK_RESULTS.tokenEfficiency.speedup}`);
-  ctx.out('\nTo reproduce the benchmark: pnpm test:multipage');
+  if (reports.baseline) printSkillBaseline(reports.baseline, ctx.out);
+  if (reports.multiPage) printMultiPageReport(reports.multiPage, ctx.out);
   return 0;
 };
