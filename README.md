@@ -105,16 +105,16 @@ Luci is organized as a pnpm monorepo:
 
 | Package | Version | Description |
 | :--- | :--- | :--- |
-| [`@luci-dev/cli`](./packages/cli) | `0.5.4` | Core CLI (`luci` / `luci-dev`) |
-| [`@luci-dev/brain`](./packages/brain) | `0.5.4` | Project memory, agent configs, and rules engine |
-| [`@luci-dev/skills`](./packages/skills) | `0.5.4` | Skill registry, ranker, and library |
-| [`@luci-dev/capture`](./packages/capture) | `0.5.4` | Live DOM capture and token extractor |
-| [`@luci-dev/feedback`](./packages/feedback) | `0.5.4` | Interactive on-page annotations & prompt generator |
-| [`@luci-dev/toolbar`](./packages/toolbar) | `0.5.4` | Standalone dev toolbar bundle |
-| [`@luci-dev/ui`](./packages/ui) | `0.5.4` | Shared Preact design system & tokens |
-| [`@luci-dev/format`](./packages/format) | `0.5.4` | Markdown schemas, `DESIGN.md` parser, and diffing |
-| [`@luci-dev/mcp`](./packages/mcp) | `0.5.4` | Model Context Protocol server for IDEs & agents |
-| [`@luci-dev/extension`](./packages/extension) | `0.5.4` | Chrome extension (Manifest V3) |
+| [`@luci-dev/cli`](./packages/cli) | `0.5.5` | Core CLI (`luci` / `luci-dev`) |
+| [`@luci-dev/brain`](./packages/brain) | `0.5.5` | Project memory, agent configs, and rules engine |
+| [`@luci-dev/skills`](./packages/skills) | `0.5.5` | Skill registry, ranker, and library |
+| [`@luci-dev/capture`](./packages/capture) | `0.5.5` | Live DOM capture and token extractor |
+| [`@luci-dev/feedback`](./packages/feedback) | `0.5.5` | Interactive on-page annotations & prompt generator |
+| [`@luci-dev/toolbar`](./packages/toolbar) | `0.5.5` | Standalone dev toolbar bundle |
+| [`@luci-dev/ui`](./packages/ui) | `0.5.5` | Shared Preact design system & tokens |
+| [`@luci-dev/format`](./packages/format) | `0.5.5` | Markdown schemas, `DESIGN.md` parser, and diffing |
+| [`@luci-dev/mcp`](./packages/mcp) | `0.5.5` | Model Context Protocol server for IDEs & agents |
+| [`@luci-dev/extension`](./packages/extension) | `0.5.5` | Chrome extension (Manifest V3) |
 
 ---
 

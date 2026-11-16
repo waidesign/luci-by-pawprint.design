@@ -4,7 +4,7 @@
  * LUCI_VERSION is the one version of Luci: the root package.json and the shipped packages (the luci
  * CLI, the extension, luci-mcp) say the same, and a test checks it. Bump them together.
  */
-export const LUCI_VERSION = '0.5.4';
+export const LUCI_VERSION = '0.5.5';
 
 /** The public repository. Null until it is published: the button then shows the version, without a link. */
 export const LUCI_REPO_URL: string | null = 'https://github.com/waidesign/luci-by-pawprint.design';
