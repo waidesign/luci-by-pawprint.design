@@ -1,6 +1,6 @@
 {
   "name": "@luci-dev/format",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "Schemas and formatters for every file Luci writes.",
   "type": "module",
   "license": "MIT",
