@@ -20,6 +20,34 @@ const CLI_TIMEOUT_MS = 5 * 60 * 1000;
 const CODE_FILE = /\.(c|cc|cpp|cs|cjs|cts|go|h|hpp|java|js|jsx|kt|mjs|mts|php|py|rb|rs|scala|svelte|swift|ts|tsx|vue)$/i;
 const STALE_SAMPLE = 5;
 
+const IGNORE_SOURCE_DIRS = new Set([
+  'node_modules', '.git', 'dist', 'build', '.output', '.output-test', '.output-check',
+  '.luci', 'coverage', '__pycache__', '.venv', 'venv', '.next', '.nuxt', '.svelte-kit'
+]);
+
+/** Returns true if the project contains at least one source code file matching CODE_FILE. Fast: stops at first match. */
+export function hasCodeFiles(dir: string): boolean {
+  try {
+    const queue = [dir];
+    while (queue.length > 0) {
+      const current = queue.pop()!;
+      const entries = fs.readdirSync(current, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.isDirectory()) {
+          if (!IGNORE_SOURCE_DIRS.has(entry.name) && !entry.name.startsWith('.')) {
+            queue.push(path.join(current, entry.name));
+          }
+        } else if (entry.isFile() && CODE_FILE.test(entry.name) && !entry.name.endsWith('.d.ts')) {
+          return true;
+        }
+      }
+    }
+  } catch {
+    return true;
+  }
+  return false;
+}
+
 export interface GraphPaths {
   jsonPath: string;
   htmlPath: string;
@@ -38,7 +66,7 @@ export type MapFreshness =
   | { status: 'unknown'; reason: string };
 
 export type GenerateResult =
-  | { skipped: true; reason: 'not-installed'; summary: string }
+  | { skipped: true; reason: 'not-installed' | 'no-source-code'; summary: string }
   | ({ skipped?: false; reused: boolean; mode?: 'full' | 'incremental'; summary: string } & GraphPaths & GraphStats);
 
 /** Runs a command and returns its stdout; throws on failure. Replaced in tests. */
@@ -186,6 +214,9 @@ export class CodeMap {
 
     if (!this.getCliVersion()) {
       return { skipped: true, reason: 'not-installed', summary: `Skipped: Graphify is not installed. ${CODE_MAP_SETUP_HINT}` };
+    }
+    if (!hasCodeFiles(targetDir)) {
+      return { skipped: true, reason: 'no-source-code', summary: 'No source code files (.ts, .js, .py, etc.) found in this project yet. The code map will build once source files are added.' };
     }
     if (!force) {
       const existing = locateGraph(targetDir);

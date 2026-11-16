@@ -8,6 +8,7 @@ import {
   GraphifyInstaller,
   diagnose,
   ensureGraphify,
+  hasCodeFiles,
   initProject,
   loadProjectContext,
   locateGraph,
@@ -98,6 +99,19 @@ describe('code map (B6)', () => {
     await expect(fakeGraphify({ writesOutput: false }).make(dir).generate({ targetDir: dir })).rejects.toThrow(/produced no usable map/);
     fs.writeFileSync(path.join(dir, 'graph.json'), '{"nodes":[{"id":"x"}]}', 'utf8');
     expect(locateGraph(dir)).toBeNull();
+  });
+
+  it('skips gracefully when a project has no source code files yet', async () => {
+    const emptyDir = tempProject({ 'README.md': '# Empty', 'package.json': '{}' });
+    expect(hasCodeFiles(emptyDir)).toBe(false);
+    const fake = fakeGraphify({ installed: true });
+    const res = await fake.make(emptyDir).generate({ targetDir: emptyDir });
+    expect(res).toEqual({
+      skipped: true,
+      reason: 'no-source-code',
+      summary: expect.stringContaining('No source code files')
+    });
+    expect(fake.calls).toHaveLength(0);
   });
 });
 

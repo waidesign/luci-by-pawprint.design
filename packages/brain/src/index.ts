@@ -83,7 +83,8 @@ export {
   locateGraph,
   readGraphStats,
   builtAtCommit,
-  mapFreshness
+  mapFreshness,
+  hasCodeFiles
 } from './codemap/codeMap.js';
 export {
   type EnsureOptions,

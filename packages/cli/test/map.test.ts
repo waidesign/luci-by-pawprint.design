@@ -54,6 +54,13 @@ describe('luci map (B6)', () => {
     expect(status.text()).toContain('2 nodes');
   });
 
+  it('--update on a project without source code skips gracefully', async () => {
+    fake(true);
+    const empty = fakeContext(tempProject({ 'README.md': '# Hello' }));
+    expect(await run(['map', '--update'], empty.ctx)).toBe(0);
+    expect(empty.text()).toContain('No source code files');
+  });
+
   it('--install without a terminal never runs the remote uv script', async () => {
     const { installs } = fake(false);
     const f = fakeContext(tempProject(), { isTTY: false });

@@ -171,8 +171,15 @@ export const TOOLS: readonly LuciTool[] = [
     async (args, deps) => {
       const dir = target(args, deps);
       if (args.update) {
-        const result = await (deps.codeMap ?? ((d: string) => new CodeMap({ projectRoot: d })))(dir).generate({ targetDir: dir, force: true });
-        if (result.skipped) return error(`${result.summary} Ask the user whether they want it; it is optional.`);
+        try {
+          const result = await (deps.codeMap ?? ((d: string) => new CodeMap({ projectRoot: d })))(dir).generate({ targetDir: dir, force: true });
+          if (result.skipped) {
+            if (result.reason === 'no-source-code') return json({ available: false, reason: result.reason, summary: result.summary });
+            return error(`${result.summary} Ask the user whether they want it; it is optional.`);
+          }
+        } catch (err) {
+          return error(err instanceof Error ? err.message : String(err));
+        }
       }
       const paths = locateGraph(dir);
       if (!paths) return json({ available: false, hint: CODE_MAP_SETUP_HINT });

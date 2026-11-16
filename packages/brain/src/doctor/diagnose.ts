@@ -20,7 +20,7 @@ import {
 import { SkillRegistry, missingSkillWarnings, projectSkillSet, readLock, type SkillSource } from '@luci-dev/skills';
 import { configureAgent, projectAgents } from '../agents/agentFiles.js';
 import { cleanPrototypeSections } from '../import/importPrototype.js';
-import { mapFreshness } from '../codemap/codeMap.js';
+import { hasCodeFiles, mapFreshness } from '../codemap/codeMap.js';
 import { readAllPackageRules, readPackageRules, readProjectGoal, readProjectRules } from '../context/projectContext.js';
 import { detectProject, type WorkspacePackage } from '../detect/detector.js';
 import { TEMPLATES_DIR, findProjectRoot, memoryDir, memoryPath, readBrainJson } from '../layout/brainLayout.js';
@@ -215,7 +215,11 @@ async function projectChecks(
   }
 
   const map = mapFreshness(dir);
-  if (map.status === 'missing') add('info', 'Code map', 'not built (optional)', `${run('map')} explains how to set it up.`);
+  if (map.status === 'missing') {
+    const detail = hasCodeFiles(dir) ? 'not built (optional)' : 'pending (waiting for source files)';
+    const fix = hasCodeFiles(dir) ? `${run('map')} explains how to set it up.` : 'add source files (.ts, .js, .py) to build a code map.';
+    add('info', 'Code map', detail, fix);
+  }
   else if (map.status === 'stale') add('warn', 'Code map', `out of date: ${map.changedFiles} code file${map.changedFiles === 1 ? '' : 's'} changed since it was built (${map.sample.join(', ')}${map.changedFiles > map.sample.length ? ', ...' : ''})`, `${run('map --update')} refreshes it.`);
   else if (map.status === 'unknown') add('info', 'Code map', `can't tell if it is current: ${map.reason}`);
   else add('ok', 'Code map', `current${map.builtAtCommit ? ` (built at ${map.builtAtCommit.slice(0, 7)})` : ''}`);

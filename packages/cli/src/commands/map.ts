@@ -1,5 +1,5 @@
 import { PRODUCT } from '@luci-dev/format';
-import { CODE_MAP_SETUP_HINT, CodeMap, GraphifyInstaller, ensureGraphify, findProjectRoot, locateGraph, mapFreshness, readGraphStats } from '@luci-dev/brain';
+import { CODE_MAP_SETUP_HINT, CodeMap, GraphifyInstaller, ensureGraphify, findProjectRoot, hasCodeFiles, locateGraph, mapFreshness, readGraphStats } from '@luci-dev/brain';
 import { parseFlags, type Command } from '../context.js';
 import { createLineAsker } from '../onboarding.js';
 
@@ -45,16 +45,25 @@ export const mapCommand: Command = async (args, ctx) => {
   }
 
   if (flags.has('--update') || flags.has('--full')) {
-    const res = await codeMap.generate({ targetDir: root, force: true, full: flags.has('--full') });
-    if (res.skipped) {
-      ctx.err(`Graphify is not installed, so there is no code map yet.\n${CODE_MAP_SETUP_HINT}`);
+    try {
+      const res = await codeMap.generate({ targetDir: root, force: true, full: flags.has('--full') });
+      if (res.skipped) {
+        if (res.reason === 'no-source-code') {
+          ctx.out(res.summary);
+          return 0;
+        }
+        ctx.err(`Graphify is not installed, so there is no code map yet.\n${CODE_MAP_SETUP_HINT}`);
+        return 1;
+      }
+      ctx.out(res.summary);
+      ctx.out(`  Report:   ${res.reportPath}`);
+      ctx.out(`  Explorer: ${res.htmlPath}`);
+      ctx.out(`  Map:      ${res.jsonPath}`);
+      return 0;
+    } catch (err) {
+      ctx.err(err instanceof Error ? err.message : String(err));
       return 1;
     }
-    ctx.out(res.summary);
-    ctx.out(`  Report:   ${res.reportPath}`);
-    ctx.out(`  Explorer: ${res.htmlPath}`);
-    ctx.out(`  Map:      ${res.jsonPath}`);
-    return 0;
   }
 
   // Status only: reads files and git, never runs Graphify
@@ -62,6 +71,9 @@ export const mapCommand: Command = async (args, ctx) => {
   if (map.status === 'missing') {
     const version = codeMap.getCliVersion();
     ctx.out('No code map in this project yet.');
+    if (!hasCodeFiles(root)) {
+      ctx.out('State: Pending (waiting for source code files: .ts, .js, .py, etc.).');
+    }
     ctx.out(version ? `Graphify is installed (${version}). Build the map with ${cmd('map --update')}.` : CODE_MAP_SETUP_HINT);
     return 0;
   }
