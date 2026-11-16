@@ -6,7 +6,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { build } from 'esbuild';
 import {
   STITCH_FILE_NAME,
   captureFileName,
@@ -32,19 +31,24 @@ export async function getCaptureScript(): Promise<string> {
     cachedBundle = fs.readFileSync(prebuilt, 'utf8');
     return cachedBundle;
   }
-  const entry = fileURLToPath(new URL('../../../capture/src/browser.ts', import.meta.url));
-  const res = await build({
-    entryPoints: [entry],
-    bundle: true,
-    format: 'iife',
-    globalName: 'LuciCapture',
-    platform: 'browser',
-    target: 'chrome110',
-    write: false,
-    logLevel: 'silent'
-  });
-  cachedBundle = res.outputFiles[0]!.text;
-  return cachedBundle;
+  try {
+    const { build } = await import('esbuild');
+    const entry = fileURLToPath(new URL('../../../capture/src/browser.ts', import.meta.url));
+    const res = await build({
+      entryPoints: [entry],
+      bundle: true,
+      format: 'iife',
+      globalName: 'LuciCapture',
+      platform: 'browser',
+      target: 'chrome110',
+      write: false,
+      logLevel: 'silent'
+    });
+    cachedBundle = res.outputFiles[0]!.text;
+    return cachedBundle;
+  } catch (err: any) {
+    throw new Error(`Capture bundle not found and esbuild is not available: ${err?.message || err}`);
+  }
 }
 
 /** Dynamically launch Playwright Chromium (returns a Browser). */

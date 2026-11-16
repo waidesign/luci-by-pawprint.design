@@ -1,6 +1,6 @@
 {
   "name": "@luci-dev/capture",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "description": "Capture: the picker, the eligibility check and the Text, Colour and Spacing tools. Browser-safe.",
   "type": "module",
   "license": "MIT",

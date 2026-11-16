@@ -1,6 +1,6 @@
 {
   "name": "@luci-dev/brain",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "description": "Setup, project and global memory, agent files.",
   "type": "module",
   "license": "MIT",

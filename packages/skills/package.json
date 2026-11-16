@@ -1,6 +1,6 @@
 {
   "name": "@luci-dev/skills",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "description": "Skill standard, registry, selection, packs and the design skill library.",
   "type": "module",
   "license": "MIT",

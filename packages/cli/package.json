@@ -1,6 +1,6 @@
 {
   "name": "@luci-dev/cli",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "description": "Memory, skills, design capture and feedback for AI coding agents. Local only.",
   "type": "module",
   "license": "MIT",
