@@ -200,6 +200,12 @@ export const COMPONENTS_CSS = `
 .luci-theme [data-tip]:is(:hover, :focus-visible)::after { opacity: 1; transform: translate(-50%, 0);
   transition: opacity var(--luci-motion-base) 300ms, transform var(--luci-motion-base) 300ms; }
 
+/*
+ * Touch screens have no hover: a tapped button would keep its tooltip until the next tap elsewhere, over
+ * the bar and its cards. There they show for keyboard focus only.
+ */
+@media (hover: none) { .luci-theme [data-tip]:hover:not(:focus-visible)::after { opacity: 0; transition: none; } }
+
 /* Left-aligned tooltips (first button in rows, cards, or explicit data-tip-align="left") open rightwards to prevent clipping inside cards/panels */
 .luci-theme [data-tip][data-tip-align="left"]::after,
 .luci-theme .panel .actions > [data-tip]:first-child::after,
