@@ -56,7 +56,10 @@ For each of the 9 packages, `@luci-dev/brain`, `capture`, `cli`, `feedback`, `fo
    | Workflow filename | `release.yml` |
    | Environment name | `npm-publish` |
 
-3. Save it.
+3. Under **Allowed actions**, tick **Allow `npm publish`** (the workflow publishes directly; without it npm only accepts staged publishes and the release fails). Leave **Allow `npm dist-tag`** unticked.
+4. Click **Set up connection**.
+
+Leave **Publishing access** on that page as it is until step 4 below.
 
 ### 3. Try it
 
