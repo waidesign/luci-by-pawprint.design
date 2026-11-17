@@ -71,8 +71,8 @@ async function annotate(page: Page, selector: string, comment: string, options: 
   if ((await page.locator('[data-action="annotate"]').getAttribute('aria-pressed')) !== 'true') await page.click('[data-action="annotate"]');
   await page.click(selector, { force: true });
   await page.fill('[data-part="comment"]', comment);
-  if (options.intent) await page.selectOption('[data-part="intent"]', options.intent);
-  if (options.priority) await page.selectOption('[data-part="priority"]', options.priority);
+  if (options.intent) await page.click(`[data-part="note-form"] [data-part="intent"] [data-value="${options.intent}"]`);
+  if (options.priority) await page.click(`[data-part="note-form"] [data-part="priority"] [data-value="${options.priority}"]`);
   await page.click('[data-action="save-note"]');
   await page.locator('[data-part="note-form"]').waitFor({ state: 'detached' });
 }
@@ -322,8 +322,8 @@ describe('dev toolbar without luci serve (this browser only)', { timeout: 60_000
     expect(await page.locator('[data-part="note-meta"]').innerText()).toBe('fix · high priority · button');
     await page.click('[data-action="edit"]');
     expect(await page.locator('[data-part="edit-note"] [data-part="comment"]').inputValue()).toBe('Label wraps on mobile');
-    await page.selectOption('[data-part="edit-note"] [data-part="intent"]', 'change');
-    await page.selectOption('[data-part="edit-note"] [data-part="priority"]', 'low');
+    await page.click('[data-part="edit-note"] [data-part="intent"] [data-value="change"]');
+    await page.click('[data-part="edit-note"] [data-part="priority"] [data-value="low"]');
     await page.click('[data-part="edit-note"] [data-action="save-note"]');
     await page.locator('[data-part="note-meta"]:text-is("change · low priority · button")').waitFor();
     await page.click('[data-action="close-item"]');

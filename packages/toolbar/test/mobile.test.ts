@@ -120,6 +120,36 @@ describe('dev toolbar on a phone', { timeout: 60_000 }, () => {
     await ctx.close();
   });
 
+  it('opens a note as a sheet just above the bar, with intent and priority as one-tap choices', async () => {
+    const { ctx, page } = await phone();
+    await page.locator('luci-feedback [data-action="pause"]').tap();
+    await page.locator('luci-feedback [data-action="annotate"]').tap();
+    await page.locator('h1').tap({ force: true });
+    await page.locator('h1').tap({ force: true });
+    const form = await box(page, 'luci-feedback [data-part="note-form"]');
+    const bar = await box(page, 'luci-feedback .bar');
+    expect(Math.round(form.x)).toBe(8);
+    expect(Math.round(PHONE.width - (form.x + form.width))).toBe(8);
+    expect(bar.y - (form.y + form.height)).toBeGreaterThanOrEqual(0);
+    expect(bar.y - (form.y + form.height)).toBeLessThan(16);
+    // The paused card steps aside instead of sitting under the sheet
+    expect(await page.locator('luci-feedback [data-part="paused"]').isVisible()).toBe(false);
+    // No native select (its list opens away from the form on some phones): buttons, one tap each
+    expect(await page.locator('luci-feedback [data-part="note-form"] select').count()).toBe(0);
+    await page.locator('luci-feedback [data-part="comment"]').fill('Too tight on a phone');
+    await page.locator('luci-feedback [data-part="intent"] [data-value="question"]').tap();
+    await page.locator('luci-feedback [data-part="priority"] [data-value="high"]').tap();
+    expect(await page.locator('luci-feedback [data-part="intent"] [aria-pressed="true"]').innerText()).toBe('question');
+    await page.locator('luci-feedback [data-action="save-note"]').tap();
+    await page.locator('luci-feedback [data-part="note-form"]').waitFor({ state: 'detached' });
+    // The saved note opens as a sheet too, with what was chosen
+    await page.locator('luci-feedback [data-marker]').first().tap();
+    expect(await page.locator('luci-feedback [data-part="note-meta"]').innerText()).toContain('question · high priority');
+    const item = await box(page, 'luci-feedback [data-part="item"]');
+    expect(Math.round(item.x)).toBe(8);
+    await ctx.close();
+  });
+
   it('scrolls the page under the finger while annotating', async () => {
     const { ctx, page } = await phone();
     await page.evaluate(() => { document.body.style.minHeight = '3000px'; });

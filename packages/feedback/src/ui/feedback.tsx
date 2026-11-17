@@ -88,6 +88,14 @@ const popAt = (win: Window, x: number, y: number) => ({
   top: `${Math.max(12, Math.min(y + 12, win.innerHeight - 320))}px`
 });
 
+/** The window width under which the dev toolbar takes its phone layout (the styles' max-width: 639px). */
+const NARROW = 640;
+/**
+ * Where a note (new or open) goes: by its element on a wide window; on a phone, a sheet just above the
+ * bar (the styles place it), where the bar and the keyboard cannot cover it.
+ */
+const noteAt = (win: Window, x: number, y: number) => (win.innerWidth < NARROW ? {} : popAt(win, x, y));
+
 /** The CSS that freezes a page for annotating one frame (FR31). */
 export const PAUSE_CSS = '*, *::before, *::after { animation-play-state: paused !important; transition: none !important; caret-color: transparent !important; }';
 
@@ -448,7 +456,7 @@ export function Feedback(props: FeedbackProps) {
       })}
 
       {draft && (
-        <div class="pop" role="dialog" aria-label="New feedback" data-part="note-form" style={popAt(win, draft.at.x, draft.at.y)}>
+        <div class="pop" role="dialog" aria-label="New feedback" data-part="note-form" style={noteAt(win, draft.at.x, draft.at.y)}>
           <h3>{draft.selectedText ? 'Feedback on the selected text' : `Feedback on ${nameOf(draft.el)}`}</h3>
           {draft.selectedText && <p class="quote" data-part="selected">“{draft.selectedText}”</p>}
           <NoteForm key={`${draft.at.x},${draft.at.y}`} submitLabel="Save" onSubmit={save} onCancel={() => setDraft(null)} />
@@ -458,7 +466,7 @@ export function Feedback(props: FeedbackProps) {
       {open && (() => {
         const pos = markerPos(open);
         return (
-          <div class="pop" role="dialog" aria-label={`Note ${open.ref}`} data-part="item" data-ref={open.ref} style={popAt(win, pos?.x ?? 24, pos?.y ?? 24)}>
+          <div class="pop" role="dialog" aria-label={`Note ${open.ref}`} data-part="item" data-ref={open.ref} style={noteAt(win, pos?.x ?? 24, pos?.y ?? 24)}>
             <NoteDetails key={open.ref} item={open} backend={backend} act={act} onClose={() => setOpenRef(null)} />
           </div>
         );
@@ -535,13 +543,18 @@ function NoteForm(props: { initial?: NoteFields; submitLabel: string; onSubmit: 
       <textarea ref={ref} data-part="comment" placeholder="What should change?" value={comment}
         onInput={e => setComment((e.currentTarget as HTMLTextAreaElement).value)}
         onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) void submit(); }} />
-      <div class="row">
-        <label>Intent <Select data-part="intent" value={intent} onChange={e => setIntent((e.currentTarget as HTMLSelectElement).value as FeedbackIntent)}>
-          {FEEDBACK_INTENTS.map(i => <option value={i}>{i}</option>)}
-        </Select></label>
-        <label>Priority <Select data-part="priority" value={priority} onChange={e => setPriority((e.currentTarget as HTMLSelectElement).value as FeedbackPriority)}>
-          {FEEDBACK_PRIORITIES.map(p => <option value={p}>{p}</option>)}
-        </Select></label>
+      {/* One tap each, no pop-up list: a native select opens its list away from the form on some phones */}
+      <div class="note-choice">
+        <span class="field-label" aria-hidden="true">Intent</span>
+        <div class="seg" role="group" aria-label="Intent" data-part="intent">
+          {FEEDBACK_INTENTS.map(i => <button type="button" data-value={i} aria-pressed={intent === i} onClick={() => setIntent(i)}>{i}</button>)}
+        </div>
+      </div>
+      <div class="note-choice">
+        <span class="field-label" aria-hidden="true">Priority</span>
+        <div class="seg" role="group" aria-label="Priority" data-part="priority">
+          {FEEDBACK_PRIORITIES.map(p => <button type="button" data-value={p} aria-pressed={priority === p} onClick={() => setPriority(p)}>{p}</button>)}
+        </div>
       </div>
       <div class="row">
         <button type="button" class="btn-primary" data-action="save-note" disabled={!comment.trim() || busy} onClick={() => void submit()}>{busy ? <><ButtonSpinner />Saving…</> : props.submitLabel}</button>

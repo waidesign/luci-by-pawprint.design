@@ -34,6 +34,16 @@ export const FEEDBACK_CSS = `${TOOLBAR_CSS}
 /* The note popover */
 .pop { position: fixed; z-index: 2147483647; box-sizing: border-box; width: min(360px, calc(100vw - 24px)); max-width: calc(100vw - 24px); display: flex; flex-direction: column; gap: var(--luci-space-12); padding: var(--luci-space-16);
   background: var(--luci-color-surface); border-radius: var(--luci-radius-lg); box-shadow: var(--luci-elevation); overflow-wrap: break-word; word-break: break-word; }
+/* Intent and priority: a label over its segmented choice */
+.note-choice { display: flex; flex-direction: column; gap: var(--luci-space-4); }
+.note-choice .seg { flex-wrap: wrap; }
+/* On a phone a note is a sheet above the bar, full width; cards under it step aside */
+@media (max-width: 639px) {
+  .pop { left: 8px; right: 8px; width: auto; max-width: none; top: auto;
+    bottom: calc(var(--luci-y, 12px) + var(--luci-bar-h, 64px) + 8px);
+    max-height: calc(100vh - var(--luci-y, 12px) - var(--luci-bar-h, 64px) - 24px); overflow-y: auto; overscroll-behavior: contain; }
+  .luci-theme:has(> .pop) > .sub { display: none; }
+}
 .pop h3 { margin: 0; font: var(--luci-type-heading-weight) var(--luci-type-heading-size)/var(--luci-type-heading-line) var(--luci-font-body); }
 .pop textarea { min-height: 72px; }
 .pop .quote, .details .quote { margin: 0; padding: var(--luci-space-8) var(--luci-space-12); border-radius: var(--luci-radius-md); background: var(--luci-color-surface-sunken); color: var(--luci-color-ink-secondary); overflow-wrap: break-word; word-break: break-word; }
