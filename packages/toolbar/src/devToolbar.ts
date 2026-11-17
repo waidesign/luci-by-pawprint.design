@@ -273,6 +273,19 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
     host.setAttribute('data-v', place.v);
     host.style.setProperty('--luci-x', `${x}px`);
     host.style.setProperty('--luci-y', `${y}px`);
+    // The bar's real height (it takes two rows on a phone): cards open just past it, never under it
+    if (bar?.offsetHeight) host.style.setProperty('--luci-bar-h', `${bar.offsetHeight}px`);
+  };
+  /** Place the host again whenever its bar changes size (a tool appears, the window narrows). */
+  let barWatch: ResizeObserver | null = null;
+  const watchBar = (host: HTMLElement) => {
+    barWatch?.disconnect();
+    barWatch = null;
+    const bar = host.shadowRoot?.querySelector<HTMLElement>('.bar');
+    const RO = (win as unknown as { ResizeObserver?: typeof ResizeObserver }).ResizeObserver;
+    if (!bar || !RO) return;
+    barWatch = new RO(() => { if (current?.host === host) applyPlace(host); });
+    barWatch.observe(bar);
   };
 
   /*
@@ -454,6 +467,7 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
     }
     // In the bar's place (by its button unless the person dragged it), and draggable
     applyPlace(current.host);
+    watchBar(current.host);
     draggable(current.host);
     if (how.grow) grow(current.host);
   };
@@ -469,6 +483,7 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
       doc.removeEventListener(UI_PREFS_EVENT, followPrefs);
       win.removeEventListener('resize', onResize);
       stopDrag();
+      barWatch?.disconnect();
       current?.destroy();
       current = null;
       removeLauncher();

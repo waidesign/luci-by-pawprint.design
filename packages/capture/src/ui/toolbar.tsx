@@ -1450,7 +1450,7 @@ export function Toolbar(props: ToolbarProps) {
           <span class="bar-sep" aria-hidden="true" />
           <button type="button" class="basket-pill" data-action="basket" aria-pressed={basketOpen && !settingsOpen} aria-label={COPY.capture.basketLabel(basket.length)}
             aria-keyshortcuts={KEYS.basket} data-tip={`Basket  ${KEYS.basket}`} onClick={toggleBasket}>
-            <Icon icon={IconBasket} />{COPY.capture.basket(basket.length)}
+            <Icon icon={IconBasket} /><span class="basket-full">{COPY.capture.basket(basket.length)}</span><span class="basket-n">{basket.length}</span>
           </button>
           <Button iconOnly size="lg" class="tool" icon={IconClose} label={COPY.common.close} data-action="close" onClick={props.onClose} />
         </div>

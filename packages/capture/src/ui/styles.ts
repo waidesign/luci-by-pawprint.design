@@ -95,6 +95,7 @@ ${UI_CSS}
 .luci-theme .bar .basket-pill[aria-pressed="true"],
 .luci-theme .bar .basket-pill[aria-pressed="true"]:hover:not(:disabled),
 .luci-theme .bar button.basket-pill[aria-pressed="true"]:hover:not(:disabled) { background: var(--luci-color-collar-lime-300); color: var(--luci-color-on-accent); }
+.bar .basket-n { display: none; }
 .brand { display: inline-flex; align-items: center; gap: var(--luci-space-8); padding: 0 var(--luci-space-8) 0 0;
   font: var(--luci-type-display-weight) var(--luci-type-heading-size)/1 var(--luci-font-display); color: var(--luci-color-bar-ink); }
 /* The dev toolbar's mode switch, on Charcoal */
@@ -109,7 +110,8 @@ ${UI_CSS}
  * --luci-y its distances from that corner's edges (default bottom right, 12 px, by its button; the
  * person can drag it anywhere). Everything opens from the bar, on the side with room: cards just above
  * a bar in the bottom half, just below one in the top half, aligned to its side. A panel takes the
- * hint's place while it is open. The extension sets none of this (its bar keeps its own place).
+ * hint's place while it is open. --luci-bar-h is the bar's measured height (it can wrap), so a card
+ * never opens under it. The extension sets none of this (its bar keeps its own place).
  */
 :host([data-h="right"]) :is(.shell, .bar:not(.shell > .bar), .sub:not(.shell > .sub), .panel:not(.shell > .panel), .menu) { left: auto; right: var(--luci-x, 12px); }
 :host([data-h="left"]) :is(.shell, .bar:not(.shell > .bar), .sub:not(.shell > .sub), .panel:not(.shell > .panel), .menu) { right: auto; left: var(--luci-x, 12px); }
@@ -117,14 +119,14 @@ ${UI_CSS}
 :host([data-h="left"]) .shell { align-items: flex-start; }
 :host([data-v="bottom"]) :is(.shell, .bar:not(.shell > .bar)) { top: auto; bottom: var(--luci-y, 12px); }
 :host([data-v="bottom"]) .shell { flex-direction: column-reverse; }
-:host([data-v="bottom"]) :is(.sub:not(.shell > .sub), .panel:not(.shell > .panel)) { top: auto; bottom: calc(var(--luci-y, 12px) + 72px); }
-:host([data-v="bottom"]) .menu { top: auto; bottom: calc(var(--luci-y, 12px) + 64px); }
+:host([data-v="bottom"]) :is(.sub:not(.shell > .sub), .panel:not(.shell > .panel)) { top: auto; bottom: calc(var(--luci-y, 12px) + var(--luci-bar-h, 64px) + 8px); }
+:host([data-v="bottom"]) .menu { top: auto; bottom: calc(var(--luci-y, 12px) + var(--luci-bar-h, 64px)); }
 :host([data-v="top"]) :is(.shell, .bar:not(.shell > .bar)) { bottom: auto; top: var(--luci-y, 12px); }
-:host([data-v="top"]) :is(.sub:not(.shell > .sub), .panel:not(.shell > .panel)) { bottom: auto; top: calc(var(--luci-y, 12px) + 72px); }
-:host([data-v="top"]) .menu { bottom: auto; top: calc(var(--luci-y, 12px) + 64px); }
+:host([data-v="top"]) :is(.sub:not(.shell > .sub), .panel:not(.shell > .panel)) { bottom: auto; top: calc(var(--luci-y, 12px) + var(--luci-bar-h, 64px) + 8px); }
+:host([data-v="top"]) .menu { bottom: auto; top: calc(var(--luci-y, 12px) + var(--luci-bar-h, 64px)); }
 :host([data-v]) .shell { max-height: calc(100vh - var(--luci-y, 12px) - 12px); }
-:host([data-v]) .panel:not(.shell > .panel) { max-height: min(72vh, calc(100vh - var(--luci-y, 12px) - 96px)); }
-:host([data-v]) .layout-panel:not(.shell > .panel) { max-height: min(80vh, calc(100vh - var(--luci-y, 12px) - 96px)); }
+:host([data-v]) .panel:not(.shell > .panel) { max-height: min(72vh, calc(100vh - var(--luci-y, 12px) - var(--luci-bar-h, 64px) - 32px)); }
+:host([data-v]) .layout-panel:not(.shell > .panel) { max-height: min(80vh, calc(100vh - var(--luci-y, 12px) - var(--luci-bar-h, 64px) - 32px)); }
 :host([data-v]) .luci-theme:has(> .panel) > .sub:not([role="alert"]) { display: none; }
 :host([data-v="bottom"]) :is(.sub, .panel, .menu) { animation: luci-rise var(--luci-motion-base, 200ms) both; }
 :host([data-v="top"]) :is(.sub, .panel, .menu) { animation: luci-drop var(--luci-motion-base, 200ms) both; }
@@ -142,10 +144,39 @@ ${UI_CSS}
 :host([data-v]) .bar button, :host([data-v]) .bar .menu-btn { cursor: pointer; }
 :host([data-moving]) .bar, :host([data-moving]) .bar * { cursor: grabbing; user-select: none; }
 /* New page's canvas covers the window: its tools and its panel keep clear of the bar */
-:host([data-v="bottom"]) .wf { padding-bottom: calc(var(--luci-y, 12px) + 76px); }
+:host([data-v="bottom"]) .wf { padding-bottom: calc(var(--luci-y, 12px) + var(--luci-bar-h, 64px) + 12px); }
 :host([data-v="bottom"]) .wf-tools { padding-top: var(--luci-space-12); }
-:host([data-v="top"]) .wf-tools { padding-top: calc(var(--luci-y, 12px) + 76px); }
+:host([data-v="top"]) .wf-tools { padding-top: calc(var(--luci-y, 12px) + var(--luci-bar-h, 64px) + 12px); }
 :host([data-v="top"]) .panel[data-part="sketch-panel"]:not(.shell > .panel) { top: auto; bottom: var(--luci-space-12); }
+
+/*
+ * Phones and narrow windows (dev toolbar): the bar spans the window's width in two planned rows instead
+ * of wrapping wherever it runs out of room. Row 1: Luci, the mode switch, Close. Row 2: the mode's tools,
+ * spread evenly at the 44 px touch target. The first separator is the line break. Cards open full width
+ * from the bar, above it (or below a bar dragged to the top).
+ */
+@media (max-width: 639px) {
+  :host([data-v]) :is(.shell, .bar:not(.shell > .bar), .sub:not(.shell > .sub), .panel:not(.shell > .panel), .menu) { left: 8px; right: 8px; }
+  :host([data-v]) :is(.sub:not(.shell > .sub), .panel:not(.shell > .panel)) { width: auto; }
+  :host([data-v]) .shell { align-items: stretch; max-width: none; }
+  :host([data-v]) .shell > :is(.sub, .panel) { width: auto; }
+  :host([data-v]) .bar { justify-content: space-between; row-gap: var(--luci-space-4); column-gap: 0; padding: 6px; border-radius: var(--luci-radius-xl); max-width: none; }
+  :host([data-v]) .bar > * { order: 3; }
+  :host([data-v]) .bar > :is(.menu-btn, .modes) { order: 0; }
+  :host([data-v]) .bar > [data-action="close"] { order: 1; }
+  :host([data-v]) .bar > .modes + .bar-sep { order: 2; flex-basis: 100%; width: 0; height: 0; margin: 0; background: none; }
+  :host([data-v]) .bar > .bar-sep:not(.modes + .bar-sep) { display: none; }
+  :host([data-v]) .bar .modes { flex: 1 1 auto; margin: 0 var(--luci-space-4); }
+  :host([data-v]) .bar .modes button { flex: 1 1 0; padding-inline: var(--luci-space-8); }
+  :host([data-v]) .luci-theme .bar :is(.tool, .split .caret) { --luci-btn-h: 44px; }
+  /* Where notes go, as its dot only (the words stay as its label) */
+  :host([data-v]) .bar .conn { width: 28px; height: 44px; justify-content: center; padding: 0; font-size: 0; }
+  :host([data-v]) .bar .conn::before { width: 10px; height: 10px; }
+  /* The basket as its icon and count (its label still says "Basket, n items") */
+  :host([data-v]) .luci-theme .bar .basket-pill { gap: var(--luci-space-4); padding: 0 var(--luci-space-12) 0 var(--luci-space-8); }
+  :host([data-v]) .bar .basket-full { display: none; }
+  :host([data-v]) .bar .basket-n { display: inline; }
+}
 
 /* Cards under the pill: the hint while picking, and every panel (radius-xl, float shadow, no stroke) */
 .sub, .panel { background: var(--luci-color-surface); border-radius: var(--luci-radius-xl); box-shadow: var(--luci-elevation); }
@@ -210,6 +241,8 @@ ${UI_CSS}
 /* The first-run greeting */
 .greet { flex-direction: row; align-items: center; gap: var(--luci-space-16); }
 .greet .t-title { margin: 0; }
+/* The words wrap beside Luci on a narrow window (panels keep their children's size otherwise) */
+.greet > .stack { flex-shrink: 1; min-width: 0; }
 
 /* Segmented control */
 .seg { display: inline-flex; align-self: flex-start; gap: var(--luci-space-4); padding: var(--luci-space-4); background: var(--luci-color-surface-sunken); border-radius: var(--luci-radius-full); }
