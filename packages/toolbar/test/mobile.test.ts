@@ -92,4 +92,65 @@ describe('dev toolbar on a phone', { timeout: 60_000 }, () => {
     expect(tip).toBe('0');
     await ctx.close();
   });
+
+  it('annotates by touch: a first tap outlines the element, Add note or a second tap opens the note', async () => {
+    const { ctx, page } = await phone();
+    await page.locator('luci-feedback [data-action="annotate"]').tap();
+    const highlight = page.locator('luci-feedback .highlight');
+    const form = page.locator('luci-feedback [data-part="note-form"]');
+    // First tap: outlined and named, no form yet (nothing showed it before, a finger has no hover)
+    await page.locator('h1').tap({ force: true });
+    await highlight.waitFor();
+    expect(await page.locator('luci-feedback [data-part="hover-label"]').innerText()).toContain('h1');
+    expect(await page.locator('luci-feedback [data-part="tapped-name"]').innerText()).toContain('h1');
+    expect(await form.count()).toBe(0);
+    // Parent widens the choice to the section
+    await page.locator('luci-feedback [data-action="tap-parent"]').tap();
+    expect(await page.locator('luci-feedback [data-part="tapped-name"]').innerText()).toContain('section');
+    // Add note opens the form on it
+    await page.locator('luci-feedback [data-action="note-tapped"]').tap();
+    await form.waitFor();
+    expect(await form.locator('h3').innerText()).toContain('section');
+    await page.locator('luci-feedback [data-action="cancel-note"]').tap();
+    // A second tap on the same element opens the form too
+    await page.locator('h1').tap({ force: true });
+    await page.locator('h1').tap({ force: true });
+    await form.waitFor();
+    expect(await form.locator('h3').innerText()).toContain('h1');
+    await ctx.close();
+  });
+
+  it('scrolls the page under the finger while annotating', async () => {
+    const { ctx, page } = await phone();
+    await page.evaluate(() => { document.body.style.minHeight = '3000px'; });
+    await page.locator('luci-feedback [data-action="annotate"]').tap();
+    await page.locator('luci-feedback [data-part="pick-layer"]').waitFor();
+    const cdp = await ctx.newCDPSession(page);
+    await cdp.send('Input.synthesizeScrollGesture', { x: 180, y: 300, yDistance: -300, gestureSourceType: 'touch', speed: 1200 });
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(100);
+    await ctx.close();
+  });
+
+  it('picks by touch in Capture and Layout too: see it with one tap, take it with a second', async () => {
+    const { ctx, page } = await phone();
+    // Capture: the first tap aims, the second takes the element
+    await page.locator('luci-feedback [data-mode="capture"]').tap();
+    await page.locator('luci-toolbar [data-tool="text"]').tap();
+    await page.locator('h1').tap({ force: true });
+    await page.locator('luci-toolbar .highlight').waitFor();
+    expect(await page.locator('luci-toolbar [data-part="pick-layer"]').count()).toBe(1);
+    await page.locator('h1').tap({ force: true });
+    await page.locator('luci-toolbar [data-part="pick-layer"]').waitFor({ state: 'detached' });
+    // Layout: the first tap outlines, the second selects
+    await page.locator('luci-toolbar [data-action="close"]').tap();
+    await page.locator('[data-action="open-luci"]').tap();
+    await page.locator('luci-toolbar [data-mode="layout"]').tap();
+    await page.locator('luci-layout [data-part="pick-layer"]').waitFor();
+    await page.locator('h1').tap({ force: true });
+    await page.locator('luci-layout [data-part="hover-label"]').waitFor();
+    expect(await page.locator('luci-layout [data-part="selection"]').count()).toBe(0);
+    await page.locator('h1').tap({ force: true });
+    await page.locator('luci-layout [data-part="selection"]').waitFor();
+    await ctx.close();
+  });
 });

@@ -172,6 +172,8 @@ ${UI_CSS}
   /* Where notes go, as its dot only (the words stay as its label) */
   :host([data-v]) .bar .conn { width: 28px; height: 44px; justify-content: center; padding: 0; font-size: 0; }
   :host([data-v]) .bar .conn::before { width: 10px; height: 10px; }
+  /* Layout's inspector leaves the top of the page in view, where the selected element can be */
+  :host([data-v]) .layout-panel:not(.shell > .panel) { max-height: min(45vh, calc(100vh - var(--luci-y, 12px) - var(--luci-bar-h, 64px) - 32px)); }
   /* The basket as its icon and count (its label still says "Basket, n items") */
   :host([data-v]) .luci-theme .bar .basket-pill { gap: var(--luci-space-4); padding: 0 var(--luci-space-12) 0 var(--luci-space-8); }
   :host([data-v]) .bar .basket-full { display: none; }
@@ -299,6 +301,8 @@ label { display: inline-flex; gap: var(--luci-space-4); align-items: center; col
 
 /* Page overlays while picking: drawn over the host page, never part of it */
 .pick-layer, .pixel-layer { position: fixed; inset: 0; z-index: 2147483640; cursor: crosshair; background: transparent; touch-action: none; }
+/* Picking an element by touch takes taps, not drags: the page still scrolls and zooms under the finger */
+.pick-layer { touch-action: pan-x pan-y pinch-zoom; }
 .highlight { position: fixed; z-index: 2147483646; pointer-events: none; border: 2px solid var(--luci-color-pick); background: var(--luci-color-pick-fill); border-radius: 2px; }
 .highlight.locked { border-width: 2px; border-style: solid; }
 .highlight.blocked { border-color: var(--luci-color-pick-blocked); background: var(--luci-color-pick-blocked-fill); }

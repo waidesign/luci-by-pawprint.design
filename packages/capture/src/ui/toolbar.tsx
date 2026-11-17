@@ -39,7 +39,7 @@ import type { ElementSnapshot } from '../model.js';
 import { manualState, type ComputedMap, type StateName } from '../states.js';
 import { elementName } from '../naming.js';
 import { LUCI_UI_ATTRIBUTE } from '../dom.js';
-import { elementAt, eligibilityOf, eventTarget, firstChildOf, hoverLabel, parentOf, scrollableAncestor } from './picker.js';
+import { elementAt, eligibilityOf, eventTarget, firstChildOf, hoverLabel, parentOf, scrollableAncestor, touchScreen } from './picker.js';
 import { ButtonSpinner, Loading, nextPaint } from './loading.js';
 import { ModeSwitch, type ModeSwitchProps } from './modeSwitch.js';
 import {
@@ -791,13 +791,15 @@ export function Toolbar(props: ToolbarProps) {
     const area = scrollableAncestor(elementAt(doc, e.clientX, e.clientY), e.deltaX, e.deltaY);
     if (area) { e.preventDefault(); area.scrollBy(e.deltaX, e.deltaY); }
   };
-  const pickUp = (x: number, y: number) => {
+  const pickUp = (x: number, y: number, touch = false) => {
     {
       const target = elementAt(doc, x, y);
       const start = drag.current;
       drag.current = null;
       if (!target || !start || !tool) return;
       const moved = Math.hypot(x - start.x, y - start.y) > DRAG_PX;
+      // By touch (no hover), a first tap shows what would be taken; a second tap on it takes it
+      if (touch && !moved && target !== candidateRef.current) { trail.current = []; aim(target); return; }
       if (tool === 'spacing' && moved && target !== start.el) {
         // A drag between two elements measures the distance between them (FR15)
         const blocked = [start.el, target].map(eligibilityOf).find(x => x.status !== 'allowed');
@@ -1787,7 +1789,7 @@ export function Toolbar(props: ToolbarProps) {
                   <button type="button" class="btn-secondary" data-action="choose-image" disabled={imageBusy} onClick={() => imageInput.current?.click()}>Choose an image</button>
                 </div>
               )}
-              <p class="keys">{pixelMode || imageMode ? 'Esc: back to Element' : '↑ ↓ after clicking: wider or narrower · Esc: stop'}</p>
+              <p class="keys">{pixelMode || imageMode ? 'Esc: back to Element' : touchScreen(win) ? 'Tap once to see an element, again to take it' : '↑ ↓ after clicking: wider or narrower · Esc: stop'}</p>
             </div>
           </div>
         )}
@@ -2077,9 +2079,10 @@ export function Toolbar(props: ToolbarProps) {
       {picking && tool && (
         // Takes every pointer event while picking: the page cannot react to a press, click or drag
         <div class="pick-layer" data-part="pick-layer"
-          onPointerMove={e => pickMove(e.clientX, e.clientY)}
+          onPointerMove={e => { if (e.pointerType !== 'touch') pickMove(e.clientX, e.clientY); }}
           onPointerDown={e => { e.preventDefault(); (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId); pickDown(e.clientX, e.clientY); }}
-          onPointerUp={e => { e.preventDefault(); pickUp(e.clientX, e.clientY); }}
+          onPointerUp={e => { e.preventDefault(); pickUp(e.clientX, e.clientY, e.pointerType === 'touch'); }}
+          onPointerCancel={() => { drag.current = null; }}
           onWheel={e => pickWheel(e as unknown as WheelEvent)}
           onContextMenu={e => e.preventDefault()} />
       )}

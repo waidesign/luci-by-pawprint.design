@@ -71,3 +71,11 @@ export function hoverLabel(el: Element): string {
   const r = el.getBoundingClientRect();
   return `${el.tagName.toLowerCase()}  ${Math.round(r.width)} × ${Math.round(r.height)}`;
 }
+
+/**
+ * A touch screen: no hover, so nothing shows what a tap would pick. There picking takes two taps, one to
+ * show the element (outline and name) and one on the same element to pick it; the page still scrolls.
+ */
+export function touchScreen(win: Window): boolean {
+  try { return win.matchMedia('(hover: none)').matches; } catch { return false; }
+}

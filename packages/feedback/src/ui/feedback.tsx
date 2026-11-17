@@ -6,7 +6,7 @@
  * Notes live in a FeedbackBackend.
  */
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import { AppearanceControls, ButtonSpinner, DevSettingsPanel, LuciLogo, ModeSwitch, elementAt, isLuciUi, scrollableAncestor, useUiPrefs, type ModeSwitchProps, type StorageLike, type UiPrefs } from '@luci-dev/capture';
+import { AppearanceControls, ButtonSpinner, DevSettingsPanel, LuciLogo, ModeSwitch, elementAt, isLuciUi, parentOf, scrollableAncestor, touchScreen, useUiPrefs, type ModeSwitchProps, type StorageLike, type UiPrefs } from '@luci-dev/capture';
 import {
   DETAIL_LEVELS,
   FEEDBACK_INTENTS,
@@ -108,6 +108,9 @@ export function Feedback(props: FeedbackProps) {
   const [error, setError] = useState<string | null>(null);
   const [annotating, setAnnotating] = useState(false);
   const [candidate, setCandidate] = useState<Element | null>(null);
+  // Touch: the element a first tap chose (outlined, with Add note and Parent in the hint card)
+  const [tapped, setTapped] = useState(false);
+  const touchPress = useRef(false);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [openRef, setOpenRef] = useState<string | null>(null);
   const [panel, setPanel] = useState<'items' | 'settings' | null>(null);
@@ -182,7 +185,7 @@ export function Feedback(props: FeedbackProps) {
       if (copyMenu) setCopyMenu(false);
       else if (draft) setDraft(null);
       else if (openRef) setOpenRef(null);
-      else if (annotating) { setAnnotating(false); setCandidate(null); }
+      else if (annotating) { setAnnotating(false); setCandidate(null); setTapped(false); }
       else return;
       e.preventDefault();
       e.stopPropagation();
@@ -226,12 +229,27 @@ export function Feedback(props: FeedbackProps) {
     setOpenRef(null);
     setPanel(null);
     setSelection(null);
+    // By touch, nothing stays outlined once the note is open (a mouse moves the outline on by itself)
+    setTapped(false);
+    if (touchPress.current) setCandidate(null);
     setDraft({ el, at: { x, y }, ...(selectedText ? { selectedText } : {}) });
   };
-  const pickMove = (e: PointerEvent) => setCandidate(elementAt(doc, e.clientX, e.clientY));
+  // A finger has no hover: its moves are scrolls, and it "leaves" the layer as it lifts
+  const pickDown = (e: PointerEvent) => { touchPress.current = e.pointerType === 'touch'; };
+  const pickMove = (e: PointerEvent) => { if (e.pointerType !== 'touch') { setCandidate(elementAt(doc, e.clientX, e.clientY)); setTapped(false); } };
+  const pickLeave = (e: PointerEvent) => { if (e.pointerType !== 'touch' && !tapped) setCandidate(null); };
   const pickClick = (e: MouseEvent) => {
     const el = elementAt(doc, e.clientX, e.clientY);
-    if (el) startDraft(el, e.clientX, e.clientY);
+    if (!el) return;
+    // By touch, a first tap shows what would be noted; a second tap on it opens the note
+    if (touchPress.current && !(tapped && el === candidate)) { setCandidate(el); setTapped(true); return; }
+    startDraft(el, e.clientX, e.clientY);
+  };
+  /** Add note on the tapped element, from the hint card. */
+  const noteTapped = () => {
+    if (!candidate) return;
+    const r = candidate.getBoundingClientRect();
+    startDraft(candidate, r.left + r.width / 2, r.bottom);
   };
   const pickWheel = (e: WheelEvent) => {
     const under = elementAt(doc, e.clientX, e.clientY);
@@ -305,7 +323,7 @@ export function Feedback(props: FeedbackProps) {
 
   const toggleSettings = () => setPanel(p => (p === 'settings' ? null : 'settings'));
   const toggleNotes = () => { setPanel(p => (p === 'items' ? null : 'items')); setPrompt(null); };
-  const toggleAnnotate = () => { setAnnotating(a => !a); setCandidate(null); setDraft(null); };
+  const toggleAnnotate = () => { setAnnotating(a => !a); setCandidate(null); setTapped(false); setDraft(null); };
   useShortcuts(doc, [
     { key: FEEDBACK_KEYS.annotate, run: toggleAnnotate },
     { key: FEEDBACK_KEYS.notes, run: toggleNotes },
@@ -369,7 +387,22 @@ export function Feedback(props: FeedbackProps) {
       {annotating && !draft && (
         <div class="sub with-luci" role="note" data-part="hint">
           <Mascot pose="note" size={96} />
-          <div class="sub-body"><p class="hint">Click an element to leave a note. Esc stops. Then select text to note words.</p></div>
+          <div class="sub-body">
+            {tapped && candidate ? (
+              <>
+                <p class="hint"><strong data-part="tapped-name">{hoverName}</strong></p>
+                <div class="row">
+                  <button type="button" class="btn-primary" data-action="note-tapped" onClick={noteTapped}>Add note</button>
+                  <button type="button" class="btn-secondary" data-action="tap-parent" disabled={!parentOf(candidate) || parentOf(candidate) === doc.documentElement}
+                    onClick={() => setCandidate(parentOf(candidate))}>Parent</button>
+                </div>
+              </>
+            ) : (
+              <p class="hint">{touchScreen(win)
+                ? 'Tap an element to select it, then add your note. Then select text to note words.'
+                : 'Click an element to leave a note. Esc stops. Then select text to note words.'}</p>
+            )}
+          </div>
         </div>
       )}
 
@@ -386,8 +419,8 @@ export function Feedback(props: FeedbackProps) {
 
       {annotating && !draft && (
         <div class="pick-layer" data-part="pick-layer"
-          onPointerMove={pickMove} onClick={pickClick} onWheel={pickWheel}
-          onPointerLeave={() => setCandidate(null)} />
+          onPointerDown={pickDown} onPointerMove={pickMove} onClick={pickClick} onWheel={pickWheel}
+          onPointerLeave={pickLeave} />
       )}
       {hoverRect && (
         <>

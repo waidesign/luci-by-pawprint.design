@@ -11,7 +11,7 @@ import { Button, IconAdd, IconClose, IconCopy, IconNewPage, IconRedo, IconReset,
 
 /** Layout's single-key shortcuts (in each tooltip); Undo and Redo keep Ctrl+Z and Ctrl+Shift+Z. */
 export const LAYOUT_KEYS = { select: 'S', insert: 'I', newPage: 'N' } as const;
-import { AppearanceControls, ButtonSpinner, DevSettingsPanel, Loading, LuciLogo, ModeSwitch, elementAt, isLuciUi, parentOf, scrollableAncestor, selectorFor, useUiPrefs, type ModeSwitchProps, type StorageLike } from '@luci-dev/capture';
+import { AppearanceControls, ButtonSpinner, DevSettingsPanel, Loading, LuciLogo, ModeSwitch, elementAt, isLuciUi, parentOf, scrollableAncestor, selectorFor, touchScreen, useUiPrefs, type ModeSwitchProps, type StorageLike } from '@luci-dev/capture';
 import { formatLayoutPrompt, layoutChangeText, routeOf, type LayoutPromptElement, type Part } from '@luci-dev/format/feedback';
 import type { FeedbackBackend } from '../backend.js';
 import { startSize } from '../layout/catalog.js';
@@ -143,6 +143,8 @@ export function Layout(props: LayoutProps) {
   const [scale, setScale] = useState<PageScale | null>(null);
   const [selecting, setSelecting] = useState(true);
   const [hovered, setHovered] = useState<Element | null>(null);
+  // By touch (no hover): a first tap shows what a tap would select, or where a part would go; a second tap does it
+  const placeTouch = useRef(false);
   const [selected, setSelected] = useState<Element | null>(null);
   const [drag, setDrag] = useState<Drag | null>(null);
   const [drop, setDrop] = useState<ReturnType<typeof dropTarget>>(null);
@@ -479,7 +481,9 @@ export function Layout(props: LayoutProps) {
       <h2>Place: {partName(pl.what)}</h2>
       <div class="luci-hint" data-part="placing-hint">
         <Mascot pose="place" size={96} />
-        <p class="hint">Click where it goes. Near an edge: before or after. The middle of a card or list: inside, at the end. Esc cancels.</p>
+        <p class="hint">{touchScreen(doc.defaultView ?? window)
+          ? 'Tap where it goes to see it there, then tap again to place it. Near an edge: before or after. The middle of a card or list: inside, at the end.'
+          : 'Click where it goes. Near an edge: before or after. The middle of a card or list: inside, at the end. Esc cancels.'}</p>
       </div>
       {selected && (
         <div class="stack">
@@ -647,15 +651,22 @@ export function Layout(props: LayoutProps) {
       {scale && selecting && !selected && !result && !catalog && !placing && (
         <div class="sub with-luci" role="note" data-part="hint">
           <Mascot pose="arrange" size={96} />
-          <div class="sub-body"><p class="hint">Click an element. Drag its handles to resize, ⠿ to move it. Values snap to this page's {scale.base}px scale. Your code stays as it is.</p></div>
+          <div class="sub-body"><p class="hint">{touchScreen(doc.defaultView ?? window) ? 'Tap an element to see it, again to select it.' : 'Click an element.'} Drag its handles to resize, ⠿ to move it. Values snap to this page's {scale.base}px scale. Your code stays as it is.</p></div>
         </div>
       )}
 
       {scale && placing && !drag && (
         <div class="pick-layer" data-part="place-layer"
-          onPointerMove={e => { const el = elementAt(doc, e.clientX, e.clientY); setPlaceHover(el && !isLuciUi(el) ? placeTarget(doc, el, e.clientX, e.clientY) : null); }}
-          onClick={e => { const el = elementAt(doc, e.clientX, e.clientY); const t = el && !isLuciUi(el) ? placeTarget(doc, el, e.clientX, e.clientY) : null; if (t) placeAt(t.anchor, t.position); }}
-          onWheel={pickWheel} onPointerLeave={() => setPlaceHover(null)} />
+          onPointerDown={e => { placeTouch.current = e.pointerType === 'touch'; }}
+          onPointerMove={e => { if (e.pointerType === 'touch') return; const el = elementAt(doc, e.clientX, e.clientY); setPlaceHover(el && !isLuciUi(el) ? placeTarget(doc, el, e.clientX, e.clientY) : null); }}
+          onClick={e => {
+            const el = elementAt(doc, e.clientX, e.clientY);
+            const t = el && !isLuciUi(el) ? placeTarget(doc, el, e.clientX, e.clientY) : null;
+            if (!t) return;
+            if (placeTouch.current && !(placeHover && placeHover.anchor === t.anchor && placeHover.position === t.position)) { setPlaceHover(t); return; }
+            placeAt(t.anchor, t.position);
+          }}
+          onWheel={pickWheel} onPointerLeave={e => { if (e.pointerType !== 'touch') setPlaceHover(null); }} />
       )}
       {placing && placeHover && (
         <>
@@ -706,9 +717,16 @@ export function Layout(props: LayoutProps) {
 
       {scale && selecting && !placing && !drag && (
         <div class="pick-layer" data-part="pick-layer"
-          onPointerMove={e => setHovered(elementAt(doc, e.clientX, e.clientY))}
-          onClick={e => { const el = elementAt(doc, e.clientX, e.clientY); if (el && !isLuciUi(el)) select(el); }}
-          onWheel={pickWheel} onPointerLeave={() => setHovered(null)} />
+          onPointerDown={e => { placeTouch.current = e.pointerType === 'touch'; }}
+          onPointerMove={e => { if (e.pointerType !== 'touch') setHovered(elementAt(doc, e.clientX, e.clientY)); }}
+          onClick={e => {
+            const el = elementAt(doc, e.clientX, e.clientY);
+            if (!el || isLuciUi(el)) return;
+            // By touch, a first tap outlines the element; a second tap on it selects it
+            if (placeTouch.current && el !== hovered) { setHovered(el); return; }
+            select(el);
+          }}
+          onWheel={pickWheel} onPointerLeave={e => { if (e.pointerType !== 'touch') setHovered(null); }} />
       )}
       {hoverBox && hovered && (
         <>
