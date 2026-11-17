@@ -63,6 +63,24 @@ luci skills list
 
 ---
 
+## Commands
+
+The ones you will use most:
+
+| Command | What it does |
+| :--- | :--- |
+| `luci init` | Set up Luci in this project |
+| `luci serve` | Connect the dev toolbar to this project (leave it running) |
+| `luci toolbar` | Add the dev toolbar to your app |
+| `luci start` | Show the active task and the context an agent needs |
+| `luci skills use <task>` | Load the skills that fit a task |
+| `luci doctor` | Check the install and this project, and say how to fix what is wrong |
+| `luci update` | Refresh the files Luci wrote into this project |
+
+**[Full command reference](./docs/COMMANDS.md):** every terminal command and option, the dev toolbar's tools and keys, the Chrome extension, and the tools your agent can call through `luci-mcp`.
+
+---
+
 ## Updating Luci
 
 Luci never checks for updates on its own (it makes no network calls). A new version reaches you when you fetch it:

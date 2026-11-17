@@ -68,7 +68,7 @@ luci serve
 | `luci skills use <task>` | Load the skills that fit a task |
 | `luci --version` | Show the installed version |
 
-`luci --help` lists everything.
+`luci --help` lists everything. The [command reference](https://github.com/waidesign/luci-by-pawprint.design/blob/main/docs/COMMANDS.md) explains every command and option, the dev toolbar's tools and keys, the Chrome extension, and the tools your agent can call.
 
 ## Updating
 
@@ -96,6 +96,7 @@ Luci never checks for updates on its own. A new version reaches you when you fet
 ## Links
 
 - [Source code and full documentation](https://github.com/waidesign/luci-by-pawprint.design#readme)
+- [Command reference](https://github.com/waidesign/luci-by-pawprint.design/blob/main/docs/COMMANDS.md)
 - [Dev toolbar guide](https://github.com/waidesign/luci-by-pawprint.design/tree/main/packages/toolbar#readme)
 - [Report a problem](https://github.com/waidesign/luci-by-pawprint.design/issues)
 
