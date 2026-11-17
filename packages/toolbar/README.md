@@ -15,7 +15,9 @@ What it adds: a few lines between `luci:toolbar` comments, before `</body>` of t
 <script src="http://127.0.0.1:4545/toolbar.js"></script>
 ```
 
-3. Optional: connect your agent to `luci-mcp` (for example `claude mcp add luci -- node <luci>/packages/mcp/dist/bin.js`), so it can read the notes and saved captures itself. Copying the prompt works without it.
+3. Optional: connect your agent to `luci-mcp` (for Claude Code, from the project folder: `claude mcp add luci -- npx -y @luci-dev/mcp@latest`), so it can read the notes and saved captures itself. Copying the prompt works without it.
+
+**Updating:** the toolbar comes from the Luci you have installed. After updating Luci (`npm install -g @luci-dev/cli@latest`, or nothing with `npx @luci-dev/cli@latest`), stop `luci serve`, start it again and reload your app. The script tag in your app stays as it is.
 
 `luci serve` listens on 127.0.0.1 only and answers pages on this machine only. Without it, the toolbar still works: notes stay in this browser (for this app's address) and the prompt can be copied. The **This browser** badge says why it is not connected; click it after starting `luci serve`.
 
@@ -32,6 +34,15 @@ What it adds: a few lines between `luci:toolbar` comments, before `</body>` of t
 - **Settings:** marker color, prompt detail (compact: selector and text; standard: + source file and components; detailed: + computed styles), and an optional webhook that receives the prompt and the items when you press **Send to webhook**.
 
 With React, Vue 3 or Svelte 4/5 in development mode, each note records the components around the element (`App > Pricing > PlanCard`) and its source file (with the JSX line through source maps in React, the `.svelte` file and line from `__svelte_meta` in Svelte, and the `.vue` SFC file from `__vueParentComponent` in Vue 3). In a production build, notes keep the selector and text.
+
+## On a phone
+
+Open your app on a phone (or a narrow window, under 640 px) and the toolbar adapts:
+
+- The bar spans the screen in two rows: Luci, the mode switch and Close on top, the mode's tools below. Cards open above it, never under it.
+- A finger has no hover, so picking takes two taps: the first outlines and names the element, the second (on the same element) acts on it. In Annotate, the card above the bar also offers **Add note** and **Parent**. The page still scrolls while you pick.
+- A note opens as a sheet just above the bar. Intent and priority are one tap each.
+- Tooltips show for keyboard focus only.
 
 ## Modes
 

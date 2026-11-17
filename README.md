@@ -37,8 +37,10 @@ AI coding agents often struggle with four fundamental things:
 Initialize Luci in your existing project directory:
 
 ```bash
-npx @luci-dev/cli init
+npx @luci-dev/cli@latest init
 ```
+
+Keep `@latest` in the command: without it, npx can reuse an older copy it saved before.
 
 ### Install CLI globally
 
@@ -58,6 +60,27 @@ luci doctor
 # Search and load design skills
 luci skills list
 ```
+
+---
+
+## Updating Luci
+
+Luci never checks for updates on its own (it makes no network calls). A new version reaches you when you fetch it:
+
+| How you run Luci | How to update |
+| :--- | :--- |
+| `npx @luci-dev/cli@latest …` | Nothing to do: `@latest` fetches the newest version every time. |
+| Installed with `npm install -g @luci-dev/cli` | `npm install -g @luci-dev/cli@latest` |
+| Agent connected to `luci-mcp` with `npx -y @luci-dev/mcp@latest` | Nothing to do: restart your agent to start the new version. |
+
+Check which version you have with `luci --version`. The newest is on [npm](https://www.npmjs.com/package/@luci-dev/cli).
+
+**After updating:**
+
+1. **Dev toolbar:** stop `luci serve` (Ctrl+C), start it again, and reload your app. `luci serve` gives the browser the toolbar from the Luci you have installed, so the restart is what brings the new one. You do not need to run `luci toolbar` again.
+2. **Project files:** run `luci doctor` in each project. If it says a Luci section is out of date, run `luci update`. That refreshes the files Luci wrote into the project (`.luci/` context, agent files such as `CLAUDE.md`, the skill catalog) and keeps your own rules, decisions and notes.
+
+`luci update` refreshes a project's files; it does not update Luci itself.
 
 ---
 
@@ -105,16 +128,16 @@ Luci is organized as a pnpm monorepo:
 
 | Package | Version | Description |
 | :--- | :--- | :--- |
-| [`@luci-dev/cli`](./packages/cli) | `0.5.5` | Core CLI (`luci` / `luci-dev`) |
-| [`@luci-dev/brain`](./packages/brain) | `0.5.5` | Project memory, agent configs, and rules engine |
-| [`@luci-dev/skills`](./packages/skills) | `0.5.5` | Skill registry, ranker, and library |
-| [`@luci-dev/capture`](./packages/capture) | `0.5.5` | Live DOM capture and token extractor |
-| [`@luci-dev/feedback`](./packages/feedback) | `0.5.5` | Interactive on-page annotations & prompt generator |
-| [`@luci-dev/toolbar`](./packages/toolbar) | `0.5.5` | Standalone dev toolbar bundle |
-| [`@luci-dev/ui`](./packages/ui) | `0.5.5` | Shared Preact design system & tokens |
-| [`@luci-dev/format`](./packages/format) | `0.5.5` | Markdown schemas, `DESIGN.md` parser, and diffing |
-| [`@luci-dev/mcp`](./packages/mcp) | `0.5.5` | Model Context Protocol server for IDEs & agents |
-| [`@luci-dev/extension`](./packages/extension) | `0.5.5` | Chrome extension (Manifest V3) |
+| [`@luci-dev/cli`](./packages/cli) | `0.5.6` | Core CLI (`luci` / `luci-dev`) |
+| [`@luci-dev/brain`](./packages/brain) | `0.5.6` | Project memory, agent configs, and rules engine |
+| [`@luci-dev/skills`](./packages/skills) | `0.5.6` | Skill registry, ranker, and library |
+| [`@luci-dev/capture`](./packages/capture) | `0.5.6` | Live DOM capture and token extractor |
+| [`@luci-dev/feedback`](./packages/feedback) | `0.5.6` | Interactive on-page annotations & prompt generator |
+| [`@luci-dev/toolbar`](./packages/toolbar) | `0.5.6` | Standalone dev toolbar bundle |
+| [`@luci-dev/ui`](./packages/ui) | `0.5.6` | Shared Preact design system & tokens |
+| [`@luci-dev/format`](./packages/format) | `0.5.6` | Markdown schemas, `DESIGN.md` parser, and diffing |
+| [`@luci-dev/mcp`](./packages/mcp) | `0.5.6` | Model Context Protocol server for IDEs & agents |
+| [`@luci-dev/extension`](./packages/extension) | `0.5.6` | Chrome extension (Manifest V3) |
 
 ---
 
