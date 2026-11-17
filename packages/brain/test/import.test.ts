@@ -44,7 +44,8 @@ function prototypeProject(): string {
     [`${OLD}/decisions/README.md`]: '# old readme',
     [`${OLD}/memory/proposed/2026-11-02-sizes.md`]: '# Sizes\n\n- What happened: x\n- Proposed: EU sizes\n- Belongs in: rules.md\n',
     [`${OLD}/local/active-task.md`]: '# Active Task\n\n- **Task**: Add refunds\n- **Status**: active\n- **Started**: 2026-11-10\n\n## Skills to open\n- `ai-brain/skills/testing/SKILL.md`\n',
-    [`${OLD}/local/global-brain.md`]: '# Global Brain (summary)\nold',
+    // A marker no real summary contains (plain "old" is inside words such as "placeholder")
+    [`${OLD}/local/global-brain.md`]: '# Global Brain (summary)\nPROTOTYPE-SUMMARY-MARKER',
     [`${OLD}/design.md`]: '# Design\n\nWarm colours.',
     ...oldStarter('testing'),
     [`${OLD}/skills/brand-voice/SKILL.md`]: '---\nname: brand-voice\ndescription: How the shop talks to customers.\ngaw-title: "Brand Voice"\ngaw-author: "Shop team"\n---\n\nUse short sentences. See ai-brain/rules.md.\n',
@@ -98,7 +99,7 @@ describe('luci import (B13)', () => {
     expect(read(dir, '.luci/memory/proposed/2026-11-02-sizes.md')).toContain('EU sizes');
     expect(read(dir, '.luci/design.md')).toContain('Warm colours.');
     expect(read(dir, '.luci/local/active-task.md')).toContain('`.luci/skills/testing/SKILL.md`');
-    expect(read(dir, '.luci/local/global-brain.md')).not.toContain('old');
+    expect(read(dir, '.luci/local/global-brain.md')).not.toContain('PROTOTYPE-SUMMARY-MARKER');
 
     expect(report.skills).toEqual({ kept: ['brand-voice'], replacedByLuci: ['testing'] });
     expect(read(dir, '.luci/skills/testing/SKILL.md')).toBe(read(TEMPLATES_DIR, 'skills/testing/SKILL.md'));

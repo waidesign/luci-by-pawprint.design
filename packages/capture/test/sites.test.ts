@@ -155,6 +155,13 @@ async function runInPage(): Promise<SiteResult> {
   };
 }
 
+/** A capture file as its golden file keeps it: no test-server port, no font-dependent target sizes. */
+function normalizeGolden(text: string): string {
+  return text
+    .replace(/http:\/\/127\.0\.0\.1:\d+/g, 'http://127.0.0.1:PORT')
+    .replace(/(\| Target size \| [^|]+ \| )[\d.]+ × [\d.]+px \|/g, '$1W × Hpx |');
+}
+
 describe.each(SITES)('capture tools on the %s site (M4)', (site) => {
   let result: SiteResult;
   beforeAll(async () => {
@@ -233,8 +240,10 @@ describe.each(SITES)('capture tools on the %s site (M4)', (site) => {
     for (const [name, found] of Object.entries(result.selectorsResolve)) expect(found, `${site} ${name}`).toBe(true);
     for (const f of result.files) {
       expect(f.parses, f.name).toBe(true);
-      // The test server's port changes every run
-      await expect(f.text.replace(/http:\/\/127\.0\.0\.1:\d+/g, 'http://127.0.0.1:PORT')).toMatchFileSnapshot(path.join(EXPECTED, site, f.name));
+      // The test server's port changes every run. A target's size follows its text, which each system's
+      // fonts (Arial, Georgia, Menlo, Consolas) draw a little wider or narrower: the golden file keeps the
+      // row and its level (AA, AAA), not the pixels, so it holds on Windows, macOS and Linux alike
+      await expect(normalizeGolden(f.text)).toMatchFileSnapshot(path.join(EXPECTED, site, f.name));
     }
   });
 
