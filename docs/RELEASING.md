@@ -67,7 +67,7 @@ Run the Release workflow with **Dry run** ticked. When it is green, the next rea
 
 ### 4. Lock it down (after the first real release through GitHub)
 
-1. On each package's **Settings** page, under **Publishing access**, choose **Require two-factor authentication and disallow tokens** and save. From then on, only the Release workflow (with your approval) can publish Luci.
+1. On each package's **Settings** page, under **Publishing access**, change **Require two-factor authentication or a granular access token with bypass 2fa enabled** to **Require two-factor authentication and disallow bypass 2fa tokens (recommended)**, and save. Trusted Publishing keeps working (it uses no token); from then on, only the Release workflow (with your approval) or you on npmjs.com with two-factor authentication can publish Luci. Until the first release through GitHub has worked, keep the old setting: the token on your Mac is the fallback.
 2. On npmjs.com, **Access Tokens**: delete the publish tokens.
 3. On your Mac, remove the token: `npm config delete //registry.npmjs.org/:_authToken`. To use npm from the terminal again later, run `npm login`.
 
