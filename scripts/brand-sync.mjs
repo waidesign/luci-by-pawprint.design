@@ -119,6 +119,7 @@ for (const [k, [size, line, weight]] of Object.entries(kit.type)) {
   other[`type-${k}-weight`] = String(weight);
 }
 other['shadow-float'] = kit.shadow.float;
+other['shadow-edge'] = kit.shadow.edge;
 other['motion-fast'] = kit.motion.fast;
 other['motion-base'] = kit.motion.base;
 other['motion-exit'] = kit.motion.exit;

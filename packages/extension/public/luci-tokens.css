@@ -82,7 +82,8 @@
   --luci-type-code-size: 13px;
   --luci-type-code-line: 20px;
   --luci-type-code-weight: 500;
-  --luci-shadow-float: 0 8px 24px rgba(43, 43, 43, 0.14);
+  --luci-shadow-float: 0 1px 2px rgba(0, 0, 0, 0.24), 0 8px 24px rgba(0, 0, 0, 0.28);
+  --luci-shadow-edge: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
   --luci-motion-fast: 150ms ease-out;
   --luci-motion-base: 200ms ease-out;
   --luci-motion-exit: 150ms ease-in;

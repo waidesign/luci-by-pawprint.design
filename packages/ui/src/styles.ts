@@ -20,6 +20,13 @@ export const BASE_CSS = `
   color: var(--luci-color-ink);
   -webkit-font-smoothing: antialiased;
 }
+/*
+ * Elevation for cards floating over the page: the float shadow, plus the faint inner edge on Charcoal
+ * (the dark theme's cards), so they stay apart from a dark host page of the same colour.
+ */
+.luci-theme { --luci-elevation: var(--luci-shadow-float); --luci-elevation-bar: var(--luci-shadow-edge), var(--luci-shadow-float); }
+@media (prefers-color-scheme: dark) { .luci-theme:not([data-theme="light"]) { --luci-elevation: var(--luci-shadow-edge), var(--luci-shadow-float); } }
+.luci-theme[data-theme="dark"] { --luci-elevation: var(--luci-shadow-edge), var(--luci-shadow-float); }
 .luci-theme *, .luci-theme *::before, .luci-theme *::after { box-sizing: border-box; }
 .luci-theme :where(button, input, select, textarea) { font: inherit; color: inherit; }
 .luci-theme :where(code, kbd, pre, samp) { font-family: var(--luci-font-code); }
@@ -142,7 +149,7 @@ export const COMPONENTS_CSS = `
 .status-msg .status-title { margin: 0; color: var(--status); font-size: var(--luci-type-heading-size); line-height: var(--luci-type-heading-line); font-weight: var(--luci-type-heading-weight); }
 .status-msg .status-detail { margin: 0; }
 .status-msg .mascot { width: 48px; }
-.toast { position: fixed; z-index: 2147483647; box-shadow: var(--luci-shadow-float); }
+.toast { position: fixed; z-index: 2147483647; box-shadow: var(--luci-elevation); }
 
 /* Card and panel */
 .card { padding: var(--luci-space-24); border: 1px solid var(--luci-color-stroke-subtle); border-radius: var(--luci-radius-xl); background: var(--luci-color-surface-raised); }

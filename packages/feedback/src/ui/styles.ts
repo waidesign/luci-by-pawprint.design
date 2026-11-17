@@ -33,7 +33,7 @@ export const FEEDBACK_CSS = `${TOOLBAR_CSS}
 
 /* The note popover */
 .pop { position: fixed; z-index: 2147483647; box-sizing: border-box; width: min(360px, calc(100vw - 24px)); max-width: calc(100vw - 24px); display: flex; flex-direction: column; gap: var(--luci-space-12); padding: var(--luci-space-16);
-  background: var(--luci-color-surface); border-radius: var(--luci-radius-lg); box-shadow: var(--luci-shadow-float); overflow-wrap: break-word; word-break: break-word; }
+  background: var(--luci-color-surface); border-radius: var(--luci-radius-lg); box-shadow: var(--luci-elevation); overflow-wrap: break-word; word-break: break-word; }
 .pop h3 { margin: 0; font: var(--luci-type-heading-weight) var(--luci-type-heading-size)/var(--luci-type-heading-line) var(--luci-font-body); }
 .pop textarea { min-height: 72px; }
 .pop .quote, .details .quote { margin: 0; padding: var(--luci-space-8) var(--luci-space-12); border-radius: var(--luci-radius-md); background: var(--luci-color-surface-sunken); color: var(--luci-color-ink-secondary); overflow-wrap: break-word; word-break: break-word; }
@@ -55,7 +55,7 @@ export const FEEDBACK_CSS = `${TOOLBAR_CSS}
 .split > button:first-child { border-top-right-radius: 0; border-bottom-right-radius: 0; }
 .luci-theme .bar .split .caret { --luci-btn-h: 48px; width: 28px; border-top-left-radius: 0; border-bottom-left-radius: 0; }
 .menu { position: fixed; top: 64px; right: var(--luci-space-12); z-index: 2147483647; display: flex; flex-direction: column; gap: 2px; padding: var(--luci-space-8); min-width: 280px;
-  background: var(--luci-color-surface-raised); border-radius: var(--luci-radius-md); box-shadow: var(--luci-shadow-float); }
+  background: var(--luci-color-surface-raised); border-radius: var(--luci-radius-md); box-shadow: var(--luci-elevation); }
 .luci-theme[data-dock="left"] .menu { right: auto; left: var(--luci-space-12); }
 .luci-theme .menu button { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; min-height: 48px; padding: var(--luci-space-8) var(--luci-space-12);
   border-radius: var(--luci-radius-sm); text-align: left; white-space: normal; }

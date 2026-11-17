@@ -104,9 +104,10 @@ The Charcoal outline belongs to the mascot illustrations only. It is artwork, no
 | `radius-lg` | 16 px: toasts, panels inside cards |
 | `radius-xl` | 24 px: cards, sheets, the extension panel |
 | `radius-full` | 9999 px: buttons, badges, the toolbar pill |
-| `shadow-float` | `0 8px 24px rgba(43, 43, 43, 0.14)` | Only for things floating over a host page: the toolbar, popovers, toasts |
+| `shadow-float` | `0 1px 2px rgba(0, 0, 0, 0.24), 0 8px 24px rgba(0, 0, 0, 0.28)` | Only for things floating over a host page: the toolbar, popovers, toasts. Black, not Charcoal, so it still shows on a dark page |
+| `shadow-edge` | `inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 0 0 1px rgba(255, 255, 255, 0.05)` | Added to `shadow-float` on Charcoal surfaces only (the toolbar pill, and cards in the dark theme), so they stay apart from a host page of the same colour |
 
-No shadows on in-flow cards. Never combine `shadow-float` with a border.
+No shadows on in-flow cards. Never combine `shadow-float` with a border (`shadow-edge` is a faint inner light, not a border).
 
 ## 6. Components
 

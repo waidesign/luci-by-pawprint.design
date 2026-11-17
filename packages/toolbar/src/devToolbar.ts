@@ -118,7 +118,7 @@ function connectingPill(doc: Document, place: BarPlace): HTMLElement {
   // The Charcoal pill (brand/DESIGN.md, On-page toolbar), with a ginger ring turning
   root.innerHTML = `<style>${TOKENS_CSS}
     div{position:fixed;${cornerCss(place, 40)};z-index:2147483647;display:flex;gap:8px;align-items:center;padding:8px 16px 8px 12px;border-radius:var(--luci-radius-full);
-      background:var(--luci-color-bar);color:var(--luci-color-bar-ink);font:500 var(--luci-type-small-size)/var(--luci-type-small-line) var(--luci-font-body);box-shadow:var(--luci-shadow-float)}
+      background:var(--luci-color-bar);color:var(--luci-color-bar-ink);font:500 var(--luci-type-small-size)/var(--luci-type-small-line) var(--luci-font-body);box-shadow:var(--luci-shadow-edge),var(--luci-shadow-float)}
     i{width:14px;height:14px;border-radius:50%;border:2px solid var(--luci-color-bar-stroke);border-top-color:var(--luci-color-tool-active);animation:s .8s linear infinite}
     @keyframes s{to{transform:rotate(360deg)}}
     @media (prefers-reduced-motion: reduce){i{animation:none}}

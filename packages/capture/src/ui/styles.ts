@@ -49,7 +49,8 @@ ${UI_CSS}
   border-radius: 32px;
   background: var(--luci-color-bar);
   color: var(--luci-color-bar-ink);
-  box-shadow: var(--luci-shadow-float);
+  /* Charcoal in both themes, so always with the inner edge: it stays apart from a dark page */
+  box-shadow: var(--luci-elevation-bar);
 }
 /* Above the cards, so the tools' tooltips are never under a card */
 .shell > .bar { position: relative; z-index: 2; }
@@ -147,7 +148,7 @@ ${UI_CSS}
 :host([data-v="top"]) .panel[data-part="sketch-panel"]:not(.shell > .panel) { top: auto; bottom: var(--luci-space-12); }
 
 /* Cards under the pill: the hint while picking, and every panel (radius-xl, float shadow, no stroke) */
-.sub, .panel { background: var(--luci-color-surface); border-radius: var(--luci-radius-xl); box-shadow: var(--luci-shadow-float); }
+.sub, .panel { background: var(--luci-color-surface); border-radius: var(--luci-radius-xl); box-shadow: var(--luci-elevation); }
 .sub {
   position: fixed;
   top: 84px;
@@ -273,7 +274,7 @@ label { display: inline-flex; gap: var(--luci-space-4); align-items: center; col
 @media (prefers-reduced-motion: no-preference) { .highlight { transition: top 60ms, left 60ms, width 60ms, height 60ms; } }
 /* The label and the pixel swatch read like tooltips: Charcoal fill, Muzzle White text */
 .label, .swatch { position: fixed; z-index: 2147483647; pointer-events: none; padding: var(--luci-space-4) var(--luci-space-8); border-radius: var(--luci-radius-md);
-  background: var(--luci-color-muzzle-900); color: var(--luci-color-muzzle-50); box-shadow: var(--luci-shadow-float);
+  background: var(--luci-color-muzzle-900); color: var(--luci-color-muzzle-50); box-shadow: var(--luci-elevation-bar);
   font: var(--luci-type-code-weight) 12px/1.4 var(--luci-font-code); }
 .label { max-width: 360px; white-space: pre-wrap; }
 .label .reason { display: block; color: var(--luci-color-nose-pink-300); font-family: var(--luci-font-body); }
