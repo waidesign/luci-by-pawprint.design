@@ -1,0 +1,33 @@
+# Checks every push and pull request to main: build, typecheck and the whole test suite (Chromium too).
+# macOS, because the golden capture files are measured with the fonts a Mac has (see docs/RELEASING.md).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Build, typecheck and test
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install Chromium for the browser tests
+        run: pnpm exec playwright install chromium
+      - run: pnpm check

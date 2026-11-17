@@ -1,0 +1,114 @@
+# Releases Luci to npm from GitHub: Actions → Release → Run workflow, type the version (see docs/RELEASING.md).
+#
+# 1. verify: sets the version everywhere, builds, typechecks, runs every test and packs the 9 packages.
+# 2. publish: waits for approval in the npm-publish environment, then publishes those exact packages
+#    with npm Trusted Publishing (no token anywhere; npm adds provenance), commits the version, tags it
+#    vX.Y.Z and creates the GitHub Release.
+#
+# Dry run does step 1 only. A run that stopped half way can be run again with the same version:
+# packages already on npm are skipped.
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release, for example 0.5.7 (0.6.0-rc.1 goes out as "next", not "latest")'
+        required: true
+        type: string
+      dry_run:
+        description: 'Dry run: check and pack everything, publish nothing'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Check and pack v${{ inputs.version }}
+    runs-on: macos-latest
+    timeout-minutes: 40
+    env:
+      VERSION: ${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check the version
+        run: |
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then echo "::error::Release from main only (this run is on $GITHUB_REF)."; exit 1; fi
+          if ! echo "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then echo "::error::\"$VERSION\" is not a version like 0.5.7."; exit 1; fi
+          if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then echo "::error::v$VERSION is already released (the tag exists)."; exit 1; fi
+          echo "Releasing $(node -p "require('./package.json').version") -> $VERSION"
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Set the version everywhere
+        run: node scripts/bump-version.mjs "$VERSION"
+      - name: Install Chromium for the browser tests
+        run: pnpm exec playwright install chromium
+      - name: Build, typecheck and test
+        run: pnpm check
+      - name: Pack the packages
+        run: node scripts/release.mjs pack release
+      - name: What would be published
+        run: node scripts/release.mjs publish release --dry-run
+      - uses: actions/upload-artifact@v4
+        with:
+          name: luci-${{ inputs.version }}
+          path: release/*.tgz
+          retention-days: 14
+          if-no-files-found: error
+
+  publish:
+    name: Publish v${{ inputs.version }} to npm
+    needs: verify
+    if: ${{ !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Required reviewers on this environment approve each release; npm trusts only this workflow and environment
+    environment: npm-publish
+    permissions:
+      contents: write   # the version commit, the tag and the GitHub Release
+      id-token: write   # npm Trusted Publishing
+    env:
+      VERSION: ${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - name: npm with Trusted Publishing (11.5.1 or later)
+        run: npm install -g npm@latest && npm --version
+      - uses: actions/download-artifact@v4
+        with:
+          name: luci-${{ inputs.version }}
+          path: release
+      - name: Set the version everywhere
+        run: node scripts/bump-version.mjs "$VERSION"
+      - name: Publish to npm
+        run: node scripts/release.mjs publish release
+      - name: Commit the version and tag it
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json packages/*/package.json packages/ui/src/about.ts README.md
+          git commit -m "chore(release): v$VERSION" || echo "The version was already committed"
+          git tag -a "v$VERSION" -m "Luci v$VERSION"
+          git push origin "HEAD:$GITHUB_REF_NAME" "v$VERSION"
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          case "$VERSION" in *-*) pre="--prerelease" ;; *) pre="" ;; esac
+          gh release create "v$VERSION" --title "Luci v$VERSION" --generate-notes --verify-tag $pre

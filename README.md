@@ -179,6 +179,8 @@ pnpm typecheck
 pnpm test
 ```
 
+Every push and pull request to `main` runs the same checks on GitHub (**CI**). Releases go out from GitHub too: see [Releasing Luci](./docs/RELEASING.md).
+
 ---
 
 ## License
