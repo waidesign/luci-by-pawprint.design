@@ -121,7 +121,7 @@ Check which version you have with `luci --version`. The newest is on [npm](https
 - Available as a browser extension (Chrome MV3) or via `luci serve`.
 - Inspect any live website or local prototype:
   - **Component Picker**: Extracts HTML anatomy, Tailwind tokens, or CSS variables.
-  - **State Extractor**: Detects `:hover`, `:focus-visible`, and `:active` styles.
+  - **States**: Detects `:hover`, `:focus-visible`, and `:active` styles.
   - **Color & Spacing System**: Generates full palette scales and spacing ladders.
   - **Design Basket**: Collect multiple elements across sites and download as a single `DESIGN.md`.
 
@@ -149,7 +149,7 @@ Luci is organized as a pnpm monorepo:
 | [`@luci-dev/cli`](./packages/cli) | `0.5.7` | Core CLI (`luci` / `luci-dev`) |
 | [`@luci-dev/brain`](./packages/brain) | `0.5.7` | Project memory, agent configs, and rules engine |
 | [`@luci-dev/skills`](./packages/skills) | `0.5.7` | Skill registry, ranker, and library |
-| [`@luci-dev/capture`](./packages/capture) | `0.5.7` | Live DOM capture and token extractor |
+| [`@luci-dev/capture`](./packages/capture) | `0.5.7` | Live DOM capture and token capture |
 | [`@luci-dev/feedback`](./packages/feedback) | `0.5.7` | Interactive on-page annotations & prompt generator |
 | [`@luci-dev/toolbar`](./packages/toolbar) | `0.5.7` | Standalone dev toolbar bundle |
 | [`@luci-dev/ui`](./packages/ui) | `0.5.7` | Shared Preact design system & tokens |

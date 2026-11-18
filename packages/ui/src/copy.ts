@@ -16,7 +16,7 @@ export const COPY = {
     help: 'How it works'
   },
   capture: {
-    title: 'DESIGN.md Extractor',
+    title: 'Capture',
     byline: 'by Luci',
     description: 'Pick anything on a page. Get a design file your agent can build from.',
     devTitle: 'Luci',

@@ -712,7 +712,7 @@ describe('toolbar inside web components (FR6)', () => {
 });
 
 describe('extension branding, settings panel and the brand kit themes', { timeout: 30_000 }, () => {
-  it('shows DESIGN.md Extractor by Luci with Luci\'s head, switches System/Light/Dark and Right/Left dock in Settings, and resolves the kit\'s colours', async () => {
+  it('shows Capture by Luci with Luci\'s head, switches System/Light/Dark and Right/Left dock in Settings, and resolves the kit\'s colours', async () => {
     const page = await open('css-variables');
     // First run: Luci says hello, once
     expect(await page.locator('[data-part="greeting"] [data-pose="hello"]').count()).toBe(1);
@@ -748,7 +748,7 @@ describe('extension branding, settings panel and the brand kit themes', { timeou
     await page.click('[data-action="settings"]');
     expect(await page.locator('[data-part="settings"]').count()).toBe(1);
     expect(await page.locator('[data-part="greeting"]').count()).toBe(0);
-    expect(await page.locator('.brand-title').innerText()).toBe('DESIGN.md Extractor');
+    expect(await page.locator('.brand-title').innerText()).toBe('Capture');
     expect(await page.locator('.brand-sub').innerText()).toBe('by Luci');
     expect(await page.locator('.brand-desc').innerText()).toContain('design file your agent can build from');
     await page.click('[data-theme-choice="light"]');
