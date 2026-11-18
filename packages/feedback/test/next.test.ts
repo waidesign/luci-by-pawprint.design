@@ -16,7 +16,8 @@ import { serverFile, serverResolver } from '../../cli/src/serve/resolve.js';
 const made: string[] = [];
 afterEach(() => { for (const d of made.splice(0)) fs.rmSync(d, { recursive: true, force: true }); });
 
-const ROOT = 'E:/vht - Copy';
+// A project folder under the temp folder whose name has spaces, as real ones often do (never read or written)
+const ROOT = path.join(os.tmpdir(), 'luci next - app');
 /**
  * The server chunk address as Next writes it inside a browser stack: the chunk's file: URL with the
  * module id ("?id=%5Bproject%5D/...+%5Bapp-rsc%5D+(ecmascript)"), all passed through encodeURI once more.
@@ -33,8 +34,12 @@ describe('Next.js App Router addresses (pure)', () => {
     expect(frames.map(isLibraryFrame)).toEqual([true, false, true]);
     expect(moduleIdPath(frames[1]!.url)).toBe('apps/web/src/app/page.tsx');
     expect(projectPath(frames[1]!.url)).toBe('apps/web/src/app/page.tsx');
-    // The exact address seen on the user's app, and the same one encoded whole
-    const seen = 'about://React/Server/file:///E:/vht%2520-%2520Copy/apps/web/.next/dev/server/chunks/ssr/%255Broot-of-the-server%255D__030zkooddeva2._.js?id=%255Bproject%255D/apps/web/src/app/page.tsx+%255Bapp-rsc%255D+(ecmascript)';
+    // The address as seen on a real app: the chunk's file: URL (brackets already escaped) encoded once
+    // more, so spaces arrive as %2520 and brackets as %255B; and the same one encoded whole
+    const chunkUrl = pathToFileURL(path.join(ROOT, 'apps/web/.next/dev/server/chunks/ssr/[root-of-the-server]__030zkooddeva2._.js')).href
+      .replace(/\[/g, '%5B').replace(/\]/g, '%5D');
+    const seen = `about://React/Server/${encodeURI(`${chunkUrl}?id=%5Bproject%5D/apps/web/src/app/page.tsx+%5Bapp-rsc%5D+(ecmascript)`)}`;
+    expect(seen).toContain('%2520-%2520app/apps/web/.next/dev/server/chunks/ssr/%255Broot-of-the-server%255D__030zkooddeva2._.js?id=%255Bproject%255D/');
     expect(moduleIdPath(seen)).toBe('apps/web/src/app/page.tsx');
     expect(moduleIdPath(`about://React/Server/${encodeURIComponent('file:///E:/app/x.js?id=[project]/src/app/page.tsx [app-rsc] (ecmascript)')}`)).toBe('src/app/page.tsx');
   });
