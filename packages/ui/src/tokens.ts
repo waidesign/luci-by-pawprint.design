@@ -45,7 +45,7 @@ export const PALETTE = {
   "muzzle-900": "#2B2B2B"
 } as const;
 
-/** Role tokens: the CSS each role resolves to, light and dark (brand/DESIGN.md section 2). */
+/** Role tokens: the CSS each role resolves to, light and dark (the brand kit, section 2). */
 export const ROLES_LIGHT = {
   "surface": "var(--luci-color-muzzle-50)",
   "surface-raised": "var(--luci-color-muzzle-0)",

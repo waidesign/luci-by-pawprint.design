@@ -1334,7 +1334,7 @@ export function Toolbar(props: ToolbarProps) {
   const pickTool = (t: ToolId) => { setSettingsOpen(false); setBasketOpen(false); setCheckDesign(null); startPicking(t); };
   const toggleMenu = () => setSettingsOpen(s => !s);
   const toggleBasket = () => { setSettingsOpen(false); if (basketOpen) setBasketOpen(false); else openBasket(); };
-  // Single-key shortcuts while the toolbar is open (never while typing; DESIGN.md section 7)
+  // Single-key shortcuts while the toolbar is open (never while typing; the brand kit, section 7)
   useShortcuts(doc, [
     ...TOOLS.map(t => ({ key: KEYS[t], run: () => pickTool(t) })),
     { key: KEYS.page, run: () => void captureWholePage() },

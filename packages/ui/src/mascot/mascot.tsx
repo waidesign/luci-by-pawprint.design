@@ -1,5 +1,5 @@
 /**
- * Luci, inline. One component for every mascot use (brand/CLAUDE-CODE-GUIDE.md section 5): the kit's
+ * Luci, inline. One component for every mascot use (the brand kit's build guide, section 5): the kit's
  * layered SVGs are inlined unchanged so luci-animations.css can move their named parts. Only the
  * root's size, accessibility attributes and (per instance) clip-path ids are rewritten.
  */

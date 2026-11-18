@@ -1,5 +1,5 @@
 /**
- * The one way to show an icon (brand/DESIGN.md section 7): an approved Lucide icon from icons.ts,
+ * The one way to show an icon (the brand kit, section 7): an approved Lucide icon from icons.ts,
  * 1.75 stroke, currentColor, hidden from assistive tech (the button or the words beside it name it).
  */
 import { ICON_STYLE, type LucideIcon } from './icons.js';

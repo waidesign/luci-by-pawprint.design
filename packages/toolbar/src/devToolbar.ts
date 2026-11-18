@@ -115,7 +115,7 @@ function connectingPill(doc: Document, place: BarPlace): HTMLElement {
   const host = doc.createElement(CONNECTING_TAG);
   host.setAttribute(LUCI_UI_ATTRIBUTE, '');
   const root = host.attachShadow({ mode: 'open' });
-  // The Charcoal pill (brand/DESIGN.md, On-page toolbar), with a ginger ring turning
+  // The Charcoal pill (the brand kit, On-page toolbar), with a ginger ring turning
   root.innerHTML = `<style>${TOKENS_CSS}
     div{position:fixed;${cornerCss(place, 40)};z-index:2147483647;display:flex;gap:8px;align-items:center;padding:8px 16px 8px 12px;border-radius:var(--luci-radius-full);
       background:var(--luci-color-bar);color:var(--luci-color-bar-ink);font:500 var(--luci-type-small-size)/var(--luci-type-small-line) var(--luci-font-body);box-shadow:var(--luci-shadow-edge),var(--luci-shadow-float)}
@@ -182,7 +182,7 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
     launcher = doc.createElement(LAUNCHER_TAG);
     launcher.setAttribute(LUCI_UI_ATTRIBUTE, '');
     const root = launcher.attachShadow({ mode: 'open' });
-    // Luci's head in a Ginger circle: the 48 px menu button (brand/DESIGN.md, On-page toolbar), in the
+    // Luci's head in a Ginger circle: the 48 px menu button (the brand kit, On-page toolbar), in the
     // corner of the bar's place, where the bar grows from
     root.innerHTML = `<style>${TOKENS_CSS}${ANIMATIONS_CSS}
       button{position:fixed;${cornerCss(place, 48)};z-index:2147483647;display:flex;align-items:center;justify-content:center;width:48px;height:48px;padding:0;border:0;
@@ -253,7 +253,7 @@ export async function mountDevToolbar(options: DevToolbarOptions = {}): Promise<
   };
 
   const reducedMotion = () => { try { return win.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } };
-  /** The bar grows out of the launcher's corner (opacity and transform only, brand/DESIGN.md motion). */
+  /** The bar grows out of the launcher's corner (opacity and transform only, the brand kit's motion rules). */
   const grow = (host: HTMLElement) => {
     const bar = host.shadowRoot?.querySelector<HTMLElement>('.bar');
     if (!bar || reducedMotion() || typeof bar.animate !== 'function') return;

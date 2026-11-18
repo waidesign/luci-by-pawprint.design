@@ -1,5 +1,5 @@
 /**
- * Base and component styles for every Luci surface (brand/DESIGN.md sections 4 to 9). Colours,
+ * Base and component styles for every Luci surface (the brand kit, sections 4 to 9). Colours,
  * sizes and motion come only from the tokens (var(--luci-*)); this file holds no colour values.
  * Surfaces render inside a shadow root: put UI_CSS in it and class "luci-theme" on their root.
  */
@@ -8,7 +8,7 @@ import { ANIMATIONS_CSS } from './mascot/art.js';
 
 export const BASE_CSS = `
 .luci-theme {
-  /* Buttons: md is 40 px with 15 px labels (DESIGN.md section 6); a compact surface sets sm as its default */
+  /* Buttons: md is 40 px with 15 px labels (the brand kit, section 6); a compact surface sets sm as its default */
   --luci-btn-h: 40px;
   --luci-btn-font: 15px;
   --luci-btn-line: 20px;
@@ -59,7 +59,7 @@ export const BASE_CSS = `
 
 export const COMPONENTS_CSS = `
 /*
- * Button (DESIGN.md section 6). Variants: btn-primary, btn-secondary, btn-outline, btn-ghost (also a
+ * Button (the brand kit, section 6). Variants: btn-primary, btn-secondary, btn-outline, btn-ghost (also a
  * bare button), btn-danger, btn-link; btn-icon for icon-only (square, round). Sizes: btn-sm 32,
  * btn-md 40, btn-lg 48 (default: the surface's). States: hover, :active (pressed), :focus-visible,
  * :disabled, aria-pressed="true" (toggled on), aria-busy="true" (working).

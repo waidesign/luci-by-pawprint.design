@@ -1,5 +1,5 @@
 /**
- * The brand kit's checks for every Luci surface (brand/CLAUDE-CODE-GUIDE.md section 8): no colour
+ * The brand kit's checks for every Luci surface (the brand kit's build guide, section 8): no colour
  * values outside the tokens, and no coloured or Charcoal strokes on components.
  */
 import { readFileSync, readdirSync } from 'node:fs';
@@ -47,7 +47,7 @@ describe('surfaces use the tokens only', () => {
   });
 });
 
-describe('strokes (brand/DESIGN.md section 4)', () => {
+describe('strokes (the brand kit, section 4)', () => {
   /** Rules as [selector, declarations], at any nesting depth. */
   const rules = (css: string) => [...css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(m => [m[1]!.trim(), m[2]!] as const);
   // Not components: overlays Luci draws over the host page while picking, measuring and planning,

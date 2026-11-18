@@ -33,7 +33,7 @@ ${UI_CSS}
 .luci-theme[data-dock="left"] .sub,
 .luci-theme[data-dock="left"] .panel { right: auto; left: var(--luci-space-12); }
 
-/* The toolbar pill (DESIGN.md, On-page toolbar): Charcoal in both themes, float shadow, no stroke */
+/* The toolbar pill (the brand kit, On-page toolbar): Charcoal in both themes, float shadow, no stroke */
 .bar {
   --luci-color-focus: var(--luci-color-muzzle-50);
   position: fixed;

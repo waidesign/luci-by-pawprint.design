@@ -2,7 +2,7 @@
 // (read-only), and copy the kit files other packages need. Run it after the kit changes; never edit
 // the generated files by hand.
 //
-// Role tokens (surface, primary, link...) come from brand/DESIGN.md section 2 and are written here as
+// Role tokens (surface, primary, link...) come from the brand kit, section 2 and are written here as
 // references to the kit's palette in brand/luci-tokens.json, so no colour exists outside the kit.
 // Dark roles follow DESIGN.md's "Dark surfaces" line, filled in from the same palette.
 import { copyFileSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
@@ -31,7 +31,7 @@ const pal = (ref) => {
 /** A kit colour at an opacity (DESIGN.md writes these as rgba of Charcoal or Muzzle White). */
 const alpha = (ref, pct) => `color-mix(in srgb, ${pal(ref)} ${pct}%, transparent)`;
 
-// --- Roles, light (DESIGN.md section 2 and 6)
+// --- Roles, light (the brand kit, sections 2 and 6)
 const light = {
   surface: pal('muzzle-50'),
   'surface-raised': pal('muzzle-0'),
@@ -49,7 +49,7 @@ const light = {
   success: pal('success-700'), 'success-bg': pal('success-100'),
   warning: pal('warning-700'), 'warning-bg': pal('warning-100'),
   danger: pal('danger-700'), 'danger-bg': pal('danger-100'),
-  // DESIGN.md section 6, danger button hover: the one fill the kit gives as a literal value
+  // the brand kit, section 6, danger button hover: the one fill the kit gives as a literal value
   'danger-hover': '#FFD3CD',
   info: pal('info-700'), 'info-bg': pal('info-100'),
   'secondary-hover': pal('muzzle-100'),
@@ -80,7 +80,7 @@ const dark = {
   'stroke-strong': alpha('muzzle-50', 28),
   focus: pal('muzzle-50')
 };
-// --- The on-page toolbar pill is Charcoal in both themes (DESIGN.md section 6, On-page toolbar)
+// --- The on-page toolbar pill is Charcoal in both themes (the brand kit, section 6, On-page toolbar)
 const bar = {
   bar: pal('muzzle-900'),
   'bar-ink': pal('muzzle-50'),
@@ -151,7 +151,7 @@ write(join(ui, 'tokens.ts'), `${HEADER}
 /** The kit's palette, by scale and step (brand/luci-tokens.json). */
 export const PALETTE = ${json(palette)} as const;
 
-/** Role tokens: the CSS each role resolves to, light and dark (brand/DESIGN.md section 2). */
+/** Role tokens: the CSS each role resolves to, light and dark (the brand kit, section 2). */
 export const ROLES_LIGHT = ${json(light)} as const;
 export const ROLES_DARK = ${json(dark)} as const;
 export const ROLES_BAR = ${json(bar)} as const;
@@ -194,7 +194,7 @@ export const LOGO_SVG = ${json(logos)} as const;
 export const ANIMATIONS_CSS = ${JSON.stringify(animations)};
 `);
 
-// --- Icons: the approved Lucide icons under Luci names (brand/luci-icons.json, DESIGN.md section 7).
+// --- Icons: the approved Lucide icons under Luci names (brand/luci-icons.json, the brand kit, section 7).
 // The only file allowed to import from lucide-preact; "menu" is Luci's head, not a Lucide icon.
 const iconKit = JSON.parse(readFileSync(join(brand, 'luci-icons.json'), 'utf8'));
 const pascal = (s) => s.split('-').map(p => p[0].toUpperCase() + p.slice(1)).join('');
@@ -216,7 +216,7 @@ export const ICON_SVG = ${json(Object.fromEntries(Object.entries(iconKit.icons)
   .map(([name, v]) => [name, readFileSync(join(brand, v.file), 'utf8').trim()])))} as const;
 `);
 
-// --- Fonts: the kit's three families, self-hosted (SIL OFL; CLAUDE-CODE-GUIDE.md section 4). The
+// --- Fonts: the kit's three families, self-hosted (SIL OFL; the brand kit's build guide, section 4). The
 // woff2 files live in packages/ui/src/fonts/ with their licences; here they become bytes the
 // toolbar registers with the FontFace API under "Luci ..." names (no fetch, so a page's CSP can't
 // block them, and they never clash with the page's own fonts).

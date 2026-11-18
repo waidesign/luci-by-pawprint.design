@@ -57,7 +57,7 @@ describe('@luci-dev/ui is generated from the brand kit', () => {
   });
 });
 
-describe('contrast (WCAG AA, brand/DESIGN.md section 9)', () => {
+describe('contrast (WCAG AA, the brand kit, section 9)', () => {
   // Text on background pairs the components use: [what, text, background]
   const pairs = (r: Record<string, string>): [string, string, string][] => [
     ['ink on surface', r['ink']!, r['surface']!],
@@ -119,7 +119,7 @@ describe('copy follows the voice rules (brand/BRAND.md section 2)', () => {
   });
 });
 
-describe('icons (brand/DESIGN.md section 7)', () => {
+describe('icons (the brand kit, section 7)', () => {
   const pascal = (s: string) => s.split('-').map(p => p[0]!.toUpperCase() + p.slice(1)).join('');
   it('icons.ts exports exactly the approved icons of brand/luci-icons.json', async () => {
     const kit = JSON.parse(brand('luci-icons.json')) as { icons: Record<string, { lucide?: string }> };

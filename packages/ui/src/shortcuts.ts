@@ -1,5 +1,5 @@
 /**
- * Single-key shortcuts for Luci's toolbars (DESIGN.md section 7: tooltips show the name and the
+ * Single-key shortcuts for Luci's toolbars (the brand kit, section 7: tooltips show the name and the
  * key). A key works only while that surface is open, never while the person types (in the page or in
  * Luci), and never with Ctrl, Alt, Meta or Shift, so the page's own shortcuts keep working. A key Luci
  * handles stops there; every other key reaches the page.

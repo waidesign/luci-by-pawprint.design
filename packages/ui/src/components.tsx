@@ -1,4 +1,4 @@
-/** Shared components (brand/DESIGN.md section 6). */
+/** Shared components (the brand kit, section 6). */
 import type { ComponentChildren, JSX } from 'preact';
 import { Icon, type IconSize } from './icon.js';
 import { ICON_SVG, IconChevron, IconError, IconInfo, IconSuccess, IconWarning, type LucideIcon } from './icons.js';
@@ -38,7 +38,7 @@ export type ButtonProps = Omit<JSX.ButtonHTMLAttributes<HTMLButtonElement>, 'siz
 
 /**
  * A button: one of the kit's variants and sizes, with an optional icon. Icon-only buttons always
- * carry an aria-label and a tooltip (DESIGN.md section 7).
+ * carry an aria-label and a tooltip (the brand kit, section 7).
  */
 export function Button(props: ButtonProps) {
   const { variant = 'ghost', size, icon, iconOnly, label, tip, tipAbove, tipAlign, loading, shortcut, badge, class: extra, children, type = 'button', onClick, ...rest } = props;
