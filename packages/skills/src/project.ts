@@ -6,7 +6,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { LSS_VERSION, MEMORY_FILES, PRODUCT, formatSkillLock, parseJsonText, type LockEntry, type SkillLock } from '@luci-dev/format';
+import { LSS_VERSION, MEMORY_FILES, PRODUCT, formatSkillLock, luciHome, parseJsonText, type LockEntry, type SkillLock } from '@luci-dev/format';
 import { SkillOrchestrator, type LoadedTask } from './orchestrator.js';
 import { SkillRegistry } from './registry.js';
 import { describeTrust, needsCaution, trustLevel } from './trust.js';
@@ -129,6 +129,37 @@ export async function projectSkillSet(projectDir: string, library: SkillSource):
 
 const firstItems = (list: unknown, n: number) => (Array.isArray(list) ? list.slice(0, n).map(String) : []);
 
+/** Luci's home folder and how the catalog writes it: `$LUCI_HOME` when that is set, else `~/.luci`. */
+export interface HomeLabel {
+  dir: string;
+  label: string;
+}
+export const luciHomeLabel = (): HomeLabel => ({
+  dir: luciHome(),
+  label: process.env[PRODUCT.homeEnv] ? `$${PRODUCT.homeEnv}` : `~/${PRODUCT.homeDir}`
+});
+
+/**
+ * Where the catalog says a skill's full instructions are, written so the catalog can be committed
+ * without naming anyone's folders: a project skill relative to the project, a personal skill under
+ * Luci's home folder (`~/.luci/...`, or `$LUCI_HOME/...` when set), always with forward slashes.
+ * Null for Luci's own library: its files sit inside the installed package (under npx, in the user's
+ * npm cache), so the catalog names the skill instead, and the agent opens it by name.
+ */
+export function catalogPath(projectDir: string, skill: Pick<Skill, 'filePath' | 'library'>, home: HomeLabel = luciHomeLabel()): string | null {
+  if (!skill.filePath) return null;
+  const under = (root: string): string | null => {
+    const rel = path.relative(path.resolve(root), path.resolve(skill.filePath!));
+    return rel && !rel.startsWith('..') && !path.isAbsolute(rel) ? rel.split(path.sep).join('/') : null;
+  };
+  if (skill.library === 'project') return under(projectDir);
+  if (skill.library === 'personal') {
+    const rel = under(home.dir);
+    return rel ? `${home.label}/${rel}` : null;
+  }
+  return null;
+}
+
 /** Write .luci/project-skills.md: a short catalog agents read instead of full skills. */
 export async function writeCatalog(projectDir: string, library: SkillSource): Promise<ProjectSkillSet> {
   const set = await projectSkillSet(projectDir, library);
@@ -140,9 +171,12 @@ export async function writeCatalog(projectDir: string, library: SkillSource): Pr
     `These are the skills chosen for this project. **Open a skill only when the current task needs it**, or ask ${PRODUCT.name} for the ones that fit a task (MCP tool \`load_project_skills\`).`,
     ''
   ];
+  const introEnd = lines.length;
   if (set.selected.length === 0 && set.own.length === 0) lines.push(`No skills selected yet. Add some with \`${PRODUCT.command} skills select <skill-name>\`.`);
 
-  const entry = (skill: Skill, origin: 'library' | 'project') => {
+  const home = luciHomeLabel();
+  let underHome = false;
+  const entry = (skill: Skill) => {
     const c = skill.contract ?? {};
     const out = [`### ${skill.name} (\`${skill.id}\`)`, '', c.summary || skill.description];
     const when = firstItems(c.whenToUse, 2);
@@ -154,20 +188,30 @@ export async function writeCatalog(projectDir: string, library: SkillSource): Pr
         ? `**Can run commands, not reviewed by ${PRODUCT.name}**: show the user any command from this skill before running it.`
         : '**Can run commands**: review its scripts before running them.');
     }
-    const file = origin === 'project'
-      ? path.relative(projectDir, skill.filePath ?? '').replace(/\\/g, '/')
-      : (skill.filePath ?? '').replace(/\\/g, '/');
-    out.push(`**Full instructions** (~${skill.tokenEstimate ?? '?'} tokens): \`${file}\``, '');
+    // Never an absolute path: the catalog is committed with the project
+    const file = catalogPath(projectDir, skill, home);
+    if (file?.startsWith(`${home.label}/`)) underHome = true;
+    const where = file
+      ? `\`${file}\``
+      : `open it by name with \`${PRODUCT.command} skills use ${skill.id} --full\` or the MCP tool \`get_skill\` (\`${skill.id}\`)`;
+    out.push(`**Full instructions** (~${skill.tokenEstimate ?? '?'} tokens): ${where}`, '');
     return out.join('\n');
   };
 
   if (set.selected.length) {
     lines.push(`## Selected from the ${PRODUCT.name} library`, '');
-    for (const s of set.selected) lines.push(entry(s, 'library'));
+    for (const s of set.selected) lines.push(entry(s));
   }
   if (set.own.length) {
     lines.push(`## Project skills (\`${rel(`${MEMORY_FILES.skills}/`)}\`)`, '');
-    for (const s of set.own) lines.push(entry(s, 'project'));
+    for (const s of set.own) lines.push(entry(s));
+  }
+  // Say where a personal skill's folder is, for agents whose file tools do not expand ~ or variables
+  if (underHome) {
+    const note = home.label.startsWith('$')
+      ? `_\`${home.label}\` is the folder named in the ${PRODUCT.homeEnv} environment variable (your ${PRODUCT.name} folder)._`
+      : `_\`~\` is your home folder (\`%USERPROFILE%\` on Windows, \`$HOME\` on macOS and Linux)._`;
+    lines.splice(introEnd, 0, note, '');
   }
   for (const w of missingSkillWarnings(readLock(projectDir), set.missing)) lines.push('', `_${w}_`);
 

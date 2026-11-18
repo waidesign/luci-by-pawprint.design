@@ -91,6 +91,9 @@ export {
 export {
   type ReadLock,
   type ProjectSkillSet,
+  type HomeLabel,
+  catalogPath,
+  luciHomeLabel,
   readLock,
   writeLock,
   selectSkills,

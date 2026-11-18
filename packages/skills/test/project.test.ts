@@ -8,6 +8,7 @@ import {
   SkillRegistry,
   addPack,
   addedPacks,
+  catalogPath,
   deselectSkills,
   detectPacks,
   loadPacks,
@@ -68,9 +69,45 @@ describe('project skills', () => {
     expect(catalog).toContain('(`pricing-page`)');
     expect(catalog).toContain('**Why chosen**: Plan page');
     expect(catalog).toContain('(`shop-rules`)');
-    expect(catalog).toContain('.luci/skills/shop-rules/SKILL.md');
+    expect(catalog).toContain('`.luci/skills/shop-rules/SKILL.md`');
     expect(catalog).not.toContain('Secret detailed body');
     expect(catalog).not.toMatch(/gaw|ai-brain/i);
+    // Luci's own library sits inside the installed package: named, never a path on this machine
+    expect(catalog).toContain('`luci skills use pricing-page --full` or the MCP tool `get_skill` (`pricing-page`)');
+    expect(catalog).not.toMatch(/(?<![A-Za-z])[A-Za-z]:[\\/]|\/Users\/|\/home\/|\/var\/folders\//);
+    expect(catalog).not.toContain(path.dirname(dir).replace(/\\/g, '/'));
+  });
+
+  it('the catalog names a personal skill under Luci\'s home folder, never the user\'s own path', async () => {
+    // test-setup.ts gives every test file a temporary LUCI_HOME; the personal library lives in it
+    const personal = path.join(process.env['LUCI_HOME']!, 'skills');
+    addSkill(personal, 'general', 'team-voice', 'Write in the team voice. Use when drafting release notes.');
+    const registry = new SkillRegistry({ user: true, userSkillsDir: personal, autoIndex: false });
+    const { dir } = project();
+    await selectSkills(dir, registry, ['team-voice', 'pricing-page']);
+    await writeCatalog(dir, registry);
+    const catalog = fs.readFileSync(path.join(dir, '.luci', 'project-skills.md'), 'utf8');
+    expect(catalog).toContain('`$LUCI_HOME/skills/general/team-voice/SKILL.md`');
+    expect(catalog).toContain('_`$LUCI_HOME` is the folder named in the LUCI_HOME environment variable');
+    expect(catalog).not.toContain(process.env['LUCI_HOME']!.replace(/\\/g, '/'));
+    expect(catalog).not.toMatch(/(?<![A-Za-z])[A-Za-z]:[\\/]|\/Users\/|\/home\/|\/var\/folders\//);
+  });
+
+  it('catalogPath: relative for project skills, ~/.luci for personal ones, none for the official library or elsewhere', () => {
+    const base = tempDir('luci-paths-');
+    const projectDir = path.join(base, 'my shop');
+    const home = { dir: path.join(base, 'home', '.luci'), label: '~/.luci' };
+    const file = (...parts: string[]) => path.join(...parts, 'SKILL.md');
+    expect(catalogPath(projectDir, { library: 'project', filePath: file(projectDir, '.luci', 'skills', 'shop-rules') }, home)).toBe('.luci/skills/shop-rules/SKILL.md');
+    expect(catalogPath(projectDir, { library: 'personal', filePath: file(home.dir, 'skills', 'general', 'voice') }, home)).toBe('~/.luci/skills/general/voice/SKILL.md');
+    expect(catalogPath(projectDir, { library: 'personal', filePath: file(home.dir, 'skills', 'general', 'voice') }, { ...home, label: '$LUCI_HOME' })).toBe('$LUCI_HOME/skills/general/voice/SKILL.md');
+    // A personal library outside Luci's home folder, or Luci's own library: named instead of a path
+    expect(catalogPath(projectDir, { library: 'personal', filePath: file(base, 'elsewhere', 'voice') }, home)).toBeNull();
+    expect(catalogPath(projectDir, { library: 'official', filePath: file(base, 'node_modules', '@luci-dev', 'skills', 'library', 'tdd') }, home)).toBeNull();
+    expect(catalogPath(projectDir, { library: 'project' }, home)).toBeNull();
+    // The ~/.luci form leads back to the same file once ~ is the home folder (as agents and shells expand it)
+    const written = catalogPath(projectDir, { library: 'personal', filePath: file(home.dir, 'skills', 'general', 'voice') }, home)!;
+    expect(path.join(path.dirname(home.dir), ...written.slice(2).split('/'))).toBe(file(home.dir, 'skills', 'general', 'voice'));
   });
 
   it('only the project skills that fit the task are loaded', async () => {
