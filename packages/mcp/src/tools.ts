@@ -7,7 +7,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { z } from 'zod';
-import { MEMORY_FILES, PROPOSAL_TARGETS, PRODUCT, formatProposal } from '@luci-dev/format';
+import { MEMORY_FILES, PROPOSAL_TARGETS, PRODUCT, formatProposal, hideHomePaths } from '@luci-dev/format';
 import { DETAIL_LEVELS, FEEDBACK_STATUSES, formatFeedbackPrompt, layoutChangeText, sourceText as feedbackSourceText, type FeedbackItem } from '@luci-dev/format/feedback';
 import { buildLayoutTree, compareComponentFiles, formatCheckRun, formatCheckRunWithNotes, formatCompareReport, formatLayoutTree, parseCapture, readComponentFile } from '@luci-dev/format/capture';
 import {
@@ -36,6 +36,7 @@ import {
   SkillDiscovery,
   SkillOrchestrator,
   addPack,
+  catalogPath,
   describeTrust,
   loadPacks,
   loadProjectSkillsForTask,
@@ -109,7 +110,12 @@ function tool<S extends z.ZodRawShape>(
     async call(args, deps) {
       const parsed = schema.safeParse(args ?? {});
       if (!parsed.success) return error(`Invalid input for ${name}:\n${z.prettifyError(parsed.error)}`);
-      return run(parsed.data, deps);
+      const result = await run(parsed.data, deps);
+      // Results go to an agent: no path into the user's own folders (Luci's folder, the home folder),
+      // apart from the project the agent works in, which keeps its real path
+      const project = (parsed.data as { projectPath?: string }).projectPath;
+      const keep = [path.resolve(deps.cwd, project ?? '.'), findProjectRoot(path.resolve(deps.cwd, project ?? '.')).root];
+      return { ...result, content: result.content.map(c => ({ ...c, text: hideHomePaths(c.text, { keep }) })) };
     }
   };
 }
@@ -224,8 +230,11 @@ export const TOOLS: readonly LuciTool[] = [
     async (args, deps) => {
       const skill = await deps.registry.getSkill(args.id);
       if (!skill) return error(`Skill not found: ${args.id}. search_skills finds skills by topic.`);
+      // Its folder is never returned: `path` follows project-skills.md (relative for a project skill,
+      // ~/.luci/... for a personal one, null for Luci's own library, whose instructions are in `content`).
       // `content` is read on demand (not an enumerable field), so it is added explicitly
-      return json({ ...skill, trust: trustLevel(skill), trustNote: describeTrust(skill), content: skill.content });
+      const { filePath: _file, dir: _dir, ...rest } = skill;
+      return json({ ...rest, path: catalogPath(findProjectRoot(deps.cwd).root, skill), trust: trustLevel(skill), trustNote: describeTrust(skill), content: skill.content });
     }),
 
   tool('recommend_skills',
@@ -248,7 +257,7 @@ export const TOOLS: readonly LuciTool[] = [
       tokenBudget: z.number().int().positive().optional().describe('Max tokens of full skill instructions (default 8000)')
     }, READ,
     async (args, deps) => {
-      const loaded = await new SkillOrchestrator(deps.registry).loadSkillsForTask(args.taskPrompt, hints(target(args, deps)), args.tokenBudget ? { tokenBudget: args.tokenBudget } : {});
+      const loaded = await new SkillOrchestrator(deps.registry).loadSkillsForTask(args.taskPrompt, hints(target(args, deps)), { ...(args.tokenBudget ? { tokenBudget: args.tokenBudget } : {}), projectDir: targetRoot(args, deps) });
       const leftOut = loaded.excludedSkills.length ? `\n## Left out\n${loaded.excludedSkills.map(e => `- ${e.id}: ${e.reason}`).join('\n')}\n` : '';
       return text(loaded.formattedInstructions + leftOut);
     }),

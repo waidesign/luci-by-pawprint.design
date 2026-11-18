@@ -6,10 +6,11 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { LSS_VERSION, MEMORY_FILES, PRODUCT, formatSkillLock, luciHome, parseJsonText, type LockEntry, type SkillLock } from '@luci-dev/format';
+import { LSS_VERSION, MEMORY_FILES, PRODUCT, formatSkillLock, luciHomeLabel, parseJsonText, type HomeLabel, type LockEntry, type SkillLock } from '@luci-dev/format';
 import { SkillOrchestrator, type LoadedTask } from './orchestrator.js';
 import { SkillRegistry } from './registry.js';
 import { describeTrust, needsCaution, trustLevel } from './trust.js';
+import { catalogPath, openByName } from './skillPath.js';
 import type { Skill, SkillSource } from './types.js';
 
 const memory = (projectDir: string) => path.join(projectDir, PRODUCT.projectDir);
@@ -129,36 +130,7 @@ export async function projectSkillSet(projectDir: string, library: SkillSource):
 
 const firstItems = (list: unknown, n: number) => (Array.isArray(list) ? list.slice(0, n).map(String) : []);
 
-/** Luci's home folder and how the catalog writes it: `$LUCI_HOME` when that is set, else `~/.luci`. */
-export interface HomeLabel {
-  dir: string;
-  label: string;
-}
-export const luciHomeLabel = (): HomeLabel => ({
-  dir: luciHome(),
-  label: process.env[PRODUCT.homeEnv] ? `$${PRODUCT.homeEnv}` : `~/${PRODUCT.homeDir}`
-});
-
-/**
- * Where the catalog says a skill's full instructions are, written so the catalog can be committed
- * without naming anyone's folders: a project skill relative to the project, a personal skill under
- * Luci's home folder (`~/.luci/...`, or `$LUCI_HOME/...` when set), always with forward slashes.
- * Null for Luci's own library: its files sit inside the installed package (under npx, in the user's
- * npm cache), so the catalog names the skill instead, and the agent opens it by name.
- */
-export function catalogPath(projectDir: string, skill: Pick<Skill, 'filePath' | 'library'>, home: HomeLabel = luciHomeLabel()): string | null {
-  if (!skill.filePath) return null;
-  const under = (root: string): string | null => {
-    const rel = path.relative(path.resolve(root), path.resolve(skill.filePath!));
-    return rel && !rel.startsWith('..') && !path.isAbsolute(rel) ? rel.split(path.sep).join('/') : null;
-  };
-  if (skill.library === 'project') return under(projectDir);
-  if (skill.library === 'personal') {
-    const rel = under(home.dir);
-    return rel ? `${home.label}/${rel}` : null;
-  }
-  return null;
-}
+export { luciHomeLabel, type HomeLabel, catalogPath };
 
 /** Write .luci/project-skills.md: a short catalog agents read instead of full skills. */
 export async function writeCatalog(projectDir: string, library: SkillSource): Promise<ProjectSkillSet> {
@@ -193,7 +165,7 @@ export async function writeCatalog(projectDir: string, library: SkillSource): Pr
     if (file?.startsWith(`${home.label}/`)) underHome = true;
     const where = file
       ? `\`${file}\``
-      : `open it by name with \`${PRODUCT.command} skills use ${skill.id} --full\` or the MCP tool \`get_skill\` (\`${skill.id}\`)`;
+      : `open it by name with ${openByName(skill.id)}`;
     out.push(`**Full instructions** (~${skill.tokenEstimate ?? '?'} tokens): ${where}`, '');
     return out.join('\n');
   };
@@ -223,5 +195,5 @@ export async function writeCatalog(projectDir: string, library: SkillSource): Pr
 /** Skills for a task, chosen only among the project's skills: close matches within the token budget. */
 export async function loadProjectSkillsForTask(projectDir: string, library: SkillSource, taskPrompt: string, options: { tokenBudget?: number } = {}): Promise<LoadedTask> {
   const set = await projectSkillSet(projectDir, library);
-  return new SkillOrchestrator(set).loadSkillsForTask(taskPrompt, {}, options);
+  return new SkillOrchestrator(set).loadSkillsForTask(taskPrompt, {}, { ...options, projectDir });
 }

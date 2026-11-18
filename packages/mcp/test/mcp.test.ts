@@ -7,7 +7,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { parseDecision, parseProposal } from '@luci-dev/format';
 import { CheckStore, CodeMap, DesignStore, FeedbackStore, initProject, writeActiveTask } from '@luci-dev/brain';
-import { SkillRegistry } from '@luci-dev/skills';
+import { SkillOrchestrator, SkillRegistry } from '@luci-dev/skills';
 import { TOOLS, handleTool, type ToolDeps } from '../src/index.js';
 
 const made: string[] = [];
@@ -367,4 +367,91 @@ describe('luci-mcp over stdio', () => {
       await client.close();
     }
   }, 30000);
+});
+
+describe('no paths outside the project in tool results', () => {
+  // test-setup.ts gives every test file a temporary LUCI_HOME, so personal paths read $LUCI_HOME/...
+  const luciHome = process.env['LUCI_HOME']!;
+  const officialLibrary = fileURLToPath(new URL('../../skills/library/', import.meta.url));
+
+  /** Absolute paths in a tool's text (JSON-escaped backslashes undone) that are not inside the project. */
+  const outside = (text: string, project: string): string[] => {
+    const plain = text.replace(/\\\\/g, '\\');
+    const found = plain.match(/(?<![A-Za-z0-9])(?:[A-Za-z]:[\\/]|\/(?:Users|home|var|tmp|private)\/)[^\s"'`),\]|]*/g) ?? [];
+    return found.filter(p => {
+      const rel = path.relative(project, path.resolve(p));
+      return rel.startsWith('..') || path.isAbsolute(rel);
+    });
+  };
+
+  async function setup() {
+    const personal = path.join(luciHome, 'skills', 'general', 'team-voice');
+    fs.mkdirSync(personal, { recursive: true });
+    fs.writeFileSync(path.join(personal, 'SKILL.md'), '---\nname: team-voice\ndescription: Write release notes in the team voice. Use when drafting release notes.\nlicense: MIT\n---\n\n# Team voice\n\nShort sentences.\n');
+    // A fresh registry, so it sees the personal skill just added
+    const library = new SkillRegistry({ user: true });
+    const dir = tempProject();
+    await initProject(dir, { registry: library });
+    const run = async (name: string, args: Record<string, unknown> = {}) =>
+      (await handleTool(name, args, { registry: library, cwd: dir })).content.map(c => c.text).join('\n');
+    await run('select_project_skills', { ids: ['pricing-page', 'team-voice'] });
+    // The active task as `luci skills use --inject` writes it
+    const loaded = await new SkillOrchestrator(library).loadSkillsForTask('pricing-page team-voice', {}, { projectDir: dir });
+    writeActiveTask(dir, new SkillOrchestrator(library).formatTaskPointer(loaded, { projectDir: dir }));
+    return { dir, run };
+  }
+
+  it('skills: Luci\'s library by name, personal skills under $LUCI_HOME (or ~/.luci), project skills relative', async () => {
+    const { dir, run } = await setup();
+    const skills = JSON.parse(await run('get_project_skills')) as { selected: { id: string; path: string | null }[]; project: { id: string; path: string | null }[] };
+    expect(skills.selected.find(s => s.id === 'pricing-page')?.path).toBeNull();
+    expect(skills.selected.find(s => s.id === 'team-voice')?.path).toBe('$LUCI_HOME/skills/general/team-voice/SKILL.md');
+    expect(skills.project.find(s => s.id === 'testing')?.path).toBe('.luci/skills/testing/SKILL.md');
+
+    const personal = JSON.parse(await run('get_skill', { id: 'team-voice' })) as Record<string, unknown>;
+    expect(personal['path']).toBe('$LUCI_HOME/skills/general/team-voice/SKILL.md');
+    expect(personal).not.toHaveProperty('filePath');
+    expect(personal).not.toHaveProperty('dir');
+    expect(JSON.parse(await run('get_skill', { id: 'pricing-page' }))).toMatchObject({ path: null, content: expect.stringContaining('#') });
+
+    // Over the budget, a skill is pointed to the same way
+    const summary = await run('load_skills', { taskPrompt: 'pricing-page team-voice', tokenBudget: 50 });
+    expect(summary).toContain('`luci skills use pricing-page --full` or the MCP tool `get_skill` (`pricing-page`)');
+    expect(summary).toContain('`$LUCI_HOME/skills/general/team-voice/SKILL.md`');
+
+    const task = await run('get_active_task');
+    expect(task).toContain('| `luci skills use pricing-page --full` or the MCP tool `get_skill` (`pricing-page`) |');
+    expect(task).toContain('| `$LUCI_HOME/skills/general/team-voice/SKILL.md` |');
+
+    const ctx = JSON.parse(await run('get_project_context')) as { globalBrain: string; project: { path: string } };
+    expect(ctx.globalBrain).toBe('$LUCI_HOME/brain');
+    // The project itself keeps its real path: agents pass it back as projectPath
+    expect(ctx.project.path).toBe(dir);
+  });
+
+  it('every tool: no path into Luci\'s folder, the home folder or the installed library', async () => {
+    const { dir, run } = await setup();
+    const args: Record<string, Record<string, unknown>> = {
+      search_skills: { query: 'pricing page' }, get_skill: { id: 'team-voice' }, recommend_skills: { taskPrompt: 'build a pricing page' },
+      load_skills: { taskPrompt: 'pricing-page team-voice', tokenBudget: 50 }, load_project_skills: { taskPrompt: 'pricing-page team-voice', tokenBudget: 50 },
+      select_project_skills: { ids: ['pricing-page'] }, initialize_project: { dryRun: true }, watch_feedback: { seconds: 1 },
+      intake_docs: { files: ['missing.md'], dryRun: true }, add_skill_packs: { names: ['ui'] }, remove_skill_packs: { names: ['ui'] }
+    };
+    // Tools that need a saved capture, write records, run Graphify or open a browser are covered by their own tests
+    const skip = new Set(['update_project_memory', 'propose_memory', 'crawl_site_design', 'get_project_graph', 'propose_capture_rule', 'get_capture', 'get_layout_tree', 'compare_captures']);
+    const leaks: Record<string, string[]> = {};
+    for (const t of TOOLS) {
+      if (skip.has(t.name)) continue;
+      const text = await run(t.name, args[t.name] ?? {});
+      const found = outside(text, dir);
+      for (const folder of [luciHome, officialLibrary, os.homedir()]) {
+        for (const form of [folder, folder.replace(/\\/g, '/')]) {
+          // The home folder may hold the project (a temp folder under it on Windows): only text outside the project counts
+          if (text.replace(/\\\\/g, '\\').split(dir).join('').includes(form)) found.push(form);
+        }
+      }
+      if (found.length) leaks[t.name] = [...new Set(found)];
+    }
+    expect(leaks).toEqual({});
+  }, 60_000);
 });

@@ -13,7 +13,7 @@ import {
   sectionBody,
   type ProjectCommands
 } from '@luci-dev/format';
-import { SkillRegistry, addedPacks, missingSkillWarnings, projectSkillSet, readLock, trustLevel, type Skill, type SkillSource, type TrustLevel } from '@luci-dev/skills';
+import { SkillRegistry, addedPacks, catalogPath, missingSkillWarnings, projectSkillSet, readLock, trustLevel, type Skill, type SkillSource, type TrustLevel } from '@luci-dev/skills';
 import { mapFreshness, type MapFreshness } from '../codemap/codeMap.js';
 import { GRAPH_JSON, detectProject, type WorkspacePackage } from '../detect/detector.js';
 import { suggestPacks, type PackSuggestion } from '../init/initProject.js';
@@ -117,7 +117,10 @@ export interface ContextSkill {
   tokens: number | null;
   trust: TrustLevel;
   permissions: string[];
-  /** The skill file to open when a task needs it. */
+  /**
+   * The skill file to open when a task needs it: relative for a project skill, `~/.luci/...` (or
+   * `$LUCI_HOME/...`) for a personal one. Null for Luci's own library: open it by name (`get_skill`).
+   */
   path: string | null;
 }
 
@@ -168,7 +171,8 @@ function describe(projectDir: string, s: Skill): ContextSkill {
     tokens: s.tokenEstimate ?? null,
     trust: trustLevel(s),
     permissions: [...(s.contract?.permissions ?? [])],
-    path: s.filePath ? path.relative(projectDir, s.filePath).replace(/\\/g, '/') : null
+    // Never a path into the user's own folders (the same rules as project-skills.md)
+    path: catalogPath(projectDir, s)
   };
 }
 

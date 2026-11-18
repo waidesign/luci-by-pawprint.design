@@ -148,7 +148,7 @@ async function use(args: string[], ctx: CliContext): Promise<number> {
   const root = projectRootOf(ctx);
   const loaded = projectOnly
     ? (needProject(ctx) ? await loadProjectSkillsForTask(root, registry, task, options) : null)
-    : await new SkillOrchestrator(registry).loadSkillsForTask(task, info ? { dependencies: info.dependencies, framework: info.framework } : {}, options);
+    : await new SkillOrchestrator(registry).loadSkillsForTask(task, info ? { dependencies: info.dependencies, framework: info.framework } : {}, { ...options, projectDir: root });
   if (!loaded) return 1;
   if (inject) {
     if (!needProject(ctx)) return 1;

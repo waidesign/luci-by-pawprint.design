@@ -105,6 +105,7 @@ export {
   writeCatalog,
   loadProjectSkillsForTask
 } from './project.js';
+export { openByName } from './skillPath.js';
 export {
   type PackProject,
   PACKS_DIR,

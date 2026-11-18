@@ -1,8 +1,8 @@
-import path from 'node:path';
 import { PRODUCT } from '@luci-dev/format';
 import { SkillDiscovery, explainMatch } from './discovery.js';
+import { catalogPath, openByName } from './skillPath.js';
 import { describeTrust, needsCaution, trustLevel, type TrustLevel } from './trust.js';
-import { estimateTokens, type Skill, type SkillSource } from './types.js';
+import { estimateTokens, type LibraryKind, type Skill, type SkillSource } from './types.js';
 
 /** Default context budget: full instructions while they fit; anything beyond is listed in short form. */
 export const DEFAULT_TOKEN_BUDGET = 8000;
@@ -49,6 +49,8 @@ export interface LoadedSkill {
   frameworks: string[];
   description: string;
   filePath: string | undefined;
+  /** Where the skill comes from; decides how its file is written for others (see skillPath.ts). */
+  library?: LibraryKind | undefined;
   trust: TrustLevel;
   trustNote: string;
   caution: boolean;
@@ -82,7 +84,7 @@ export interface LoadedTask {
   excludedSkills: Excluded[];
   conflictResolutions: Conflict[];
   /** The shared accessibility baseline, pointed to (never inlined) on UI tasks. */
-  baseline: { id: string; name: string; filePath: string | undefined; fullTokens: number } | null;
+  baseline: { id: string; name: string; filePath: string | undefined; library?: LibraryKind | undefined; fullTokens: number } | null;
   formattedInstructions: string;
 }
 
@@ -238,7 +240,7 @@ export class SkillOrchestrator {
    *   2. skills that closely match the task (none when nothing fits),
    * then full instructions while they fit the token budget, short form after that.
    */
-  async loadSkillsForTask(taskPrompt: string, projectContext: ProjectHints = {}, options: { tokenBudget?: number } = {}): Promise<LoadedTask> {
+  async loadSkillsForTask(taskPrompt: string, projectContext: ProjectHints = {}, options: { tokenBudget?: number; projectDir?: string } = {}): Promise<LoadedTask> {
     const tokenBudget = options.tokenBudget || DEFAULT_TOKEN_BUDGET;
 
     const cleanedTokens = (taskPrompt ?? '').replace(/[<>,()]/g, ' ').split(/\s+/).map(t => t.trim().toLowerCase()).filter(Boolean);
@@ -271,7 +273,7 @@ export class SkillOrchestrator {
     let baseline: LoadedTask['baseline'] = null;
     if (uiTask && !selected.some(s => s.id === UI_BASELINE_SKILL)) {
       const skill = await this.registry.getSkill(UI_BASELINE_SKILL);
-      if (skill) baseline = { id: skill.id, name: skill.name, filePath: skill.filePath, fullTokens: skill.tokenEstimate ?? estimateTokens(skill.content) };
+      if (skill) baseline = { id: skill.id, name: skill.name, filePath: skill.filePath, library: skill.library, fullTokens: skill.tokenEstimate ?? estimateTokens(skill.content) };
     }
 
     return {
@@ -283,7 +285,7 @@ export class SkillOrchestrator {
       excludedSkills: excluded,
       conflictResolutions: conflicts,
       baseline,
-      formattedInstructions: this.formatInstructions(loaded, conflicts, { objective: taskPrompt })
+      formattedInstructions: this.formatInstructions(loaded, conflicts, { objective: taskPrompt, ...(options.projectDir ? { projectDir: options.projectDir } : {}) })
     };
   }
 
@@ -296,11 +298,12 @@ export class SkillOrchestrator {
     const info = options.projectInfo ?? {};
     const date = loaded.timestamp.slice(0, 10);
     const mem = PRODUCT.projectDir;
-    const fileRef = (p: string | undefined) => {
-      if (!p) return '(no file)';
-      const rel = options.projectDir ? path.relative(options.projectDir, p) : p;
-      const shown = rel && !rel.startsWith('..') && !path.isAbsolute(rel) ? rel : p;
-      return `\`${shown.replace(/\\/g, '/')}\``;
+    // Never a path into the user's own folders: project skills relative, personal ones under ~/.luci,
+    // Luci's library by name (skillPath.ts)
+    const fileRef = (s: { id: string; filePath: string | undefined; library?: LibraryKind | undefined }) => {
+      if (!s.filePath) return '(no file)';
+      const shown = catalogPath(options.projectDir ?? process.cwd(), s);
+      return shown ? `\`${shown}\`` : openByName(s.id);
     };
     const cell = (text: string) => String(text ?? '').replace(/\|/g, '\\|').replace(/\s+/g, ' ').trim();
 
@@ -328,12 +331,12 @@ export class SkillOrchestrator {
       out.push('| Skill | File | ~Tokens | Why |', '|---|---|---|---|');
       for (const s of loaded.skills) {
         const note = s.trust !== 'official' ? ` Source: ${s.trustNote}.` : '';
-        out.push(`| ${cell(s.name)} (\`${s.id}\`) | ${fileRef(s.filePath)} | ${s.fullTokens} | ${cell(s.reason)}${cell(note)} |`);
+        out.push(`| ${cell(s.name)} (\`${s.id}\`) | ${fileRef(s)} | ${s.fullTokens} | ${cell(s.reason)}${cell(note)} |`);
       }
       out.push('');
       if (stack.length) out.push(`Skill examples may use another language or styling (for example TypeScript or Tailwind). Write code for this project's stack: ${stack.join(' · ')}.`, '');
     }
-    if (loaded.baseline) out.push('## For every UI change', '', `- ${loaded.baseline.name}: ${fileRef(loaded.baseline.filePath)} (~${loaded.baseline.fullTokens} tokens)`, '');
+    if (loaded.baseline) out.push('## For every UI change', '', `- ${loaded.baseline.name}: ${fileRef(loaded.baseline)} (~${loaded.baseline.fullTokens} tokens)`, '');
     if (loaded.excludedSkills.length) {
       out.push('## Left out', '');
       for (const e of loaded.excludedSkills) out.push(`- \`${e.id}\`: ${e.reason}`);
@@ -371,6 +374,7 @@ export class SkillOrchestrator {
         frameworks: skill.frameworks,
         description: skill.description,
         filePath: skill.filePath,
+        library: skill.library,
         trust: trustLevel(skill),
         trustNote: describeTrust(skill),
         caution: needsCaution(skill),
@@ -384,17 +388,17 @@ export class SkillOrchestrator {
   }
 
   /** Load exactly the given skills (e.g. the ones picked during onboarding) within the budget. */
-  async loadSkillsByIds(skillIds: readonly string[], objective = '', options: { reasons?: Map<string, string>; tokenBudget?: number } = {}): Promise<{ skills: LoadedSkill[]; formattedInstructions: string }> {
+  async loadSkillsByIds(skillIds: readonly string[], objective = '', options: { reasons?: Map<string, string>; tokenBudget?: number; projectDir?: string } = {}): Promise<{ skills: LoadedSkill[]; formattedInstructions: string }> {
     const skills: Skill[] = [];
     for (const id of skillIds) {
       const skill = await this.registry.getSkill(id);
       if (skill && !skills.some(s => s.id === skill.id)) skills.push(skill);
     }
     const loaded = this.fitToBudget(skills, options.reasons ?? new Map(), options.tokenBudget ?? DEFAULT_TOKEN_BUDGET);
-    return { skills: loaded, formattedInstructions: this.formatInstructions(loaded, [], { objective }) };
+    return { skills: loaded, formattedInstructions: this.formatInstructions(loaded, [], { objective, ...(options.projectDir ? { projectDir: options.projectDir } : {}) }) };
   }
 
-  formatInstructions(skills: readonly LoadedSkill[], conflicts: readonly Conflict[] = [], options: { objective?: string } = {}): string {
+  formatInstructions(skills: readonly LoadedSkill[], conflicts: readonly Conflict[] = [], options: { objective?: string; projectDir?: string } = {}): string {
     let md = `# ${PRODUCT.name.toUpperCase()} — ACTIVE SKILL CONTEXT\n\n`;
     if (options.objective) md += `**Objective**: ${options.objective}\n\n`;
 
@@ -422,7 +426,9 @@ export class SkillOrchestrator {
       if (skill.mode === 'summary') {
         md += `${skill.description}\n\n`;
         md += `_Full instructions (~${skill.fullTokens} tokens) were not loaded to save context. `;
-        md += `Read them only if this task needs them: \`${skill.filePath}\`_\n\n`;
+        // Never a path into the user's own folders (skillPath.ts)
+        const shown = catalogPath(options.projectDir ?? process.cwd(), skill);
+        md += `Read them only if this task needs them: ${shown ? `\`${shown}\`` : openByName(skill.id)}_\n\n`;
       } else {
         md += `${skill.content}\n\n`;
       }
