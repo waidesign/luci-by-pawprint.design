@@ -8,7 +8,7 @@
 Codebase, stack and build tooling decisions
 
 ## Why
-Source: docs/PRD.md Part 2, Decisions made on 12 Nov 2026.
+Source: .luci/docs/PRD.md Part 2, Decisions made on 12 Nov 2026.
 
 - Codebase: a new repository; memory and skills are ported from the prototype with their tests, Capture and Feedback are new.
 - Tech stack (approved): TypeScript pnpm monorepo, Preact toolbar in Shadow DOM, WXT Manifest V3 extension, MCP TypeScript SDK, Zod, culori, Vitest and Playwright. Node 18 or later.

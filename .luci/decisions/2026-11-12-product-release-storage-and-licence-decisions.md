@@ -8,7 +8,7 @@
 Product, release, storage and licence decisions
 
 ## Why
-Source: docs/PRD.md Part 2, Decisions made on 12 Nov 2026.
+Source: .luci/docs/PRD.md Part 2, Decisions made on 12 Nov 2026.
 
 - Product: one product, memory, skills, design capture and feedback together.
 - Name: Luci (final).

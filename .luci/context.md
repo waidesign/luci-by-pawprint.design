@@ -3,7 +3,7 @@
 _Sections marked (auto-detected) come from the project's files and are refreshed by `luci update`. Change a heading to (confirmed) once a person has checked it, and it is kept as written. Replace every "Not written yet" with real information, or delete the section._
 
 ## Project Goal
-Luci: a local-first toolkit for AI coding agents with memory, skill selection, design capture and feedback. Full requirements in docs/PRD.md.
+Luci: a local-first toolkit for AI coding agents with memory, skill selection, design capture and feedback. Full requirements in .luci/docs/PRD.md.
 
 ## Stack (auto-detected)
 - Framework: monorepo

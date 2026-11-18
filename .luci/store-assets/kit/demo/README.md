@@ -13,14 +13,14 @@ Build once if `packages/cli/dist` is missing: `pnpm build`.
 Terminal 1, the page:
 
 ```powershell
-node store-assets\kit\demo\serve.mjs 8080
+node .luci\store-assets\kit\demo\serve.mjs 8080
 ```
 
 Terminal 2, the bridge for `recipe-box` (port 4546, so it never meets another `luci serve` on 4545):
 
 ```powershell
-cd store-assets\kit\demo\recipe-box
-node ..\..\..\..\packages\cli\dist\bin.js serve --port 4546
+cd .luci\store-assets\kit\demo\recipe-box
+node ..\..\..\..\..\packages\cli\dist\bin.js serve --port 4546
 ```
 
 In Chrome, open `http://localhost:8080/`, click Luci's icon, open **Settings** and set **Bridge** to `http://127.0.0.1:4546`. Put it back to `http://127.0.0.1:4545` (or empty) afterwards. Stop both terminals with Ctrl+C.

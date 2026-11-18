@@ -8,7 +8,7 @@
 Build rules from PRD Part 4
 
 ## Why
-Source: docs/PRD.md Part 4, How to use this document. These apply to all build work.
+Source: .luci/docs/PRD.md Part 4, How to use this document. These apply to all build work.
 
 1. Work in milestone order, M1 to M6. Do not start a milestone until the previous one meets its "Done when" line and every test passes.
 2. Port, do not rewrite. For a module marked Port, move the code and its tests, convert both to strict TypeScript, and apply the renames. Change behaviour only where a requirement says so.

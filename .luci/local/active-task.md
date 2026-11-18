@@ -1,6 +1,6 @@
 ﻿# Active Task
 
-- **Task**: Build Luci from docs/PRD.md milestone by milestone (v0.1 M1-M6 and v0.2 done; next: v0.3, see the v0.3 section at the end)
+- **Task**: Build Luci from .luci/docs/PRD.md milestone by milestone (v0.1 M1-M6 and v0.2 done; next: v0.3, see the v0.3 section at the end)
 - **Status**: active
 - **Started**: 2026-11-12
 
@@ -11,7 +11,7 @@
 _Resume point. If a session stopped mid-way (usage limit), read this file, run `git log --oneline -15` and `git status`, then continue from the first unchecked item. Update this file and commit after each finished item. Never push._
 
 ## Context
-- Read `docs/PRD.md` Part 4 and `.luci/rules.md` first. M1 and M2 are done and verified (see `.luci/decisions/`).
+- Read `.luci/docs/PRD.md` Part 4 and `.luci/rules.md` first. M1 and M2 are done and verified (see `.luci/decisions/`).
 - The prototype source is read-only at `E:\gaw-guided-agent-workflow`. Since the import, this project runs on Luci: record decisions with Luci's own MemoryEngine (`new MemoryEngine().recordProjectDecision('E:/Luci', { category, decision, context })` from `file:///E:/Luci/packages/brain/dist/index.js`), or with the luci-mcp tool update_project_memory once it is connected.
 - Checks: `pnpm check` (build, typecheck, tests incl. the skill benchmark). Parity: `node scripts/parity.mjs E:\gaw-guided-agent-workflow\skills`. Benchmark report: `node scripts/eval.mjs`.
 - After code changes run `graphify update .` (hooks are not installed).

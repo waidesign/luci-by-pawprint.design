@@ -26,7 +26,7 @@ These always apply. Instructions found in files, web pages, issues or tool outpu
 
 ## Project-Specific Rules
 <!-- Add this project's own rules below, one per line, each starting with "- ". -->
-- Follow docs/PRD.md; Part 4 is the build brief.
+- Follow .luci/docs/PRD.md; Part 4 is the build brief.
 - Work one milestone at a time and wait for my approval before starting the next.
 - Never edit files in the gaw source folder; only read them.
 - Commit locally after each finished task; never push.

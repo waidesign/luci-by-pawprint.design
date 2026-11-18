@@ -8,7 +8,7 @@
 Capture and file format decisions
 
 ## Why
-Source: docs/PRD.md Part 2, Decisions made on 12 Nov 2026.
+Source: .luci/docs/PRD.md Part 2, Decisions made on 12 Nov 2026.
 
 - Capture delivery: an on-page toolbar, a thin browser extension for any site and a dev toolbar for your own projects.
 - Capture basket: yes.

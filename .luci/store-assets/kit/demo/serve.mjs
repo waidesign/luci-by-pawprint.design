@@ -1,5 +1,5 @@
 // Serves the Recipe Box demo page on http://localhost:<port> (default 8080). No dependencies.
-// Usage, from the repository root: node store-assets/kit/demo/serve.mjs [port]
+// Usage, from the repository root: node .luci/store-assets/kit/demo/serve.mjs [port]
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
@@ -23,7 +23,7 @@ const server = http.createServer((req, res) => {
 });
 
 server.on('error', (err) => {
-  console.error(err.code === 'EADDRINUSE' ? `Port ${port} is in use. Try: node store-assets/kit/demo/serve.mjs ${port + 1}` : err.message);
+  console.error(err.code === 'EADDRINUSE' ? `Port ${port} is in use. Try: node .luci/store-assets/kit/demo/serve.mjs ${port + 1}` : err.message);
   process.exit(1);
 });
 // Only this machine can reach it

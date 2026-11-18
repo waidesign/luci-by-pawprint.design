@@ -8,7 +8,7 @@
 Luci v0.1 goal and scope
 
 ## Why
-Source: docs/PRD.md Part 1, Goals and non-goals.
+Source: .luci/docs/PRD.md Part 1, Goals and non-goals.
 
 One local-first toolkit giving AI coding agents project memory (Brain), task-fitting skills (Skills), exact design context (Capture) and precise feedback (Feedback), all sharing one project memory folder.
 
