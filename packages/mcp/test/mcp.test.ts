@@ -87,7 +87,7 @@ describe('v0.4 design tools', () => {
   });
 });
 
-// Ported from the prototype's mcp/server.js tool list (presets and agentation are dropped)
+// Ported from the prototype's mcp/server.js tool list (two of its tools are dropped)
 describe('luci-mcp tools (B11)', () => {
   it('serves the ported tools plus get_active_task and propose_memory, and the feedback and capture tools (M6)', () => {
     const names = TOOLS.map(t => t.name).sort();
