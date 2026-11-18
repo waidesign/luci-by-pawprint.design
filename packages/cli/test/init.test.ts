@@ -80,4 +80,31 @@ describe('luci init', () => {
     expect(await run(['init', '--frobnicate'], f.ctx)).toBe(1);
     expect(f.errors()).toContain('Unknown option for init: --frobnicate');
   });
+
+  it('prints the global install tip when luci is not on PATH (or ran via npx), plus the PowerShell tip on Windows, and neither when on PATH', async () => {
+    const dir = tempProject();
+    const binDir = tempProject({ 'luci': '#!/bin/sh\n', 'luci.cmd': '@echo off\r\n' });
+    const npxDir = path.join(dir, '_npx', '123', 'node_modules', '.bin');
+    fs.mkdirSync(npxDir, { recursive: true });
+    fs.writeFileSync(path.join(npxDir, 'luci'), '', 'utf8');
+    fs.writeFileSync(path.join(npxDir, 'luci.cmd'), '', 'utf8');
+
+    // Missing from PATH on macOS/Linux: prints global install tip only
+    const macNoPath = fakeContext(dir, { pathEnv: npxDir, platform: 'darwin' });
+    expect(await run(['init', '--yes'], macNoPath.ctx)).toBe(0);
+    expect(macNoPath.text()).toContain('Install once for short commands: npm install -g @luci-dev/cli');
+    expect(macNoPath.text()).not.toContain('In PowerShell, if `luci` is blocked, use `luci.cmd`.');
+
+    // Missing from PATH on Windows: prints both lines
+    const winNoPath = fakeContext(dir, { pathEnv: npxDir, platform: 'win32' });
+    expect(await run(['init', '--yes'], winNoPath.ctx)).toBe(0);
+    expect(winNoPath.text()).toContain('Install once for short commands: npm install -g @luci-dev/cli');
+    expect(winNoPath.text()).toContain('In PowerShell, if `luci` is blocked, use `luci.cmd`.');
+
+    // Present on PATH: prints neither line
+    const onPathWin = fakeContext(dir, { pathEnv: binDir, platform: 'win32' });
+    expect(await run(['init', '--yes'], onPathWin.ctx)).toBe(0);
+    expect(onPathWin.text()).not.toContain('Install once for short commands: npm install -g @luci-dev/cli');
+    expect(onPathWin.text()).not.toContain('In PowerShell, if `luci` is blocked, use `luci.cmd`.');
+  });
 });

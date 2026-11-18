@@ -72,6 +72,34 @@ export interface DiagnoseOptions {
 
 const MIN_NODE_MAJOR = 18;
 const run = (args: string) => `\`${PRODUCT.command} ${args}\``;
+
+export const GLOBAL_INSTALL_TIP = 'Install once for short commands: npm install -g @luci-dev/cli';
+export const WINDOWS_POWERSHELL_TIP = 'In PowerShell, if `luci` is blocked, use `luci.cmd`.';
+
+/**
+ * Whether `luci` is installed on the user's real PATH (ignoring temporary npx cache
+ * folders and project-local node_modules/.bin shims).
+ */
+export function isLuciOnPath(
+  pathEnv: string | undefined = process.env.PATH ?? process.env.Path,
+  platform: NodeJS.Platform = process.platform
+): boolean {
+  if (!pathEnv) return false;
+  const names = platform === 'win32' ? ['luci.cmd', 'luci.exe', 'luci.ps1', 'luci'] : ['luci'];
+  for (const raw of pathEnv.split(platform === 'win32' ? ';' : ':')) {
+    const dir = raw.trim().replace(/^"+|"+$/g, '');
+    if (!dir) continue;
+    if (/[\\/]_npx[\\/]/i.test(dir) || /[\\/]node_modules[\\/]\.bin[\\/]?$/i.test(dir)) continue;
+    for (const name of names) {
+      try {
+        if (fs.statSync(path.join(dir, name)).isFile()) return true;
+      } catch {
+        // Not in this folder
+      }
+    }
+  }
+  return false;
+}
 const markdownFiles = (dir: string) =>
   fs.existsSync(dir) ? fs.readdirSync(dir).filter(f => f.endsWith('.md') && f !== 'README.md').sort() : [];
 

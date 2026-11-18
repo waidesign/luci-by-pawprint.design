@@ -128,5 +128,8 @@ export {
   type Diagnosis,
   type DiagnoseOptions,
   type ProjectSummary,
-  diagnose
+  GLOBAL_INSTALL_TIP,
+  WINDOWS_POWERSHELL_TIP,
+  diagnose,
+  isLuciOnPath
 } from './doctor/diagnose.js';

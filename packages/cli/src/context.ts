@@ -9,6 +9,10 @@ export interface CliContext {
   ask?: (question: string) => Promise<string>;
   /** Stops a long-running command (serve); without it, Ctrl+C does. */
   signal?: AbortSignal;
+  /** PATH string for tests; defaults to process.env.PATH. */
+  pathEnv?: string;
+  /** Platform for tests; defaults to process.platform. */
+  platform?: NodeJS.Platform;
 }
 
 export type Command = (args: string[], ctx: CliContext) => Promise<number>;

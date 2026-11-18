@@ -25,7 +25,7 @@ export function tempProject(files: Record<string, string> = { 'package.json': JS
 }
 
 /** A context that records output and answers questions from a script. */
-export function fakeContext(cwd: string, options: { isTTY?: boolean; answers?: string[] } = {}) {
+export function fakeContext(cwd: string, options: { isTTY?: boolean; answers?: string[]; pathEnv?: string; platform?: NodeJS.Platform } = {}) {
   const out: string[] = [];
   const err: string[] = [];
   const asked: string[] = [];
@@ -35,7 +35,9 @@ export function fakeContext(cwd: string, options: { isTTY?: boolean; answers?: s
     out: (line = '') => out.push(line),
     err: (line = '') => err.push(line),
     isTTY: options.isTTY ?? false,
-    ask: async (q) => { asked.push(q); return answers.shift() ?? ''; }
+    ask: async (q) => { asked.push(q); return answers.shift() ?? ''; },
+    ...(options.pathEnv !== undefined ? { pathEnv: options.pathEnv } : {}),
+    ...(options.platform !== undefined ? { platform: options.platform } : {})
   };
   return { ctx, out, err, asked, text: () => out.join('\n'), errors: () => err.join('\n') };
 }

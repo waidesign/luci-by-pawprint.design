@@ -1,5 +1,5 @@
 import { AGENT_FILES, AGENT_NAMES, PRODUCT, type AgentId } from '@luci-dev/format';
-import { initProject } from '@luci-dev/brain';
+import { GLOBAL_INSTALL_TIP, WINDOWS_POWERSHELL_TIP, initProject, isLuciOnPath } from '@luci-dev/brain';
 import { SkillRegistry } from '@luci-dev/skills';
 import { isHelp, parseFlags, type Command } from '../context.js';
 import { createLineAsker, runOnboarding } from '../onboarding.js';
@@ -108,5 +108,10 @@ export const initCommand: Command = async (rawArgs, ctx) => {
   ctx.out(`\nDone. Your agents read ${PRODUCT.projectDir}/ through ${files.slice(0, -1).join(', ')}${files.length > 1 ? ' and ' : ''}${files[files.length - 1]}.`);
   ctx.out(`Other agents: ${PRODUCT.command} init --agents codex,gemini,copilot,generic (or all).`);
   ctx.out(`Check the setup any time with: ${PRODUCT.command} doctor`);
+  const platform = ctx.platform ?? process.platform;
+  if (!isLuciOnPath(ctx.pathEnv, platform)) {
+    ctx.out(GLOBAL_INSTALL_TIP);
+    if (platform === 'win32') ctx.out(WINDOWS_POWERSHELL_TIP);
+  }
   return 0;
 };
