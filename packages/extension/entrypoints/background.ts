@@ -25,7 +25,10 @@ async function bridgeUrl(): Promise<string> {
   }
 }
 
-/** Check if optional debugger permission has been granted (v0.4.4 Option 3). */
+/**
+ * Whether Chrome lets Luci use the debugger. It is a required permission, so this is normally true;
+ * it guards against Chrome or a policy withholding it.
+ */
 async function hasDebuggerPermission(): Promise<boolean> {
   try {
     return Boolean(await browser.permissions?.contains?.({ permissions: ['debugger'] }));

@@ -2,9 +2,10 @@ import { defineConfig } from 'wxt';
 
 // Chrome, Manifest V3. Permissions stay minimal: the toolbar is injected only into the tab where the
 // user clicks Luci's icon (activeTab + scripting), and settings live in extension storage. `debugger`
-// is an optional permission requested on-demand for exact CDP component states and responsive tab
-// resizing; without it, Luci falls back gracefully to CSS stylesheet rules and hidden frames.
-// No content scripts that run on every page.
+// is a required permission (Chrome does not allow it in optional_permissions), so Chrome shows its
+// debugger warning at install. Luci attaches it only during a capture that needs exact component states
+// or responsive widths, and the person can turn its use off in Luci's settings (useDebugger); then Luci
+// reads states from stylesheet rules and widths in a hidden frame. No content scripts that run on every page.
 //
 // LUCI_EXTENSION_TEST=1 builds a test-only copy into .output-test/ with access to all sites and pre-granted
 // debugger, because automated headless tests cannot click the extension icon or accept Chrome permission modals.

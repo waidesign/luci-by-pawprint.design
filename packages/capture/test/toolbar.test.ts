@@ -824,7 +824,7 @@ describe('extension branding, settings panel and the brand kit themes', { timeou
     await page.context().close();
   });
 
-  it('displays debugger permission status in settings and triggers help flow on enable (v0.4.4 Option 3)', async () => {
+  it('says when Chrome does not let Luci use the debugger, without calling it optional, and opens help about it', async () => {
     const page = await open('css-variables');
     await page.evaluate(() => {
       const w = window as any;
@@ -842,16 +842,17 @@ describe('extension branding, settings panel and the brand kit themes', { timeou
 
     await page.click('[data-action="settings"]');
     await page.locator('[data-part="debugger-permission"]').waitFor();
-    expect(await page.locator('[data-part="debugger-permission"] .project-name').innerText()).toBe('Debugger: optional (not enabled)');
+    expect(await page.locator('[data-part="debugger-permission"] .project-name').innerText()).toBe('Debugger: not available');
+    expect((await page.locator('[data-part="debugger-permission"]').innerText()).toLowerCase()).not.toContain('optional');
     expect(await page.locator('[data-part="debugger-permission"] .status-dot.offline').count()).toBe(1);
 
-    await page.click('[data-action="enable-debugger"]');
+    await page.click('[data-action="debugger-help"]');
     expect(await page.evaluate(() => (window as any).requestedDbg)).toBe(true);
 
     await page.context().close();
   });
 
-  it('allows user to disable and re-enable debugger via settings toggle (v0.4.4 Option 3)', async () => {
+  it("Luci's switch in settings turns its use of the debugger off and on, and is saved", async () => {
     const page = await open('css-variables');
     await page.evaluate(() => {
       const w = window as any;
@@ -869,18 +870,21 @@ describe('extension branding, settings panel and the brand kit themes', { timeou
 
     await page.click('[data-action="settings"]');
     await page.locator('[data-part="debugger-permission"]').waitFor();
-    expect(await page.locator('[data-part="debugger-permission"] .project-name').innerText()).toBe('Debugger: active');
-    expect(await page.locator('[data-action="toggle-debugger"]').innerText()).toBe('Disable debugger');
+    expect(await page.locator('[data-part="debugger-permission"] .project-name').innerText()).toBe('Debugger: on');
+    expect(await page.locator('[data-action="toggle-debugger"]').innerText()).toBe("Don't use the debugger");
 
-    // Click Disable debugger
+    // Turn Luci's use of it off
     await page.click('[data-action="toggle-debugger"]');
-    expect(await page.locator('[data-part="debugger-permission"] .project-name').innerText()).toBe('Debugger: disabled');
-    expect(await page.locator('[data-action="toggle-debugger"]').innerText()).toBe('Enable debugger');
+    expect(await page.locator('[data-part="debugger-permission"] .project-name').innerText()).toBe('Debugger: off');
+    expect(await page.locator('[data-part="debugger-permission"] .project-hint').innerText()).toContain('Luci never attaches it');
+    expect(await page.locator('[data-action="toggle-debugger"]').innerText()).toBe('Use the debugger');
+    expect(await page.evaluate(() => (window as any).savedSettings.at(-1).useDebugger)).toBe(false);
 
-    // Click Enable debugger
+    // And on again
     await page.click('[data-action="toggle-debugger"]');
-    expect(await page.locator('[data-part="debugger-permission"] .project-name').innerText()).toBe('Debugger: active');
-    expect(await page.locator('[data-action="toggle-debugger"]').innerText()).toBe('Disable debugger');
+    expect(await page.locator('[data-part="debugger-permission"] .project-name').innerText()).toBe('Debugger: on');
+    expect(await page.locator('[data-action="toggle-debugger"]').innerText()).toBe("Don't use the debugger");
+    expect(await page.evaluate(() => (window as any).savedSettings.at(-1).useDebugger)).toBe(true);
 
     await page.context().close();
   });

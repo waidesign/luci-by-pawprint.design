@@ -1,6 +1,6 @@
 {
   "name": "@luci-dev/toolbar",
-  "version": "0.5.6",
+  "version": "0.5.7",
   "description": "The dev toolbar: feedback and capture in your own app, saved into the project through luci serve.",
   "type": "module",
   "license": "MIT",

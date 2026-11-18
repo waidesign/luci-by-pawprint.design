@@ -1,6 +1,6 @@
 {
   "name": "@luci-dev/feedback",
-  "version": "0.5.6",
+  "version": "0.5.7",
   "description": "Feedback in the browser: annotations on a running app, the React adapter, and where items are kept. Browser-safe.",
   "type": "module",
   "license": "MIT",

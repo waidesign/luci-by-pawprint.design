@@ -1,11 +1,15 @@
 import { browser } from 'wxt/browser';
 
+const SETTINGS_KEY = 'captureSettings';
+
+/**
+ * The help page's debugger status. `debugger` is a required permission (Chrome does not allow it as
+ * optional), so what the person controls is Luci's own switch in settings (useDebugger, on by default).
+ */
 async function updateStatus(): Promise<void> {
   const dot = document.getElementById('dbg-dot');
   const text = document.getElementById('dbg-status-text');
-  const reqBtn = document.getElementById('dbg-request-btn') as HTMLButtonElement | null;
-  const remBtn = document.getElementById('dbg-remove-btn') as HTMLButtonElement | null;
-  if (!dot || !text || !reqBtn || !remBtn) return;
+  if (!dot || !text) return;
 
   let granted = false;
   try {
@@ -13,47 +17,29 @@ async function updateStatus(): Promise<void> {
   } catch {
     granted = false;
   }
-
-  if (granted) {
-    dot.className = 'status-dot online';
-    text.textContent = 'Debugger permission: Active (exact CDP states & tab resizing enabled)';
-    reqBtn.style.display = 'none';
-    remBtn.style.display = 'inline-block';
-  } else {
-    dot.className = 'status-dot offline';
-    text.textContent = 'Debugger permission: Optional (CSS rules & frame fallback active)';
-    reqBtn.style.display = 'inline-block';
-    remBtn.style.display = 'none';
+  let useDebugger = true;
+  try {
+    const settings = (await browser.storage.local.get(SETTINGS_KEY))[SETTINGS_KEY] as { useDebugger?: boolean } | undefined;
+    useDebugger = settings?.useDebugger ?? true;
+  } catch {
+    // No storage here: the default stands
   }
+
+  const on = granted && useDebugger;
+  dot.className = `status-dot ${on ? 'online' : 'offline'}`;
+  text.textContent = !granted
+    ? 'Chrome is not letting Luci use the debugger.'
+    : useDebugger
+      ? "Luci's switch is on: Luci uses the debugger during captures."
+      : "Luci's switch is off: Luci never attaches the debugger.";
 }
 
 function init(): void {
   void updateStatus();
-
-  document.getElementById('dbg-request-btn')?.addEventListener('click', async () => {
-    try {
-      const granted = await browser.permissions.request({ permissions: ['debugger'] });
-      void updateStatus();
-      if (!granted) {
-        console.info('Luci: debugger permission request was dismissed.');
-      }
-    } catch (err) {
-      console.warn('Luci: could not request debugger permission:', err);
-    }
-  });
-
-  document.getElementById('dbg-remove-btn')?.addEventListener('click', async () => {
-    try {
-      await browser.permissions.remove({ permissions: ['debugger'] });
-      void updateStatus();
-    } catch (err) {
-      console.warn('Luci: could not remove debugger permission:', err);
-    }
-  });
-
   try {
-    browser.permissions?.onAdded?.addListener?.(() => void updateStatus());
-    browser.permissions?.onRemoved?.addListener?.(() => void updateStatus());
+    browser.storage?.onChanged?.addListener?.((changes) => {
+      if (SETTINGS_KEY in changes) void updateStatus();
+    });
   } catch {
     // Unsupported or mocked in some contexts
   }

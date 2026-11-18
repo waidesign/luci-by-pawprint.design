@@ -75,7 +75,7 @@ export interface DevSettingsPanelProps {
   /** Capture settings and updater (if passed directly). */
   captureSettings?: CaptureSettings;
   onCaptureSettingsChange?: (s: CaptureSettings) => void;
-  /** Debugger permission info (if in extension or supported). */
+  /** Whether Chrome lets Luci use the debugger (the extension; a required permission there), and a way to open help about it. */
   debuggerPermission?: {
     get: () => Promise<boolean>;
     request?: () => void;
@@ -380,15 +380,15 @@ export function DevSettingsPanel(props: DevSettingsPanelProps) {
                 <div class="project-info">
                   <span class="project-name">
                     {debuggerGranted
-                      ? (useDebugger ? 'Debugger: active' : 'Debugger: disabled')
-                      : 'Debugger: optional (not enabled)'}
+                      ? (useDebugger ? 'Debugger: on' : 'Debugger: off')
+                      : 'Debugger: not available'}
                   </span>
                   <span class="project-hint dim">
                     {debuggerGranted
                       ? (useDebugger
-                        ? 'Briefly attaches only during captures for exact CDP states'
-                        : 'CSS rules & hidden frames active. Debugger will never be attached.')
-                      : 'CSS rules & frame fallback active'}
+                        ? 'Luci uses it during a capture for exact states and widths, then detaches it'
+                        : 'Luci never attaches it: states come from stylesheet rules, widths from a hidden frame')
+                      : 'Chrome is not letting Luci use it: states come from stylesheet rules, widths from a hidden frame'}
                   </span>
                 </div>
               </div>
@@ -400,20 +400,20 @@ export function DevSettingsPanel(props: DevSettingsPanelProps) {
                     data-action="toggle-debugger"
                     onClick={() => updateCapSettings({ ...capSettings, useDebugger: !useDebugger })}
                   >
-                    {useDebugger ? 'Disable debugger' : 'Enable debugger'}
+                    {useDebugger ? "Don't use the debugger" : 'Use the debugger'}
                   </button>
                 ) : (
                   <button
                     type="button"
                     class="btn-secondary"
-                    data-action="enable-debugger"
+                    data-action="debugger-help"
                     onClick={() => {
                       if (props.debuggerPermission?.request) {
                         props.debuggerPermission.request();
                       }
                     }}
                   >
-                    Enable in Help
+                    About the debugger
                   </button>
                 )}
               </div>

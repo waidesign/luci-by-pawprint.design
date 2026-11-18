@@ -58,7 +58,7 @@ export interface MountOptions {
   movable?: boolean;
   /** Where "Use my tokens" finds the person's tokens (v0.4). */
   myTokens?: MyTokensSource;
-  /** Debugger permission status and request helper (optional in extension, v0.4.4 Option 3). */
+  /** Whether Chrome lets Luci use the debugger (the extension; a required permission there), and a way to open help about it. */
   debuggerPermission?: {
     get: () => Promise<boolean>;
     request?: () => void;

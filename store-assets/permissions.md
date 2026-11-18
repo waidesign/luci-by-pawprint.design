@@ -1,4 +1,4 @@
-# Luci 0.5.6: why each permission is needed
+# Luci 0.5.7: why each permission is needed
 
 For the Chrome Web Store "Permission justification" fields. Each line matches what the code in `packages/extension` does.
 

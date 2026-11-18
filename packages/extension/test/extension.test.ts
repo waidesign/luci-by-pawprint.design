@@ -31,6 +31,8 @@ describe('extension build (M4.6)', { timeout: 120_000 }, () => {
     expect(m['manifest_version']).toBe(3);
     expect(m['name']).toBe('Luci');
     expect(m['permissions']).toEqual(['activeTab', 'scripting', 'storage', 'debugger']);
+    // Chrome does not allow debugger as an optional permission
+    expect(m['optional_permissions']).toBeUndefined();
     expect(m['host_permissions']).toEqual(['http://127.0.0.1/*', 'http://localhost/*']);
     expect(m['content_scripts']).toBeUndefined();
     expect(m['background']).toEqual({ service_worker: 'background.js' });
@@ -50,14 +52,20 @@ describe('extension build (M4.6)', { timeout: 120_000 }, () => {
     expect(tb).toContain('luci:save-to-project');
   });
 
-  it('bundles check-debugger message handler and help page debugger section (v0.4.4 Option 3)', () => {
+  it('the help page explains the required debugger permission and Luci\'s switch, with no request or remove buttons', () => {
     const dir = build(false);
     const bg = fs.readFileSync(path.join(dir, 'background.js'), 'utf8');
     expect(bg).toContain('luci:check-debugger');
     const help = fs.readFileSync(path.join(dir, 'help.html'), 'utf8');
-    expect(help).toContain('debugger-permission');
-    expect(help).toContain('dbg-request-btn');
-    expect(help).toContain('dbg-dot');
+    expect(help).toContain('id="debugger-permission"');
+    expect(help).toContain('dbg-status-text');
+    expect(help).not.toContain('dbg-request-btn');
+    expect(help).not.toContain('dbg-remove-btn');
+    const start = help.indexOf('id="debugger-permission"');
+    const section = help.slice(start, help.indexOf('<h2', start));
+    expect(section.toLowerCase()).not.toContain('optional');
+    expect(section).toContain('debugger warning');
+    expect(section).toContain("Luci's switch");
   });
 });
 
@@ -123,6 +131,23 @@ describe.runIf(process.env['LUCI_EXTENSION_E2E'] === '1')('extension in Chromium
     expect(await help.locator('h1').innerText()).toBe('Capturing design with Luci');
     await help.close();
     await page.close();
+  });
+
+  it("the help page's debugger status follows Luci's switch in settings (the permission itself is required)", async () => {
+    const status = () => ext.locator('#dbg-status-text').innerText();
+    await expect.poll(status).toBe("Luci's switch is on: Luci uses the debugger during captures.");
+    await api(async () => {
+      const c = (globalThis as unknown as { chrome: Chrome }).chrome;
+      await c.storage.local.set({ captureSettings: { useDebugger: false } });
+    }, null);
+    await expect.poll(status).toBe("Luci's switch is off: Luci never attaches the debugger.");
+    expect(await ext.locator('#dbg-dot').getAttribute('class')).toBe('status-dot offline');
+    await api(async () => {
+      const c = (globalThis as unknown as { chrome: Chrome }).chrome;
+      await c.storage.local.remove('captureSettings');
+    }, null);
+    await expect.poll(status).toBe("Luci's switch is on: Luci uses the debugger during captures.");
+    expect(await ext.locator('#dbg-request-btn, #dbg-remove-btn').count()).toBe(0);
   });
 
   it('puts the toolbar on the page, captures with it, keeps settings, and a second click closes it', async () => {

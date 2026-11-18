@@ -69,7 +69,7 @@ export default defineUnlistedScript(async () => {
         await ask({ type: 'luci:set-bridge-url', url });
       }
     },
-    // Optional debugger permission (v0.4.4 Option 3)
+    // Debugger status for settings: a required permission; "request" opens the help page's section on it
     debuggerPermission: {
       get: async () => {
         try {
