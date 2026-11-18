@@ -1,0 +1,4 @@
+# Keeps this folder in git (its .luci/ makes recipe-box its own Luci project, so `luci serve` saves
+# here, not into the repository's .luci/). Captures saved during a demo stay out of git.
+*
+!.gitignore
