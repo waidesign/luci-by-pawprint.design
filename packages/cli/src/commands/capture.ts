@@ -19,7 +19,7 @@ import {
   readComponentFile
 } from '@luci-dev/format/capture';
 import { CheckStore, DesignStore, FeedbackStore, canWriteBaseline, captureRule, crawlSite, findProjectRoot, proposeCaptureRule, writeBaseline } from '@luci-dev/brain';
-import { parseFlags, type Command } from '../context.js';
+import { isHelp, parseFlags, type Command } from '../context.js';
 
 export const CAPTURE_HELP = `capture [checks | rule <file> | baseline [--stitch] [--tailwind] [--tailwind-v3] [--css-vars] | compare <a> <b> | crawl <urls...> [--stitch] [--base <url>] | layout <file>]
                         The design captures saved in the project. checks lists recent design check runs;
@@ -34,6 +34,10 @@ export const CAPTURE_HELP = `capture [checks | rule <file> | baseline [--stitch]
 const usage = () => `Usage: ${PRODUCT.command} ${CAPTURE_HELP}`;
 
 export const captureCommand: Command = async (args, ctx) => {
+  if (isHelp(args)) {
+    ctx.out(usage());
+    return 0;
+  }
   let baseOption: string | undefined;
   const filteredArgs: string[] = [];
   for (let i = 0; i < args.length; i++) {

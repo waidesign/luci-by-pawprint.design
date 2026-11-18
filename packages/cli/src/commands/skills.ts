@@ -29,7 +29,7 @@ import {
   type PreferenceAction,
   type Skill
 } from '@luci-dev/skills';
-import type { CliContext, Command } from '../context.js';
+import { isHelp, subcommandHelp, type CliContext, type Command } from '../context.js';
 
 const cmd = (args: string) => `${PRODUCT.command} ${args}`;
 
@@ -411,6 +411,11 @@ const SUBCOMMANDS: Readonly<Record<string, (args: string[], ctx: CliContext) => 
 };
 
 export const skillsCommand: Command = async (args, ctx) => {
+  if (isHelp(args)) {
+    const sub = args.find(a => !a.startsWith('-'));
+    ctx.out(`Usage: ${PRODUCT.command} ${subcommandHelp(SKILLS_HELP, 'skills', sub)}`);
+    return 0;
+  }
   const [sub, ...rest] = args;
   if (!sub) return list([], ctx);
   const handler = SUBCOMMANDS[sub];

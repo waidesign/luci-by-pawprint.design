@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 import { PRODUCT } from '@luci-dev/format';
 import { findProjectRoot } from '@luci-dev/brain';
 import { DEFAULT_PORT, startBridge } from '../serve/bridge.js';
-import type { Command } from '../context.js';
+import { isHelp, type Command } from '../context.js';
 import { cliVersion } from '../version.js';
 import { findToolbarTarget, manualToolbarHelp, toolbarInstalledIn } from '../toolbarSetup.js';
 import { offerToolbar } from './toolbar.js';
@@ -21,6 +21,10 @@ export function toolbarScriptPath(): string | null {
 }
 
 export const serveCommand: Command = async (args, ctx) => {
+  if (isHelp(args)) {
+    ctx.out(`Usage: ${PRODUCT.command} ${SERVE_HELP}`);
+    return 0;
+  }
   let port = DEFAULT_PORT;
   for (let i = 0; i < args.length; i++) {
     const arg = args[i]!;

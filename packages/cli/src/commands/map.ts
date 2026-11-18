@@ -1,6 +1,6 @@
 import { PRODUCT } from '@luci-dev/format';
 import { CODE_MAP_SETUP_HINT, CodeMap, GraphifyInstaller, ensureGraphify, findProjectRoot, hasCodeFiles, locateGraph, mapFreshness, readGraphStats } from '@luci-dev/brain';
-import { parseFlags, type Command } from '../context.js';
+import { isHelp, parseFlags, type Command } from '../context.js';
 import { createLineAsker } from '../onboarding.js';
 
 export const MAP_HELP = `map [--update|--install] The code map: status; --update builds or refreshes it; --install installs Graphify`;
@@ -14,6 +14,10 @@ export const mapServices = {
 const cmd = (args: string) => `\`${PRODUCT.command} ${args}\``;
 
 export const mapCommand: Command = async (args, ctx) => {
+  if (isHelp(args)) {
+    ctx.out(`Usage: ${PRODUCT.command} ${MAP_HELP}`);
+    return 0;
+  }
   const { flags, unknown } = parseFlags(args, ['--update', '--full', '--install', '--yes']);
   if (unknown.length) {
     ctx.err(`Unknown option: ${unknown.join(' ')}\nUsage: ${PRODUCT.command} ${MAP_HELP}`);

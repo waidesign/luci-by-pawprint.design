@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import { PRODUCT } from '@luci-dev/format';
 import { detectProject, memoryDir } from '@luci-dev/brain';
 import { SkillRegistry, addPack, addedPacks, loadPacks, packReasons, packSkills, removePack, writeCatalog } from '@luci-dev/skills';
-import type { Command } from '../context.js';
+import { isHelp, subcommandHelp, type Command } from '../context.js';
 
 export const PACKS_HELP = `packs [show]          Curated skill sets (ui, motion, marketing, design-system, design-system-build):
                         which fit this project and why, and the skills each would add
@@ -10,6 +10,11 @@ export const PACKS_HELP = `packs [show]          Curated skill sets (ui, motion,
   packs remove <name...>        Remove packs; skills another pack or a person chose stay`;
 
 export const packsCommand: Command = async (args, ctx) => {
+  if (isHelp(args)) {
+    const sub = args.find(a => !a.startsWith('-'));
+    ctx.out(`Usage: ${PRODUCT.command} ${subcommandHelp(PACKS_HELP, 'packs', sub)}`);
+    return 0;
+  }
   const [sub = 'show', ...names] = args;
   if (!fs.existsSync(memoryDir(ctx.cwd))) {
     ctx.err(`No ${PRODUCT.projectDir}/ here. Run \`${PRODUCT.command} init\` first.`);

@@ -6,7 +6,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { PRODUCT } from '@luci-dev/format';
-import { parseFlags, type Command } from '../context.js';
+import { isHelp, parseFlags, type Command } from '../context.js';
 
 export const BENCHMARK_HELP = `benchmark [--json]    Show saved local evaluation reports from eval/`;
 
@@ -116,6 +116,10 @@ function printMultiPageReport(report: MultiPageReport, out: (line?: string) => v
 }
 
 export const benchmarkCommand: Command = async (args, ctx) => {
+  if (isHelp(args)) {
+    ctx.out(`Usage: ${PRODUCT.command} ${BENCHMARK_HELP}`);
+    return 0;
+  }
   const { flags, unknown, rest } = parseFlags(args, ['--json']);
   if (unknown.length || rest.length) {
     ctx.err(`Unknown option for benchmark: ${[...unknown, ...rest].join(' ')}`);

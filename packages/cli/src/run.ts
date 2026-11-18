@@ -11,10 +11,16 @@ import { TOOLBAR_HELP, toolbarCommand } from './commands/toolbar.js';
 import { TASK_HELP, taskCommand } from './commands/task.js';
 import { START_HELP, UPDATE_HELP, startCommand, updateCommand } from './commands/startUpdate.js';
 import { BENCHMARK_HELP, benchmarkCommand } from './commands/benchmark.js';
-import type { CliContext, Command } from './context.js';
+import { isHelp, type CliContext, type Command } from './context.js';
 import { cliVersion } from './version.js';
 
-const versionCommand: Command = async (_args, ctx) => {
+const VERSION_HELP = 'version               Show the version';
+
+const versionCommand: Command = async (args, ctx) => {
+  if (isHelp(args)) {
+    ctx.out(`Usage: ${PRODUCT.command} ${VERSION_HELP}`);
+    return 0;
+  }
   ctx.out(`${PRODUCT.command} ${cliVersion() || '(unknown version)'}`);
   return 0;
 };

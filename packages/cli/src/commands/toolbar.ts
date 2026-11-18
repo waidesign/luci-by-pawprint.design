@@ -1,5 +1,5 @@
 import { PRODUCT } from '@luci-dev/format';
-import type { CliContext, Command } from '../context.js';
+import { isHelp, type CliContext, type Command } from '../context.js';
 import { createLineAsker } from '../onboarding.js';
 import { DEFAULT_PORT } from '../serve/bridge.js';
 import { addToolbar, findToolbarTarget, manualToolbarHelp, removeToolbar, toolbarInstalledIn } from '../toolbarSetup.js';
@@ -50,6 +50,10 @@ function report(ctx: CliContext, result: ReturnType<typeof addToolbar>, port: nu
 }
 
 export const toolbarCommand: Command = async (args, ctx) => {
+  if (isHelp(args)) {
+    ctx.out(`Usage: ${PRODUCT.command} ${TOOLBAR_HELP}`);
+    return 0;
+  }
   let port = DEFAULT_PORT;
   let dryRun = false;
   let action: 'add' | 'remove' = 'add';

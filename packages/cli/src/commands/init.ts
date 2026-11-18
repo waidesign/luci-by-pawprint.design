@@ -1,7 +1,7 @@
 import { AGENT_FILES, AGENT_NAMES, PRODUCT, type AgentId } from '@luci-dev/format';
 import { initProject } from '@luci-dev/brain';
 import { SkillRegistry } from '@luci-dev/skills';
-import { parseFlags, type Command } from '../context.js';
+import { isHelp, parseFlags, type Command } from '../context.js';
 import { createLineAsker, runOnboarding } from '../onboarding.js';
 import { cliVersion } from '../version.js';
 import { toolbarInstalledIn } from '../toolbarSetup.js';
@@ -37,6 +37,10 @@ export function parseAgents(args: readonly string[]): { args: string[]; agents: 
 }
 
 export const initCommand: Command = async (rawArgs, ctx) => {
+  if (isHelp(rawArgs)) {
+    ctx.out(`Usage: ${PRODUCT.command} ${INIT_HELP}`);
+    return 0;
+  }
   const parsedAgents = parseAgents(rawArgs);
   if (parsedAgents.error) {
     ctx.err(parsedAgents.error);

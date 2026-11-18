@@ -25,3 +25,28 @@ export function parseFlags(args: readonly string[], known: readonly string[]): {
   }
   return { flags, unknown, rest };
 }
+
+/** True when the arguments ask for help (--help or -h). */
+export function isHelp(args: readonly string[]): boolean {
+  return args.includes('--help') || args.includes('-h');
+}
+
+/**
+ * Pick one subcommand's entry from a multi-line help block (like SKILLS_HELP or PACKS_HELP),
+ * or return the whole block when no subcommand is named.
+ */
+export function subcommandHelp(fullHelp: string, cmdName: string, sub?: string): string {
+  if (!sub || sub.startsWith('-')) return fullHelp;
+  const lines = fullHelp.split('\n');
+  const blocks: { names: string[]; lines: string[] }[] = [];
+  for (const line of lines) {
+    const m = new RegExp(`^  ${cmdName} ([a-z|]+)\\b`).exec(line);
+    if (m) {
+      blocks.push({ names: m[1]!.split('|'), lines: [line.slice(2)] });
+    } else if (blocks.length > 0 && /^\s{4,}/.test(line)) {
+      blocks[blocks.length - 1]!.lines.push(line);
+    }
+  }
+  const found = blocks.find(b => b.names.includes(sub));
+  return found ? found.lines.join('\n') : fullHelp;
+}

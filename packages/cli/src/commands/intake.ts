@@ -1,10 +1,14 @@
 import { MEMORY_FILES, PRODUCT } from '@luci-dev/format';
 import { intakeDocs, memoryPath } from '@luci-dev/brain';
-import type { Command } from '../context.js';
+import { isHelp, type Command } from '../context.js';
 
 export const INTAKE_HELP = `intake <file...>      Fit a PRD and supporting docs into project memory (--dry-run to preview)`;
 
 export const intakeCommand: Command = async (args, ctx) => {
+  if (isHelp(args)) {
+    ctx.out(`Usage: ${PRODUCT.command} ${INTAKE_HELP}`);
+    return 0;
+  }
   const dryRun = args.includes('--dry-run');
   const files = args.filter(a => !a.startsWith('--'));
   const unknown = args.filter(a => a.startsWith('--') && a !== '--dry-run');

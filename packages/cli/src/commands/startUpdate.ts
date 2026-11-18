@@ -1,6 +1,6 @@
 import { PRODUCT } from '@luci-dev/format';
 import { generatedFiles, startProject, updateProject } from '@luci-dev/brain';
-import type { Command } from '../context.js';
+import { isHelp, type Command } from '../context.js';
 import { cliVersion } from '../version.js';
 
 export const START_HELP = `start                 Resume this project: the active task and the context an agent needs`;
@@ -11,7 +11,11 @@ const notInitialized = (ctx: Parameters<Command>[1]) => {
   return 1;
 };
 
-export const startCommand: Command = async (_args, ctx) => {
+export const startCommand: Command = async (args, ctx) => {
+  if (isHelp(args)) {
+    ctx.out(`Usage: ${PRODUCT.command} ${START_HELP}`);
+    return 0;
+  }
   const report = await startProject(ctx.cwd);
   if (!report.initialized || !report.diagnosis) return notInitialized(ctx);
   const p = report.diagnosis.project;
@@ -54,7 +58,11 @@ export const startCommand: Command = async (_args, ctx) => {
   return report.diagnosis.ok ? 0 : 1;
 };
 
-export const updateCommand: Command = async (_args, ctx) => {
+export const updateCommand: Command = async (args, ctx) => {
+  if (isHelp(args)) {
+    ctx.out(`Usage: ${PRODUCT.command} ${UPDATE_HELP}`);
+    return 0;
+  }
   const report = await updateProject(ctx.cwd, { version: cliVersion() });
   if (!report.initialized) return notInitialized(ctx);
   ctx.out(`${PRODUCT.name} update: ${report.projectPath}`);

@@ -1,12 +1,16 @@
 import { PRODUCT } from '@luci-dev/format';
 import { diagnose, type Check, type CheckStatus } from '@luci-dev/brain';
-import { parseFlags, type Command } from '../context.js';
+import { isHelp, parseFlags, type Command } from '../context.js';
 
 export const DOCTOR_HELP = `doctor [--json]       Check the install and this project's setup, and say how to fix what is wrong`;
 
 const MARK: Readonly<Record<CheckStatus, string>> = { ok: '[ok]  ', info: '[info]', warn: '[warn]', fail: '[fail]' };
 
 export const doctorCommand: Command = async (args, ctx) => {
+  if (isHelp(args)) {
+    ctx.out(`Usage: ${PRODUCT.command} ${DOCTOR_HELP}`);
+    return 0;
+  }
   const { flags, unknown, rest } = parseFlags(args, ['--json']);
   if (unknown.length || rest.length) {
     ctx.err(`Unknown option for doctor: ${[...unknown, ...rest].join(' ')}`);
