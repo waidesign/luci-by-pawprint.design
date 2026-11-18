@@ -43,6 +43,10 @@ function report(ctx: CliContext, result: ReturnType<typeof addToolbar>, port: nu
     ctx.out(`The dev toolbar is already in ${result.target.rel}.`);
     return;
   }
+  if (result.status === 'updated') {
+    ctx.out(`Updated the dev toolbar in ${result.target.rel} (${result.target.what}).`);
+    return;
+  }
   ctx.out(`Added the dev toolbar to ${result.target.rel} (${result.target.what}), between "luci:toolbar" comments:`);
   for (const l of result.lines) ctx.out(`  ${l}`);
   ctx.out(`Now run \`${PRODUCT.command} serve\` and open your app on this machine: Luci's button is in the bottom corner.`);
@@ -79,8 +83,8 @@ export const toolbarCommand: Command = async (args, ctx) => {
     return 0;
   }
   const result = addToolbar(ctx.cwd, { port, dryRun });
-  if (dryRun && result.status === 'added') {
-    ctx.out(`Would add to ${result.target.rel} (${result.target.what}):`);
+  if (dryRun && (result.status === 'added' || result.status === 'updated')) {
+    ctx.out(`Would ${result.status === 'updated' ? 'update in' : 'add to'} ${result.target.rel} (${result.target.what}):`);
     for (const l of result.lines) ctx.out(`  ${l}`);
     return 0;
   }

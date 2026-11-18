@@ -1,14 +1,22 @@
+/// <reference lib="dom" />
 /**
  * The dev toolbar goes into an app without the person editing code (user request, 2026-11-15):
  * `luci toolbar` finds the root file, `luci init` offers it, `luci serve` offers it again.
  */
 import fs from 'node:fs';
+import http from 'node:http';
+import net, { type AddressInfo } from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
+import { build, transform } from 'esbuild';
+import { chromium } from 'playwright';
+import { initProject } from '@luci-dev/brain';
 import { run } from '../src/run.js';
 import type { CliContext } from '../src/context.js';
-import { addToolbar, findToolbarTarget, removeToolbar, toolbarInstalledIn } from '../src/toolbarSetup.js';
+import { startBridge } from '../src/serve/bridge.js';
+import { addToolbar, agentFixPrompt, findToolbarTarget, removeToolbar, toolbarInstalledIn } from '../src/toolbarSetup.js';
 
 const dirs: string[] = [];
 afterEach(() => { for (const d of dirs.splice(0)) fs.rmSync(d, { recursive: true, force: true }); });
@@ -84,11 +92,45 @@ describe('adding and removing the loader', () => {
     const dir = project({ 'app/layout.tsx': NEXT.replace(/\n/g, '\r\n') });
     addToolbar(dir);
     const tsx = read(dir, 'app/layout.tsx');
-    expect(tsx).toContain("{process.env.NODE_ENV === 'development' && <script src=\"http://127.0.0.1:4545/toolbar.js\" async />}");
+    expect(tsx).toContain("{process.env.NODE_ENV === 'development' && <script dangerouslySetInnerHTML={{ __html:");
+    expect(tsx).toContain('http://127.0.0.1:4545/toolbar.js');
     expect(tsx).toContain('<body>{children}\r\n');
     expect(tsx.split('\n').every(l => l === '' || l.endsWith('\r') || l === tsx.split('\n').at(-1))).toBe(true);
     removeToolbar(dir);
     expect(read(dir, 'app/layout.tsx')).not.toContain('luci:toolbar');
+  });
+
+  it('replaces an older Luci loader block with the new one and leaves one block only', async () => {
+    const oldHtml = VITE.replace(
+      '  </body>',
+      '    <!-- luci:toolbar (dev only: Luci\'s dev toolbar) -->\n    <script>if (/^(localhost|127\\.0\\.0\\.1|\\[::1\\])$/.test(location.hostname)) document.head.appendChild(Object.assign(document.createElement(\'script\'), { src: \'http://127.0.0.1:4545/toolbar.js\' }));</script>\n    <!-- /luci:toolbar -->\n  </body>'
+    );
+    const dir = project({ 'index.html': oldHtml });
+    const c1 = ctx(dir);
+    expect(await run(['toolbar'], c1)).toBe(0);
+    expect(c1.lines.join('\n')).toContain('Updated the dev toolbar in index.html');
+    const updated = read(dir, 'index.html');
+    expect(updated).toContain("Luci isn't running");
+    expect(updated.match(/<!-- luci:toolbar\b/g)).toHaveLength(1);
+    expect(updated.match(/<!-- \/luci:toolbar -->/g)).toHaveLength(1);
+
+    // Running a second time leaves the single block unchanged
+    const c2 = ctx(dir);
+    expect(await run(['toolbar'], c2)).toBe(0);
+    expect(c2.lines.join('\n')).toContain('The dev toolbar is already in index.html.');
+    expect(read(dir, 'index.html')).toBe(updated);
+
+    // Next.js old loader block is also upgraded cleanly
+    const oldNext = NEXT.replace(
+      '      <body>{children}</body>',
+      '      <body>{children}\n        {/* luci:toolbar (dev only) */}\n        {process.env.NODE_ENV === \'development\' && <script src="http://127.0.0.1:4545/toolbar.js" async />}\n        {/* /luci:toolbar */}\n      </body>'
+    );
+    const nextDir = project({ 'app/layout.tsx': oldNext });
+    const nc1 = ctx(nextDir);
+    expect(await run(['toolbar'], nc1)).toBe(0);
+    expect(nc1.lines.join('\n')).toContain('Updated the dev toolbar in app/layout.tsx');
+    expect(read(nextDir, 'app/layout.tsx')).toContain('dangerouslySetInnerHTML');
+    expect(read(nextDir, 'app/layout.tsx').match(/\{\/\* luci:toolbar\b/g)).toHaveLength(1);
   });
 });
 
@@ -156,5 +198,160 @@ describe('luci toolbar, init and serve', () => {
     again.abort();
     expect(await serving2).toBe(0);
     expect(d.asked).toEqual([]);
+  });
+});
+
+async function freePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const srv = net.createServer();
+    srv.listen(0, '127.0.0.1', () => {
+      const port = (srv.address() as AddressInfo).port;
+      srv.close(() => resolve(port));
+    });
+    srv.on('error', reject);
+  });
+}
+
+async function renderNextLayoutToHtml(layoutTsx: string, nodeEnv: 'development' | 'production'): Promise<string> {
+  const transformed = await transform(layoutTsx, {
+    loader: 'tsx',
+    jsx: 'transform',
+    jsxFactory: 'h',
+    define: { 'process.env.NODE_ENV': JSON.stringify(nodeEnv) }
+  });
+  const cjs = transformed.code.replace(/export\s+default\s+function\s+RootLayout/, 'function RootLayout');
+  type VNode = { tag: string; props: Record<string, unknown> | null; children: unknown[] };
+  const h = (tag: string, props: Record<string, unknown> | null, ...children: unknown[]): VNode => ({ tag, props, children });
+  const toHtml = (node: unknown): string => {
+    if (node == null || node === false || node === true) return '';
+    if (Array.isArray(node)) return node.map(toHtml).join('');
+    if (typeof node === 'string' || typeof node === 'number') return String(node);
+    const v = node as VNode;
+    const attrs = Object.entries(v.props ?? {})
+      .filter(([k]) => k !== 'dangerouslySetInnerHTML' && k !== 'children')
+      .map(([k, val]) => (val === true ? ` ${k}` : ` ${k}="${String(val)}"`))
+      .join('');
+    const inner = (v.props?.dangerouslySetInnerHTML as { __html?: string } | undefined)?.__html
+      ?? v.children.map(toHtml).join('');
+    return `<${v.tag}${attrs}>${inner}</${v.tag}>`;
+  };
+  const tree = new Function('h', `${cjs}\nreturn RootLayout({ children: h('main', { id: 'app-main' }, h('h1', null, 'Next App')) });`)(h);
+  return `<!doctype html>${toHtml(tree)}`;
+}
+
+describe('"Luci isn\'t running" loader badge in Chrome (Vite and Next.js)', { timeout: 90_000 }, () => {
+  it('shows when serve is off with no layout shift, copies the fix with the port, retries into the toolbar without reload, hides when serve is on, and never shows in production', async () => {
+    const entry = fileURLToPath(new URL('../../toolbar/src/script.ts', import.meta.url));
+    const built = await build({ entryPoints: [entry], bundle: true, format: 'iife', platform: 'browser', target: 'chrome120', write: false, logLevel: 'silent' });
+    const toolbarBundle = built.outputFiles[0]!.text;
+    const browser = await chromium.launch();
+
+    try {
+      for (const kind of ['vite', 'nextjs'] as const) {
+        const servePort = await freePort();
+        const appDir = project(
+          kind === 'vite'
+            ? {
+                'package.json': '{"name":"vite-demo"}',
+                'index.html': '<!doctype html><html><head><title>Vite</title></head><body style="margin:0"><main id="app-main" style="padding:24px"><h1>Vite App</h1></main></body></html>'
+              }
+            : {
+                'package.json': '{"name":"next-demo"}',
+                'app/layout.tsx': NEXT
+              }
+        );
+        await initProject(appDir);
+        const baselineHtml = kind === 'vite'
+          ? read(appDir, 'index.html')
+          : await renderNextLayoutToHtml(read(appDir, 'app/layout.tsx'), 'development');
+
+        addToolbar(appDir, { port: servePort });
+
+        const devHtml = kind === 'vite'
+          ? read(appDir, 'index.html')
+          : await renderNextLayoutToHtml(read(appDir, 'app/layout.tsx'), 'development');
+        const prodHtml = kind === 'vite'
+          ? devHtml
+          : await renderNextLayoutToHtml(read(appDir, 'app/layout.tsx'), 'production');
+
+        let mode: 'baseline' | 'dev' | 'prod' = 'baseline';
+        const appServer = http.createServer((_req, res) => {
+          res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+          res.end(mode === 'baseline' ? baselineHtml : mode === 'prod' ? prodHtml : devHtml);
+        });
+        await new Promise<void>(r => appServer.listen(0, '127.0.0.1', () => r()));
+        const appPort = (appServer.address() as AddressInfo).port;
+        const appOrigin = `http://127.0.0.1:${appPort}`;
+
+        const bctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+        await bctx.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: appOrigin });
+        const page = await bctx.newPage();
+
+        // Measure baseline layout without loader
+        mode = 'baseline';
+        await page.goto(appOrigin);
+        const beforeRect = await page.locator('#app-main').boundingBox();
+
+        // (a) serve off: badge shows, no layout shift, copy button copies the fix with the right port
+        mode = 'dev';
+        await page.goto(appOrigin);
+        await page.evaluate(() => { (window as unknown as { __NO_RELOAD__?: boolean }).__NO_RELOAD__ = true; });
+        const badge = page.locator('luci-offline [data-part="offline-badge"]');
+        await badge.waitFor({ state: 'visible' });
+        expect(await badge.innerText()).toContain("Luci isn't running");
+        expect(await badge.innerText()).toContain('Start luci serve in this project.');
+        const afterRect = await page.locator('#app-main').boundingBox();
+        expect(afterRect, `${kind} layout shift`).toEqual(beforeRect);
+
+        const copyBtn = badge.locator('[data-action="copy-fix"]');
+        await copyBtn.click();
+        await expect.poll(async () => copyBtn.innerText()).toBe('Copied');
+        const copied = await page.evaluate(() => navigator.clipboard.readText());
+        expect(copied).toBe(agentFixPrompt(servePort));
+
+        // (b) start serve, press Retry: badge goes, toolbar appears without page reload
+        const bridge = await startBridge({
+          projectDir: appDir,
+          port: servePort,
+          version: '0.5.7',
+          toolbarScript: () => toolbarBundle
+        });
+        try {
+          await badge.locator('[data-action="retry"]').click();
+          await page.locator('luci-offline').waitFor({ state: 'detached' });
+          await page.locator('luci-feedback, luci-launcher').first().waitFor({ state: 'attached' });
+          expect(await page.evaluate(() => (window as unknown as { __NO_RELOAD__?: boolean }).__NO_RELOAD__)).toBe(true);
+
+          // (c) serve on from the start: no badge
+          const pageOn = await bctx.newPage();
+          await pageOn.goto(appOrigin);
+          await pageOn.locator('luci-feedback, luci-launcher').first().waitFor({ state: 'attached' });
+          expect(await pageOn.locator('luci-offline').count()).toBe(0);
+          await pageOn.close();
+        } finally {
+          await bridge.close();
+        }
+
+        // (d) production build: no loader, no badge
+        const pageProd = await bctx.newPage();
+        if (kind === 'vite') {
+          await pageProd.route('https://prod.example.com/**', route =>
+            route.fulfill({ status: 200, contentType: 'text/html', body: prodHtml })
+          );
+          await pageProd.goto('https://prod.example.com/');
+        } else {
+          mode = 'prod';
+          await pageProd.goto(appOrigin);
+        }
+        await pageProd.waitForTimeout(200);
+        expect(await pageProd.locator('luci-offline').count(), `${kind} prod badge`).toBe(0);
+        expect(await pageProd.locator('luci-feedback, luci-launcher').count(), `${kind} prod toolbar`).toBe(0);
+
+        await bctx.close();
+        await new Promise<void>(r => appServer.close(() => r()));
+      }
+    } finally {
+      await browser.close();
+    }
   });
 });
