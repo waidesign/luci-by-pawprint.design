@@ -824,7 +824,7 @@ describe('extension branding, settings panel and the brand kit themes', { timeou
     await page.context().close();
   });
 
-  it('says when Chrome does not let Luci use the debugger, without calling it optional, and opens help about it', async () => {
+  it('says when Chrome does not let Luci use the debugger, without calling it optional; without onHelp, "About the debugger" uses its own way to help', async () => {
     const page = await open('css-variables');
     await page.evaluate(() => {
       const w = window as any;
@@ -835,8 +835,7 @@ describe('extension branding, settings panel and the brand kit themes', { timeou
         debuggerPermission: {
           get: async () => false,
           request: () => { (window as any).requestedDbg = true; }
-        },
-        onHelp: (section?: string) => { (window as any).helpSection = section; }
+        }
       });
     });
 
@@ -849,6 +848,32 @@ describe('extension branding, settings panel and the brand kit themes', { timeou
     await page.click('[data-action="debugger-help"]');
     expect(await page.evaluate(() => (window as any).requestedDbg)).toBe(true);
 
+    await page.context().close();
+  });
+
+  it('"About the debugger" opens help at its section in every state (on, off, not available), in the extension and dev-toolbar panels', async () => {
+    const page = await open('css-variables');
+    for (const panel of ['extension', 'dev-toolbar'] as const) {
+      for (const state of ['on', 'off', 'not available'] as const) {
+        await page.evaluate(({ panel, state }) => {
+          const w = window as any;
+          w.toolbar?.destroy();
+          w.helpSection = undefined;
+          w.toolbar = w.LuciCapture.mountToolbar({
+            doc: document,
+            settings: { useDebugger: state !== 'off' },
+            // "Not available" forced the way it happens: the check gets no answer
+            debuggerPermission: { get: async () => { if (state === 'not available') throw new Error('no answer'); return true; } },
+            onHelp: (section?: string) => { w.helpSection = section; },
+            ...(panel === 'dev-toolbar' ? { modes: { current: 'capture', modes: [{ id: 'capture', label: 'Capture', title: 'Capture' }], onSelect: () => undefined } } : {})
+          });
+        }, { panel, state });
+        await page.click('[data-action="settings"]');
+        await expect.poll(() => page.locator('[data-part="debugger-permission"] .project-name').innerText(), { message: `${panel}, ${state}` }).toBe(`Debugger: ${state}`);
+        await page.click('[data-action="debugger-help"]');
+        expect(await page.evaluate(() => (window as any).helpSection), `${panel}, ${state}`).toBe('debugger-permission');
+      }
+    }
     await page.context().close();
   });
 

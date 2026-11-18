@@ -1100,6 +1100,11 @@ export function Toolbar(props: ToolbarProps) {
     if (!props.debuggerPermission) return;
     props.debuggerPermission.get().then(setDebuggerGranted).catch(() => setDebuggerGranted(false));
   }, [props.debuggerPermission, settingsOpen]);
+  /** "About the debugger": the help page at its debugger section, whatever the debugger's state. */
+  const openDebuggerHelp = () => {
+    if (props.onHelp) props.onHelp('debugger-permission');
+    else props.debuggerPermission?.request?.();
+  };
 
   // Direct send to project (v0.4.4): push basket captures straight to .luci/design/
   const [itemSent, setItemSent] = useState<Record<string, { path?: string; error?: string }>>({});
@@ -1489,6 +1494,7 @@ export function Toolbar(props: ToolbarProps) {
               captureSettings={settings}
               onCaptureSettingsChange={changeSettings}
               debuggerPermission={props.debuggerPermission}
+              {...(props.onHelp ? { onHelp: props.onHelp } : {})}
             />
           ) : (
           <div class="panel" role="dialog" aria-label={COPY.common.menu} data-part="settings">
@@ -1557,7 +1563,7 @@ export function Toolbar(props: ToolbarProps) {
                   </div>
                 </div>
                 <div class="project-port-row">
-                  {debuggerGranted ? (
+                  {debuggerGranted && (
                     <button
                       type="button"
                       class="btn-secondary"
@@ -1566,22 +1572,10 @@ export function Toolbar(props: ToolbarProps) {
                     >
                       {useDebugger ? "Don't use the debugger" : 'Use the debugger'}
                     </button>
-                  ) : (
-                    <button
-                      type="button"
-                      class="btn-secondary"
-                      data-action="debugger-help"
-                      onClick={() => {
-                        if (props.debuggerPermission?.request) {
-                          props.debuggerPermission.request();
-                        } else if (props.onHelp) {
-                          props.onHelp('debugger-permission');
-                        }
-                      }}
-                    >
-                      About the debugger
-                    </button>
                   )}
+                  <button type="button" class="btn-secondary" data-action="debugger-help" onClick={openDebuggerHelp}>
+                    About the debugger
+                  </button>
                 </div>
               </div>
             )}

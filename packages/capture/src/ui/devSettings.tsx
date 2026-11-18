@@ -80,6 +80,8 @@ export interface DevSettingsPanelProps {
     get: () => Promise<boolean>;
     request?: () => void;
   };
+  /** Opens Luci's help page, at a section when given ("About the debugger" uses it). */
+  onHelp?: (section?: string) => void;
   /** If in feedback mode and there are notes, allow clearing all. */
   feedbackNotesCount?: number;
   onClearAllFeedbackNotes?: () => void;
@@ -138,10 +140,15 @@ export function DevSettingsPanel(props: DevSettingsPanelProps) {
   const [debuggerGranted, setDebuggerGranted] = useState(false);
   useEffect(() => {
     if (props.debuggerPermission?.get) {
-      void props.debuggerPermission.get().then(setDebuggerGranted);
+      void props.debuggerPermission.get().then(setDebuggerGranted, () => setDebuggerGranted(false));
     }
   }, []);
   const useDebugger = capSettings.useDebugger ?? true;
+  /** "About the debugger": the help page at its debugger section, whatever the debugger's state. */
+  const openDebuggerHelp = () => {
+    if (props.onHelp) props.onHelp('debugger-permission');
+    else props.debuggerPermission?.request?.();
+  };
 
   return (
     <div class="panel" role="dialog" aria-label="Settings" data-part="settings">
@@ -393,7 +400,7 @@ export function DevSettingsPanel(props: DevSettingsPanelProps) {
                 </div>
               </div>
               <div class="project-port-row">
-                {debuggerGranted ? (
+                {debuggerGranted && (
                   <button
                     type="button"
                     class="btn-secondary"
@@ -402,20 +409,10 @@ export function DevSettingsPanel(props: DevSettingsPanelProps) {
                   >
                     {useDebugger ? "Don't use the debugger" : 'Use the debugger'}
                   </button>
-                ) : (
-                  <button
-                    type="button"
-                    class="btn-secondary"
-                    data-action="debugger-help"
-                    onClick={() => {
-                      if (props.debuggerPermission?.request) {
-                        props.debuggerPermission.request();
-                      }
-                    }}
-                  >
-                    About the debugger
-                  </button>
                 )}
+                <button type="button" class="btn-secondary" data-action="debugger-help" onClick={openDebuggerHelp}>
+                  About the debugger
+                </button>
               </div>
             </div>
           )}
