@@ -1,6 +1,6 @@
 # Luci extension
 
-The capture toolbar on any site, for Chrome (Manifest V3, built with WXT).
+The capture toolbar on any site, for Chrome and Edge (Manifest V3, built with WXT).
 
 ## Build and load
 

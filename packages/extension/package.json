@@ -1,6 +1,6 @@
 {
   "name": "@luci-dev/extension",
-  "version": "0.5.7",
+  "version": "0.5.8",
   "private": true,
   "description": "The Luci browser extension: the capture toolbar on any site. Chrome, Manifest V3.",
   "type": "module",

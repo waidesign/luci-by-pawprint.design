@@ -1,6 +1,6 @@
 {
   "name": "@luci-dev/ui",
-  "version": "0.5.7",
+  "version": "0.5.8",
   "description": "Luci's design system: tokens, mascot and components generated from the brand kit in brand/. Browser-safe.",
   "type": "module",
   "license": "MIT",

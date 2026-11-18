@@ -20,7 +20,7 @@ export default defineConfig({
   outDir,
   manifest: {
     name: 'Luci',
-    description: 'Capture exact design context from any page for your AI coding agent. Everything stays on your machine.',
+    description: 'Capture the exact design of your running app for your AI coding agent. Everything stays on your machine.',
     permissions: ['activeTab', 'scripting', 'storage', 'debugger'],
     // Connect to luci serve at 127.0.0.1 (any port, e.g. 4545, 4546) to save captures directly into the project.
     // Test build only: all sites, because a test cannot click the icon to grant activeTab, and

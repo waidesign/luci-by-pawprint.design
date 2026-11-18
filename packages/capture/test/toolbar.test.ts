@@ -824,6 +824,51 @@ describe('extension branding, settings panel and the brand kit themes', { timeou
     await page.context().close();
   });
 
+  it('offers "Download file instead" when saveToProject fails because luci serve is not running (v0.5.8)', async () => {
+    const page = await open('css-variables');
+    await page.evaluate(() => {
+      (window as any).toolbar?.destroy();
+      (window as any).toolbar = (window as any).LuciCapture.mountToolbar({
+        saveToProject: async () => {
+          throw new Error('Could not reach luci serve at http://127.0.0.1:4550. Run `luci serve` in your project folder, or download the file instead.');
+        },
+        projectInfo: {
+          get: async () => ({ project: null, url: 'http://127.0.0.1:4550' })
+        }
+      });
+    });
+
+    await page.click('button[data-tool="color"]');
+    await page.click('.button >> nth=0', { force: true });
+    await page.click('[data-output="one"]');
+    const fileName = await page.locator('[data-part="file-name"]').innerText();
+
+    await page.click('[data-action="save-to-project"]');
+    expect(await page.locator('[data-part="save-error"]').innerText()).toContain('Could not reach luci serve at http://127.0.0.1:4550');
+    expect(await page.locator('.actions [data-action="download-fallback"]').innerText()).toBe('Download file instead');
+
+    const [previewDownload] = await Promise.all([
+      page.waitForEvent('download'),
+      page.click('.actions [data-action="download-fallback"]')
+    ]);
+    expect(previewDownload.suggestedFilename()).toBe(fileName);
+
+    await page.click('[data-action="add-to-basket"]');
+    await page.click('[data-action="basket"]');
+    await page.locator('[data-part="basket"]').waitFor();
+    await page.click('[data-item-send-project]');
+    expect(await page.locator('[data-part="basket-status"]').innerText()).toContain('Could not reach luci serve at http://127.0.0.1:4550');
+    expect(await page.locator('[data-part="basket-status"] [data-action="download-fallback"]').innerText()).toBe('Download file instead');
+
+    const [basketDownload] = await Promise.all([
+      page.waitForEvent('download'),
+      page.click('[data-part="basket-status"] [data-action="download-fallback"]')
+    ]);
+    expect(basketDownload.suggestedFilename()).toBe(fileName);
+
+    await page.context().close();
+  });
+
   it('says when Chrome does not let Luci use the debugger, without calling it optional; without onHelp, "About the debugger" uses its own way to help', async () => {
     const page = await open('css-variables');
     await page.evaluate(() => {

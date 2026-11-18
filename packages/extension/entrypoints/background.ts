@@ -101,8 +101,8 @@ export default defineBackground(() => {
         return false;
       }
       void (async () => {
+        const base = await bridgeUrl();
         try {
-          const base = await bridgeUrl();
           const res = await fetch(`${base}/design`, {
             method: 'POST',
             headers: { 'content-type': 'application/json', 'x-luci': '1' },
@@ -115,9 +115,11 @@ export default defineBackground(() => {
           }
           sendResponse({ ok: true, result: { path: data.path ?? m.fileName, replaced: Boolean(data.replaced) } });
         } catch (err) {
+          const port = (() => { try { return new URL(base).port || '4545'; } catch { return '4545'; } })();
+          const host = base.replace(/^https?:\/\//, '');
           sendResponse({
             ok: false,
-            error: `Could not connect to project bridge at 127.0.0.1:4545. Is \`luci serve\` running? (${err instanceof Error ? err.message : String(err)})`
+            error: `Could not connect to luci serve on port ${port} (${host}). Start \`luci serve\` in your project, or download the file instead. (${err instanceof Error ? err.message : String(err)})`
           });
         }
       })();

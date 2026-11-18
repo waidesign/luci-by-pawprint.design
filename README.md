@@ -32,34 +32,18 @@ AI coding agents often struggle with four fundamental things:
 
 ## Quick Start
 
-### Use without installing
-
-Initialize Luci in your existing project directory:
-
-```bash
-npx @luci-dev/cli@latest init
-```
-
-Keep `@latest` in the command: without it, npx can reuse an older copy it saved before.
-
-### Install CLI globally
+Requires Node 18 or later.
 
 ```bash
 npm install -g @luci-dev/cli
-```
-
-Once installed, use either `luci` or `luci-dev`:
-
-```bash
-# Start the Luci development server & bridge
+luci init
 luci serve
-
-# Check project health & agent configurations
-luci doctor
-
-# Search and load design skills
-luci skills list
 ```
+
+Once installed, open your running app in **Chrome** or **Edge** on this machine: Luci's button appears in the bottom corner. (`luci-dev` also works as an alias for `luci`.)
+
+* **Without installing (CI or one-off runs):** `npx @luci-dev/cli@latest <command>`
+* **Windows note:** if PowerShell blocks `luci` (`luci.ps1`), use **Command Prompt** or run `luci.cmd` instead. (Changing the PowerShell execution policy is an advanced option and never required.)
 
 ---
 
@@ -118,12 +102,12 @@ Check which version you have with `luci --version`. The newest is on [npm](https
 - Only injects the exact skills needed for the active task—preserving context window tokens.
 
 ### 3. Capture (`@luci-dev/capture` & Extension)
-- Available as a browser extension (Chrome MV3) or via `luci serve`.
-- Inspect any live website or local prototype:
-  - **Component Picker**: Extracts HTML anatomy, Tailwind tokens, or CSS variables.
+- Available in the dev toolbar (`luci serve`) or as a Chrome extension (Manifest V3, tested in Chrome and Edge).
+- Inspect your running app or any live page:
+  - **Component Picker**: Captures HTML anatomy, Tailwind tokens, or CSS variables.
   - **States**: Detects `:hover`, `:focus-visible`, and `:active` styles.
-  - **Color & Spacing System**: Generates full palette scales and spacing ladders.
-  - **Design Basket**: Collect multiple elements across sites and download as a single `DESIGN.md`.
+  - **Color & Spacing System**: Generates full palette scales and spacing ladders (Pixel color mode uses the browser's EyeDropper API in Chrome and Edge).
+  - **Design Basket**: Collect multiple elements across pages and download as a single `DESIGN.md`.
 
 ### 4. Feedback (`@luci-dev/feedback`)
 - Click to annotate elements, select text typos, or sketch layout changes.
@@ -134,9 +118,14 @@ Check which version you have with `luci --version`. The newest is on [npm](https
 
 ## Privacy & Local-First
 
-- **100% Local**: Everything runs on `localhost`.
-- **Zero Telemetry**: No tracking, analytics, or external calls.
+- **100% Local**: Everything runs on `localhost` (`127.0.0.1`).
+- **Zero Telemetry**: No tracking, analytics, or background network calls.
 - **No Cloud Dependency**: No API keys, accounts, or logins required.
+- **Commands that use the network (only when you run them)**:
+  - `luci skills add <github-link>` (fetches the skill from GitHub)
+  - `luci skills licenses` (checks personal skill licences on GitHub)
+  - `luci map --install` (downloads `uv` and Graphify after asking for confirmation)
+  - `luci capture crawl <urls...>` (visits the URLs you pass)
 
 ---
 
@@ -146,16 +135,16 @@ Luci is organized as a pnpm monorepo:
 
 | Package | Version | Description |
 | :--- | :--- | :--- |
-| [`@luci-dev/cli`](./packages/cli) | `0.5.7` | Core CLI (`luci` / `luci-dev`) |
-| [`@luci-dev/brain`](./packages/brain) | `0.5.7` | Project memory, agent configs, and rules engine |
-| [`@luci-dev/skills`](./packages/skills) | `0.5.7` | Skill registry, ranker, and library |
-| [`@luci-dev/capture`](./packages/capture) | `0.5.7` | Live DOM capture and token capture |
-| [`@luci-dev/feedback`](./packages/feedback) | `0.5.7` | Interactive on-page annotations & prompt generator |
-| [`@luci-dev/toolbar`](./packages/toolbar) | `0.5.7` | Standalone dev toolbar bundle |
-| [`@luci-dev/ui`](./packages/ui) | `0.5.7` | Shared Preact design system & tokens |
-| [`@luci-dev/format`](./packages/format) | `0.5.7` | Markdown schemas, `DESIGN.md` parser, and diffing |
-| [`@luci-dev/mcp`](./packages/mcp) | `0.5.7` | Model Context Protocol server for IDEs & agents |
-| [`@luci-dev/extension`](./packages/extension) | `0.5.7` | Chrome extension (Manifest V3) |
+| [`@luci-dev/cli`](./packages/cli) | `0.5.8` | Core CLI (`luci` / `luci-dev`) |
+| [`@luci-dev/brain`](./packages/brain) | `0.5.8` | Project memory, agent configs, and rules engine |
+| [`@luci-dev/skills`](./packages/skills) | `0.5.8` | Skill registry, ranker, and library |
+| [`@luci-dev/capture`](./packages/capture) | `0.5.8` | Live DOM capture and token capture |
+| [`@luci-dev/feedback`](./packages/feedback) | `0.5.8` | Interactive on-page annotations & prompt generator |
+| [`@luci-dev/toolbar`](./packages/toolbar) | `0.5.8` | Standalone dev toolbar bundle |
+| [`@luci-dev/ui`](./packages/ui) | `0.5.8` | Shared Preact design system & tokens |
+| [`@luci-dev/format`](./packages/format) | `0.5.8` | Markdown schemas, `DESIGN.md` parser, and diffing |
+| [`@luci-dev/mcp`](./packages/mcp) | `0.5.8` | Model Context Protocol server for IDEs & agents |
+| [`@luci-dev/extension`](./packages/extension) | `0.5.8` | Chrome extension (Manifest V3) |
 
 ---
 

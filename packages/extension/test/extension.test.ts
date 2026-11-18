@@ -26,10 +26,19 @@ function build(test: boolean): string {
 const manifest = (dir: string) => JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8')) as Record<string, unknown>;
 
 describe('extension build (M4.6)', { timeout: 120_000 }, () => {
+  let prodDir: string;
+  beforeAll(() => {
+    prodDir = build(false);
+  });
+  afterAll(() => {
+    fs.rmSync(path.join(ROOT, '.output-check'), { recursive: true, force: true });
+  });
+
   it('production asks only for activeTab, scripting, storage and debugger, and runs on no page by itself', () => {
-    const m = manifest(build(false));
+    const m = manifest(prodDir);
     expect(m['manifest_version']).toBe(3);
     expect(m['name']).toBe('Luci');
+    expect(m['description']).toBe('Capture the exact design of your running app for your AI coding agent. Everything stays on your machine.');
     expect(m['permissions']).toEqual(['activeTab', 'scripting', 'storage', 'debugger']);
     // Chrome does not allow debugger as an optional permission
     expect(m['optional_permissions']).toBeUndefined();
@@ -39,8 +48,7 @@ describe('extension build (M4.6)', { timeout: 120_000 }, () => {
   });
 
   it('bundles direct extension bridge handlers for saving captures to project and checking health', () => {
-    const dir = build(false);
-    const bg = fs.readFileSync(path.join(dir, 'background.js'), 'utf8');
+    const bg = fs.readFileSync(path.join(prodDir, 'background.js'), 'utf8');
     expect(bg).toContain('luci:save-to-project');
     expect(bg).toContain('luci:check-bridge');
     expect(bg).toContain('luci:list-captures');
@@ -48,15 +56,16 @@ describe('extension build (M4.6)', { timeout: 120_000 }, () => {
     expect(bg).toContain('luci:propose-rule');
     expect(bg).toContain('/design');
     expect(bg).toContain('/health');
-    const tb = fs.readFileSync(path.join(dir, 'toolbar.js'), 'utf8');
+    const tb = fs.readFileSync(path.join(prodDir, 'toolbar.js'), 'utf8');
     expect(tb).toContain('luci:save-to-project');
+    expect(tb).toContain('Download file instead');
   });
 
   it('the help page explains the required debugger permission and Luci\'s switch, with no request or remove buttons', () => {
-    const dir = build(false);
-    const bg = fs.readFileSync(path.join(dir, 'background.js'), 'utf8');
+    const bg = fs.readFileSync(path.join(prodDir, 'background.js'), 'utf8');
     expect(bg).toContain('luci:check-debugger');
-    const help = fs.readFileSync(path.join(dir, 'help.html'), 'utf8');
+    const help = fs.readFileSync(path.join(prodDir, 'help.html'), 'utf8');
+    expect(help).toContain('npm install -g @luci-dev/cli');
     expect(help).toContain('id="debugger-permission"');
     expect(help).toContain('dbg-status-text');
     expect(help).not.toContain('dbg-request-btn');
@@ -97,6 +106,7 @@ describe.runIf(process.env['LUCI_EXTENSION_E2E'] === '1')('extension in Chromium
     await context?.close();
     await server?.close();
     if (userData) fs.rmSync(userData, { recursive: true, force: true });
+    fs.rmSync(path.join(ROOT, '.output-test'), { recursive: true, force: true });
   });
 
   /** Run a function with the extension's APIs, failing after 20 seconds instead of hanging. */

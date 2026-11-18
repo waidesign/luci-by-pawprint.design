@@ -137,7 +137,7 @@ const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(v,
 const EDGE = 8;
 
 /** "Save to project", then where it went (or why not). */
-function SaveButton(props: { save: () => Promise<{ path: string; replaced: boolean }>; projectName?: string }) {
+function SaveButton(props: { save: () => Promise<{ path: string; replaced: boolean }>; projectName?: string; onDownload?: () => void }) {
   const [state, setState] = useState<{ busy?: boolean; done?: string; error?: string }>({});
   const run = async () => {
     setState({ busy: true });
@@ -158,7 +158,16 @@ function SaveButton(props: { save: () => Promise<{ path: string; replaced: boole
         {state.busy ? <><ButtonSpinner />Saving…</> : label}
       </button>
       {state.done && <span class="dim" data-part="saved">{state.done}</span>}
-      {state.error && <span class="error" data-part="save-error">{state.error}</span>}
+      {state.error && (
+        <>
+          <span class="error" data-part="save-error">{state.error}</span>
+          {props.onDownload && (
+            <button type="button" class="btn-secondary" data-action="download-fallback" onClick={props.onDownload}>
+              Download file instead
+            </button>
+          )}
+        </>
+      )}
     </>
   );
 }
@@ -1109,7 +1118,7 @@ export function Toolbar(props: ToolbarProps) {
   // Direct send to project (v0.4.4): push basket captures straight to .luci/design/
   const [itemSent, setItemSent] = useState<Record<string, { path?: string; error?: string }>>({});
   const [basketSending, setBasketSending] = useState(false);
-  const [basketStatus, setBasketStatus] = useState<{ text: string; error?: boolean } | null>(null);
+  const [basketStatus, setBasketStatus] = useState<{ text: string; error?: boolean; download?: () => void } | null>(null);
 
   const sendOneToProject = async (item: BasketItem) => {
     if (!props.saveToProject) return;
@@ -1122,7 +1131,7 @@ export function Toolbar(props: ToolbarProps) {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       setItemSent(prev => ({ ...prev, [item.id]: { error: msg } }));
-      setBasketStatus({ text: msg, error: true });
+      setBasketStatus({ text: msg, error: true, download: () => downloadText(fileName, markdown) });
     }
   };
 
@@ -1140,7 +1149,8 @@ export function Toolbar(props: ToolbarProps) {
       const target = activeProject?.name ? `${activeProject.name}/.luci/design/` : '.luci/design/';
       setBasketStatus({ text: `Saved ${saved} capture${saved === 1 ? '' : 's'} into ${target}.` });
     } catch (err) {
-      setBasketStatus({ text: err instanceof Error ? err.message : String(err), error: true });
+      const all = exportBasket(basket, settings);
+      setBasketStatus({ text: err instanceof Error ? err.message : String(err), error: true, download: () => downloadText(all.fileName, all.markdown) });
     } finally {
       setBasketSending(false);
     }
@@ -1675,7 +1685,7 @@ export function Toolbar(props: ToolbarProps) {
                     data-action="copy" onClick={() => void copyText(exported.markdown)} />
                   <Button variant="secondary" size="md" iconOnly tipAbove icon={IconDownload} label={COPY.capture.actions.download} data-action="download"
                     onClick={() => downloadText(exported.fileName, exported.markdown)} />
-                  {props.saveToProject && <SaveButton save={() => props.saveToProject!(exported.fileName, exported.markdown)} projectName={activeProject?.name} key={exported.fileName} />}
+                  {props.saveToProject && <SaveButton save={() => props.saveToProject!(exported.fileName, exported.markdown)} onDownload={() => downloadText(exported.fileName, exported.markdown)} projectName={activeProject?.name} key={exported.fileName} />}
                   <button type="button" class="btn-secondary" data-action="basket-back" onClick={() => { setBasketExport(null); setCopied(false); }}>Back to the basket</button>
                 </div>
               </>
@@ -1743,7 +1753,16 @@ export function Toolbar(props: ToolbarProps) {
                     ? <button type="button" class="btn-danger" data-action="clear-basket-confirm" onClick={() => { saveBasket([]); setConfirmClear(false); }}>Yes, empty the basket</button>
                     : <button type="button" class="btn-danger" data-action="clear-basket" onClick={() => setConfirmClear(true)}>Empty basket</button>)}
                 </div>
-                {basketStatus && <p class={basketStatus.error ? 'error' : 'hint'} data-part="basket-status">{basketStatus.text}</p>}
+                {basketStatus && (
+                  <div class="row" data-part="basket-status">
+                    <p class={basketStatus.error ? 'error' : 'hint'} style={{ margin: 0 }}>{basketStatus.text}</p>
+                    {basketStatus.error && basketStatus.download && (
+                      <button type="button" class="btn-secondary" data-action="download-fallback" onClick={basketStatus.download}>
+                        Download file instead
+                      </button>
+                    )}
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -2050,7 +2069,7 @@ export function Toolbar(props: ToolbarProps) {
                     <Button variant="secondary" size="md" iconOnly tipAbove icon={added ? IconSuccess : IconBasket} data-action="add-to-basket"
                       label={added ? COPY.capture.actions.inBasket : COPY.capture.actions.addToBasket} onClick={() => { if (added) openBasket(); else void addCurrent(); }} />
                     {tool && <Button variant="secondary" size="md" iconOnly tipAbove icon={TOOL_ICONS[tool]} data-action="pick-again" label={COPY.capture.actions.pickAgain} onClick={() => startPicking(tool)} />}
-                    {props.saveToProject && output && <SaveButton save={saveAll} projectName={activeProject?.name} key={output.fileName} />}
+                    {props.saveToProject && output && <SaveButton save={saveAll} onDownload={sectionFiles.length ? downloadZip : download} projectName={activeProject?.name} key={output.fileName} />}
                     {props.makeRule && output && output.capture.meta.scope === 'component' && (
                       <RuleButton make={() => props.makeRule!(output.fileName, markdown)} key={`rule ${output.fileName}`} />
                     )}
