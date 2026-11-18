@@ -2,7 +2,6 @@ import { PRODUCT } from '@luci-dev/format';
 import { CAPTURE_HELP, captureCommand } from './commands/capture.js';
 import { DOCTOR_HELP, doctorCommand } from './commands/doctor.js';
 import { INIT_HELP, initCommand } from './commands/init.js';
-import { IMPORT_HELP, importCommand } from './commands/import.js';
 import { INTAKE_HELP, intakeCommand } from './commands/intake.js';
 import { MAP_HELP, mapCommand } from './commands/map.js';
 import { PACKS_HELP, packsCommand } from './commands/packs.js';
@@ -36,7 +35,6 @@ const helpCommand: Command = async (_args, ctx) => {
   ctx.out(`  ${SERVE_HELP}`);
   ctx.out(`  ${TOOLBAR_HELP}`);
   ctx.out(`  ${CAPTURE_HELP}`);
-  ctx.out(`  ${IMPORT_HELP}`);
   ctx.out(`  ${BENCHMARK_HELP}`);
   ctx.out('  version               Show the version');
   ctx.out('  help                  Show this help');
@@ -56,7 +54,6 @@ export const COMMANDS: Readonly<Record<string, Command>> = {
   toolbar: toolbarCommand,
   capture: captureCommand,
   captures: captureCommand,
-  import: importCommand,
   benchmark: benchmarkCommand,
   eval: benchmarkCommand,
   start: startCommand,

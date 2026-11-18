@@ -13,8 +13,7 @@
   "files": [
     "dist",
     "templates",
-    "defaults",
-    "import-snapshot"
+    "defaults"
   ],
   "dependencies": {
     "@luci-dev/format": "workspace:*",

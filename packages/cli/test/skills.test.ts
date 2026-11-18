@@ -111,30 +111,6 @@ describe('luci skills: manage (S5)', () => {
     expect(readMemory(dir, 'project-skills.md')).toContain('(`team-notes`)');
   });
 
-  it('add converts a skill folder from the earlier prototype, keeping its contract', async () => {
-    const dir = await project();
-    const src = path.join(tempDir('luci-src-'), 'agent-docs');
-    fs.mkdirSync(path.join(src, 'agents'), { recursive: true });
-    fs.writeFileSync(path.join(src, 'SKILL.md'), '---\nname: "agent-docs"\ndescription: "Writing documents for agents. Use when editing CLAUDE.md."\nlicense: "MIT"\nmetadata:\n  gaw-category: "workflow"\n  gaw-author: "mattpocock"\n  gaw-version: "1.0.0"\n---\n\n# Agent docs\n\nKeep ai-brain/rules.md short.\n', 'utf8');
-    fs.writeFileSync(path.join(src, 'gaw.json'), JSON.stringify({ gss: 1, keywords: ['agents', 'claude.md', 'skills'], whenToUse: ['Editing agent instruction files.'] }), 'utf8');
-    fs.writeFileSync(path.join(src, 'agents', 'openai.yaml'), 'name: agent-docs\n', 'utf8');
-
-    const added = await luci(dir, 'skills', 'add', src);
-    expect(added.code, added.err).toBe(0);
-    expect(added.out).toContain('Converted from the earlier prototype');
-    const installed = path.join(process.env['LUCI_HOME'] ?? '', 'skills', 'workflow', 'agent-docs');
-    expect(fs.existsSync(path.join(installed, 'gaw.json'))).toBe(false);
-    const contract = JSON.parse(fs.readFileSync(path.join(installed, 'luci.json'), 'utf8'));
-    expect(contract.keywords).toEqual(['agents', 'claude.md', 'skills']);
-    expect(contract.whenToUse).toEqual(['Editing agent instruction files.']);
-    const skill = fs.readFileSync(path.join(installed, 'SKILL.md'), 'utf8');
-    expect(skill).toContain('luci-author: "mattpocock"');
-    expect(skill).not.toMatch(/gaw-|ai-brain/);
-    expect(fs.existsSync(path.join(installed, 'agents', 'openai.yaml'))).toBe(true);
-    // The source folder is only read
-    expect(fs.existsSync(path.join(src, 'gaw.json'))).toBe(true);
-  });
-
   it('add --project writes into .luci/skills', async () => {
     const dir = await project();
     expect((await luci(dir, 'skills', 'add', sourceSkill('house-style'), '--project')).code).toBe(0);

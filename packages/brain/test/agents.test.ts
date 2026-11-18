@@ -1,8 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { configureAgent, configureAgents, diagnose, initProject, updateProject, withoutPrototypeSection } from '@luci-dev/brain';
-import { SkillRegistry } from '@luci-dev/skills';
+import { configureAgent, configureAgents, initProject } from '@luci-dev/brain';
 import { pkg, tempProject } from './helpers.js';
 
 const read = (dir: string, file: string) => fs.readFileSync(path.join(dir, file), 'utf8');
@@ -88,24 +87,6 @@ describe('agent files', () => {
     expect(configureAgents(dir, react, { dryRun: true })).toMatchObject({ claudeCode: { action: 'merged' }, cursor: { action: 'created' } });
     expect(read(dir, 'CLAUDE.md')).toBe('mine\n');
     expect(fs.existsSync(path.join(dir, '.cursorrules'))).toBe(false);
-  });
-
-  it('a prototype section the import missed is reported by doctor and removed by update; the rest stays', async () => {
-    const old = '<!-- GUIDED AGENT WORKFLOW — GENERIC AGENT INSTRUCTIONS -->\n# Universal Agent Instructions\n- Rules: follow ./ai-brain/rules.md\n<!-- END GUIDED AGENT WORKFLOW -->\n';
-    const dir = tempProject({ 'package.json': pkg(), 'AGENT_INSTRUCTIONS.md': `# Ours\nKeep this.\n\n${old}\nAnd this.\n` });
-    await initProject(dir);
-    // Luci's section was added at the top; the old one is still there until update
-    expect(read(dir, 'AGENT_INSTRUCTIONS.md')).toContain('ai-brain');
-    const doctor = await diagnose(dir, { registry: new SkillRegistry({ user: false }) });
-    expect(doctor.checks).toContainEqual(expect.objectContaining({ status: 'warn', label: 'AGENT_INSTRUCTIONS.md', fix: expect.stringContaining('luci update') }));
-    const report = await updateProject(dir, { registry: new SkillRegistry({ user: false }) });
-    expect(report.oldSectionsRemoved).toEqual(['AGENT_INSTRUCTIONS.md']);
-    const text = read(dir, 'AGENT_INSTRUCTIONS.md');
-    expect(text).not.toMatch(/ai-brain|GUIDED AGENT/);
-    expect(text).toMatch(/^<!-- LUCI — GENERIC AGENTS CONFIGURATION -->[\s\S]*<!-- END LUCI -->\n\n# Ours\nKeep this\.\n\nAnd this\.\n$/);
-    // A file without Luci's section is left to the import
-    expect(withoutPrototypeSection(`a\n${old}b\n`)).toBe('a\n\nb\n');
-    expect((await updateProject(dir, { registry: new SkillRegistry({ user: false }) })).oldSectionsRemoved).toEqual([]);
   });
 
   it('init reports created, up to date and refreshed agent files', async () => {

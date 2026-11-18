@@ -1,8 +1,7 @@
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { MEMORY_FILES, PRODUCT, userSkillsDir } from '@luci-dev/format';
-import { convertPrototypeSkillFolder, detectProject, findProjectRoot, memoryDir, writeActiveTask } from '@luci-dev/brain';
+import { detectProject, findProjectRoot, memoryDir, writeActiveTask } from '@luci-dev/brain';
 import {
   GitHubClient,
   SkillDiscovery,
@@ -233,23 +232,8 @@ async function add(args: string[], ctx: CliContext): Promise<number> {
 
   const isGitHub = /^https?:\/\/github\.com\//.test(target);
   if (isGitHub) ctx.out(`Fetching from GitHub (network): ${target}`);
-  // A skill folder from the earlier prototype is converted first, so its contract (author, keywords) is kept
   const local = isGitHub ? null : path.resolve(ctx.cwd, target);
-  const converted = local && fs.existsSync(local) && fs.statSync(local).isDirectory() ? convertPrototypeSkillFolder(local) : null;
-  let staged: string | null = null;
-  if (converted) {
-    staged = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'luci-skill-')), path.basename(local!));
-    for (const [rel, text] of Object.entries(converted)) {
-      fs.mkdirSync(path.dirname(path.join(staged, rel)), { recursive: true });
-      fs.writeFileSync(path.join(staged, rel), text, 'utf8');
-    }
-    ctx.out('Converted from the earlier prototype\'s skill format.');
-  }
-  try {
-    return await addPrepared(staged ?? local ?? target, isGitHub, { toProject, yes, category, name }, ctx);
-  } finally {
-    if (staged) fs.rmSync(path.dirname(staged), { recursive: true, force: true });
-  }
+  return addPrepared(local ?? target, isGitHub, { toProject, yes, category, name }, ctx);
 }
 
 async function addPrepared(

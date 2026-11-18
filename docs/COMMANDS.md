@@ -92,7 +92,6 @@ The captures saved in `.luci/design/` (from the dev toolbar or the extension). `
 | `luci doctor` | Check the install and this project's setup, and say how to fix what is wrong. `--json` for scripts. |
 | `luci update` | Refresh the files Luci wrote into this project: auto-detected sections, `brain.json`, agent files and the skill catalog. Your own rules, decisions and notes stay as they are. It does not update Luci itself. |
 | `luci map` | The code map's status. `--update` builds or refreshes it; `--install` installs Graphify. |
-| `luci import` | Move a project from the earlier prototype (`ai-brain/`) onto Luci. `--dry-run` first. |
 | `luci benchmark` | Show saved local evaluation reports from `eval/`. `--json` for scripts. `luci eval` works too. |
 | `luci version` | Show the installed version. Also `luci --version` or `luci -v`. |
 | `luci help` | Show every command. Also `luci --help` or `luci -h`. |

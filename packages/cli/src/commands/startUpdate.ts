@@ -61,7 +61,6 @@ export const updateCommand: Command = async (_args, ctx) => {
   if (report.added.length) ctx.out(`Added missing files: ${report.added.join(', ')}`);
   ctx.out(report.refreshedSections.length ? `Refreshed: ${report.refreshedSections.join(', ')}` : 'Auto-detected sections are current.');
   if (report.agentFiles.length) ctx.out(`Refreshed the ${PRODUCT.name} section in: ${report.agentFiles.join(', ')}`);
-  if (report.oldSectionsRemoved.length) ctx.out(`Removed the old section from before the import (it pointed to a memory folder that is gone) from: ${report.oldSectionsRemoved.join(', ')}`);
   ctx.out(`Rewrote generated files: ${generatedFiles().join(', ')}`);
   if (report.codeMap) ctx.out(`Code map: ${report.codeMap}`);
   ctx.out(`Everything you wrote was kept. Rename a section to "(confirmed)" to stop it being refreshed.`);
