@@ -32,7 +32,7 @@ The capture toolbar on any site, for Chrome (Manifest V3, built with WXT).
 
 ## Permissions
 
-`activeTab`, `scripting`, `storage` and `debugger` only: the toolbar runs only on the tab where you click the icon, settings stay in the extension's storage, and the debugger is attached only while a component's states are read. No host permissions, no scripts on every page, nothing sent anywhere.
+`activeTab`, `scripting`, `storage` and `debugger`, plus two hosts: `http://localhost/*` and `http://127.0.0.1/*` only. The toolbar runs only on the tab where you click the icon, settings stay in the extension's storage, and the two hosts are only for sending captures to `luci serve` on your own computer. The debugger is attached only while a capture reads a component's states or other widths, and Luci's switch in settings turns its use on or off (while it is off, states come from stylesheet rules and widths from a hidden frame). No scripts on every page, nothing sent anywhere else.
 
 ## Tests
 
