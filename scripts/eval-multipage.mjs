@@ -8,7 +8,7 @@
  *   node scripts/eval-multipage.mjs                  # Run 10 runs with Claude Code (Luci format)
  *   node scripts/eval-multipage.mjs --runs 1         # Run 1 quick verification run
  *   node scripts/eval-multipage.mjs --dry-run        # Mock simulation to test the harness
- *   node scripts/eval-multipage.mjs --agentation     # Run with Agentation format for comparison
+ *   node scripts/eval-multipage.mjs --baseline       # Run with a plain per-page baseline format for comparison
  *   node scripts/eval-multipage.mjs --save-report    # Save results to eval/multi-page-report.json
  */
 
@@ -27,7 +27,7 @@ const args = process.argv.slice(2);
 const runsArgIndex = args.indexOf('--runs');
 const totalRuns = runsArgIndex !== -1 && args[runsArgIndex + 1] ? parseInt(args[runsArgIndex + 1], 10) : (args.includes('--dry-run') ? 10 : 10);
 const dryRun = args.includes('--dry-run');
-const useAgentation = args.includes('--agentation') || (args.includes('--format') && args[args.indexOf('--format') + 1] === 'agentation');
+const useBaseline = args.includes('--baseline') || (args.includes('--format') && args[args.indexOf('--format') + 1] === 'baseline');
 const saveReport = args.includes('--save-report');
 
 const agentCmd = (() => {
@@ -38,7 +38,8 @@ const agentCmd = (() => {
 
 const LUCI_PROMPT = fs.readFileSync(luciPromptFile, 'utf8');
 
-const AGENTATION_PROMPT = `# UI feedback
+// The baseline: plain feedback, one "# UI feedback" block per page, no item IDs and no closing request
+const BASELINE_PROMPT = `# UI feedback
 
 ## /pricing
 - Button label wraps on mobile (main > section:nth-of-type(2) > button)
@@ -57,8 +58,8 @@ const AGENTATION_PROMPT = `# UI feedback
 - Disable while the payment is sending (form > button)
 `;
 
-const activePrompt = useAgentation ? AGENTATION_PROMPT : LUCI_PROMPT;
-const formatName = useAgentation ? 'Agentation' : 'Luci';
+const activePrompt = useBaseline ? BASELINE_PROMPT : LUCI_PROMPT;
+const formatName = useBaseline ? 'baseline' : 'Luci';
 
 function copyDirRecursive(src, dest) {
   fs.mkdirSync(dest, { recursive: true });
@@ -243,8 +244,8 @@ async function main() {
 
   const scoreSheet = [];
 
-  console.log(`| Run | Format | Applied (of 6) | Reported (of 6) | Time    | Notes                      | Status |`);
-  console.log(`| :-- | :----- | :------------- | :-------------- | :------ | :------------------------- | :----- |`);
+  console.log(`| Run | Format   | Applied (of 6) | Reported (of 6) | Time    | Notes                      | Status |`);
+  console.log(`| :-- | :------- | :------------- | :-------------- | :------ | :------------------------- | :----- |`);
 
   for (let run = 1; run <= totalRuns; run++) {
     resetGitRepo(testWorkspace);
@@ -253,7 +254,8 @@ async function main() {
     const applied = verifyItemsApplied(testWorkspace);
     const reported = verifyItemsReported(output);
 
-    const isPass = applied.count === 6 && (useAgentation || reported.count === 6);
+    // The baseline asks for no report, so only the applied items count for it
+    const isPass = applied.count === 6 && (useBaseline || reported.count === 6);
     const durationSec = (durationMs / 1000).toFixed(1) + 's';
 
     let note = '';
@@ -276,7 +278,7 @@ async function main() {
     });
 
     const statusBadge = isPass ? 'PASS ' : 'FAIL ';
-    console.log(`| ${String(run).padEnd(3)} | ${formatName.padEnd(6)} | ${applied.count} / 6          | ${reported.count} / 6           | ${durationSec.padEnd(7)} | ${note.padEnd(26)} | ${statusBadge}  |`);
+    console.log(`| ${String(run).padEnd(3)} | ${formatName.padEnd(8)} | ${applied.count} / 6          | ${reported.count} / 6           | ${durationSec.padEnd(7)} | ${note.padEnd(26)} | ${statusBadge}  |`);
   }
 
   // Cleanup temp dir
