@@ -1,6 +1,11 @@
 # Graphify code map: generated locally, rebuilt by its git hooks
 graphify-out/
 
+# Project memory: a private git repository of its own, nested here (see its decisions/)
+.luci/
+# The Chrome Web Store kit now lives in .luci/store-assets/
+store-assets/
+
 # Dependencies and build output
 node_modules/
 dist/
