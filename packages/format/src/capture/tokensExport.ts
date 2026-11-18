@@ -45,6 +45,12 @@ const slug = (text: string) =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '') || 'token';
 
+/** A token's key inside its group, without the group's own prefix: --color-bg gives "bg" (so --color-bg, not --color-color-bg). */
+const keyIn = (group: string, hint: string) => {
+  const key = slug(hint);
+  return key.startsWith(`${group}-`) && key.length > group.length + 1 ? key.slice(group.length + 1) : key;
+};
+
 const px = (v: string) => {
   const n = pxValue(v);
   return n === null ? v : `${Math.round(n * 100) / 100}px`;
@@ -84,7 +90,7 @@ export function extractTokens(captures: readonly Capture[]): ExtractedTokens {
     for (const [k, v] of tokens.colors) {
       if (v.toLowerCase() === val.toLowerCase()) return;
     }
-    const k = freeKey(tokens.colors, slug(keyHint));
+    const k = freeKey(tokens.colors, keyIn('color', keyHint));
     tokens.colors.set(k, val);
   };
 
@@ -95,7 +101,7 @@ export function extractTokens(captures: readonly Capture[]): ExtractedTokens {
       if (v === val) return;
     }
     const num = pxValue(val);
-    const k = keyHint ? slug(keyHint) : num !== null ? String(num) : freeKey(tokens.spacing, 'space');
+    const k = keyHint ? keyIn('spacing', keyHint) : num !== null ? String(num) : freeKey(tokens.spacing, 'space');
     tokens.spacing.set(freeKey(tokens.spacing, k), val);
   };
 
@@ -106,7 +112,7 @@ export function extractTokens(captures: readonly Capture[]): ExtractedTokens {
       if (v === val) return;
     }
     const num = pxValue(val);
-    let hint = keyHint ? slug(keyHint) : num !== null ? `${num}px` : 'radius';
+    let hint = keyHint ? keyIn('radius', keyHint) : num !== null ? `${num}px` : 'radius';
     if (num && num >= 999) hint = 'full';
     tokens.radii.set(freeKey(tokens.radii, hint), val);
   };
