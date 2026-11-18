@@ -43,7 +43,7 @@ Run these in your project folder. With Luci installed (`npm install -g @luci-dev
 
 | Command | What it does |
 | :--- | :--- |
-| `luci skills [category]` | List the skill library (Luci's and your personal one). |
+| `luci skills [category]` | List the skill library (Luci's and your personal one). `luci skills list [category]` is the same. |
 | `luci skills search <query>` | Find skills by keyword. |
 | `luci skills recommend <task>` | The skills for a task, each with the reason. |
 | `luci skills use <task>` | Load the skills that closely match a task (nothing when nothing fits). `--project`: only this project's skills. `--budget <tokens>`: a size limit. `--full`: print their instructions. `--inject`: write the task and the skill files to open into `.luci/local/active-task.md`. |

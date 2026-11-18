@@ -34,6 +34,7 @@ import { isHelp, subcommandHelp, type CliContext, type Command } from '../contex
 const cmd = (args: string) => `${PRODUCT.command} ${args}`;
 
 export const SKILLS_HELP = `skills [category]     List the skill library (Luci's and your personal one)
+  skills list [category]        List the skill library (Luci's and your personal one)
   skills search <query>         Find skills by keyword
   skills recommend <task>       Skills for a task, each with the reason
   skills use <task> [--project] [--budget <tokens>] [--full] [--inject]
