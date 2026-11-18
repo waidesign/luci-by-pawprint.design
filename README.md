@@ -185,4 +185,8 @@ Every push and pull request to `main` runs the same checks on GitHub (**CI**). R
 
 ## License
 
-[MIT](LICENSE) © [Pawprint Design](https://pawprint.design)
+The code is MIT licensed. The Luci name, logo and mascot are not covered by the MIT licence and may not be used to suggest endorsement or for other products. See [LICENSE](LICENSE) and [TRADEMARKS.md](TRADEMARKS.md).
+
+---
+
+Luci by [Pawprint Design](https://pawprint.design)
