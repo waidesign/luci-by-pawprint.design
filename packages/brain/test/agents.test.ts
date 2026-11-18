@@ -54,6 +54,8 @@ describe('agent files', () => {
       expect(text, file).toMatch(/^<!-- LUCI — (CLAUDE CODE|CURSOR) CONFIGURATION -->\n/);
       expect(text, file).toContain('<!-- END LUCI -->');
       expect(text, file).not.toMatch(/gaw|guided agent|ai-brain/i);
+      expect(text, file).toContain('Before UI or design work: run `luci doctor`');
+      expect(text, file).toContain('if PowerShell blocks `luci`, use `luci.cmd`');
     }
   });
 
