@@ -18,7 +18,10 @@ export const doctorCommand: Command = async (args, ctx) => {
     return 1;
   }
 
-  const result = await diagnose(ctx.cwd);
+  const result = await diagnose(ctx.cwd, {
+    ...(ctx.pathEnv !== undefined ? { pathEnv: ctx.pathEnv } : {}),
+    ...(ctx.platform !== undefined ? { platform: ctx.platform } : {})
+  });
   if (flags.has('--json')) {
     ctx.out(JSON.stringify(result, null, 2));
     return result.ok ? 0 : 1;

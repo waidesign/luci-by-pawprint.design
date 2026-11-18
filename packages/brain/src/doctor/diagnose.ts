@@ -3,6 +3,7 @@
  * current project's memory folder. Every problem comes with the fix. Reads only.
  */
 import fs from 'node:fs';
+import http from 'node:http';
 import path from 'node:path';
 import {
   DEFAULT_AGENTS,
@@ -14,6 +15,7 @@ import {
   parseActiveTaskHeader,
   parseDecision,
   parseProposal,
+  stripBom,
   type ActiveTaskHeader,
   type AgentId
 } from '@luci-dev/format';
@@ -68,6 +70,10 @@ export interface DiagnoseOptions {
   defaultsDir?: string;
   /** The skill library (default: Luci's library plus the user's personal one). */
   registry?: SkillSource;
+  /** PATH string for tests; defaults to process.env.PATH. */
+  pathEnv?: string;
+  /** Platform for tests; defaults to process.platform. */
+  platform?: NodeJS.Platform;
 }
 
 const MIN_NODE_MAJOR = 18;
@@ -134,7 +140,67 @@ function installChecks(options: DiagnoseOptions): Check[] {
       checks.push({ area: 'install', status: 'fail', label: 'Global Brain', detail: `${brainDir} is not writable`, fix: `Give your user write access to it, or set ${PRODUCT.homeEnv} to another folder.` });
     }
   }
+
+  const platform = options.platform ?? process.platform;
+  if (!isLuciOnPath(options.pathEnv, platform)) {
+    checks.push({
+      area: 'install',
+      status: 'warn',
+      label: 'PATH',
+      detail: `\`${PRODUCT.command}\` is not on the PATH`,
+      fix: platform === 'win32' ? `${GLOBAL_INSTALL_TIP} (${WINDOWS_POWERSHELL_TIP})` : GLOBAL_INSTALL_TIP
+    });
+  }
   return checks;
+}
+
+const LOADER_SCRIPT_EXT = ['tsx', 'jsx', 'js', 'ts'];
+const LOADER_INSTALLED = /luci:toolbar|127\.0\.0\.1:(\d+)\/toolbar\.js/;
+
+function findSupportedRootFile(projectDir: string): { file: string; rel: string } | null {
+  const isFile = (f: string) => { try { return fs.statSync(f).isFile(); } catch { return false; } };
+  const first = (names: readonly string[]) => names.map(n => path.join(projectDir, n)).find(isFile);
+  const check = (file: string | undefined): { file: string; rel: string } | null => {
+    if (!file) return null;
+    try {
+      const content = stripBom(fs.readFileSync(file, 'utf8'));
+      return /<\/body>/i.test(content) ? { file, rel: path.relative(projectDir, file).replace(/\\/g, '/') } : null;
+    } catch {
+      return null;
+    }
+  };
+  const astroLayout = () => {
+    const dir = path.join(projectDir, 'src', 'layouts');
+    let layouts: string[] = [];
+    try { layouts = fs.readdirSync(dir).filter(f => f.endsWith('.astro')); } catch { /* none */ }
+    const pick = layouts.find(f => /^(Base)?Layout\.astro$/i.test(f)) ?? (layouts.length === 1 ? layouts[0] : undefined);
+    return check(pick ? path.join(dir, pick) : undefined);
+  };
+  const candidates: (() => { file: string; rel: string } | null)[] = [
+    () => check(first(['app', 'src/app'].flatMap(d => LOADER_SCRIPT_EXT.map(e => `${d}/layout.${e}`)))),
+    () => check(first(['pages', 'src/pages'].flatMap(d => LOADER_SCRIPT_EXT.map(e => `${d}/_document.${e}`)))),
+    () => check(first(['src/app.html'])),
+    astroLayout,
+    () => check(first(['index.html'])),
+    () => check(first(['src/index.html'])),
+    () => check(first(['public/index.html']))
+  ];
+  for (const c of candidates) {
+    const found = c();
+    if (found) return found;
+  }
+  return null;
+}
+
+function isServeListening(port: number): Promise<boolean> {
+  return new Promise(resolve => {
+    const req = http.get({ host: '127.0.0.1', port, path: '/health', timeout: 300 }, res => {
+      res.resume();
+      resolve((res.statusCode ?? 500) < 500);
+    });
+    req.on('error', () => resolve(false));
+    req.on('timeout', () => { req.destroy(); resolve(false); });
+  });
 }
 
 async function skillChecks(dir: string, registry: SkillSource, add: (status: CheckStatus, label: string, detail?: string, fix?: string) => void): Promise<number> {
@@ -255,6 +321,22 @@ async function projectChecks(
     if (!task.ok) add('warn', 'Active task', `${memoryPath(MEMORY_FILES.activeTask)}: ${task.error}`, 'Fix its header, or delete the file if the task is finished.');
     else if (task.value.status !== 'active') add('warn', 'Active task', `${memoryPath(MEMORY_FILES.activeTask)} has status "${task.value.status}", so agents ignore it`, 'Delete or archive it.');
     else activeTask = task.value;
+  }
+
+  const rootTarget = findSupportedRootFile(dir);
+  if (rootTarget) {
+    const content = stripBom(fs.readFileSync(rootTarget.file, 'utf8'));
+    if (!LOADER_INSTALLED.test(content)) {
+      add('warn', 'Dev toolbar', 'Dev toolbar not added.', 'luci toolbar');
+    } else {
+      const port = Number(/127\.0\.0\.1:(\d+)\/toolbar\.js/.exec(content)?.[1] ?? 4545);
+      const running = await isServeListening(port);
+      if (!running) {
+        add('warn', 'luci serve', `luci serve isn't running on port ${port}.`, 'run luci serve in this project.');
+      } else {
+        add('ok', 'Dev toolbar', `in ${rootTarget.rel} (port ${port})`);
+      }
+    }
   }
 
   return {

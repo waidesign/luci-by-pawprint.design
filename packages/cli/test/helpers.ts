@@ -5,9 +5,18 @@ import { afterEach } from 'vitest';
 import type { CliContext } from '../src/index.js';
 
 const made: string[] = [];
+let defaultBinDir: string | null = null;
 afterEach(() => {
   for (const dir of made.splice(0)) fs.rmSync(dir, { recursive: true, force: true });
 });
+
+function ensureDefaultBinDir(): string {
+  if (defaultBinDir && fs.existsSync(defaultBinDir)) return defaultBinDir;
+  defaultBinDir = fs.mkdtempSync(path.join(os.tmpdir(), 'luci-cli-bin-'));
+  fs.writeFileSync(path.join(defaultBinDir, 'luci'), '#!/bin/sh\n', 'utf8');
+  fs.writeFileSync(path.join(defaultBinDir, 'luci.cmd'), '@echo off\r\n', 'utf8');
+  return defaultBinDir;
+}
 
 export function tempDir(prefix = 'luci-cli-'): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
@@ -36,7 +45,7 @@ export function fakeContext(cwd: string, options: { isTTY?: boolean; answers?: s
     err: (line = '') => err.push(line),
     isTTY: options.isTTY ?? false,
     ask: async (q) => { asked.push(q); return answers.shift() ?? ''; },
-    ...(options.pathEnv !== undefined ? { pathEnv: options.pathEnv } : {}),
+    pathEnv: options.pathEnv ?? ensureDefaultBinDir(),
     ...(options.platform !== undefined ? { platform: options.platform } : {})
   };
   return { ctx, out, err, asked, text: () => out.join('\n'), errors: () => err.join('\n') };

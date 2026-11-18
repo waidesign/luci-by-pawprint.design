@@ -143,4 +143,38 @@ describe('every problem has a fix', () => {
       if (c.status === 'warn' || c.status === 'fail') expect(c.fix, c.label).toBeTruthy();
     }
   });
+
+  it('warns when the dev toolbar loader is missing, when luci serve is not running on its port, and when luci is not on PATH (and includes them in --json)', async () => {
+    const dir = tempProject({
+      'package.json': JSON.stringify({ name: 'web-app' }),
+      'index.html': '<!doctype html><html><body><div id="root"></div></body></html>'
+    });
+    await initProject(dir);
+
+    // 1. Supported root file exists without loader, and luci not on PATH
+    const noLoader = fakeContext(dir, { pathEnv: '', platform: 'win32' });
+    expect(await run(['doctor'], noLoader.ctx)).toBe(0);
+    expect(noLoader.text()).toContain('[warn] Dev toolbar: Dev toolbar not added.');
+    expect(noLoader.text()).toContain('Fix: luci toolbar');
+    expect(noLoader.text()).toContain('[warn] PATH');
+    expect(noLoader.text()).toContain('Install once for short commands: npm install -g @luci-dev/cli');
+    expect(noLoader.text()).toContain('In PowerShell, if `luci` is blocked, use `luci.cmd`.');
+
+    // 2. Add the toolbar loader on an unused port: warns that luci serve is not running on that port
+    await run(['toolbar', '--port', '4599'], fakeContext(dir).ctx);
+    const noServe = fakeContext(dir, { pathEnv: '', platform: 'darwin' });
+    expect(await run(['doctor'], noServe.ctx)).toBe(0);
+    expect(noServe.text()).toContain("[warn] luci serve: luci serve isn't running on port 4599.");
+    expect(noServe.text()).toContain('Fix: run luci serve in this project.');
+
+    // 3. Also included in doctor --json
+    const jsonRun = fakeContext(dir, { pathEnv: '', platform: 'darwin' });
+    expect(await run(['doctor', '--json'], jsonRun.ctx)).toBe(0);
+    const parsed = JSON.parse(jsonRun.text()) as { ok: boolean; checks: Check[] };
+    expect(parsed.ok).toBe(true);
+    expect(parsed.checks).toEqual(expect.arrayContaining([
+      expect.objectContaining({ status: 'warn', label: 'PATH', fix: 'Install once for short commands: npm install -g @luci-dev/cli' }),
+      expect.objectContaining({ status: 'warn', label: 'luci serve', detail: "luci serve isn't running on port 4599.", fix: 'run luci serve in this project.' })
+    ]));
+  });
 });
