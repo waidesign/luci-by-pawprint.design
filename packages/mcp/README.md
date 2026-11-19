@@ -7,7 +7,9 @@
 Set up the project first, in its folder:
 
 ```bash
-npx @luci-dev/cli@latest init
+npm install -g @luci-dev/cli
+luci init
+luci serve
 ```
 
 Then add the server. Claude Code, from the project folder:

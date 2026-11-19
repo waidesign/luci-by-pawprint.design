@@ -4,22 +4,25 @@ Luci inside your own app while you develop it: leave notes on the running app fo
 
 ## Set up
 
-1. In your app's folder: `luci init` (once). It asks **Add Luci's dev toolbar to your app?**; press Enter.
-2. `luci serve`, then open your app on this machine. Luci's button is in the bottom corner.
-
-Missed it, or said no? `luci serve` asks again while the toolbar is not in the app, and `luci toolbar` adds it any time. Or ask your agent to add Luci's dev toolbar: the project's agent files tell it to run `luci toolbar`.
-
-What it adds: a few lines between `luci:toolbar` comments, before `</body>` of the app's root file (Next.js `app/layout` or `pages/_document`, SvelteKit `src/app.html`, an Astro layout, or `index.html` for Vite, Create React App, Angular and plain sites). The loader only runs on `localhost` (Next.js: in development), so a deployed site is unchanged and nothing is installed. `luci toolbar remove` takes it out again; `luci toolbar --dry-run` shows what it would add. Without a root file Luci knows, add the line yourself:
-
-```html
-<script src="http://127.0.0.1:4545/toolbar.js"></script>
+```bash
+npm install -g @luci-dev/cli
+luci init
+luci serve
 ```
 
-3. Optional: connect your agent to `luci-mcp` (for Claude Code, from the project folder: `claude mcp add luci -- npx -y @luci-dev/mcp@latest`), so it can read the notes and saved captures itself. Copying the prompt works without it.
+1. Install Luci globally once: `npm install -g @luci-dev/cli` (requires Node 18 or later).
+2. In your app's folder: `luci init` (once). It asks **Add Luci's dev toolbar to your app?**; press Enter (or pass `luci init --toolbar`).
+3. `luci serve`, then open your app on this machine. Luci's button is in the bottom corner.
 
-**Updating:** the toolbar comes from the Luci you have installed. After updating Luci (`npm install -g @luci-dev/cli@latest`, or nothing with `npx @luci-dev/cli@latest`), stop `luci serve`, start it again and reload your app. The script tag in your app stays as it is.
+Missed it, or said no? `luci serve` asks again while the toolbar is not in the app, and `luci toolbar` adds or updates it any time. Or ask your agent to add Luci's dev toolbar: the project's agent files tell it to run `luci toolbar`.
 
-`luci serve` listens on 127.0.0.1 only and answers pages on this machine only. Without it, the toolbar still works: notes stay in this browser (for this app's address) and the prompt can be copied. The **This browser** badge says why it is not connected; click it after starting `luci serve`.
+What it adds: a few lines between `luci:toolbar` comments, before `</body>` of the app's root file (Next.js `app/layout` or `pages/_document`, SvelteKit `src/app.html`, an Astro layout, or `index.html` for Vite, Create React App, Angular and plain sites). The loader only runs on `localhost` (Next.js: in development), so a deployed site is unchanged and nothing is installed. `luci toolbar remove` takes it out again; `luci toolbar --dry-run` shows what it would add.
+
+4. Optional: connect your agent to `luci-mcp` (for Claude Code, from the project folder: `claude mcp add luci -- npx -y @luci-dev/mcp@latest`), so it can read the notes and saved captures itself. Copying the prompt works without it.
+
+**Updating:** the toolbar comes from the Luci you have installed. After updating Luci (`npm install -g @luci-dev/cli@latest`, or nothing with `npx @luci-dev/cli@latest`), run `luci toolbar` if the loader changed, stop `luci serve`, start it again and reload your app.
+
+`luci serve` listens on 127.0.0.1 only and answers pages on this machine only. When `luci serve` is not running, the loader shows a small **"Luci isn't running"** badge with **Copy fix for my agent** and **Retry** (which loads the toolbar without reloading the page once `luci serve` starts).
 
 ## Feedback
 
