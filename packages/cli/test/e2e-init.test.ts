@@ -16,8 +16,15 @@ it('luci init on the sample React project: memory, agent files, onboarding answe
   const dir = tempDir('luci-e2e-');
   const home = tempDir('luci-e2e-home-');
   fs.cpSync(FIXTURE, dir, { recursive: true });
+  // A stand-in `luci` first on the PATH: doctor warns when `luci` isn't installed, so without it the
+  // result depends on the machine (CI has no global install)
+  const bin = tempDir('luci-e2e-bin-');
+  fs.writeFileSync(path.join(bin, 'luci'), '');
+  const env: NodeJS.ProcessEnv = { ...process.env, LUCI_HOME: home };
+  for (const key of Object.keys(env)) if (key.toUpperCase() === 'PATH') delete env[key];
+  env.PATH = [bin, process.env.PATH ?? process.env.Path ?? ''].join(path.delimiter);
   const luci = (input: string, ...args: string[]) =>
-    spawnSync(process.execPath, [BIN, ...args], { cwd: dir, input, encoding: 'utf8', env: { ...process.env, LUCI_HOME: home } });
+    spawnSync(process.execPath, [BIN, ...args], { cwd: dir, input, encoding: 'utf8', env });
 
   // Answers piped in, as in a scripted setup: goal (no library skill matches it), "n" to the
   // UI pack offered for a React project, one rule, then Enter to finish
@@ -37,7 +44,7 @@ it('luci init on the sample React project: memory, agent files, onboarding answe
   expect(read('.cursorrules')).toContain('follow ./.luci/rules.md in every session');
   expect(read('.luci/local/global-brain.md')).toContain('# Global Brain (summary)');
 
-  const doctor = spawnSync(process.execPath, [BIN, 'doctor'], { cwd: dir, encoding: 'utf8', env: { ...process.env, LUCI_HOME: home } });
+  const doctor = spawnSync(process.execPath, [BIN, 'doctor'], { cwd: dir, encoding: 'utf8', env });
   expect(doctor.status, doctor.stdout).toBe(0);
   expect(doctor.stdout).toContain('No problems.');
   expect(doctor.stdout).toContain('Goal:         Recipe sharing app for home cooks');
