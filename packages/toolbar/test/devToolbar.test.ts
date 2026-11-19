@@ -504,7 +504,7 @@ describe('dev toolbar with luci serve (M6 Done when, automated)', { timeout: 90_
     expect(prompt).not.toContain('resolve_feedback');
     // The agent can read the same prompt (read only)
     expect((await mcp('get_feedback_prompt')).trimEnd()).toBe(prompt.trimEnd());
-    expect(await page.locator('[data-marker="P3-A1"]').getAttribute('data-status')).toBe('copied');
+    await page.locator('[data-marker="P3-A1"][data-status="copied"]').waitFor();
     await page.click('[data-action="prompt-back"]');
 
     // After checking the agent's work, the person marks notes done: one on the page, the rest at once
