@@ -15,7 +15,7 @@ luci serve
 Then add the server. Claude Code, from the project folder:
 
 ```bash
-claude mcp add luci -- npx -y @luci-dev/mcp@latest
+claude mcp add luci-mcp -- npx -y @luci-dev/mcp@latest
 ```
 
 Other agents: add a stdio MCP server that runs `npx -y @luci-dev/mcp@latest`, started in the project folder (`luci-mcp` reads the project it is started in).

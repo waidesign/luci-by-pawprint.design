@@ -18,7 +18,7 @@ Missed it, or said no? `luci serve` asks again while the toolbar is not in the a
 
 What it adds: a few lines between `luci:toolbar` comments, before `</body>` of the app's root file (Next.js `app/layout` or `pages/_document`, SvelteKit `src/app.html`, an Astro layout, or `index.html` for Vite, Create React App, Angular and plain sites). The loader only runs on `localhost` (Next.js: in development), so a deployed site is unchanged and nothing is installed. `luci toolbar remove` takes it out again; `luci toolbar --dry-run` shows what it would add.
 
-4. Optional: connect your agent to `luci-mcp` (for Claude Code, from the project folder: `claude mcp add luci -- npx -y @luci-dev/mcp@latest`), so it can read the notes and saved captures itself. Copying the prompt works without it.
+4. Optional: connect your agent to `luci-mcp` (for Claude Code, from the project folder: `claude mcp add luci-mcp -- npx -y @luci-dev/mcp@latest`), so it can read the notes and saved captures itself. Copying the prompt works without it.
 
 **Updating:** the toolbar comes from the Luci you have installed. After updating Luci (`npm install -g @luci-dev/cli@latest`, or nothing with `npx @luci-dev/cli@latest`), run `luci toolbar` if the loader changed, stop `luci serve`, start it again and reload your app.
 

@@ -187,7 +187,7 @@ The tools and keys are those of the dev toolbar's [Capture mode](#capture-take-p
 Your agent calls these itself once it is connected to `luci-mcp`. For Claude Code, from the project folder:
 
 ```bash
-claude mcp add luci -- npx -y @luci-dev/mcp@latest
+claude mcp add luci-mcp -- npx -y @luci-dev/mcp@latest
 ```
 
 For other agents, add a stdio MCP server that runs `npx -y @luci-dev/mcp@latest` in the project folder. "Reads only" tools never change a file. Tools that write only do so when you ask for it, and never edit `rules.md`, `context.md` or `playbook.md`: rules and lessons come in as proposals for you to accept.

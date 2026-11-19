@@ -53,7 +53,7 @@ Node.js 18 or later.
 4. **Optional: connect your agent to `luci-mcp`.** Claude Code, from the project folder:
 
    ```bash
-   claude mcp add luci -- npx -y @luci-dev/mcp@latest
+   claude mcp add luci-mcp -- npx -y @luci-dev/mcp@latest
    ```
 
    For other agents, add a stdio MCP server that runs `npx -y @luci-dev/mcp@latest` in the project folder. Copying the prompt from the toolbar works without it.
