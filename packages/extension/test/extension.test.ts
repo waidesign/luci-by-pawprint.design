@@ -38,7 +38,9 @@ describe('extension build (M4.6)', { timeout: 120_000 }, () => {
     const m = manifest(prodDir);
     expect(m['manifest_version']).toBe(3);
     expect(m['name']).toBe('Luci');
-    expect(m['description']).toBe('Capture the exact design of your running app for your AI coding agent. Everything stays on your machine.');
+    expect(m['description']).toBe('Capture exact design context and collect team feedback on any page for your AI coding agent. Everything stays on your machine.');
+    // The Chrome Web Store refuses a summary over 132 characters
+    expect(String(m['description']).length).toBeLessThanOrEqual(132);
     expect(m['permissions']).toEqual(['activeTab', 'scripting', 'storage', 'debugger']);
     // Chrome does not allow debugger as an optional permission
     expect(m['optional_permissions']).toBeUndefined();
