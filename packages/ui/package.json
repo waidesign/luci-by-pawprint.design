@@ -16,8 +16,8 @@
     "src/tokens.css"
   ],
   "dependencies": {
-    "lucide-preact": "1.72.0",
-    "preact": "10.29.8"
+    "lucide-preact": "1.78.0",
+    "preact": "11.2.0"
   },
   "publishConfig": {
     "access": "public"
