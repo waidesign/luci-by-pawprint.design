@@ -218,8 +218,8 @@ importers:
         specifier: 4.0.2
         version: 4.0.2
       preact:
-        specifier: 10.29.8
-        version: 10.29.8
+        specifier: 11.2.0
+        version: 11.2.0
     devDependencies:
       '@types/culori':
         specifier: 4.0.1
@@ -274,8 +274,8 @@ importers:
         specifier: workspace:*
         version: link:../ui
       preact:
-        specifier: 10.29.8
-        version: 10.29.8
+        specifier: 11.2.0
+        version: 11.2.0
 
   packages/format:
     dependencies:
@@ -332,11 +332,11 @@ importers:
   packages/ui:
     dependencies:
       lucide-preact:
-        specifier: 1.72.0
-        version: 1.72.0(preact@10.29.8)
+        specifier: 1.78.0
+        version: 1.78.0(preact@11.2.0)
       preact:
-        specifier: 10.29.8
-        version: 10.29.8
+        specifier: 11.2.0
+        version: 11.2.0
 
 packages:
 
@@ -1452,8 +1452,8 @@ packages:
   lodash.merge@4.6.2:
     resolution: {integrity: sha512-0KpjqXRVvrYyCsX1swR/XTK0va6VQkQM6MNo7PqW77ByjAhoARA8EfrP1N4+KlKj8YS0ZUCtRT/YUuhyYDujIQ==}
 
-  lucide-preact@1.72.0:
-    resolution: {integrity: sha512-VgfNlXjlv24CBcuydAByLXiOBA3SjGg5Sn/oCndq+FHQ8q2TDQ3jNV7AtdK2br34aGclukSuO3NP9tc/XSKuug==}
+  lucide-preact@1.78.0:
+    resolution: {integrity: sha512-GNzSYPmYSxqVGfCgIGhmYhAFNXYy42fdRTowH16AJJ1bKaLmj8TKaxsHEAgqNAP3ZoVrPDcQryKEbErD8A2jCQ==}
     peerDependencies:
       preact: ^10.27.2 || ^11.0.0-0
 
@@ -1592,10 +1592,10 @@ packages:
     resolution: {integrity: sha512-LJlKCCAUFKOuZxipUdYw1NzIITEsPcgyOG9LkvRJvuKj/bRzbuRY0ARXvL0pWGpsZvn8jku+LMep2eU0seHp8g==}
     engines: {node: ^10 || ^12 || >=14}
 
-  preact@10.29.8:
-    resolution: {integrity: sha512-ej2aVZ+vZ8WO7tvlQWRM9N63A0KzF9q4mWJfDUHgYaIofWY9hu74QdnQrjoPMmZi2/nZ5gN0bJCQF49xQqx09Q==}
+  preact@11.2.0:
+    resolution: {integrity: sha512-/HfHI/7N84e6GrWBJ3J280z3mLaRJiDcSvj/A+y/4AbLnND/1UlGHe1sR6oYuTGwId0nP7dqDU9OnLxMPZ7xBg==}
     peerDependencies:
-      preact-render-to-string: '>=5'
+      preact-render-to-string: '>=6.7.0'
     peerDependenciesMeta:
       preact-render-to-string:
         optional: true
@@ -2908,9 +2908,9 @@ snapshots:
 
   lodash.merge@4.6.2: {}
 
-  lucide-preact@1.72.0(preact@10.29.8):
+  lucide-preact@1.78.0(preact@11.2.0):
     dependencies:
-      preact: 10.29.8
+      preact: 11.2.0
 
   magic-string@0.30.21:
     dependencies:
@@ -3029,7 +3029,7 @@ snapshots:
       picocolors: 1.1.1
       source-map-js: 1.2.2
 
-  preact@10.29.8: {}
+  preact@11.2.0: {}
 
   proxy-addr@2.0.8:
     dependencies:

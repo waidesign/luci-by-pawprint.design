@@ -21,7 +21,7 @@
     "@luci-dev/capture": "workspace:*",
     "@luci-dev/format": "workspace:*",
     "@luci-dev/ui": "workspace:*",
-    "preact": "10.29.8"
+    "preact": "11.2.0"
   },
   "publishConfig": {
     "access": "public"

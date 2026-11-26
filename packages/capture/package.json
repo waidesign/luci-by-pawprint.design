@@ -21,7 +21,7 @@
     "@luci-dev/format": "workspace:*",
     "@luci-dev/ui": "workspace:*",
     "culori": "4.0.2",
-    "preact": "10.29.8"
+    "preact": "11.2.0"
   },
   "devDependencies": {
     "@types/culori": "4.0.1"
