@@ -1,0 +1,31 @@
+{
+  "lss": 1,
+  "lastVerified": "2026-11-08",
+  "source": {
+    "repo": "designed-by-ai/skills",
+    "path": "skills/design-mobile-apps/SKILL.md",
+    "licenseVerified": true,
+    "licenseStatus": "open",
+    "licenseEvidence": "repository license",
+    "licenseUrl": "https://github.com/designed-by-ai/skills/blob/main/LICENSE",
+    "licenseCheckedAt": "2026-11-08"
+  },
+  "summary": "Design mobile app screens with Sleek, edit Sleek projects, and implement their designs in React Native or HTML.",
+  "domains": [
+    "web",
+    "software"
+  ],
+  "derived": [
+    "domains",
+    "summary"
+  ],
+  "whenToUse": [
+    "Use when designing mobile app screens from a brief with the Sleek API, editing a Sleek project, or turning its screens into React Native or HTML code."
+  ],
+  "keywords": [
+    "mobile ui design",
+    "expo",
+    "sleek api",
+    "mobile mockup"
+  ]
+}

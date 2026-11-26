@@ -1,0 +1,120 @@
+/**
+ * The capture basket (FR18, FR19): picks collect here across pages and sites, can be renamed or
+ * removed, and export as one file (scope: collection) or one at a time. Where items are kept is
+ * up to the shell: the extension keeps them in its storage, so they survive navigation and restarts.
+ */
+import {
+  captureFileName,
+  collectionFileName,
+  formatCapture,
+  formatCollection,
+  isSystem,
+  mergeGroups,
+  mergeSystems,
+  siteName,
+  toCaptureName,
+  withInstructions,
+  type BasketItem,
+  type Capture,
+  type CaptureSettings,
+  type SystemCapture
+} from '@luci-dev/format/capture';
+
+export interface BasketStore {
+  load(): Promise<BasketItem[]>;
+  save(items: BasketItem[]): Promise<void>;
+}
+
+/** Kept in memory: lost when the page is left. The default when a shell gives no store. */
+export function memoryBasketStore(initial: BasketItem[] = []): BasketStore {
+  let items = [...initial];
+  return {
+    load: async () => [...items],
+    save: async (next) => { items = [...next]; }
+  };
+}
+
+const today = () => new Date().toISOString().slice(0, 10);
+const newId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
+/** "text-heading-1" -> "Text heading 1", the name an item starts with. */
+export const displayName = (capture: Capture) => {
+  const words = capture.meta.name.replace(/-/g, ' ');
+  return words.charAt(0).toUpperCase() + words.slice(1);
+};
+
+/** Add a capture; `edited` is the file as the user changed it by hand, when they did. */
+export function addToBasket(items: readonly BasketItem[], capture: Capture, edited?: string): BasketItem[] {
+  return [...items, { id: newId(), name: displayName(capture), addedAt: today(), capture, ...(edited ? { edited } : {}) }];
+}
+
+export function renameInBasket(items: readonly BasketItem[], id: string, name: string): BasketItem[] {
+  const trimmed = name.trim();
+  return trimmed ? items.map(i => (i.id === id ? { ...i, name: trimmed } : i)) : [...items];
+}
+
+/**
+ * An item's note for the agent (v0.2): the capture's "Your instructions", so the item's own file
+ * and the basket export both carry it, in that item's section. A hand-edited file gets it too;
+ * an empty note removes it.
+ */
+export function noteInBasket(items: readonly BasketItem[], id: string, note: string): BasketItem[] {
+  const text = note.trim();
+  return items.map(i => {
+    if (i.id !== id) return i;
+    const { instructions: _old, ...rest } = i.capture;
+    const capture = (text ? { ...rest, instructions: text } : rest) as Capture;
+    return { ...i, capture, ...(i.edited ? { edited: withInstructions(i.edited, text || undefined) } : {}) };
+  });
+}
+
+export const removeFromBasket =(items: readonly BasketItem[], id: string): BasketItem[] => items.filter(i => i.id !== id);
+
+/** "Site typography": the name a merged site system starts with (its file's name is "site-typography"). */
+export const siteSystemName = (type: string) => `Site ${type}`;
+
+/**
+ * "Merge into site systems" (v0.3.3): for each system type captured on two or more pages of one site,
+ * one site-level system, added to the basket after the page systems (which stay). Merging again
+ * replaces that site's earlier merged item of the type. Returns the basket and the merged items.
+ */
+export function mergeInBasket(items: readonly BasketItem[]): { items: BasketItem[]; merged: BasketItem[] } {
+  let next = [...items];
+  const merged: BasketItem[] = [];
+  for (const group of mergeGroups(items)) {
+    const capture = mergeSystems(group.items.map(i => i.capture as SystemCapture), { captured: today() });
+    const item: BasketItem = { id: newId(), name: siteSystemName(group.type), addedAt: today(), capture };
+    const earlier = next.findIndex(i => isSystem(i.capture) && i.capture.meta.pages && i.capture.meta.type === group.type && siteName(i.capture.meta.source) === group.site);
+    if (earlier === -1) next = [...next, item];
+    else next = next.map((i, n) => (n === earlier ? item : i));
+    merged.push(item);
+  }
+  return { items: next, merged };
+}
+
+/** The default name of a basket export, e.g. "basket-2026-11-13". */
+export const defaultBasketName = () => `basket-${today()}`;
+
+/** The whole basket as one file (FR19). */
+export function exportBasket(items: readonly BasketItem[], settings: CaptureSettings, name = defaultBasketName()): { fileName: string; markdown: string } {
+  const slug = toCaptureName(name);
+  return { fileName: collectionFileName(slug), markdown: formatCollection({ name: slug, captured: today(), items: [...items] }, settings) };
+}
+
+/** One item on its own; its file and name follow the name it has in the basket. */
+export function exportItem(item: BasketItem, settings: CaptureSettings): { fileName: string; markdown: string } {
+  const capture = { ...item.capture, meta: { ...item.capture.meta, name: toCaptureName(item.name) } } as Capture;
+  return { fileName: captureFileName(capture.meta), markdown: item.edited ?? formatCapture(capture, settings) };
+}
+
+/** Where an item came from, for the basket list: "example.com/pricing", or "example.com, 3 pages" for a site system. */
+export function sourceLabel(item: BasketItem): string {
+  const pages = isSystem(item.capture) ? item.capture.meta.pages : undefined;
+  if (pages) return `${siteName(item.capture.meta.source)}, ${pages.length} pages`;
+  try {
+    const u = new URL(item.capture.meta.source);
+    return `${u.host}${u.pathname === '/' ? '' : u.pathname}`;
+  } catch {
+    return item.capture.meta.source;
+  }
+}

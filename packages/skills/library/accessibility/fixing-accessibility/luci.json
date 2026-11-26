@@ -1,0 +1,36 @@
+{
+  "lss": 1,
+  "related": [
+    "improve-ui"
+  ],
+  "lastVerified": "2026-11-06",
+  "source": {
+    "repo": "ibelick/ui-skills",
+    "path": "skills/fixing-accessibility/SKILL.md",
+    "licenseVerified": true,
+    "licenseStatus": "open",
+    "licenseEvidence": "repository license",
+    "licenseUrl": "https://github.com/ibelick/ui-skills/blob/main/LICENSE",
+    "licenseCheckedAt": "2026-11-08"
+  },
+  "summary": "Audit and fix HTML accessibility issues including ARIA labels, keyboard navigation, focus management, color contrast, and form errors. Use when adding interactive controls, forms, dialogs, or reviewing WCAG compliance.",
+  "whenToUse": [
+    "Use when adding interactive controls, forms, dialogs, or reviewing WCAG compliance."
+  ],
+  "domains": [
+    "web",
+    "design"
+  ],
+  "derived": [
+    "domains",
+    "summary",
+    "whenToUse"
+  ],
+  "keywords": [
+    "a11y",
+    "screen reader support",
+    "focus trap",
+    "tab order",
+    "icon button label"
+  ]
+}

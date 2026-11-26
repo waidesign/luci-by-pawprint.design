@@ -1,0 +1,44 @@
+{
+  "name": "@luci-dev/cli",
+  "version": "0.6.0",
+  "description": "Memory, skills, design capture and feedback for AI coding agents. Local only.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "luci": "./dist/bin.js",
+    "luci-dev": "./dist/bin.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@luci-dev/brain": "workspace:*",
+    "@luci-dev/feedback": "workspace:*",
+    "@luci-dev/format": "workspace:*",
+    "@luci-dev/skills": "workspace:*",
+    "@luci-dev/toolbar": "workspace:*",
+    "zod": "4.6.7"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/waidesign/luci-by-pawprint.design.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/waidesign/luci-by-pawprint.design#readme",
+  "bugs": {
+    "url": "https://github.com/waidesign/luci-by-pawprint.design/issues"
+  },
+  "author": "Pawprint Design <lucas@pawprint.design>"
+}

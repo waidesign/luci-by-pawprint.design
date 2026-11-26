@@ -1,0 +1,32 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact",
+    "paths": {
+      "@luci-dev/format": ["./packages/format/src/index.ts"],
+      "@luci-dev/format/capture": ["./packages/format/src/capture/index.ts"],
+      "@luci-dev/format/feedback": ["./packages/format/src/feedback/index.ts"],
+      "@luci-dev/brain": ["./packages/brain/src/index.ts"],
+      "@luci-dev/skills": ["./packages/skills/src/index.ts"],
+      "@luci-dev/ui": ["./packages/ui/src/index.ts"],
+      "@luci-dev/capture": ["./packages/capture/src/index.ts"],
+      "@luci-dev/feedback": ["./packages/feedback/src/index.ts"],
+      "@luci-dev/toolbar": ["./packages/toolbar/src/index.ts"],
+      "@luci/format": ["./packages/format/src/index.ts"],
+      "@luci/format/capture": ["./packages/format/src/capture/index.ts"],
+      "@luci/format/feedback": ["./packages/format/src/feedback/index.ts"],
+      "@luci/brain": ["./packages/brain/src/index.ts"],
+      "@luci/skills": ["./packages/skills/src/index.ts"],
+      "@luci/ui": ["./packages/ui/src/index.ts"],
+      "@luci/capture": ["./packages/capture/src/index.ts"],
+      "@luci/feedback": ["./packages/feedback/src/index.ts"],
+      "@luci/toolbar": ["./packages/toolbar/src/index.ts"]
+    }
+  },
+  "include": ["packages/*/test/**/*.ts", "vitest.config.ts", "test-setup.ts", "test-global-setup.ts"]
+}

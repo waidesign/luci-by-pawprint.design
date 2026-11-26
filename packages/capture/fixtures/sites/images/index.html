@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Images</title>
+<style>
+  :root { --radius-lg: 12px; --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.2); }
+  body { margin: 0; padding: 24px; font: 16px/1.5 system-ui, sans-serif; color: #161616; }
+  /* A card whose rounded corners clip the top of its photo; the photo zooms on hover */
+  #card { display: flex; flex-direction: column; width: 360px; margin-bottom: 24px; overflow: hidden; border-radius: var(--radius-lg); background: #fff; box-shadow: var(--shadow-card); }
+  #card img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; object-position: 50% 30%; filter: saturate(1.2); transition: transform 0.4s ease-out; }
+  #card:hover img { transform: scale(1.05); }
+  #card h3 { margin: 0; padding: 16px; font-size: 20px; }
+  /* A photo in a wrapper of its size that clips every corner, under a gradient tint */
+  .media { position: relative; width: 640px; margin: 0 0 24px; overflow: hidden; border-radius: var(--radius-lg); }
+  .media img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+  .media .tint { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent); }
+  /* A background photo with a color wash, and a blended layer on ::after */
+  #hero { position: relative; width: 960px; height: 400px; margin-bottom: 24px;
+    background-image: linear-gradient(rgba(15, 98, 254, 0.4), rgba(15, 98, 254, 0.4)), url("data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACwAAAAAAQABAAACAkQBADs=");
+    background-size: cover; background-position: center; background-repeat: no-repeat; }
+  #hero::after { content: ""; position: absolute; inset: 0; background: radial-gradient(circle, transparent, rgba(0, 0, 0, 0.5)); opacity: 0.5; mix-blend-mode: multiply; }
+  #hero h2 { position: relative; margin: 0; padding: 32px; color: #fff; }
+  #avatar { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; box-shadow: var(--shadow-card); }
+  #art { width: 240px; margin-bottom: 24px; }
+  #art svg { display: block; width: 240px; height: 160px; }
+  #row { display: flex; gap: 16px; margin-bottom: 24px; }
+  #clip { display: block; width: 320px; height: 180px; border-radius: 8px; background: #000; }
+  #chart { display: block; width: 200px; height: 150px; }
+</style>
+</head>
+<body>
+  <article id="card">
+    <img id="photo" alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='200'%3E%3Crect width='300' height='200' fill='%23c9a227'/%3E%3C/svg%3E">
+    <h3>Card title</h3>
+  </article>
+  <figure class="media" id="figure">
+    <img alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='200'%3E%3Crect width='300' height='200' fill='%23c9a227'/%3E%3C/svg%3E">
+    <div class="tint"></div>
+  </figure>
+  <div id="hero"><h2>Hero</h2></div>
+  <p><img id="avatar" alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' fill='%230f62fe'/%3E%3C/svg%3E"></p>
+  <div id="art"><svg viewBox="0 0 240 160" xmlns="http://www.w3.org/2000/svg"><image id="drawn" width="240" height="160" preserveAspectRatio="xMidYMid slice" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='300' height='300' fill='%23da1e28'/%3E%3C/svg%3E"/></svg></div>
+  <div id="row">
+    <video id="clip" muted></video>
+    <canvas id="chart" width="400" height="300"></canvas>
+  </div>
+  <p><button type="button" id="buy">Buy</button></p>
+  <script>
+    const ctx = document.getElementById('chart').getContext('2d');
+    ctx.fillStyle = '#0f62fe';
+    ctx.fillRect(0, 0, 400, 300);
+  </script>
+</body>
+</html>

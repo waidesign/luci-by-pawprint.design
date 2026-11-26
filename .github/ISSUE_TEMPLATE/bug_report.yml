@@ -1,0 +1,50 @@
+name: Bug report
+description: Something in Luci doesn't work as it should
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for reporting! For a security problem, please use [private reporting](https://github.com/waidesign/luci-by-pawprint.design/security/advisories/new) instead.
+  - type: dropdown
+    id: part
+    attributes:
+      label: Which part of Luci?
+      options:
+        - CLI (luci init, serve, doctor, update, skills…)
+        - Dev toolbar (Feedback, Layout, Capture, Builder)
+        - Chrome extension (Capture, Team Feedback)
+        - MCP server (luci-mcp)
+        - Capture files (.design.md, DESIGN.md, exports)
+        - Docs
+        - Something else
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+      description: Screenshots help, especially for toolbar and capture problems.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Run luci serve in …
+        2. Open …
+        3. Click …
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Luci version
+      description: Output of `luci --version`, or the extension's version in chrome://extensions
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: OS, browser and framework
+      placeholder: Windows 11, Chrome 131, Next.js 16

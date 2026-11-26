@@ -1,0 +1,35 @@
+{
+  "name": "@luci-dev/brain",
+  "version": "0.6.0",
+  "description": "Setup, project and global memory, agent files.",
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "templates",
+    "defaults"
+  ],
+  "dependencies": {
+    "@luci-dev/format": "workspace:*",
+    "@luci-dev/skills": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/waidesign/luci-by-pawprint.design.git",
+    "directory": "packages/brain"
+  },
+  "homepage": "https://github.com/waidesign/luci-by-pawprint.design#readme",
+  "bugs": {
+    "url": "https://github.com/waidesign/luci-by-pawprint.design/issues"
+  },
+  "author": "Pawprint Design <lucas@pawprint.design>"
+}

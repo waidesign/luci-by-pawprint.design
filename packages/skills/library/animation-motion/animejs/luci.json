@@ -1,0 +1,12 @@
+{
+  "lss": 1,
+  "summary": "Timelines, staggers, and SVG line drawing and morphing with Anime.js v4.",
+  "keywords": ["anime.js", "animation timeline", "stagger animation", "svg morph", "line drawing", "svg animation"],
+  "whenToUse": ["The project depends on animejs and needs choreographed, staggered or SVG animation."],
+  "whenNotToUse": ["The project uses another animation library such as Motion or GSAP; use that library's skill instead."],
+  "verification": ["Nothing moves with reduced motion on.", "Animations are reverted on unmount.", "Only transforms and opacity animate."],
+  "packages": ["animejs"],
+  "exclusiveGroup": "animation-library",
+  "domains": ["web", "design"],
+  "lastVerified": "2026-11-12"
+}

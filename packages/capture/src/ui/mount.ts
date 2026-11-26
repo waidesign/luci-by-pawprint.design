@@ -1,0 +1,147 @@
+/** Put the toolbar on a page, inside its own shadow root (FR1). Both shells call this. */
+import { h, render } from 'preact';
+import type { CaptureSettings, CheckRun } from '@luci-dev/format/capture';
+import { loadFonts } from '@luci-dev/ui';
+import { LUCI_UI_ATTRIBUTE } from '../dom.js';
+import { TOOLBAR_CSS } from './styles.js';
+import { Toolbar, type ProposedRule } from './toolbar.js';
+import type { ForcedStatesReader, Output } from './tools.js';
+import { memoryBasketStore, type BasketStore } from './basket.js';
+import type { ModeSwitchProps } from './modeSwitch.js';
+import type { AddCheckNotes, DesignSource } from './check.js';
+import type { ViewportWidth } from '../responsive.js';
+import type { MyTokensSource } from './remap.js';
+import type { StorageLike } from './devSettings.js';
+
+export const TOOLBAR_TAG = 'luci-toolbar';
+/**
+ * Sent on the page when a Capture toolbar opens: an older one closes itself. DOM events reach every
+ * JavaScript world, so the extension's toolbar and the dev toolbar both hear it (one Luci at a time).
+ */
+export const TOOLBAR_REPLACE_EVENT = 'luci-toolbar-replace';
+const REPLACE_EVENT = TOOLBAR_REPLACE_EVENT;
+
+export interface MountOptions {
+  doc?: Document;
+  settings?: CaptureSettings;
+  onSettingsChange?: (settings: CaptureSettings) => void;
+  onOutput?: (output: Output) => void;
+  onClose?: () => void;
+  /** Exact component states through the browser's debugger (the extension provides it). */
+  readForcedStates?: ForcedStatesReader;
+  /** Where the basket is kept. Default: in this page's memory only. */
+  basket?: BasketStore;
+  /** A screenshot of the visible page (data URL) for Pixel mode; without it, the browser's eyedropper is used. */
+  captureScreen?: () => Promise<string>;
+  /** Opens a help page (the extension opens its own); adds a "?" button. */
+  onHelp?: (section?: string) => void;
+  /** The dev toolbar's mode switch (Feedback, Capture, ...), first after "Luci". */
+  modes?: ModeSwitchProps;
+  /** Saves a file into the project (the dev toolbar, through luci serve); adds "Save to project". */
+  saveToProject?: (fileName: string, markdown: string) => Promise<{ path: string; replaced: boolean }>;
+  /** Active project details (from luci serve /health) for naming and port switching. */
+  projectInfo?: {
+    get: () => Promise<{ project?: string; name?: string; url?: string; initialized?: boolean } | null>;
+    setUrl?: (url: string) => Promise<void>;
+  };
+  /** Design files saved in the project, for the design check (the dev toolbar). */
+  designs?: DesignSource;
+  /** Pins a design check's differences as feedback notes (the dev toolbar). */
+  addCheckNotes?: AddCheckNotes;
+  /** Where those notes go: "your project" or "this browser". */
+  checkNotesWhere?: string;
+  /** Saves a component capture into the project and proposes a rule from it (the dev toolbar). */
+  makeRule?: (fileName: string, markdown: string) => Promise<ProposedRule>;
+  /** Resizes the window for reading other widths (the extension, through the debugger). */
+  setViewportWidth?: ViewportWidth;
+  /** The bar can be dragged anywhere in the window and stays there on this site (the extension). */
+  movable?: boolean;
+  /** Where "Use my tokens" finds the person's tokens (v0.4). */
+  myTokens?: MyTokensSource;
+  /** Whether Chrome lets Luci use the debugger (the extension; a required permission there), and a way to open help about it. */
+  debuggerPermission?: {
+    get: () => Promise<boolean>;
+    request?: () => void;
+  };
+  /** Check again whenever the page changes, from the start (v0.4, the dev toolbar). */
+  autoCheck?: boolean;
+  /** Every design check run, for the project (v0.4, the dev toolbar). */
+  onCheckRun?: (run: CheckRun) => Promise<{ resolved?: string[]; updated?: string[] } | void> | void;
+  /** Storage for settings in dev toolbar (v0.4.4). */
+  store?: StorageLike;
+}
+
+export interface ToolbarHandle {
+  host: HTMLElement;
+  /** Capture the color of a pixel, as the eyedropper does (e.g. "#0f62fe"). */
+  pickPixel(hex: string): void;
+  destroy(): void;
+}
+
+/** Mount the toolbar. Mounting again on the same page returns the existing toolbar's host, replaced. */
+export function mountToolbar(options: MountOptions = {}): ToolbarHandle {
+  const doc = options.doc ?? document;
+  // An older toolbar (e.g. from before the extension was reloaded, in another JavaScript world) shuts
+  // itself down, page listeners included: DOM events reach every world
+  doc.dispatchEvent(new CustomEvent(REPLACE_EVENT));
+  doc.querySelector(TOOLBAR_TAG)?.remove();
+  const host = doc.createElement(TOOLBAR_TAG);
+  host.setAttribute(LUCI_UI_ATTRIBUTE, '');
+  doc.documentElement.appendChild(host);
+  loadFonts(doc);
+  // Open so tests and assistive tools can see inside; styles stay isolated either way
+  const root = host.attachShadow({ mode: 'open' });
+  // Typing in Luci's own fields must not reach the page (sites react to keys like "/" or "s")
+  for (const type of ['keydown', 'keyup', 'keypress'] as const) {
+    root.addEventListener(type, (e) => {
+      const t = e.composedPath()[0];
+      if (t instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) e.stopPropagation();
+    });
+  }
+  // Pointer and click events on Luci's own UI stop at the toolbar, so page handlers (such as "click
+  // outside closes the menu") never react to them
+  for (const type of ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click', 'dblclick', 'auxclick', 'contextmenu', 'wheel'] as const) {
+    root.addEventListener(type, (e) => e.stopPropagation());
+  }
+  const style = doc.createElement('style');
+  style.textContent = TOOLBAR_CSS;
+  root.appendChild(style);
+  const mountPoint = doc.createElement('div');
+  root.appendChild(mountPoint);
+
+  let pixelInput: ((hex: string) => void) | null = null;
+  const destroy = () => {
+    doc.removeEventListener(REPLACE_EVENT, destroy);
+    render(null, mountPoint);
+    host.remove();
+  };
+  doc.addEventListener(REPLACE_EVENT, destroy);
+  render(h(Toolbar, {
+    doc,
+    settings: options.settings ?? {},
+    ...(options.onSettingsChange ? { onSettingsChange: options.onSettingsChange } : {}),
+    ...(options.onOutput ? { onOutput: options.onOutput } : {}),
+    ...(options.readForcedStates ? { readForcedStates: options.readForcedStates } : {}),
+    basket: options.basket ?? memoryBasketStore(),
+    ...(options.captureScreen ? { captureScreen: options.captureScreen } : {}),
+    ...(options.onHelp ? { onHelp: options.onHelp } : {}),
+    ...(options.modes ? { modes: options.modes } : {}),
+    ...(options.saveToProject ? { saveToProject: options.saveToProject } : {}),
+    ...(options.projectInfo ? { projectInfo: options.projectInfo } : {}),
+    ...(options.designs ? { designs: options.designs } : {}),
+    ...(options.addCheckNotes ? { addCheckNotes: options.addCheckNotes } : {}),
+    ...(options.checkNotesWhere ? { checkNotesWhere: options.checkNotesWhere } : {}),
+    ...(options.makeRule ? { makeRule: options.makeRule } : {}),
+    ...(options.setViewportWidth ? { setViewportWidth: options.setViewportWidth } : {}),
+    ...(options.movable ? { movable: true } : {}),
+    ...(options.myTokens ? { myTokens: options.myTokens } : {}),
+    ...(options.debuggerPermission ? { debuggerPermission: options.debuggerPermission } : {}),
+    ...(options.autoCheck ? { autoCheck: true } : {}),
+    ...(options.onCheckRun ? { onCheckRun: options.onCheckRun } : {}),
+    ...(options.store ? { store: options.store } : {}),
+    onClose: () => { destroy(); options.onClose?.(); },
+    registerPixelInput: (pick: (hex: string) => void) => { pixelInput = pick; }
+  }), mountPoint);
+
+  return { host, pickPixel: (hex: string) => pixelInput?.(hex), destroy };
+}

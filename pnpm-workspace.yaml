@@ -1,0 +1,12 @@
+packages:
+  - packages/*
+
+# esbuild's install script only checks its binary, which ships as a package; no scripts run on install.
+allowBuilds:
+  esbuild: false
+
+# @types/node stays on 18, the oldest Node that Luci supports, so the compiler
+# rejects newer Node APIs. Vitest and Vite ask for newer types only for their own typings.
+peerDependencyRules:
+  allowedVersions:
+    '@types/node': '18'

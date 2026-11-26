@@ -1,0 +1,29 @@
+{
+  "lss": 1,
+  "lastVerified": "2026-11-09",
+  "source": {
+    "repo": "arla6ka/design.how",
+    "path": "skills/design-system-boss/SKILL.md",
+    "licenseVerified": true,
+    "licenseStatus": "open",
+    "licenseEvidence": "repository license",
+    "licenseUrl": "https://github.com/arla6ka/design.how/blob/main/LICENSE",
+    "licenseCheckedAt": "2026-11-09"
+  },
+  "summary": "Use for vague whole-app design system asks on an app that already ships UI, such as \"our UI is a mess, fix it\", \"we need a design system\", \"we hardcode colors everywhere\", \"make the buttons consistent\" or \"check the app before I ship\". One named screen goes to ui-review, one component to…",
+  "whenToUse": [
+    "Use for vague whole-app design system asks on an app that already ships UI, such as \"our UI is a mess, fix it\", \"we need a design system\", \"we hardcode colors everywhere\", \"make the buttons consistent\" or \"check the app before I ship\".",
+    "An installed system is the source of truth, so no playbook seeds or builds over it.",
+    "The state wins when it disagrees with the ask, and the report says so."
+  ],
+  "domains": [
+    "design",
+    "web",
+    "writing"
+  ],
+  "derived": [
+    "domains",
+    "summary",
+    "whenToUse"
+  ]
+}

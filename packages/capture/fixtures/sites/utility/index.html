@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Utility classes</title>
+<!-- Styling approach 1: utility classes (Tailwind-style), no custom properties -->
+<style>
+  *, ::before, ::after { box-sizing: border-box; border-width: 0; border-style: solid; border-color: #e5e7eb; }
+  body { margin: 0; }
+  h1, h2, p, ul { margin: 0; padding: 0; }
+  ul { list-style: none; }
+  .font-sans { font-family: Inter, Arial, sans-serif; } .font-mono { font-family: "JetBrains Mono", monospace; }
+  .bg-white { background-color: #ffffff; } .bg-gray-100 { background-color: #f3f4f6; } .bg-blue-600 { background-color: #2563eb; }
+  .text-gray-900 { color: #111827; } .text-gray-600 { color: #4b5563; } .text-white { color: #ffffff; }
+  .border { border-width: 1px; } .border-b { border-bottom-width: 1px; } .border-gray-200 { border-color: #e5e7eb; }
+  .text-xs { font-size: 0.75rem; line-height: 1rem; } .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+  .text-base { font-size: 1rem; line-height: 1.5rem; } .text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+  .text-5xl { font-size: 3rem; line-height: 1; } .leading-14 { line-height: 3.5rem; } .tracking-tight { letter-spacing: -0.025em; }
+  .font-semibold { font-weight: 600; } .font-bold { font-weight: 700; } .uppercase { text-transform: uppercase; }
+  .flex { display: flex; } .inline-flex { display: inline-flex; } .grid { display: grid; } .grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .items-center { align-items: center; } .justify-between { justify-content: space-between; }
+  .gap-4 { gap: 1rem; } .gap-6 { gap: 1.5rem; }
+  .p-6 { padding: 1.5rem; } .px-5 { padding-left: 1.25rem; padding-right: 1.25rem; } .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+  .px-8 { padding-left: 2rem; padding-right: 2rem; } .py-4 { padding-top: 1rem; padding-bottom: 1rem; } .py-8 { padding-top: 2rem; padding-bottom: 2rem; } .py-12 { padding-top: 3rem; padding-bottom: 3rem; }
+  .mt-2 { margin-top: 0.5rem; } .mt-6 { margin-top: 1.5rem; } .mt-12 { margin-top: 3rem; }
+  .rounded-lg { border-radius: 0.5rem; } .h-32 { height: 8rem; } .bg-cover { background-size: cover; }
+</style>
+</head>
+<body class="bg-white text-gray-900 font-sans">
+  <header class="flex items-center justify-between px-8 py-4 border-b border-gray-200">
+    <a href="/" class="text-sm font-semibold">Recipe Box</a>
+    <nav class="flex gap-6"><a href="/plans" class="text-sm">Plans</a><a href="/docs" class="text-sm">Docs</a></nav>
+  </header>
+  <main class="px-8 py-12">
+    <div id="hero" class="h-32 bg-cover rounded-lg" style="background-image: url('data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACwAAAAAAQABAAACAkQBADs=')"></div>
+    <h1 class="mt-12 text-5xl leading-14 font-bold tracking-tight">Plans for every kitchen</h1>
+    <p class="mt-6 text-base text-gray-600">Pick the plan that fits how often you cook.</p>
+    <ul class="mt-12 grid grid-cols-3 gap-4">
+      <li class="p-6 border border-gray-200 rounded-lg"><h2 class="text-3xl font-semibold">Free</h2><p class="mt-2 text-sm text-gray-600">For trying it out</p><a href="/start" class="mt-6 inline-flex px-5 py-3 bg-blue-600 text-white text-sm font-semibold uppercase">Start</a></li>
+      <li class="p-6 border border-gray-200 rounded-lg"><h2 class="text-3xl font-semibold">Home</h2><p class="mt-2 text-sm text-gray-600">For weekly meal plans</p><a href="/start" class="mt-6 inline-flex px-5 py-3 bg-blue-600 text-white text-sm font-semibold uppercase">Start</a></li>
+      <li class="p-6 border border-gray-200 rounded-lg"><h2 class="text-3xl font-semibold">Family</h2><p class="mt-2 text-sm text-gray-600">For four or more</p><a href="/start" class="mt-6 inline-flex px-5 py-3 bg-blue-600 text-white text-sm font-semibold uppercase">Start</a></li>
+    </ul>
+    <p class="mt-6 text-xs text-gray-600"><img id="logo" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACwAAAAAAQABAAACAkQBADs=" width="16" height="16" alt=""> Prices in <code class="font-mono text-sm">EUR</code>.</p>
+    <svg id="icon" width="24" height="24" viewBox="0 0 24 24"><path d="M4 12h16" stroke="#2563eb" stroke-width="2" fill="none"/></svg>
+  </main>
+  <footer class="px-8 py-8 bg-gray-100"><small class="text-xs text-gray-600">Example kitchen</small></footer>
+</body>
+</html>

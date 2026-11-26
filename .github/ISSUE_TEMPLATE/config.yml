@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security problem
+    url: https://github.com/waidesign/luci-by-pawprint.design/security/advisories/new
+    about: Please report vulnerabilities privately, not in a public issue.
+  - name: Luci documentation
+    url: https://luci.pawprint.design/docs
+    about: Guides for the CLI, dev toolbar, Chrome extension and agents.

@@ -1,0 +1,305 @@
+import { browser } from 'wxt/browser';
+import { defineBackground } from 'wxt/utils/define-background';
+import { readStatesViaCdp, type CdpReadOptions, type ForcedReading } from '@luci-dev/capture/states';
+import {
+  DEFAULT_BRIDGE_URL,
+  createViewportControl,
+  isStorybookCanvasFrame,
+  localBridgeUrl,
+  pickToolbarFrame,
+  type DebuggerApi
+} from '../src/background-core';
+
+export const READ_STATES = 'luci:read-states';
+export const CAPTURE_SCREEN = 'luci:capture-screen';
+export const OPEN_HELP = 'luci:open-help';
+export const SET_VIEWPORT = 'luci:set-viewport';
+export const SAVE_TO_PROJECT = 'luci:save-to-project';
+export const CHECK_BRIDGE = 'luci:check-bridge';
+export const LIST_CAPTURES = 'luci:list-captures';
+export const READ_CAPTURE = 'luci:read-capture';
+export const PROPOSE_RULE = 'luci:propose-rule';
+export const PROJECT_TOKENS = 'luci:project-tokens';
+export const SET_BRIDGE_URL = 'luci:set-bridge-url';
+export const CHECK_DEBUGGER = 'luci:check-debugger';
+
+async function bridgeUrl(): Promise<string> {
+  try {
+    // Only luci serve on this machine: an address saved before this check is ignored if it is not (B-39)
+    return localBridgeUrl((await browser.storage.local.get('bridgeUrl'))['bridgeUrl']) ?? DEFAULT_BRIDGE_URL;
+  } catch {
+    return DEFAULT_BRIDGE_URL;
+  }
+}
+
+/**
+ * Whether Chrome lets Luci use the debugger. It is a required permission, so this is normally true;
+ * it guards against Chrome or a policy withholding it.
+ */
+async function hasDebuggerPermission(): Promise<boolean> {
+  try {
+    return Boolean(await browser.permissions?.contains?.({ permissions: ['debugger'] }));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Set a tab's window width for a responsive reading (height unchanged), or put it back with null:
+ * the debugger is attached for the first width and detached when the width is put back.
+ */
+const viewport = createViewportControl(browser.debugger as unknown as DebuggerApi, hasDebuggerPermission);
+type ReadStatesReply = { ok: true; reading: ForcedReading } | { ok: false; error: string };
+type CaptureReply = { ok: true; dataUrl: string } | { ok: false; error: string };
+
+/**
+ * Clicking Luci's icon puts the toolbar on the current tab (or takes it off again).
+ * For a component capture the toolbar asks for exact states: the debugger is attached to that tab
+ * only for the reading and detached straight after, so Chrome's "debugging this browser" bar shows briefly.
+ */
+export default defineBackground(() => {
+  // Chrome detached the debugger itself (Cancel on its bar, DevTools opened) or the tab closed (B-39)
+  browser.debugger.onDetach.addListener((source) => { if (source.tabId !== undefined) viewport.forget(source.tabId); });
+  browser.tabs.onRemoved.addListener((tabId) => viewport.forget(tabId));
+
+  browser.action.onClicked.addListener(async (tab) => {
+    if (tab.id === undefined) return;
+    try {
+      // On a Storybook manager page, inject the toolbar directly into the preview canvas iframe
+      let frameId: number | null = null;
+      try {
+        const probe = await browser.scripting.executeScript({
+          target: { tabId: tab.id, allFrames: true },
+          func: isStorybookCanvasFrame
+        });
+        frameId = pickToolbarFrame(probe);
+      } catch {
+        // Fall back to the top frame if subframes cannot be probed
+      }
+      const target = frameId !== null ? { tabId: tab.id, frameIds: [frameId] } : { tabId: tab.id };
+      await browser.scripting.executeScript({ target, files: ['/toolbar.js'] });
+    } catch (err) {
+      // Browser pages (chrome://, the Web Store) can't be scripted by any extension
+      console.warn(`Luci can't run on this page: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  });
+
+  browser.runtime.onMessage.addListener((message: unknown, sender, sendResponse: (reply: Record<string, unknown>) => void) => {
+    const m = message as { type?: string; count?: number; options?: CdpReadOptions; section?: string; fileName?: string; markdown?: string; file?: string };
+    const tabId = sender.tab?.id;
+    if (m?.type === OPEN_HELP) {
+      // At a section of the help page when one is asked for (a plain id only)
+      const section = typeof m.section === 'string' && /^[a-z][a-z0-9-]{0,40}$/.test(m.section) ? `#${m.section}` : '';
+      void browser.tabs.create({ url: `${browser.runtime.getURL('/help.html')}${section}` });
+      sendResponse({ ok: true, dataUrl: '' });
+      return false;
+    }
+    // "Send to project" direct extension bridge (v0.4.4): saves capture to .luci/design/
+    if (m?.type === SAVE_TO_PROJECT) {
+      if (!m.fileName || !m.markdown) {
+        sendResponse({ ok: false, error: 'File name and markdown are required.' });
+        return false;
+      }
+      void (async () => {
+        const base = await bridgeUrl();
+        try {
+          const res = await fetch(`${base}/design`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', 'x-luci': '1' },
+            body: JSON.stringify({ fileName: m.fileName, markdown: m.markdown })
+          });
+          const data = await res.json().catch(() => ({})) as { path?: string; replaced?: boolean; error?: string };
+          if (!res.ok) {
+            sendResponse({ ok: false, error: data.error || `Bridge answered status ${res.status}.` });
+            return;
+          }
+          sendResponse({ ok: true, result: { path: data.path ?? m.fileName, replaced: Boolean(data.replaced) } });
+        } catch (err) {
+          const port = (() => { try { return new URL(base).port || '4545'; } catch { return '4545'; } })();
+          const host = base.replace(/^https?:\/\//, '');
+          sendResponse({
+            ok: false,
+            error: `Could not connect to luci serve on port ${port} (${host}). Start \`luci serve\` in your project, or download the file instead. (${err instanceof Error ? err.message : String(err)})`
+          });
+        }
+      })();
+      return true;
+    }
+    // Bridge health check
+    if (m?.type === CHECK_BRIDGE) {
+      void (async () => {
+        try {
+          const base = await bridgeUrl();
+          const ctrl = new AbortController();
+          const timer = setTimeout(() => ctrl.abort(), 2000);
+          const res = await fetch(`${base}/health`, { signal: ctrl.signal });
+          clearTimeout(timer);
+          const data = await res.json().catch(() => ({})) as { ok?: boolean; project?: string; initialized?: boolean; error?: string };
+          if (!res.ok || !data.ok) {
+            sendResponse({ ok: false, error: data.error || `Bridge answered status ${res.status}.` });
+            return;
+          }
+          sendResponse({ ok: true, result: { project: data.project, initialized: Boolean(data.initialized), url: base } });
+        } catch (err) {
+          sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
+        }
+      })();
+      return true;
+    }
+    // Set custom bridge URL (port switcher)
+    if (m?.type === SET_BRIDGE_URL) {
+      const msg = message as { url?: string };
+      void (async () => {
+        try {
+          if (msg.url && msg.url.trim()) {
+            const local = localBridgeUrl(msg.url);
+            if (!local) {
+              sendResponse({ ok: false, error: 'The bridge must be luci serve on this computer, such as http://127.0.0.1:4545.' });
+              return;
+            }
+            await browser.storage.local.set({ bridgeUrl: local });
+          } else {
+            await browser.storage.local.remove('bridgeUrl');
+          }
+          sendResponse({ ok: true, result: await bridgeUrl() });
+        } catch (err) {
+          sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
+        }
+      })();
+      return true;
+    }
+    // Design check: list project captures from .luci/design/
+    if (m?.type === LIST_CAPTURES) {
+      void (async () => {
+        try {
+          const base = await bridgeUrl();
+          const res = await fetch(`${base}/design`, { headers: { 'x-luci': '1' } });
+          const data = await res.json().catch(() => ({})) as { files?: unknown[]; error?: string };
+          if (!res.ok) {
+            sendResponse({ ok: false, error: data.error || `Bridge answered status ${res.status}.` });
+            return;
+          }
+          sendResponse({ ok: true, result: data.files ?? [] });
+        } catch (err) {
+          sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
+        }
+      })();
+      return true;
+    }
+    // Read one design capture from .luci/design/
+    if (m?.type === READ_CAPTURE) {
+      if (!m.file) {
+        sendResponse({ ok: false, error: 'File name is required.' });
+        return false;
+      }
+      void (async () => {
+        try {
+          const base = await bridgeUrl();
+          const res = await fetch(`${base}/design/${encodeURIComponent(m.file!)}`, { headers: { 'x-luci': '1' } });
+          const data = await res.json().catch(() => ({})) as { markdown?: string; error?: string };
+          if (!res.ok) {
+            sendResponse({ ok: false, error: data.error || `Bridge answered status ${res.status}.` });
+            return;
+          }
+          sendResponse({ ok: true, result: data.markdown ?? '' });
+        } catch (err) {
+          sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
+        }
+      })();
+      return true;
+    }
+    // Propose rule from capture
+    if (m?.type === PROPOSE_RULE) {
+      if (!m.file) {
+        sendResponse({ ok: false, error: 'File name is required.' });
+        return false;
+      }
+      void (async () => {
+        try {
+          const base = await bridgeUrl();
+          const res = await fetch(`${base}/rule`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', 'x-luci': '1' },
+            body: JSON.stringify({ file: m.file })
+          });
+          const data = await res.json().catch(() => ({})) as { path?: string; existed?: boolean; rule?: string; error?: string };
+          if (!res.ok) {
+            sendResponse({ ok: false, error: data.error || `Bridge answered status ${res.status}.` });
+            return;
+          }
+          sendResponse({ ok: true, result: { path: data.path!, existed: Boolean(data.existed), rule: data.rule! } });
+        } catch (err) {
+          sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
+        }
+      })();
+      return true;
+    }
+    // Project tokens
+    if (m?.type === PROJECT_TOKENS) {
+      void (async () => {
+        try {
+          const base = await bridgeUrl();
+          const res = await fetch(`${base}/tokens`, { headers: { 'x-luci': '1' } });
+          const data = await res.json().catch(() => ({})) as { tokens?: { token: string; value: string }[]; error?: string };
+          if (!res.ok) {
+            sendResponse({ ok: false, error: data.error || `Bridge answered status ${res.status}.` });
+            return;
+          }
+          sendResponse({ ok: true, result: data.tokens ?? [] });
+        } catch (err) {
+          sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
+        }
+      })();
+      return true;
+    }
+    // Pixel mode: a screenshot of the visible tab (allowed by activeTab, granted by the icon click)
+    if (m?.type === CAPTURE_SCREEN) {
+      // Always answer, so the page never waits forever for a screenshot (B-39)
+      if (sender.tab?.windowId === undefined) {
+        sendResponse({ ok: false, error: 'Luci can only take a screenshot of a tab in a browser window.' });
+        return false;
+      }
+      browser.tabs.captureVisibleTab(sender.tab.windowId, { format: 'png' })
+        .then(dataUrl => sendResponse({ ok: true, dataUrl }))
+        .catch((err: unknown) => sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) }));
+      return true;
+    }
+    // Check debugger permission (v0.4.4 Option 3)
+    if (m?.type === CHECK_DEBUGGER) {
+      void (async () => {
+        const granted = await hasDebuggerPermission();
+        sendResponse({ ok: true, granted });
+      })();
+      return true;
+    }
+    // Responsive capture (v0.3.4): the tab's width set through the debugger for each reading, then put back
+    if (m?.type === SET_VIEWPORT && tabId !== undefined) {
+      const width = (message as { width?: number | null }).width ?? null;
+      void viewport.set(tabId, width).then(() => sendResponse({ ok: true, dataUrl: '' }), (err: unknown) => sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) }));
+      return true;
+    }
+    if (m?.type !== READ_STATES || tabId === undefined || typeof m.count !== 'number') return false;
+    void (async () => {
+      if (!await hasDebuggerPermission()) {
+        sendResponse({ ok: false, error: 'Debugger permission not granted. Enable it in Luci settings or help page to capture exact CDP states.' });
+        return;
+      }
+      const target = { tabId };
+      try {
+        await browser.debugger.attach(target, '1.3');
+      } catch (err) {
+        sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
+        return;
+      }
+      try {
+        const send = (method: string, params?: Record<string, unknown>) => browser.debugger.sendCommand(target, method, params);
+        sendResponse({ ok: true, reading: await readStatesViaCdp(send, m.count!, m.options ?? {}) });
+      } catch (err) {
+        sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
+      } finally {
+        await browser.debugger.detach(target).catch(() => undefined);
+      }
+    })();
+    return true; // the reply comes asynchronously
+  });
+});

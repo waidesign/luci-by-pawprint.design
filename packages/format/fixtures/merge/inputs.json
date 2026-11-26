@@ -1,0 +1,56 @@
+{
+  "example-com.system.site-typography.design.md": {
+    "settings": { "units": "px", "colors": "hex" },
+    "base": "example-com.system.typography.design.md",
+    "others": [
+      {
+        "meta": { "name": "typography", "scope": "system", "type": "typography", "source": "https://example.com/blog", "captured": "2026-11-14", "method": "measured" },
+        "roles": [
+          { "role": "heading-1", "count": 1, "elements": ["h1"], "style": { "family": { "computed": "Inter, sans-serif" }, "size": { "computed": "40px" }, "weight": { "computed": "700" }, "lineHeight": { "computed": "48px" }, "letterSpacing": { "computed": "normal" }, "color": { "computed": "rgb(22, 22, 22)" } } },
+          { "role": "heading-2", "count": 4, "elements": ["h2"], "style": { "family": { "computed": "Inter, sans-serif" }, "size": { "computed": "28px" }, "weight": { "computed": "700" }, "lineHeight": { "computed": "36px" }, "letterSpacing": { "computed": "normal" }, "color": { "computed": "rgb(22, 22, 22)" } } },
+          { "role": "body", "count": 40, "elements": ["p"], "style": { "family": { "computed": "\"Inter\", system-ui, sans-serif" }, "size": { "computed": "16px" }, "weight": { "computed": "400" }, "lineHeight": { "computed": "24px" }, "letterSpacing": { "computed": "normal" }, "color": { "computed": "rgb(57, 57, 57)" } } },
+          { "role": "label", "count": 2, "elements": ["button"], "style": { "family": { "computed": "Inter, sans-serif" }, "size": { "computed": "14px" }, "weight": { "computed": "600" }, "lineHeight": { "computed": "20px" }, "letterSpacing": { "computed": "0.16px" }, "color": { "computed": "rgb(255, 255, 255)" } } }
+        ],
+        "families": [{ "family": "Inter, sans-serif", "count": 7 }, { "family": "\"Inter\", system-ui, sans-serif", "count": 40 }],
+        "scale": [{ "size": { "computed": "40px" }, "count": 1 }, { "size": { "computed": "28px" }, "count": 4 }, { "size": { "computed": "16px" }, "count": 40 }, { "size": { "computed": "14px" }, "count": 2 }]
+      }
+    ]
+  },
+  "example-com.system.site-color.design.md": {
+    "settings": { "colors": "hex" },
+    "base": "example-com.system.color.design.md",
+    "others": [
+      {
+        "meta": { "name": "color", "scope": "system", "type": "color", "source": "https://example.com/blog", "captured": "2026-11-14", "method": "measured" },
+        "roles": [
+          { "role": "background", "value": { "computed": "rgb(255, 255, 255)", "authored": "var(--color-bg)", "token": "--color-bg" }, "count": 20, "properties": ["background-color"] },
+          { "role": "text", "value": { "computed": "rgb(22, 22, 22)", "authored": "var(--color-text)", "token": "--color-text" }, "count": 50, "properties": ["color"] },
+          { "role": "border", "value": { "computed": "rgb(224, 224, 224)" }, "count": 6, "properties": ["border-bottom-color"] },
+          { "role": "accent", "value": { "computed": "rgb(0, 67, 206)", "authored": "var(--color-primary)", "token": "--color-primary" }, "count": 3, "properties": ["color"] }
+        ],
+        "tokens": [
+          { "token": "--color-bg", "value": "rgb(255, 255, 255)", "count": 20 },
+          { "token": "--color-primary", "value": "rgb(0, 67, 206)", "count": 3 },
+          { "token": "--color-text", "value": "rgb(22, 22, 22)", "count": 50 }
+        ]
+      }
+    ]
+  },
+  "example-com.system.site-spacing.design.md": {
+    "settings": { "units": "px" },
+    "base": "example-com.system.spacing.design.md",
+    "others": [
+      {
+        "meta": { "name": "spacing", "scope": "system", "type": "spacing", "source": "https://example.com/blog", "captured": "2026-11-14", "method": "measured" },
+        "scale": [
+          { "value": { "computed": "8px", "token": "--space-2" }, "count": 10 },
+          { "value": { "computed": "12px", "token": "--space-3" }, "count": 4 },
+          { "value": { "computed": "20px", "token": "--space-4" }, "count": 6 },
+          { "value": { "computed": "32px", "token": "--space-8" }, "count": 5 }
+        ],
+        "baseUnit": { "px": 4, "share": 1 },
+        "outliers": []
+      }
+    ]
+  }
+}

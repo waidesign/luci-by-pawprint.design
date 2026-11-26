@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>States</title>
+<!-- Hover effects the way real sites write them (user reports 2026-11-13, evernote.com and lattice.com):
+     a card that lifts when the link AROUND it is hovered (Tailwind's group-hover), an image and an arrow
+     that are hidden until then, a decorative highlight inside a list item, a hover done in JavaScript,
+     and a card with no hover at all. -->
+<style>
+  body { margin: 0; padding: 48px; font: 16px/24px system-ui, sans-serif; color: #18181b; background: #f4f4f5; }
+  .row { display: flex; gap: 24px; align-items: flex-start; margin-bottom: 32px; }
+  /* evernote.com: <a class="group"><div class="card ...group-hover:translate-y-[-12px]"> */
+  .group { display: block; text-decoration: none; color: inherit; }
+  .card { position: relative; width: 300px; height: 220px; padding: 32px; border-radius: 10px; background: #ffffff; box-sizing: border-box;
+    display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+  .group:hover .card { transform: translateY(-12px); box-shadow: 0 8px 24px -8px rgba(0, 0, 21, 0.12), 0 0 0 1px rgba(0, 0, 21, 0.08); }
+  .group:focus-visible .card { outline: 2px solid #2563eb; outline-offset: 4px; }
+  .card .art { position: absolute; top: 24px; right: 24px; width: 64px; height: 64px; background: #a78bfa; border-radius: 12px;
+    opacity: 0; transform: rotate(90deg) scale(0.5); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+  .group:hover .card .art { opacity: 1; transform: translate(-20px, 20px); }
+  .card .arrow { position: absolute; bottom: 32px; right: 32px; width: 16px; height: 16px; border-top: 2px solid #18181b; border-right: 2px solid #18181b;
+    opacity: 0; transform: rotate(45deg); transition: transform 0.2s ease-out, opacity 0.2s ease-out; }
+  .group:hover .card .arrow { opacity: 1; transform: translateX(8px) rotate(45deg); }
+  /* lattice.com: the change is on a decorative span, not on anything with text */
+  .item { display: flex; gap: 12px; align-items: center; padding: 12px 16px; background: #ffffff; border-radius: 8px; list-style: none; width: 260px; }
+  .item .dot { width: 12px; height: 12px; border-radius: 50%; background: #e4e4e7; }
+  .item:hover .dot { background: #16a34a; }
+  /* A hover that only JavaScript does */
+  .tile { width: 200px; padding: 24px; background: #ffffff; border-radius: 8px; }
+  /* No hover at all */
+  .plain { width: 200px; padding: 24px; background: #ffffff; border-radius: 8px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); }
+</style>
+</head>
+<body>
+  <div class="row">
+    <a class="group" id="group-link" href="/gone">
+      <div class="card" id="lift-card">
+        <div class="art"></div>
+        <p>Make the most of your ideas</p>
+        <span class="arrow"></span>
+      </div>
+    </a>
+  </div>
+  <ul class="row" style="padding: 0">
+    <li class="item" id="dot-item"><span class="dot"></span>Weekly check-ins</li>
+  </ul>
+  <div class="row">
+    <div class="tile" id="js-lift">Lifts with JavaScript</div>
+    <div class="plain" id="plain">No hover effect</div>
+  </div>
+  <script>
+    const tile = document.getElementById('js-lift');
+    tile.addEventListener('mouseenter', () => { tile.style.transform = 'translateY(-6px)'; tile.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.15)'; });
+    tile.addEventListener('mouseleave', () => { tile.style.transform = ''; tile.style.boxShadow = ''; });
+  </script>
+</body>
+</html>

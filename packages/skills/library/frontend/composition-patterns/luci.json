@@ -1,0 +1,33 @@
+{
+  "lss": 1,
+  "lastVerified": "2026-11-08",
+  "source": {
+    "repo": "vercel-labs/agent-skills",
+    "path": "skills/composition-patterns/SKILL.md",
+    "licenseVerified": true,
+    "licenseStatus": "open",
+    "licenseEvidence": "declared in original SKILL.md",
+    "licenseUrl": "https://github.com/vercel-labs/agent-skills/blob/main/skills/composition-patterns/SKILL.md",
+    "licenseCheckedAt": "2026-11-08"
+  },
+  "summary": "vercel-composition-patterns skill for AI coding agents.",
+  "domains": [
+    "web",
+    "software",
+    "ai"
+  ],
+  "derived": [
+    "domains",
+    "summary"
+  ],
+  "whenToUse": [
+    "Use when refactoring React components with many boolean props, designing reusable component APIs, or structuring compound components and context providers."
+  ],
+  "keywords": [
+    "compound components",
+    "boolean props",
+    "component api design",
+    "context provider",
+    "react 19"
+  ]
+}

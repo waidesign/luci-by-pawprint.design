@@ -1,0 +1,55 @@
+{
+  "generatedAt": "2026-11-12T11:24:58.677Z",
+  "sets": {
+    "tuning": {
+      "cases": 36,
+      "coveredCases": 14,
+      "noMatchCases": 22,
+      "systems": {
+        "onboarding": {
+          "hitRate": 1,
+          "precision": 0.912,
+          "noMatchAccuracy": 0.864,
+          "avgSkills": 0.75,
+          "avgTokens": 1180,
+          "score": 0.925
+        },
+        "use": {
+          "hitRate": 1,
+          "precision": 0.923,
+          "noMatchAccuracy": 0.864,
+          "avgSkills": 0.72,
+          "avgTokens": 1182,
+          "score": 0.929
+        }
+      }
+    },
+    "held-out": {
+      "cases": 22,
+      "coveredCases": 5,
+      "noMatchCases": 17,
+      "systems": {
+        "onboarding": {
+          "hitRate": 0.8,
+          "precision": 0.7,
+          "noMatchAccuracy": 0.941,
+          "avgSkills": 0.32,
+          "avgTokens": 577,
+          "score": 0.814
+        },
+        "use": {
+          "hitRate": 0.8,
+          "precision": 0.7,
+          "noMatchAccuracy": 0.941,
+          "avgSkills": 0.32,
+          "avgTokens": 579,
+          "score": 0.814
+        }
+      }
+    }
+  },
+  "library": {
+    "skills": 38,
+    "largestSkillTokens": 4832
+  }
+}

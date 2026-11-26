@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Regressions: Tailwind and shadcn patterns</title>
+<!--
+  Patterns from the 2026-11-20 bug review's reference page (a Tailwind v3 + shadcn site, see
+  .luci/test-cases/classicdecoder-com.page.home.design.md), rebuilt offline for regression tests.
+-->
+<style>
+:root {
+  --background: 0 0% 100%;
+  --foreground: 20 14.3% 4.1%;
+  --primary: 24 9.8% 10%;
+  --border: 20 5.9% 90%;
+  --brand: #0f62fe;
+  /* A toast library's own variables, used by nothing on the page */
+  --toastify-color-error: #e74c3c;
+  --toastify-color-info: #3498db;
+  --tw-ring-color: #3b82f680;
+}
+*, ::before, ::after {
+  --tw-bg-opacity: 1; --tw-text-opacity: 1;
+  --tw-ring-offset-shadow: 0 0 #0000; --tw-ring-shadow: 0 0 #0000; --tw-shadow: 0 0 #0000;
+  box-sizing: border-box;
+}
+body { margin: 0; font-family: system-ui, sans-serif; background-color: hsl(var(--background)); color: hsl(var(--foreground)); }
+.mx-auto { margin-left: auto; margin-right: auto; }
+.container { max-width: 960px; padding: 16px; }
+.narrow { width: 400px; }
+.btn { background: var(--brand); color: #ffffff; padding: 8px 16px; border: 0; border-radius: 6px; font: inherit; }
+.tw-btn {
+  --tw-bg-opacity: 1;
+  background-color: rgb(224 193 43 / var(--tw-bg-opacity, 1));
+  --tw-text-opacity: 1;
+  color: rgb(0 0 0 / var(--tw-text-opacity, 1));
+  --tw-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+  padding: 8px 12px; border: 0; border-radius: 6px; font: inherit;
+}
+.card { border: 1px solid hsl(var(--border)); padding: 24px; margin-bottom: 16px; border-radius: 8px; color: hsl(var(--primary)); }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+@media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+  <main class="container mx-auto">
+    <h1>Classic decoders</h1>
+    <p>Find the decoder for your set.</p>
+    <button id="brand-btn" class="btn">Shop now</button>
+    <button id="tw-btn" class="tw-btn">Subscribe</button>
+    <section class="narrow mx-auto" id="narrow">
+      <div class="card">Centered card</div>
+    </section>
+    <div id="grid" class="grid">
+      <div class="card">One</div>
+      <div class="card">Two</div>
+      <div class="card">Three</div>
+    </div>
+  </main>
+</body>
+</html>

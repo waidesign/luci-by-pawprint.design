@@ -1,0 +1,38 @@
+{
+  "lss": 1,
+  "lastVerified": "2026-11-06",
+  "source": {
+    "repo": "ibelick/ui-skills",
+    "path": "skills/create-design-md/SKILL.md",
+    "licenseVerified": true,
+    "licenseStatus": "open",
+    "licenseEvidence": "repository license",
+    "licenseUrl": "https://github.com/ibelick/ui-skills/blob/main/LICENSE",
+    "licenseCheckedAt": "2026-11-08"
+  },
+  "summary": "Create or update a DESIGN.md from an existing product repository or public website. Use when asked to document an interface's design language, reconstruct its visual system, extract design tokens and guidance from current evidence, or give coding agents persistent UI context.",
+  "whenToUse": [
+    "Use when asked to document an interface's design language, reconstruct its visual system, extract design tokens and guidance from current evidence, or give coding agents persistent UI context."
+  ],
+  "verification": [
+    "Run structural linting: Then run one compatibility export using the target selected above: Inspect the output.",
+    "Every populated frontmatter category supported by the target must emit its corresponding token category; an empty or missing category is a schema failure even when the command exits successfully."
+  ],
+  "domains": [
+    "design",
+    "web",
+    "ai"
+  ],
+  "derived": [
+    "domains",
+    "summary",
+    "verification",
+    "whenToUse"
+  ],
+  "keywords": [
+    "design documentation",
+    "style guide",
+    "brand guidelines",
+    "agent ui context"
+  ]
+}

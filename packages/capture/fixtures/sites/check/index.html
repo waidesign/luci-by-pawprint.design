@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Checkout</title>
+  <!--
+    The design check (v0.3.1): #design is the button as designed; #built is the one "built" from it,
+    with exactly three differences: its background color, its corner radius and its hover color.
+    Everything else (padding, gap, text, focus ring, motion, size, contrast level) is the same.
+  -->
+  <style>
+    :root { --brand: #0f62fe; --radius: 8px; }
+    body { margin: 40px; font-family: Arial, sans-serif; color: #161616; }
+    main { display: flex; gap: 48px; margin-top: 140px; }
+    h2 { font-size: 14px; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border: 0;
+      border-radius: var(--radius); background-color: var(--brand); color: #ffffff;
+      font-family: Arial, sans-serif; font-size: 16px; font-weight: 600; line-height: 24px;
+      cursor: pointer; transition: background-color 150ms ease-out;
+    }
+    .btn:hover { background-color: #0353e9; }
+    .btn:focus-visible { outline: 2px solid #0f62fe; outline-offset: 2px; }
+    #built { background-color: #2563eb; border-radius: 4px; }
+    #built:hover { background-color: #1d4ed8; }
+  </style>
+</head>
+<body>
+  <main>
+    <section id="reference">
+      <h2>Design</h2>
+      <button class="btn" id="design" type="button">Pay now</button>
+    </section>
+    <section id="app">
+      <h2>Built</h2>
+      <button class="btn" id="built" type="button">Pay now</button>
+    </section>
+  </main>
+</body>
+</html>

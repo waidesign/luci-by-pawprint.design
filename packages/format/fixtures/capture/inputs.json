@@ -1,0 +1,121 @@
+{
+  "example-com.token.text-heading-1.design.md": {
+    "settings": { "units": "both", "colors": "hex" },
+    "capture": {
+      "meta": { "name": "text-heading-1", "scope": "token", "type": "text", "source": "https://www.example.com/pricing?ref=mail#plans", "selector": "main h1", "captured": "2026-11-12", "method": "measured" },
+      "style": {
+        "family": { "computed": "Inter, system-ui, sans-serif", "authored": "var(--font-sans)", "token": "--font-sans" },
+        "size": { "computed": "48px", "authored": "clamp(2rem, 5vw, 3rem)" },
+        "weight": { "computed": "700" },
+        "lineHeight": { "computed": "55.2px", "authored": "1.15" },
+        "letterSpacing": { "computed": "-0.96px", "authored": "-0.02em" },
+        "color": { "computed": "rgb(22, 22, 22)", "authored": "var(--color-text)", "token": "--color-text" }
+      },
+      "usedBy": { "element": "h1 (heading)", "selector": "main h1" },
+      "accessibility": { "contrast": [{ "text": "rgb(22, 22, 22)", "background": "rgb(255, 255, 255)", "ratio": 18.09, "large": true, "level": "AAA" }] }
+    }
+  },
+  "example-com.token.color-primary.design.md": {
+    "settings": { "colors": "hex" },
+    "capture": {
+      "meta": { "name": "color-primary", "scope": "token", "type": "color", "source": "https://example.com/pricing", "selector": "main section:nth-of-type(2) a.cta", "captured": "2026-11-12", "method": "measured" },
+      "value": { "computed": "rgb(15, 98, 254)", "authored": "var(--color-primary)", "token": "--color-primary" },
+      "role": "accent",
+      "usedFor": [
+        { "element": "a (link)", "property": "background-color", "selector": "main section:nth-of-type(2) a.cta" },
+        { "element": "h2 (heading)", "property": "color", "selector": "main h2" }
+      ]
+    }
+  },
+  "example-com.token.color-c9a227.design.md": {
+    "settings": { "colors": "oklch" },
+    "capture": {
+      "meta": { "name": "color-c9a227", "scope": "token", "type": "color", "source": "https://example.com/", "captured": "2026-11-12", "method": "estimated" },
+      "value": { "computed": "rgb(201, 162, 39)" },
+      "usedFor": []
+    }
+  },
+  "example-com.token.spacing-plans-gap.design.md": {
+    "settings": { "units": "rem" },
+    "capture": {
+      "meta": { "name": "spacing-plans-gap", "scope": "token", "type": "spacing", "source": "https://example.com/pricing", "selector": "main ul", "captured": "2026-11-12", "method": "measured" },
+      "value": { "computed": "16px", "authored": "var(--space-4)", "token": "--space-4" },
+      "kind": "gap",
+      "property": "column-gap",
+      "label": "authored",
+      "usedBy": { "element": "ul (list)", "selector": "main ul" }
+    }
+  },
+  "example-com.token.spacing-heading-to-intro.design.md": {
+    "settings": {},
+    "capture": {
+      "meta": { "name": "spacing-heading-to-intro", "scope": "token", "type": "spacing", "source": "https://example.com/pricing", "captured": "2026-11-12", "method": "measured" },
+      "value": { "computed": "24px" },
+      "kind": "distance",
+      "label": "measured",
+      "between": [{ "element": "h1 (heading)", "selector": "main h1" }, { "element": "p (paragraph)", "selector": "main > p" }]
+    }
+  },
+  "example-com.system.typography.design.md": {
+    "settings": { "units": "px" },
+    "capture": {
+      "meta": { "name": "typography", "scope": "system", "type": "typography", "source": "https://example.com/pricing", "captured": "2026-11-12", "method": "measured" },
+      "roles": [
+        { "role": "display", "count": 1, "elements": ["h1"], "style": { "family": { "computed": "Inter, sans-serif" }, "size": { "computed": "48px", "token": "--text-4xl" }, "weight": { "computed": "700" }, "lineHeight": { "computed": "56px" }, "letterSpacing": { "computed": "-0.96px" }, "color": { "computed": "rgb(22, 22, 22)" } } },
+        { "role": "heading-2", "count": 3, "elements": ["h2"], "style": { "family": { "computed": "Inter, sans-serif" }, "size": { "computed": "32px" }, "weight": { "computed": "600" }, "lineHeight": { "computed": "40px" }, "letterSpacing": { "computed": "normal" }, "color": { "computed": "rgb(22, 22, 22)" } } },
+        { "role": "body", "count": 24, "elements": ["p", "li"], "style": { "family": { "computed": "Inter, sans-serif" }, "size": { "computed": "16px" }, "weight": { "computed": "400" }, "lineHeight": { "computed": "24px" }, "letterSpacing": { "computed": "normal" }, "color": { "computed": "rgb(57, 57, 57)" } } },
+        { "role": "label", "count": 4, "elements": ["a", "button"], "style": { "family": { "computed": "Inter, sans-serif" }, "size": { "computed": "14px" }, "weight": { "computed": "600" }, "lineHeight": { "computed": "20px" }, "letterSpacing": { "computed": "0.16px" }, "color": { "computed": "rgb(255, 255, 255)" } } },
+        { "role": "code", "count": 2, "elements": ["code"], "style": { "family": { "computed": "\"JetBrains Mono\", monospace" }, "size": { "computed": "14px" }, "weight": { "computed": "400" }, "lineHeight": { "computed": "20px" }, "letterSpacing": { "computed": "normal" }, "color": { "computed": "rgb(57, 57, 57)" } } }
+      ],
+      "families": [{ "family": "Inter, sans-serif", "count": 32 }, { "family": "\"JetBrains Mono\", monospace", "count": 2 }],
+      "scale": [{ "size": { "computed": "48px", "token": "--text-4xl" }, "count": 1 }, { "size": { "computed": "32px" }, "count": 3 }, { "size": { "computed": "16px" }, "count": 24 }, { "size": { "computed": "14px" }, "count": 6 }]
+    }
+  },
+  "example-com.system.color.design.md": {
+    "settings": { "colors": "hex" },
+    "capture": {
+      "meta": { "name": "color", "scope": "system", "type": "color", "source": "https://example.com/pricing", "captured": "2026-11-12", "method": "measured" },
+      "roles": [
+        { "role": "background", "value": { "computed": "rgb(255, 255, 255)", "authored": "var(--color-bg)", "token": "--color-bg" }, "count": 12, "properties": ["background-color"] },
+        { "role": "background", "value": { "computed": "rgb(244, 244, 244)" }, "count": 3, "properties": ["background-color"] },
+        { "role": "text", "value": { "computed": "rgb(22, 22, 22)", "authored": "var(--color-text)", "token": "--color-text" }, "count": 30, "properties": ["color"] },
+        { "role": "border", "value": { "computed": "rgb(224, 224, 224)" }, "count": 8, "properties": ["border-top-color", "border-bottom-color"] },
+        { "role": "accent", "value": { "computed": "rgb(15, 98, 254)", "authored": "var(--color-primary)", "token": "--color-primary" }, "count": 5, "properties": ["background-color", "color"] }
+      ],
+      "tokens": [
+        { "token": "--color-bg", "value": "rgb(255, 255, 255)", "count": 12 },
+        { "token": "--color-primary", "value": "rgb(15, 98, 254)", "count": 5 },
+        { "token": "--color-text", "value": "rgb(22, 22, 22)", "count": 30 },
+        { "token": "--color-unused", "value": "rgba(15, 98, 254, 0.5)", "count": 0 }
+      ]
+    }
+  },
+  "example-com.system.spacing.design.md": {
+    "settings": { "units": "both" },
+    "capture": {
+      "meta": { "name": "spacing", "scope": "system", "type": "spacing", "source": "https://example.com/pricing", "captured": "2026-11-12", "method": "measured" },
+      "scale": [
+        { "value": { "computed": "4px", "token": "--space-1" }, "count": 6 },
+        { "value": { "computed": "8px", "token": "--space-2" }, "count": 14 },
+        { "value": { "computed": "16px", "token": "--space-4" }, "count": 22 },
+        { "value": { "computed": "24px" }, "count": 9 },
+        { "value": { "computed": "48px", "token": "--space-12" }, "count": 4 }
+      ],
+      "baseUnit": { "px": 4, "share": 0.95 },
+      "outliers": [{ "value": { "computed": "10px" }, "count": 2 }, { "value": { "computed": "3px" }, "count": 1 }]
+    }
+  },
+  "example-com.token.spacing-ul.design.md": {
+    "settings": { "units": "px" },
+    "capture": {
+      "meta": { "name": "spacing-ul", "scope": "token", "type": "spacing", "source": "https://www.example.com/pricing", "selector": "main ul.plans", "captured": "2026-11-12", "method": "measured" },
+      "values": [
+        { "value": { "computed": "24px", "authored": "var(--space-6)", "token": "--space-6" }, "kind": "padding", "property": "padding-top" },
+        { "value": { "computed": "24px", "authored": "var(--space-6)", "token": "--space-6" }, "kind": "padding", "property": "padding-bottom" },
+        { "value": { "computed": "16px", "authored": "var(--space-4)", "token": "--space-4" }, "kind": "gap", "property": "row-gap" },
+        { "value": { "computed": "24px", "authored": "clamp(1rem, 2vw, 2rem)" }, "kind": "gap", "property": "column-gap" }
+      ],
+      "usedBy": { "element": "ul (list)", "selector": "main ul.plans" }
+    }
+  }
+}

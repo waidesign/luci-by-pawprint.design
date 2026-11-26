@@ -1,0 +1,147 @@
+{
+  "design-check.standard.prompt.md": {
+    "options": { "detail": "standard" },
+    "items": [
+      {
+        "id": "itm-check-1", "ref": "P1-A1",
+        "page": { "url": "http://localhost:5173/checkout", "route": "/checkout", "title": "Checkout", "source": "src/pages/Checkout.jsx" },
+        "target": { "kind": "element", "selector": "form > button", "element": "button", "text": "Pay now", "components": ["App", "Checkout", "Button"], "source": { "file": "src/components/Button.jsx", "line": 3, "column": 10 } },
+        "comment": "Its background-color is #2563eb; the design says #0f62fe (--color-primary).",
+        "check": { "design": ".luci/design/example-com.component.primary-button.design.md", "part": "container", "property": "background-color", "expected": "#0f62fe (--color-primary)", "actual": "#2563eb" },
+        "intent": "fix", "priority": "medium", "status": "pending",
+        "createdAt": "2026-11-14T10:00:00.000Z", "updatedAt": "2026-11-14T10:00:00.000Z", "thread": []
+      },
+      {
+        "id": "itm-check-2", "ref": "P1-A2",
+        "page": { "url": "http://localhost:5173/checkout", "route": "/checkout", "title": "Checkout", "source": "src/pages/Checkout.jsx" },
+        "target": { "kind": "element", "selector": "form > button", "element": "button", "text": "Pay now", "components": ["App", "Checkout", "Button"], "source": { "file": "src/components/Button.jsx", "line": 3, "column": 10 } },
+        "comment": "On hover, its background-color changes to #1d4ed8; the design says #0353e9.",
+        "check": { "design": ".luci/design/example-com.component.primary-button.design.md", "part": "container", "state": "hover", "property": "background-color", "expected": "#0353e9", "actual": "#1d4ed8" },
+        "intent": "fix", "priority": "medium", "status": "pending",
+        "createdAt": "2026-11-14T10:00:01.000Z", "updatedAt": "2026-11-14T10:00:01.000Z", "thread": []
+      }
+    ]
+  },
+  "three-pages.standard.prompt.md": {
+    "options": { "detail": "standard" },
+    "items": [
+      {
+        "id": "itm-checkout-1", "ref": "P3-A1",
+        "page": { "url": "http://localhost:5173/checkout", "route": "/checkout", "title": "Checkout", "source": "src/pages/Checkout.jsx" },
+        "target": { "kind": "element", "selector": "form > p:nth-of-type(2)", "element": "p", "text": "Card number is not valid", "components": ["App", "Checkout", "FieldError"], "source": { "file": "src/components/FieldError.jsx", "line": 4, "column": 10 } },
+        "comment": "Error text is too low contrast", "intent": "fix", "priority": "high", "status": "pending",
+        "createdAt": "2026-11-13T09:05:00.000Z", "updatedAt": "2026-11-13T09:05:00.000Z", "thread": []
+      },
+      {
+        "id": "itm-pricing-1", "ref": "P1-A1",
+        "page": { "url": "http://localhost:5173/pricing?plan=pro", "route": "/pricing", "title": "Pricing", "source": "src/pages/Pricing.jsx" },
+        "target": { "kind": "element", "selector": "main > section:nth-of-type(2) > button", "element": "button", "text": "Start free trial", "components": ["App", "Pricing", "PlanCard"], "source": { "file": "src/components/PlanCard.jsx", "line": 12, "column": 7 } },
+        "comment": "Button label wraps on mobile", "intent": "fix", "priority": "high", "status": "pending",
+        "createdAt": "2026-11-13T09:00:00.000Z", "updatedAt": "2026-11-13T09:00:00.000Z", "thread": []
+      },
+      {
+        "id": "itm-pricing-2", "ref": "P1-A2",
+        "page": { "url": "http://localhost:5173/pricing", "route": "/pricing", "title": "Pricing", "source": "src/pages/Pricing.jsx" },
+        "target": { "kind": "text", "selector": "main > h1", "element": "h1 (heading)", "text": "Simple pricng for teams", "selectedText": "pricng", "components": ["App", "Pricing"], "source": { "file": "src/pages/Pricing.jsx", "line": 8 } },
+        "comment": "Typo: \"pricing\"", "intent": "fix", "priority": "medium", "status": "pending",
+        "createdAt": "2026-11-13T09:01:00.000Z", "updatedAt": "2026-11-13T09:01:00.000Z", "thread": []
+      },
+      {
+        "id": "itm-home-1", "ref": "P2-A1",
+        "page": { "url": "http://localhost:5173/", "route": "/", "title": "Home", "source": "src/pages/Home.jsx" },
+        "target": { "kind": "element", "selector": "header > nav", "element": "nav (navigation)", "components": ["App", "Layout", "Nav"], "source": { "file": "src/components/Nav.jsx", "line": 3 } },
+        "comment": "Use 24px between the links\nand align them with the logo", "intent": "change", "priority": "medium", "status": "question",
+        "createdAt": "2026-11-13T09:02:00.000Z", "updatedAt": "2026-11-13T09:10:00.000Z",
+        "thread": [
+          { "from": "agent", "text": "Should the logo move, or only the links?", "at": "2026-11-13T09:08:00.000Z" },
+          { "from": "person", "text": "Only the links.", "at": "2026-11-13T09:10:00.000Z" }
+        ]
+      },
+      {
+        "id": "itm-home-2", "ref": "P2-A2",
+        "page": { "url": "http://localhost:5173/", "route": "/", "title": "Home", "source": "src/pages/Home.jsx" },
+        "target": { "kind": "element", "selector": "main > a:nth-of-type(1)", "element": "a (link)", "text": "Get started", "components": ["App", "Home", "Cta"], "source": { "file": "src/components/Cta.jsx", "line": 2 } },
+        "comment": "Use the secondary button style", "intent": "change", "priority": "low", "status": "pending",
+        "createdAt": "2026-11-13T09:03:00.000Z", "updatedAt": "2026-11-13T09:03:00.000Z", "thread": []
+      },
+      {
+        "id": "itm-checkout-2", "ref": "P3-A2",
+        "page": { "url": "http://localhost:5173/checkout", "route": "/checkout", "title": "Checkout", "source": "src/pages/Checkout.jsx" },
+        "target": { "kind": "element", "selector": "form > button", "element": "button", "text": "Pay now", "components": ["App", "Checkout"], "source": { "file": "src/pages/Checkout.jsx", "line": 21 } },
+        "comment": "Disable while the payment is sending", "intent": "fix", "priority": "medium", "status": "sent", "sentAt": "2026-11-13T09:06:00.000Z",
+        "createdAt": "2026-11-13T09:04:00.000Z", "updatedAt": "2026-11-13T09:06:00.000Z", "thread": []
+      }
+    ]
+  },
+  "layout.standard.prompt.md": {
+    "options": { "detail": "standard" },
+    "items": [
+      {
+        "id": "itm-layout-1", "ref": "P1-A3",
+        "page": { "url": "http://localhost:5173/pricing", "route": "/pricing", "source": "src/pages/Pricing.jsx" },
+        "target": { "kind": "element", "selector": "main > section > div:nth-of-type(2)", "element": "div", "text": "Pro $12 per month Start free trial", "components": ["App", "Pricing", "PlanCard"], "source": { "file": "src/components/PlanCard.jsx", "line": 3, "column": 5 } },
+        "comment": "Put the Pro plan first and make the cards wider",
+        "layout": {
+          "viewport": { "width": 1280, "height": 800 },
+          "changes": [
+            { "op": "move", "position": "before", "sibling": { "selector": "main > section > div:nth-of-type(1)", "element": "div" }, "from": 2, "to": 1, "of": 2 },
+            { "op": "set", "property": "width", "from": "360px", "to": "400px" },
+            { "op": "set", "property": "padding", "from": "16px", "to": "24px", "token": "--space-6" }
+          ]
+        },
+        "intent": "change", "priority": "medium", "status": "pending",
+        "createdAt": "2026-11-13T10:00:00.000Z", "updatedAt": "2026-11-13T10:00:00.000Z", "thread": []
+      }
+    ]
+  },
+  "one-page.detailed.prompt.md": {
+    "options": { "detail": "detailed" },
+    "items": [
+      {
+        "id": "itm-checkout-2", "ref": "P3-A2",
+        "page": { "url": "http://localhost:5173/checkout", "route": "/checkout" },
+        "target": { "kind": "element", "selector": "form > button", "element": "button", "text": "Pay now", "components": ["App", "Checkout"], "source": { "file": "src/pages/Checkout.jsx", "line": 21 }, "styles": { "background-color": "rgb(15, 98, 254)", "font-size": "16px", "padding": "12px 20px" } },
+        "comment": "Disable while the payment is sending", "intent": "fix", "priority": "medium", "status": "pending",
+        "createdAt": "2026-11-13T09:04:00.000Z", "updatedAt": "2026-11-13T09:04:00.000Z", "thread": []
+      }
+    ]
+  },
+  "insert-and-new-page.standard.prompt.md": {
+    "options": { "detail": "standard" },
+    "items": [
+      {
+        "id": "itm-insert-1", "ref": "P1-A1",
+        "page": { "url": "http://localhost:5173/pricing", "route": "/pricing", "source": "src/pages/Pricing.jsx" },
+        "target": { "kind": "element", "selector": "main > section > div:nth-of-type(2)", "element": "div", "text": "Pro $12 per month Start free trial", "components": ["App", "Pricing", "PlanCard"], "source": { "file": "src/components/PlanCard.jsx", "line": 3, "column": 5 } },
+        "comment": "A third plan for big teams",
+        "layout": {
+          "viewport": { "width": 1280, "height": 800 },
+          "changes": [
+            { "op": "insert", "what": { "kind": "component", "name": "PlanCard", "file": "src/components/PlanCard.jsx", "example": { "selector": "main > section > div:nth-of-type(2)", "element": "div" } }, "position": "after", "width": "320px", "height": "240px", "label": "Enterprise: custom price, Talk to sales" }
+          ]
+        },
+        "intent": "change", "priority": "medium", "status": "pending",
+        "createdAt": "2026-11-13T11:00:00.000Z", "updatedAt": "2026-11-13T11:00:00.000Z", "thread": []
+      },
+      {
+        "id": "itm-page-1", "ref": "P1-A2",
+        "page": { "url": "http://localhost:5173/pricing", "route": "/pricing", "source": "src/pages/Pricing.jsx" },
+        "target": { "kind": "element", "selector": "body", "element": "body" },
+        "comment": "New page /enterprise for big teams",
+        "wireframe": {
+          "route": "/enterprise",
+          "viewport": { "width": 1280, "height": 800 },
+          "rows": [
+            { "height": "56px", "blocks": [{ "what": { "kind": "component", "name": "Nav", "file": "src/components/Nav.jsx", "example": { "selector": "nav", "element": "nav (navigation)" } }, "span": 12 }] },
+            { "height": "420px", "blocks": [
+              { "what": { "kind": "block", "name": "text" }, "label": "Headline, pitch, Talk to sales", "span": 6 },
+              { "what": { "kind": "block", "name": "image slot" }, "label": "Team dashboard screenshot", "span": 6 }
+            ] }
+          ]
+        },
+        "intent": "change", "priority": "high", "status": "pending",
+        "createdAt": "2026-11-13T11:05:00.000Z", "updatedAt": "2026-11-13T11:05:00.000Z", "thread": []
+      }
+    ]
+  }
+}

@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en" class="luci-theme">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Luci: how to capture</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<!-- Tokens generated from brand/ by pnpm brand:sync -->
+<link rel="stylesheet" href="/luci-tokens.css">
+<style>
+  :root { color-scheme: light dark; }
+  /* Luci's fonts, bundled with the extension (SIL Open Font License) */
+  @font-face { font-family: "Luci Fredoka"; src: url("/fonts/fredoka-latin-wght.woff2") format("woff2"); font-weight: 300 700; font-display: swap; }
+  @font-face { font-family: "Luci Inter"; src: url("/fonts/inter-latin-wght.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
+  @font-face { font-family: "Luci JetBrains Mono"; src: url("/fonts/jetbrains-mono-latin-wght.woff2") format("woff2"); font-weight: 100 800; font-display: swap; }
+  body { margin: 0; background: var(--luci-color-surface); color: var(--luci-color-ink);
+    font: var(--luci-type-body-weight) var(--luci-type-body-size)/var(--luci-type-body-line) var(--luci-font-body); }
+  main { max-width: 720px; margin: 0 auto; padding: var(--luci-space-40) var(--luci-space-16) var(--luci-space-64); }
+  header { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--luci-space-24); margin-bottom: var(--luci-space-32); }
+  .logo { display: block; width: 132px; height: auto; }
+  .logo-dark { display: none; }
+  .mascot { width: 200px; height: auto; flex: none; }
+  h1 { font: var(--luci-type-display-weight) var(--luci-type-display-size)/var(--luci-type-display-line) var(--luci-font-display); margin: var(--luci-space-24) 0 var(--luci-space-8); }
+  h2 { font: var(--luci-type-heading-weight) var(--luci-type-heading-size)/var(--luci-type-heading-line) var(--luci-font-body); margin: var(--luci-space-32) 0 var(--luci-space-8); }
+  p, li { color: var(--luci-color-ink-secondary); }
+  strong, kbd, code { color: var(--luci-color-ink); }
+  kbd, code { font: var(--luci-type-code-weight) var(--luci-type-code-size) var(--luci-font-code); padding: 1px var(--luci-space-8); border-radius: 6px; background: var(--luci-color-surface-sunken); }
+  ol, ul { padding-left: var(--luci-space-20); }
+  .lead { font-size: var(--luci-type-heading-size); line-height: var(--luci-type-heading-line); }
+  @media (prefers-color-scheme: dark) { .logo-light { display: none; } .logo-dark { display: block; } }
+  @media (max-width: 520px) { .mascot { display: none; } }
+  .permission-card {
+    padding: var(--luci-space-16);
+    border-radius: var(--luci-radius-md);
+    background: var(--luci-color-surface-sunken);
+    margin: var(--luci-space-16) 0;
+  }
+  .permission-status {
+    display: flex;
+    align-items: center;
+    gap: var(--luci-space-8);
+    margin: var(--luci-space-12) 0;
+    font-weight: var(--luci-type-heading-weight);
+  }
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: var(--luci-radius-full);
+    background: var(--luci-color-ink-disabled);
+    flex-shrink: 0;
+  }
+  .status-dot.online {
+    background: var(--luci-color-success);
+    box-shadow: 0 0 6px var(--luci-color-success);
+  }
+  .status-dot.offline {
+    background: var(--luci-color-ink-disabled);
+  }
+  .permission-hint {
+    font-size: var(--luci-type-micro-size);
+    line-height: var(--luci-type-micro-line);
+    color: var(--luci-color-ink-secondary);
+    margin: var(--luci-space-8) 0 0;
+  }
+</style>
+<script type="module" src="../src/help.ts"></script>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <img class="logo logo-light" src="/luci-logo-horizontal.svg" alt="Luci">
+      <img class="logo logo-dark" src="/luci-logo-horizontal-dark.svg" alt="Luci">
+      <h1>Capturing design with Luci</h1>
+    </div>
+    <img class="mascot" src="/luci-sit-animated.svg" alt="" aria-hidden="true">
+  </header>
+  <p class="lead">Luci turns what you pick on a live page into a design.md file your AI coding agent can use. Everything stays on your machine.</p>
+
+  <h2>Three steps</h2>
+  <ol>
+    <li><strong>Pick a tool and click.</strong> Hover the page: the label shows the element's tag and size. Click what you want.</li>
+    <li><strong>Adjust the selection.</strong> The element stays selected. <strong>↑ Wider</strong> selects the element around it, <strong>↓ Narrower</strong> the one inside it. The <kbd>↑</kbd> <kbd>↓</kbd> keys do the same.</li>
+    <li><strong>Choose an output.</strong> <strong>This one</strong> captures the item; <strong>The whole system</strong> captures everything like it on the page. Then copy the file, download it, or add it to the basket.</li>
+  </ol>
+
+  <h2>The tools</h2>
+  <ul>
+    <li><strong>Component:</strong> a button, card, link or field: its parts, tokens, motion and states (hover, focus, active, disabled), and how each image in it is shown (size, crop, corners, effects, tints over it). The whole system adds its variants on the page.</li>
+    <li><strong>Text:</strong> a text style. The whole system lists every text style on the page, grouped into roles.</li>
+    <li><strong>Color:</strong> click an element for its color, or switch to <strong>Pixel</strong> and hover the page to see the color under the pointer, then click. Luci's own panels are never picked.</li>
+    <li><strong>Spacing:</strong> hover to see padding and margin, click an element for all its spacing (or choose one value), or drag from one element to another to measure the distance between them.</li>
+    <li><strong>Whole page:</strong> one file for the page you are on: its text styles, colors and spacing, plus every kind of component on it with its variants and states.</li>
+  </ul>
+
+  <h2>States done in JavaScript</h2>
+  <p>Luci reads hover, focus and active states exactly, the way a real pointer sets them: a card that lifts when the link around it is hovered, an arrow that fades in, a hover done in JavaScript. While it does, Chrome shows a "debugging this browser" bar for a moment. The panel lists every state with ✓, "no change" (Luci checked: nothing changes) or "not detected" (Luci could not be sure). Under <strong>Capture by hand</strong>, <strong>All missing states</strong> is chosen: press <strong>Capture them</strong>, then put the component in each state Luci names (hover, focus or press it) during its 3-second countdown.</p>
+
+  <h2>A whole section</h2>
+  <p>With the Component tool, select a section of the page (press <strong>↑ Wider</strong> until all of it is selected), then <strong>This section</strong>. You get a section file with its layout, and a file for each kind of component in it, each described once. <strong>Download .zip</strong> saves them all.</p>
+  <h2>How it changes by width</h2>
+  <p>After capturing a component or a section, press <strong>How it changes by width</strong>. Luci finds the site's breakpoints that style it, reads it at 2 or 3 widths (the page is resized for a moment, with Chrome's debugging bar), puts the page back, and adds a <strong>Responsive</strong> table to the file: what changes at each width, such as padding, text size or the number of columns.</p>
+  <h2 id="debugger-permission">Chrome's debugger</h2>
+  <div class="permission-card" id="dbg-card">
+    <p>Luci uses Chrome's debugger to read hover, focus and active states exactly, and to resize the page for <strong>How it changes by width</strong>. It attaches the debugger only to the tab you are capturing, only while it reads, and detaches it straight after.</p>
+    <p>Chrome does not let an extension ask for the debugger later, so Luci asks for it when you install it, and Chrome shows its debugger warning then.</p>
+    <div class="permission-status">
+      <span class="status-dot offline" id="dbg-dot" aria-hidden="true"></span>
+      <span id="dbg-status-text">Checking…</span>
+    </div>
+    <p class="permission-hint">Luci's switch turns this on or off: open Luci's settings and press <strong>Don't use the debugger</strong> or <strong>Use the debugger</strong>. While it is off, Luci never attaches the debugger: states come from the page's stylesheet rules, and widths from a hidden frame of the page.</p>
+  </div>
+  <h2>One system for the whole site</h2>
+  <p>Capture the text styles, colors or spacing with <strong>The whole system</strong> on two or more pages of a site, and add each to the basket. In the basket, <strong>Merge into site systems</strong> makes one file per kind for the site: each row says which pages use it, and <strong>Conflicts</strong> lists anything named the same but different between pages (a heading size, a brand color token), so you can decide which one the site means.</p>
+  <h2>Check what was built against its design</h2>
+  <p>Press <strong>Check</strong> in the bar. Choose the component's design file: one in the basket (capture it with Component, <strong>This one</strong>, and add it), or paste one. Then click the component that was built and press <strong>Check against the design</strong>. Luci captures it the same way and lists what matches and each difference: a style, a part, a state, motion, or an accessibility level that got worse. Untick what you accept, then <strong>Copy as a prompt</strong> for your coding agent. <strong>Check another</strong> keeps the same design.</p>
+  <h2>Use your own tokens</h2>
+  <p>Under any capture, <strong>Use my tokens</strong> rewrites the file onto your own design tokens: paste your custom properties once (<code>--space-4: 16px;</code>, <code>--brand: …;</code>) and Luci keeps them. Every value one of your tokens holds is written through it; the rest keep their values, without the site's own token names. <strong>Put the site's values back</strong> undoes it.</p>
+  <h2>Compare two captures</h2>
+  <p>In the basket, tick <strong>Compare</strong> on two items, such as two sites' buttons, then <strong>Compare the two</strong>: every value that differs, side by side, ready to copy.</p>
+  <h2>Colors from a screenshot</h2>
+  <p>For an app or a picture you cannot inspect, choose <strong>Color</strong>, then <strong>Image</strong>: drop a screenshot on the card, paste one, or choose a file. Luci estimates its palette (background, text, accent, border, each with its share of the picture). Every value is a guess, and the file says so; text styles and spacing cannot be read from an image.</p>
+  <h2>Team Feedback</h2>
+  <p>Switch between <strong>Capture</strong> and <strong>Team Feedback</strong> in the bar anytime. Reviewer mode lets you click elements, leave plain text notes, and copy a formatted review for your team or coding agent. Nothing leaves your machine; notes are kept in your browser per site.</p>
+  <h2>Tailwind and CSS Variables export</h2>
+  <p>Set <strong>File</strong> to <strong>Tailwind (theme.css)</strong> or <strong>CSS Variables (tokens.css)</strong> in Settings or on a capture to export modern Tailwind v4 <code>@theme</code>, Tailwind v3 <code>theme.extend</code>, or pure CSS custom properties ready to drop into your stylesheets.</p>
+  <h2>DESIGN.md for Google Stitch</h2>
+  <p>By default, <strong>File</strong> is set to <strong>DESIGN.md (Stitch)</strong> to copy, download and export the open DESIGN.md format Google Stitch reads: design tokens first, then sections on colors, type, layout, shapes and components. The words are filled in from what Luci measured; nothing is invented. You can switch <strong>File</strong> to <strong>Luci tables</strong>, Tailwind, or CSS Variables anytime; <strong>Save to project</strong> always keeps Luci's <code>.design.md</code> tables for Design Check and your agent's tools.</p>
+  <h2>The basket</h2>
+  <p>Press <strong>Add to basket</strong> after any capture. <strong>Basket</strong> in the bar keeps your picks across pages and sites until you empty it. Rename items, write a note for your agent under any item (it stays with that item in every export), remove them, export one, or <strong>Export all as one file</strong>.</p>
+
+  <h2>Keys</h2>
+  <ul>
+    <li><kbd>↑</kbd> <kbd>↓</kbd> widen or narrow the selection, while hovering or after clicking</li>
+    <li><kbd>Enter</kbd> picks, and after clicking takes <strong>This one</strong></li>
+    <li><kbd>Esc</kbd> cancels, or closes the panel or basket</li>
+  </ul>
+
+  <h2>Good to know</h2>
+  <ul>
+    <li>A bare image, video or canvas is greyed out: press ↑ to take the component around it. Its file describes how the image is shown; Luci never copies the image itself.</li>
+    <li>Chrome's own pages and the Web Store can't be captured by any extension.</li>
+    <li>After you update or reload Luci, reload the page and click Luci's icon again.</li>
+    <li>Luci's bar covering something? Drag it by its edge or Luci's head. It stays there on that site; <strong>Right</strong> or <strong>Left</strong> in the menu puts it back.</li>
+  </ul>
+
+  <h2 id="take-luci-home">Take Luci home</h2>
+  <p>This extension is the part of Luci that travels. In your own project, Luci also takes notes on your running app, plans layouts on the live page, and remembers your project's rules and decisions for your coding agent. Free and open source. Nothing leaves your machine.</p>
+  <ol>
+    <li><strong>Install Luci on your computer, once</strong> (requires Node.js 22 or later): <code>npm install -g @luci-dev/cli</code></li>
+    <li>In your project's folder: <code>luci init</code>. Say yes to the dev toolbar.</li>
+    <li>Run <code>luci serve</code> in your project, then open your app on this machine. Luci waits in the bottom corner.</li>
+  </ol>
+</main>
+</body>
+</html>

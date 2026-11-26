@@ -1,0 +1,63 @@
+{
+  "lss": 1,
+  "frameworks": [
+    "any",
+    "html",
+    "react",
+    "vue",
+    "svelte"
+  ],
+  "lastVerified": "2026-11-09",
+  "summary": "Create masked staggered word reveals on scroll with GSAP ScrollTrigger. Use when headings, hero copy, section titles, or editorial text should reveal word-by-word through an overflow mask as they enter the viewport.",
+  "whenToUse": [
+    "Use when headings, hero copy, section titles, or editorial text should reveal word-by-word through an overflow mask as they enter the viewport.",
+    "A headline or short text block needs a premium reveal on scroll.",
+    "Words should rise through an invisible mask with a staggered sequence.",
+    "The project already uses GSAP or needs ScrollTrigger-based motion."
+  ],
+  "verification": [
+    "Text is hidden before GSAP initializes, then becomes visible with autoAlpha: 1.",
+    "Screen readers get the original full text through aria-label.",
+    "Spaces between words are preserved.",
+    "Reduced-motion users see static text.",
+    "ScrollTrigger is cleaned up in SPA routes."
+  ],
+  "domains": [
+    "web",
+    "design"
+  ],
+  "derived": [
+    "domains",
+    "summary",
+    "verification",
+    "whenToUse"
+  ],
+  "keywords": [
+    "text animation",
+    "scroll animation",
+    "headline animation",
+    "split text",
+    "stagger reveal"
+  ],
+  "packages": [
+    "gsap"
+  ],
+  "exclusiveGroup": "animation-library",
+  "verifiedAgainst": [
+    "gsap@3.15.1"
+  ],
+  "related": [
+    "micro-interaction",
+    "animation-on-scroll"
+  ],
+  "source": {
+    "repo": "MengTo/Skills",
+    "path": "agent-skills/web-design/masked-reveal/SKILL.md",
+    "licenseVerified": true,
+    "licenseStatus": "open",
+    "licenseEvidence": "repository license",
+    "licenseUrl": "https://github.com/MengTo/Skills/blob/main/LICENSE",
+    "licenseCheckedAt": "2026-11-12",
+    "copyright": "Copyright (c) 2026 Meng To"
+  }
+}

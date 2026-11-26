@@ -1,0 +1,47 @@
+{
+  "lss": 1,
+  "related": [
+    "frontend-design"
+  ],
+  "frameworks": [
+    "react",
+    "nextjs",
+    "tailwind"
+  ],
+  "lastVerified": "2026-11-06",
+  "summary": "Use when designing or rewriting a high-converting landing page (single-offer page) for SaaS/apps/services. Covers structure, layout patterns, conversion strategies, copywriting, SEO/AEO, and common pitfalls.",
+  "whenToUse": [
+    "Use when designing or rewriting a high-converting landing page (single-offer page) for SaaS/apps/services."
+  ],
+  "verification": [
+    "ad-only campaigns",
+    "highly time-bound offers",
+    "noindex (or keep it behind a non-indexed path)",
+    "evergreen offers",
+    "search intent matches the promise",
+    "clear title + meta",
+    "internal links from homepage/feature pages",
+    "FAQ in plain Q/A for AEO"
+  ],
+  "domains": [
+    "design",
+    "web",
+    "writing"
+  ],
+  "derived": [
+    "domains",
+    "summary",
+    "verification",
+    "whenToUse"
+  ],
+  "source": {
+    "repo": "MengTo/Skills",
+    "path": "agent-skills/web-design/landing-page/SKILL.md",
+    "licenseVerified": true,
+    "licenseStatus": "open",
+    "licenseEvidence": "repository license",
+    "licenseUrl": "https://github.com/MengTo/Skills/blob/main/LICENSE",
+    "licenseCheckedAt": "2026-11-12",
+    "copyright": "Copyright (c) 2026 Meng To"
+  }
+}

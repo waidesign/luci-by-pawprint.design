@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Web components</title>
+<!-- Styling approach 4: web components. Cards are custom elements with open shadow roots, styled by an
+     adopted (constructable) stylesheet and :host; design tokens come in as custom properties. -->
+<style>
+  :root { --wc-primary: #7c3aed; --wc-text: #18181b; --wc-muted: #52525b; --wc-line: #e4e4e7; --wc-space: 8px; }
+  body { margin: 0; font-family: system-ui, sans-serif; color: var(--wc-text); background-color: #ffffff; }
+  site-header { display: flex; justify-content: space-between; align-items: center; padding: calc(var(--wc-space) * 2) calc(var(--wc-space) * 4); border-bottom: 1px solid var(--wc-line); }
+  site-header a { font-size: 14px; line-height: 20px; color: var(--wc-text); }
+  main { padding: calc(var(--wc-space) * 6) calc(var(--wc-space) * 4); }
+  #hero { height: 128px; background-image: url("data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACwAAAAAAQABAAACAkQBADs="); }
+  h1 { margin: 48px 0 0; font-size: 44px; line-height: 52px; font-weight: 700; }
+  .lead { margin: 24px 0 0; font-size: 16px; line-height: 24px; color: var(--wc-muted); }
+  .plans { margin-top: 48px; display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--wc-space); }
+  .fine { margin: 24px 0 0; font-size: 12px; line-height: 16px; color: var(--wc-muted); }
+  code { font-family: ui-monospace, monospace; font-size: 12px; }
+  footer { padding: 32px; background-color: #f4f4f5; }
+  small { font-size: 12px; line-height: 16px; color: var(--wc-muted); }
+</style>
+</head>
+<body>
+  <site-header><a href="/">Recipe Box</a><nav><a href="/plans">Plans</a></nav></site-header>
+  <main>
+    <div id="hero"></div>
+    <h1>Plans for every kitchen</h1>
+    <p class="lead">Pick the plan that fits how often you cook.</p>
+    <div class="plans">
+      <plan-card name="Free">For trying it out</plan-card>
+      <plan-card name="Home">For weekly meal plans</plan-card>
+      <plan-card name="Family">For four or more</plan-card>
+    </div>
+    <p class="fine"><img id="logo" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACwAAAAAAQABAAACAkQBADs=" width="16" height="16" alt=""> Prices in <code>EUR</code>.</p>
+    <svg id="icon" width="24" height="24" viewBox="0 0 24 24"><path d="M12 4l8 16H4z" fill="#7c3aed"/></svg>
+  </main>
+  <footer><small>Example kitchen</small></footer>
+  <script>
+    const cardSheet = new CSSStyleSheet();
+    cardSheet.replaceSync(`
+      :host { display: block; padding: calc(var(--wc-space) * 3); border: 1px solid var(--wc-line); border-radius: 8px; }
+      h2 { margin: 0; font-size: 24px; line-height: 32px; font-weight: 600; color: var(--wc-text); }
+      .note { margin: calc(var(--wc-space)) 0 0; font-size: 14px; line-height: 20px; color: var(--wc-muted); }
+      button { margin-top: 24px; padding: calc(var(--wc-space) * 2) calc(var(--wc-space) * 3); border: 0; background-color: var(--wc-primary); color: #ffffff; font: 600 14px/20px system-ui, sans-serif; }
+      button:hover { background-color: #6d28d9; }
+      button:disabled { opacity: 0.5; cursor: not-allowed; }
+    `);
+    customElements.define('plan-card', class extends HTMLElement {
+      connectedCallback() {
+        const root = this.attachShadow({ mode: 'open' });
+        root.adoptedStyleSheets = [cardSheet];
+        root.innerHTML = `<h2></h2><p class="note"><slot></slot></p><button type="button">Start</button>`;
+        root.querySelector('h2').textContent = this.getAttribute('name');
+      }
+    });
+  </script>
+</body>
+</html>

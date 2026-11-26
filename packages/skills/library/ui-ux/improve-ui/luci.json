@@ -1,0 +1,47 @@
+{
+  "lss": 1,
+  "related": [
+    "baseline-ui",
+    "frontend-design",
+    "design-system-boss"
+  ],
+  "frameworks": [
+    "react",
+    "nextjs",
+    "vue",
+    "svelte",
+    "tailwind"
+  ],
+  "lastVerified": "2026-11-06",
+  "source": {
+    "repo": "ibelick/ui-skills",
+    "path": "skills/improve-ui/SKILL.md",
+    "licenseVerified": true,
+    "licenseStatus": "open",
+    "licenseEvidence": "repository license",
+    "licenseUrl": "https://github.com/ibelick/ui-skills/blob/main/LICENSE",
+    "licenseCheckedAt": "2026-11-08"
+  },
+  "summary": "Evidence-based audit of a product surface against its governing design system, eliminating interface slop without breaking functionality.",
+  "domains": [
+    "design",
+    "web"
+  ],
+  "derived": [
+    "domains",
+    "summary"
+  ],
+  "whenToUse": [
+    "Use when auditing one product screen or flow against its design system and writing plans for the fixes the user selects."
+  ],
+  "whenNotToUse": [
+    "Editing product source directly"
+  ],
+  "keywords": [
+    "ui audit",
+    "design review",
+    "visual polish",
+    "consistency check",
+    "design debt"
+  ]
+}

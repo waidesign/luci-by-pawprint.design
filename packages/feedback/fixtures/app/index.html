@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Shop</title>
+<style>
+  body { margin: 0; font: 16px/1.5 system-ui, sans-serif; color: #161616; }
+  header { display: flex; gap: 16px; align-items: center; padding: 16px 24px; border-bottom: 1px solid #e0e0e0; }
+  nav { display: flex; gap: 12px; }
+  main { padding: 24px; max-width: 720px; }
+  .plan { border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+  .cta, button { display: inline-block; padding: 12px 20px; border-radius: 8px; border: 0; background: #0f62fe; color: #fff; text-decoration: none; font: inherit; }
+  .error { color: #ff8389; }
+  @keyframes pulse { from { opacity: 1; } to { opacity: 0.4; } }
+  .pulse { animation: pulse 1s infinite alternate; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "react": "/node_modules/.vite/deps/react.js",
+  "react/jsx-dev-runtime": "/node_modules/.vite/deps/react_jsx-dev-runtime.js",
+  "react-dom/client": "/node_modules/.vite/deps/react-dom_client.js"
+} }
+</script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+</html>

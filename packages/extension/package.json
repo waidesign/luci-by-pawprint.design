@@ -1,0 +1,34 @@
+{
+  "name": "@luci-dev/extension",
+  "version": "0.6.0",
+  "private": true,
+  "description": "The Luci browser extension: the capture toolbar on any site. Chrome, Manifest V3.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "wxt build",
+    "dev": "wxt",
+    "zip": "wxt zip"
+  },
+  "dependencies": {
+    "@luci-dev/capture": "workspace:*",
+    "@luci-dev/feedback": "workspace:*",
+    "@luci-dev/format": "workspace:*"
+  },
+  "devDependencies": {
+    "wxt": "0.21.5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/waidesign/luci-by-pawprint.design.git",
+    "directory": "packages/extension"
+  },
+  "homepage": "https://github.com/waidesign/luci-by-pawprint.design#readme",
+  "bugs": {
+    "url": "https://github.com/waidesign/luci-by-pawprint.design/issues"
+  },
+  "author": "Pawprint Design <lucas@pawprint.design>"
+}

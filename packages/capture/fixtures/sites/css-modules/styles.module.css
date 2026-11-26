@@ -1,0 +1,18 @@
+html { font-size: 100%; }
+body { margin: 0; font-family: Georgia, "Times New Roman", serif; color: #222831; background: #ffffff; }
+.Header_bar__x7Yk2 { display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; border-bottom: 0.0625rem solid #dddddd; }
+.Header_link__p0Lq9 { font-size: 0.875rem; line-height: 1.5; color: #222831; text-decoration: none; }
+.Header_nav__a3Zr1 { display: flex; gap: 1.5rem; }
+.Page_main__h4Jn6 { padding: 3rem 2rem; }
+.Page_hero__c8Vb2 { height: 8rem; background-image: url("data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACwAAAAAAQABAAACAkQBADs="); }
+.Page_title__m2Kd7 { margin: 3rem 0 0; font-size: 2.5rem; line-height: 1.2; font-weight: 700; }
+.Page_lead__r5Ts3 { margin: 1.5rem 0 0; font-size: 1.125rem; line-height: 1.5; color: #555555; }
+.Plans_list__w9Qe4 { margin: 3rem 0 0; padding: 0; list-style: none; display: flex; gap: 1rem 1.5rem; }
+.Card_card__t6Yu1 { flex: 1; padding: 1.5rem 1.25rem; border: 1px solid #dddddd; border-radius: 0.5em; }
+.Card_name__s1Df8 { margin: 0; font-size: 1.5em; line-height: 1.25; font-weight: 600; }
+.Card_note__g7Hj2 { margin: 0.5rem 0 0; font-size: 0.875rem; line-height: 1.5; color: #555555; }
+.Button_primary__k3Lz5 { display: inline-block; margin-top: 1.5rem; padding: 0.75em 1.5em; background-color: #0b7a75; color: #ffffff; font-size: 0.875rem; line-height: 1.5; font-weight: 700; text-decoration: none; }
+.Page_fine__b2Nm4 { margin: 1.5rem 0 0; font-size: 0.75rem; line-height: 1.5; color: #555555; }
+.Page_code__x1Cv7 { font-family: Consolas, monospace; font-size: 0.875rem; }
+.Page_footer__q8We3 { padding: 2rem; background-color: #f5f5f5; }
+.Page_small__z5Xc6 { font-size: 0.75rem; line-height: 1.5; color: #555555; }

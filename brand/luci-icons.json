@@ -1,0 +1,155 @@
+{
+  "library": "lucide",
+  "packages": {
+    "preact": "lucide-preact",
+    "react": "lucide-react"
+  },
+  "style": {
+    "strokeWidth": 1.75,
+    "color": "currentColor",
+    "size": {
+      "toolbar": 22,
+      "content": 20,
+      "compact": 16
+    }
+  },
+  "icons": {
+    "component": {
+      "lucide": "square-dashed-mouse-pointer",
+      "use": "Pick a component"
+    },
+    "section": {
+      "lucide": "panel-top-dashed",
+      "use": "Pick a section"
+    },
+    "page": {
+      "lucide": "app-window",
+      "use": "Whole page"
+    },
+    "text": {
+      "lucide": "type",
+      "use": "Text and typography"
+    },
+    "colour": {
+      "lucide": "pipette",
+      "use": "Colour eyedropper"
+    },
+    "spacing": {
+      "lucide": "ruler-dimension-line",
+      "use": "Spacing ruler"
+    },
+    "check": {
+      "lucide": "scan-eye",
+      "use": "Design check"
+    },
+    "annotate": {
+      "lucide": "message-square-plus",
+      "use": "Add a feedback note"
+    },
+    "basket": {
+      "lucide": "shopping-basket",
+      "use": "Capture basket"
+    },
+    "copy": {
+      "lucide": "clipboard-copy",
+      "use": "Copy prompt or design.md"
+    },
+    "send": {
+      "lucide": "send",
+      "use": "Send to the agent"
+    },
+    "download": {
+      "lucide": "download",
+      "use": "Export a file"
+    },
+    "images-off": {
+      "lucide": "image-off",
+      "use": "Block images"
+    },
+    "pause": {
+      "lucide": "circle-pause",
+      "use": "Pause page animations"
+    },
+    "settings": {
+      "lucide": "settings",
+      "use": "Settings"
+    },
+    "close": {
+      "lucide": "x",
+      "use": "Close panel, hide toolbar"
+    },
+    "minimise": {
+      "lucide": "minus",
+      "use": "Collapse the toolbar"
+    },
+    "undo": {
+      "lucide": "undo-2",
+      "use": "Undo"
+    },
+    "edit": {
+      "lucide": "pencil",
+      "use": "Edit a note"
+    },
+    "delete": {
+      "lucide": "trash-2",
+      "use": "Delete a note or capture"
+    },
+    "add": {
+      "lucide": "plus",
+      "use": "Add"
+    },
+    "hide": {
+      "lucide": "eye-off",
+      "use": "Hide markers"
+    },
+    "success": {
+      "lucide": "circle-check",
+      "use": "Success status"
+    },
+    "warning": {
+      "lucide": "triangle-alert",
+      "use": "Warning status"
+    },
+    "error": {
+      "lucide": "circle-x",
+      "use": "Error status"
+    },
+    "info": {
+      "lucide": "info",
+      "use": "Info status"
+    },
+    "notes": {
+      "lucide": "list",
+      "use": "Feedback notes list"
+    },
+    "select": {
+      "lucide": "mouse-pointer-click",
+      "use": "Select an element to change its layout"
+    },
+    "new-page": {
+      "lucide": "file-plus",
+      "use": "Sketch a new page"
+    },
+    "redo": {
+      "lucide": "redo-2",
+      "use": "Redo"
+    },
+    "reset": {
+      "lucide": "rotate-ccw",
+      "use": "Put the page back as the code has it"
+    },
+    "chevron": {
+      "lucide": "chevron-down",
+      "use": "Dropdowns and menus that open"
+    },
+    "menu": {
+      "file": "logo/luci-mark-tile.svg",
+      "use": "Toolbar menu button"
+    },
+    "github": {
+      "file": "icons/github-mark.svg",
+      "use": "Luci on GitHub (the repository link with the version)",
+      "source": "GitHub's mark, Octicons mark-github (MIT); GitHub allows it for linking to GitHub. Filled, currentColor, never recoloured or altered."
+    }
+  }
+}

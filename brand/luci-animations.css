@@ -1,0 +1,140 @@
+/* Luci mascot animations. Works on the layered SVGs (inline) or inside the animated SVG files. */
+.luci .luci-ear,.luci .luci-eye,.luci .luci-tail,.luci .luci-body,.luci .luci-head,.luci .luci-z,.luci .luci-pupil,.luci .luci-arm,.luci .luci-ruler-line{transform-box:fill-box}
+.luci .luci-ear-l{transform-origin:70% 100%}
+.luci .luci-ear-r{transform-origin:30% 100%}
+.luci .luci-eye{transform-origin:50% 50%}
+.luci .luci-body{transform-origin:50% 100%}
+.luci .luci-head{transform-origin:50% 85%}
+.luci .luci-tail-wrap{transform-origin:92% 20%}
+.luci .luci-tail-up{transform-origin:5% 95%}
+.luci .luci-arm{transform-origin:10% 90%}
+.luci .luci-z{transform-origin:50% 50%}
+
+@keyframes luci-breathe{0%,100%{transform:scaleY(1)}50%{transform:scaleY(1.025)}}
+@keyframes luci-blink{0%,90%,100%{transform:scaleY(1)}94%{transform:scaleY(.08)}}
+@keyframes luci-slowblink{0%,25%{transform:scaleY(1)}42%,68%{transform:scaleY(.08)}85%,100%{transform:scaleY(1)}}
+@keyframes luci-twitch{0%,86%,100%{transform:rotate(0)}89%{transform:rotate(-12deg)}92%{transform:rotate(5deg)}95%{transform:rotate(-6deg)}98%{transform:rotate(0)}}
+@keyframes luci-sway{0%,100%{transform:rotate(-2.5deg)}50%{transform:rotate(2.5deg)}}
+@keyframes luci-lash{0%{transform:rotate(-9deg)}100%{transform:rotate(9deg)}}
+@keyframes luci-look{0%,18%{transform:translateX(0)}30%,50%{transform:translateX(-4px)}62%,82%{transform:translateX(4px)}94%,100%{transform:translateX(0)}}
+@keyframes luci-z{0%{opacity:0;transform:translate(0,6px) scale(.8)}25%{opacity:1}100%{opacity:0;transform:translate(10px,-20px) scale(1.1)}}
+@keyframes luci-tap{0%,100%{transform:rotate(0)}50%{transform:rotate(-7deg)}}
+@keyframes luci-pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes luci-tilt{0%,100%{transform:rotate(0)}50%{transform:rotate(3deg)}}
+@keyframes luci-bristle{0%{transform:rotate(-2deg)}100%{transform:rotate(2deg)}}
+
+/* Idle: sitting tall */
+.luci-pose-sit .luci-body{animation:luci-breathe 4.5s ease-in-out infinite}
+.luci-pose-sit .luci-eye{animation:luci-blink 6s ease-in-out infinite}
+.luci-pose-sit .luci-ear-r{animation:luci-twitch 7s ease-in-out infinite}
+.luci-pose-sit .luci-tail{animation:luci-sway 5s ease-in-out infinite}
+/* Hello: slow blink (add class luci-hello to the sitting pose) */
+.luci-hello .luci-eye{animation:luci-slowblink 5s ease-in-out infinite}
+.luci-hello .luci-head{animation:luci-tilt 5s ease-in-out infinite}
+/* Avatar head */
+.luci-pose-head .luci-eye{animation:luci-blink 6s ease-in-out infinite}
+.luci-pose-head .luci-ear-l{animation:luci-twitch 8s ease-in-out infinite 2s}
+/* Watching (empty state) */
+.luci-pose-peek .luci-pupil{animation:luci-look 7s ease-in-out infinite}
+.luci-pose-peek .luci-eye{animation:luci-blink 7s ease-in-out infinite 3s}
+.luci-pose-peek .luci-ear-l{animation:luci-twitch 6s ease-in-out infinite 1s}
+/* Measuring (spacing tool) */
+.luci-pose-measure .luci-ruler-line{animation:luci-pulse 1.6s ease-in-out infinite}
+.luci-pose-measure .luci-arm{animation:luci-tap 1.6s ease-in-out infinite}
+.luci-pose-measure .luci-eye{animation:luci-blink 5s ease-in-out infinite}
+/* In the box (capture basket) */
+.luci-pose-box .luci-eye{animation:luci-blink 6s ease-in-out infinite}
+.luci-pose-box .luci-pupil{animation:luci-look 9s ease-in-out infinite 1s}
+.luci-pose-box .luci-ear-r{animation:luci-twitch 5s ease-in-out infinite}
+/* Asleep (loading) */
+.luci-pose-sleep .luci-body{animation:luci-breathe 3.5s ease-in-out infinite}
+.luci-pose-sleep .luci-z1{animation:luci-z 3s ease-out infinite}
+.luci-pose-sleep .luci-z2{animation:luci-z 3s ease-out infinite 1.5s}
+/* Content (success) */
+.luci-pose-content .luci-body{animation:luci-breathe 4s ease-in-out infinite}
+.luci-pose-content .luci-tail{animation:luci-sway 6s ease-in-out infinite}
+.luci-pose-content .luci-ear-r{animation:luci-twitch 6s ease-in-out infinite 2s}
+/* Annoyed (error) */
+.luci-pose-annoyed .luci-tail{animation:luci-lash .9s ease-in-out infinite alternate}
+.luci-pose-annoyed .luci-ear{animation:luci-bristle .35s ease-in-out infinite alternate}
+.luci-pose-annoyed .luci-body{animation:luci-breathe 1.8s ease-in-out infinite}
+/* Turned away (not now) */
+.luci-pose-turned .luci-tail{animation:luci-sway 4s ease-in-out infinite}
+.luci-pose-turned .luci-ear-r{animation:luci-twitch 5s ease-in-out infinite}
+.luci-pose-turned .luci-head{animation:luci-tilt 6s ease-in-out infinite}
+
+/* Tool poses: Pressing, Reading, Swatch, Comparing, Noting, Arranging, Placing, Sketching */
+.luci .luci-button-cap,.luci .luci-highlight,.luci .luci-chip-lift,.luci .luci-tick,.luci .luci-marker,.luci .luci-select-box,.luci .luci-block,.luci .luci-draft{transform-box:fill-box}
+.luci .luci-highlight{transform-origin:0 50%}
+.luci .luci-tick{transform-origin:50% 50%}
+.luci .luci-select-box{transform-origin:0 100%}
+
+@keyframes luci-press{0%,100%{transform:translateY(3px)}50%{transform:translateY(0)}}
+@keyframes luci-select{0%{transform:scaleX(.05);opacity:1}45%,85%{transform:scaleX(1);opacity:1}100%{transform:scaleX(1);opacity:0}}
+@keyframes luci-scan{0%,15%{transform:translateX(-3px)}50%,65%{transform:translateX(3px)}100%{transform:translateX(-3px)}}
+@keyframes luci-lift{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes luci-glance{0%,40%{transform:translateX(-3px)}50%,90%{transform:translateX(3px)}100%{transform:translateX(-3px)}}
+@keyframes luci-pop{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+@keyframes luci-drop{0%{transform:translateY(-8px);opacity:0}20%{opacity:1}35%,85%{transform:translateY(0);opacity:1}100%{transform:translateY(0);opacity:0}}
+@keyframes luci-resize{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+@keyframes luci-settle{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
+@keyframes luci-push{0%,100%{transform:rotate(0)}50%{transform:rotate(5deg)}}
+
+/* Pressing (Component tool) */
+.luci-pose-press .luci-arm{animation:luci-tap 1.6s ease-in-out infinite}
+.luci-pose-press .luci-button-cap{animation:luci-press 1.6s ease-in-out infinite}
+.luci-pose-press .luci-click{animation:luci-pulse 1.6s ease-in-out infinite}
+.luci-pose-press .luci-eye{animation:luci-blink 5s ease-in-out infinite}
+/* Reading (Text tool) */
+.luci-pose-read .luci-highlight{animation:luci-select 3.2s ease-in-out infinite}
+.luci-pose-read .luci-pupil{animation:luci-scan 3.2s ease-in-out infinite}
+.luci-pose-read .luci-eye{animation:luci-blink 6s ease-in-out infinite 2s}
+/* Swatch (Colour tool) */
+.luci-pose-swatch .luci-chip-lift{animation:luci-lift 2s ease-in-out infinite}
+.luci-pose-swatch .luci-arm{animation:luci-tap 2s ease-in-out infinite}
+.luci-pose-swatch .luci-eye{animation:luci-blink 6s ease-in-out infinite}
+/* Comparing (Check) */
+.luci-pose-compare .luci-pupil{animation:luci-glance 4s ease-in-out infinite}
+.luci-pose-compare .luci-tick{animation:luci-pop 4s ease-in-out infinite}
+.luci-pose-compare .luci-head{animation:luci-tilt 6s ease-in-out infinite}
+.luci-pose-compare .luci-tail{animation:luci-sway 5s ease-in-out infinite}
+/* Noting (Feedback: Annotate) */
+.luci-pose-note .luci-marker{animation:luci-drop 3s ease-out infinite}
+.luci-pose-note .luci-arm{animation:luci-tap 3s ease-in-out infinite}
+.luci-pose-note .luci-eye{animation:luci-blink 6s ease-in-out infinite 1s}
+/* Arranging (Layout: Select) */
+.luci-pose-arrange .luci-select-box{animation:luci-resize 2.4s ease-in-out infinite}
+.luci-pose-arrange .luci-ear-r{animation:luci-twitch 6s ease-in-out infinite}
+.luci-pose-arrange .luci-eye{animation:luci-blink 5s ease-in-out infinite}
+/* Placing (Layout: Insert) */
+.luci-pose-place .luci-block{animation:luci-settle 2s ease-in-out infinite}
+.luci-pose-place .luci-arm{animation:luci-push 2s ease-in-out infinite}
+.luci-pose-place .luci-arrow{animation:luci-pulse 2s ease-in-out infinite}
+/* Sketching (Layout: New page) */
+.luci-pose-sketch .luci-draft{animation:luci-pulse 2.4s ease-in-out infinite}
+.luci-pose-sketch .luci-arm{animation:luci-tap 1.2s ease-in-out infinite}
+.luci-pose-sketch .luci-eye{animation:luci-blink 6s ease-in-out infinite}
+
+/* Mode poses: Framing (Capture), Listening (Team Feedback) */
+.luci .luci-frame,.luci .luci-bubble{transform-box:fill-box}
+.luci .luci-frame{transform-origin:50% 50%}
+.luci .luci-bubble{transform-origin:0 100%}
+
+@keyframes luci-focus{0%,100%{transform:scale(1.08)}35%,75%{transform:scale(1)}}
+@keyframes luci-heard-1{0%{opacity:0;transform:translateY(6px)}10%,84%{opacity:1;transform:translateY(0)}94%,100%{opacity:0;transform:translateY(0)}}
+@keyframes luci-heard-2{0%,28%{opacity:0;transform:translateY(6px)}38%,84%{opacity:1;transform:translateY(0)}94%,100%{opacity:0;transform:translateY(0)}}
+
+/* Framing (Capture mode): the pick frame settles on the card, the paw taps it, 4 s */
+.luci-pose-frame .luci-frame{animation:luci-focus 4s ease-in-out infinite}
+.luci-pose-frame .luci-arm{animation:luci-tap 4s ease-in-out infinite}
+.luci-pose-frame .luci-eye{animation:luci-blink 6s ease-in-out infinite 1s}
+.luci-pose-frame .luci-ear-r{animation:luci-twitch 7s ease-in-out infinite}
+/* Listening (Team Feedback mode): two notes arrive in turn, the near ear flicks to the second, 7 s */
+.luci-pose-listen .luci-bubble-1{animation:luci-heard-1 7s ease-in-out infinite}
+.luci-pose-listen .luci-bubble-2{animation:luci-heard-2 7s ease-in-out infinite}
+.luci-pose-listen .luci-ear-r{animation:luci-twitch 7s ease-in-out infinite -4s}
+.luci-pose-listen .luci-body{animation:luci-breathe 4.5s ease-in-out infinite}
+.luci-pose-listen .luci-eye{animation:luci-blink 6s ease-in-out infinite 2s}
+.luci-pose-listen .luci-tail{animation:luci-sway 5s ease-in-out infinite}
+
+@media (prefers-reduced-motion: reduce){.luci *{animation:none!important}}
