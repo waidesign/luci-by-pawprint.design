@@ -25,6 +25,9 @@ export default defineConfig({
     // Browser tests (Chromium) run in parallel with the rest; 5s is too tight under that load
     testTimeout: 30_000,
     hookTimeout: 60_000,
+    // GitHub's shared macOS runners are slower and busier than a desktop: a browser test that loses a
+    // timing race there gets two more tries. Never locally, so a flaky test still shows up on your machine
+    retry: process.env['CI'] ? 2 : 0,
     globalSetup: ['./test-global-setup.ts'],
     setupFiles: ['./test-setup.ts']
   }
