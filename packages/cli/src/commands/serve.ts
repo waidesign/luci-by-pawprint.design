@@ -2,13 +2,16 @@ import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import { PRODUCT } from '@luci-dev/format';
 import { findProjectRoot } from '@luci-dev/brain';
-import { DEFAULT_PORT, startBridge } from '../serve/bridge.js';
+import { DEFAULT_PORT, EXTENSION_ID, startBridge } from '../serve/bridge.js';
 import { isHelp, type Command } from '../context.js';
 import { cliVersion } from '../version.js';
 import { findToolbarTarget, manualToolbarHelp, toolbarInstalledIn } from '../toolbarSetup.js';
 import { offerToolbar } from './toolbar.js';
 
-export const SERVE_HELP = `serve [--port <n>]      Connect the dev toolbar to this project (feedback and captures in ${PRODUCT.projectDir}/)`;
+export const SERVE_HELP = `serve [--port <n>] [--allow-extension <id>]
+                        Connect the dev toolbar to this project (feedback and captures in ${PRODUCT.projectDir}/).
+                        It answers pages on this machine and Luci's extension from the Chrome Web Store;
+                        --allow-extension adds a build you loaded yourself (its ID is in chrome://extensions)`;
 
 /** The dev toolbar's browser script, from the @luci-dev/toolbar package; null until it is built. */
 export function toolbarScriptPath(): string | null {
@@ -26,11 +29,19 @@ export const serveCommand: Command = async (args, ctx) => {
     return 0;
   }
   let port = DEFAULT_PORT;
+  const extensionIds: string[] = [];
   for (let i = 0; i < args.length; i++) {
     const arg = args[i]!;
     if (arg === '--port' && /^\d+$/.test(args[i + 1] ?? '')) port = Number(args[++i]);
     else if (/^--port=\d+$/.test(arg)) port = Number(arg.slice(7));
-    else {
+    else if (arg === '--allow-extension' || arg.startsWith('--allow-extension=')) {
+      const id = arg.includes('=') ? arg.slice(arg.indexOf('=') + 1) : args[++i] ?? '';
+      if (!EXTENSION_ID.test(id)) {
+        ctx.err(`Not an extension ID: ${id || '(none)'}. Copy it from chrome://extensions (32 letters, a to p).`);
+        return 1;
+      }
+      extensionIds.push(id.toLowerCase());
+    } else {
       ctx.err(`Unknown option: ${arg}\nUsage: ${PRODUCT.command} ${SERVE_HELP}`);
       return 1;
     }
@@ -44,6 +55,7 @@ export const serveCommand: Command = async (args, ctx) => {
       projectDir: root,
       port,
       version: cliVersion(),
+      extensionIds,
       toolbarScript: () => { const f = toolbarScriptPath(); return f ? fs.readFileSync(f, 'utf8') : null; }
     });
   } catch (err) {
@@ -66,7 +78,7 @@ export const serveCommand: Command = async (args, ctx) => {
     for (const line of manualToolbarHelp(servedOn).slice(1, 2)) ctx.out(line);
   }
   ctx.out(`Feedback goes to ${PRODUCT.projectDir}/feedback/, captures you save to ${PRODUCT.projectDir}/design/. Your agent reads them with ${PRODUCT.mcpServer}.`);
-  ctx.out('Only pages on this machine can reach it. Press Ctrl+C to stop.');
+  ctx.out(`Only pages on this machine and Luci's extension can reach it${extensionIds.length ? ` (also the extension${extensionIds.length === 1 ? '' : 's'} you allowed: ${extensionIds.join(', ')})` : ''}. Press Ctrl+C to stop.`);
 
   await new Promise<void>(resolve => {
     const stop = () => resolve();

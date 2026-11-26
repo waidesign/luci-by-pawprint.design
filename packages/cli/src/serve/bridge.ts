@@ -4,7 +4,8 @@
  * .luci/design/, the same files luci-mcp serves to the agent. It also serves the toolbar script.
  *
  * Safety: it listens on 127.0.0.1 only; the Host header must name it (no DNS rebinding); browsers
- * may call it only from a page on this machine (localhost, 127.0.0.1, [::1], *.localhost); every
+ * may call it only from a page on this machine (localhost, 127.0.0.1, [::1], *.localhost) or from
+ * Luci's own extension (other extension IDs only with --allow-extension); every
  * write needs a JSON body and the X-Luci header, which a page can only send after the CORS check.
  * It reads and writes nothing outside .luci/feedback/ and .luci/design/.
  */
@@ -33,6 +34,8 @@ export interface BridgeOptions {
   toolbarScript?: () => string | null;
   /** Luci's version, for /health. */
   version?: string;
+  /** More browser extensions to answer, by ID, besides Luci's own (an unpacked build has an ID of its own). */
+  extensionIds?: readonly string[];
 }
 
 export interface Bridge {
@@ -53,19 +56,31 @@ export function isLoopbackOrigin(origin: string): boolean {
   }
 }
 
-/** An origin of a browser extension: chrome-extension:, moz-extension:, or safari-web-extension:. */
-export function isExtensionOrigin(origin: string): boolean {
+/**
+ * Luci's own extension: its Chrome Web Store ID (Chrome and Edge install it from there). Another
+ * extension, or a copy someone built and loaded unpacked (it gets an ID of its own), is answered only
+ * when `luci serve --allow-extension <id>` names it.
+ */
+export const LUCI_EXTENSION_IDS: readonly string[] = ['hjgfoiecmdjankhmifdicejiolnfkfmn'];
+
+/** An extension ID as browsers write them: Chrome's 32 letters a-p, or Firefox and Safari's UUIDs. */
+export const EXTENSION_ID = /^(?:[a-p]{32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
+
+/** An origin of one of the allowed browser extensions (chrome-extension:, moz-extension: or safari-web-extension:). */
+export function isExtensionOrigin(origin: string, allowedIds: readonly string[] = LUCI_EXTENSION_IDS): boolean {
   try {
     const u = new URL(origin);
-    return u.protocol === 'chrome-extension:' || u.protocol === 'moz-extension:' || u.protocol === 'safari-web-extension:';
+    if (u.protocol !== 'chrome-extension:' && u.protocol !== 'moz-extension:' && u.protocol !== 'safari-web-extension:') return false;
+    const id = u.hostname.toLowerCase();
+    return allowedIds.some(a => a.toLowerCase() === id);
   } catch {
     return false;
   }
 }
 
-/** An origin allowed to call the bridge: local pages or browser extensions. */
-export function isAllowedOrigin(origin: string): boolean {
-  return isLoopbackOrigin(origin) || isExtensionOrigin(origin);
+/** An origin allowed to call the bridge: local pages, or Luci's extension (and any extension IDs allowed). */
+export function isAllowedOrigin(origin: string, allowedIds: readonly string[] = LUCI_EXTENSION_IDS): boolean {
+  return isLoopbackOrigin(origin) || isExtensionOrigin(origin, allowedIds);
 }
 
 /**
@@ -195,6 +210,8 @@ export function startBridge(options: BridgeOptions): Promise<Bridge> {
   const design = new DesignStore(options.projectDir);
   const checks = new CheckStore(options.projectDir);
   const resolveServer = serverResolver(options.projectDir);
+  const extensionIds = [...LUCI_EXTENSION_IDS, ...(options.extensionIds ?? [])];
+  const allowed = (o: string) => isAllowedOrigin(o, extensionIds);
   let port = options.port ?? DEFAULT_PORT;
   let cachedModified: { at: number; value?: string } | null = null;
   const lastModifiedAt = () => {
@@ -209,7 +226,7 @@ export function startBridge(options: BridgeOptions): Promise<Bridge> {
     const origin = req.headers.origin;
     const send = (status: number, body: unknown, type = 'application/json; charset=utf-8') => {
       const headers: Record<string, string> = { 'content-type': type, 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' };
-      if (origin && isAllowedOrigin(origin)) {
+      if (origin && allowed(origin)) {
         Object.assign(headers, {
           'access-control-allow-origin': origin,
           vary: 'Origin',
@@ -226,7 +243,11 @@ export function startBridge(options: BridgeOptions): Promise<Bridge> {
       // DNS rebinding: a page on another name that resolves to 127.0.0.1 has that name in Host
       const host = (req.headers.host ?? '').toLowerCase();
       if (host !== `127.0.0.1:${port}` && host !== `localhost:${port}`) throw new HttpError(403, 'Unknown host.');
-      if (origin && !isAllowedOrigin(origin)) throw new HttpError(403, `${PRODUCT.name} only answers pages on this machine or browser extensions.`);
+      if (origin && !allowed(origin)) {
+        throw new HttpError(403, isExtensionOrigin(origin, [new URL(origin).hostname])
+          ? `${PRODUCT.name} only answers its own browser extension. For a build you loaded yourself, start \`${PRODUCT.command} serve --allow-extension ${new URL(origin).hostname}\`.`
+          : `${PRODUCT.name} only answers pages on this machine and its own browser extension.`);
+      }
       if (req.method === 'OPTIONS') { send(204, ''); return; }
 
       const url = new URL(req.url ?? '/', `http://127.0.0.1:${port}`);

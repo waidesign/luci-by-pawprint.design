@@ -14,6 +14,7 @@ All notable changes to Luci will be documented in this file.
 - **84 fixes** from a full review: capture accuracy, the extension, the dev toolbar, the CLI and the MCP server, plus privacy and safety (below).
 
 ### Privacy & Safety
+- **`luci serve` answers only Luci's own extension:** other browser extensions can no longer read your notes and captures through it. A copy of the extension you built yourself is allowed with `luci serve --allow-extension <id>`.
 - **Project path stays private:** the toolbar's settings show the project's folder name and `luci serve`'s address, never the full path on disk, because the page Luci runs on can read the toolbar's text.
 
 ### CLI & Packaging

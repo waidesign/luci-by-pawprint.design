@@ -22,7 +22,9 @@ from a browser:
 
 - **`luci serve`** (the bridge between the browser and your project) listens on `127.0.0.1` only. It
   answers only requests whose Host is `127.0.0.1` or `localhost` (against DNS rebinding), only pages on
-  this machine or browser extensions (CORS), and every write needs a JSON body and the `x-luci` header.
+  this machine and Luci's own extension (by its Chrome Web Store ID; another extension only when you
+  start it with `--allow-extension <id>`), and every write needs a JSON body and the `x-luci` header.
+  Programs running on your computer can reach it like any local server, as they can reach your files.
   It reads and writes only inside the project's `.luci/feedback/` and `.luci/design/`, by strict file
   names, and reads source maps inside the project to find source lines.
 - **The dev toolbar loader** that `luci toolbar` adds to your app runs only on `localhost`,

@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import { CheckStore, FeedbackStore, initProject } from '@luci-dev/brain';
 import { SkillRegistry } from '@luci-dev/skills';
-import { isAllowedOrigin, isExtensionOrigin, isLoopbackOrigin, relativeSource, startBridge, type Bridge } from '../src/serve/bridge.js';
+import { LUCI_EXTENSION_IDS, isAllowedOrigin, isExtensionOrigin, isLoopbackOrigin, relativeSource, startBridge, type Bridge } from '../src/serve/bridge.js';
 import { run } from '../src/index.js';
 import { fakeContext, tempProject } from './helpers.js';
 
@@ -197,8 +197,8 @@ describe('luci serve: the bridge (M6.3)', () => {
     expect((await request(bridge, 'POST', '/feedback', { body: { ...body, comment: '' } })).status).toBe(400);
     expect(new FeedbackStore(dir).list()).toEqual([]);
 
-    // Browser extension origin: allowed with CORS headers
-    const extOrigin = 'chrome-extension://abcdefghijklm';
+    // Luci's own extension (its Chrome Web Store ID): allowed with CORS headers
+    const extOrigin = `chrome-extension://${LUCI_EXTENSION_IDS[0]}`;
     const ext = await request(bridge, 'POST', '/feedback', { body, headers: { origin: extOrigin } });
     expect(ext.status).toBe(201);
     expect(ext.headers['access-control-allow-origin']).toBe(extOrigin);
@@ -207,21 +207,50 @@ describe('luci serve: the bridge (M6.3)', () => {
     expect(extPre.status).toBe(204);
     expect(extPre.headers['access-control-allow-origin']).toBe(extOrigin);
 
+    // Any other extension is refused, and told how to allow a build of Luci's own (security, 2026-11-26)
+    const other = 'chrome-extension://abcdefghijklmnopabcdefghijklmnop';
+    const refused = await request(bridge, 'GET', '/feedback', { headers: { origin: other } });
+    expect(refused.status).toBe(403);
+    expect(refused.headers['access-control-allow-origin']).toBeUndefined();
+    expect(String(refused.json().error)).toContain('--allow-extension abcdefghijklmnopabcdefghijklmnop');
+
     expect(isLoopbackOrigin('http://localhost:3000')).toBe(true);
     expect(isLoopbackOrigin('http://app.localhost:3000')).toBe(true);
     expect(isLoopbackOrigin('http://[::1]:8080')).toBe(true);
     expect(isLoopbackOrigin('http://localhost.evil.example')).toBe(false);
     expect(isLoopbackOrigin('null')).toBe(false);
 
-    expect(isExtensionOrigin('chrome-extension://abcdefghijklm')).toBe(true);
-    expect(isExtensionOrigin('moz-extension://1234-5678')).toBe(true);
-    expect(isExtensionOrigin('safari-web-extension://1234-5678')).toBe(true);
+    expect(isExtensionOrigin('chrome-extension://hjgfoiecmdjankhmifdicejiolnfkfmn')).toBe(true);
+    expect(isExtensionOrigin('chrome-extension://abcdefghijklm')).toBe(false);
+    expect(isExtensionOrigin('moz-extension://1234-5678')).toBe(false);
+    expect(isExtensionOrigin('moz-extension://1234-5678', ['1234-5678'])).toBe(true);
+    expect(isExtensionOrigin('safari-web-extension://1234-5678', ['1234-5678'])).toBe(true);
     expect(isExtensionOrigin('https://example.com')).toBe(false);
     expect(isExtensionOrigin('invalid-url')).toBe(false);
 
     expect(isAllowedOrigin('http://localhost:3000')).toBe(true);
-    expect(isAllowedOrigin('chrome-extension://abcdefghijklm')).toBe(true);
+    expect(isAllowedOrigin('chrome-extension://hjgfoiecmdjankhmifdicejiolnfkfmn')).toBe(true);
+    expect(isAllowedOrigin('chrome-extension://abcdefghijklm')).toBe(false);
     expect(isAllowedOrigin('https://evil.example')).toBe(false);
+  });
+
+  it('answers another extension only when it is allowed by ID (an unpacked build of Luci)', async () => {
+    const dir = tempProject({ 'package.json': JSON.stringify({ name: 'shop' }) });
+    await initProject(dir, { registry: new SkillRegistry({ user: false }) });
+    const unpacked = 'abcdefghijklmnopabcdefghijklmnop';
+    const bridge = await startBridge({ projectDir: dir, port: 0, extensionIds: [unpacked] });
+    bridges.push(bridge);
+    const res = await request(bridge, 'GET', '/feedback', { headers: { origin: `chrome-extension://${unpacked}` } });
+    expect(res.status).toBe(200);
+    expect(res.headers['access-control-allow-origin']).toBe(`chrome-extension://${unpacked}`);
+    expect((await request(bridge, 'GET', '/feedback', { headers: { origin: `chrome-extension://${LUCI_EXTENSION_IDS[0]}` } })).status).toBe(200);
+  });
+
+  it('luci serve --allow-extension checks the ID', async () => {
+    const dir = tempProject({ 'package.json': JSON.stringify({ name: 'shop' }) });
+    const f = fakeContext(dir);
+    expect(await run(['serve', '--allow-extension', 'not-an-id'], f.ctx)).toBe(1);
+    expect(f.errors()).toContain('Not an extension ID: not-an-id');
   });
 
   it('makes absolute source paths inside the project relative (Vite /@fs paths, React 18 _debugSource)', async () => {

@@ -34,7 +34,7 @@ Run these in your project folder. With Luci installed (`npm install -g @luci-dev
 
 | Command | What it does |
 | :--- | :--- |
-| `luci serve` | Connect the dev toolbar to this project, so notes and captures go into `.luci/`. Leave it running while you work. `--port <n>` picks the port (default 4545). |
+| `luci serve` | Connect the dev toolbar to this project, so notes and captures go into `.luci/`. Leave it running while you work. `--port <n>` picks the port (default 4545). It answers only pages on this machine and Luci's extension from the Chrome Web Store; `--allow-extension <id>` adds a copy of the extension you built and loaded yourself (its ID is under Luci in `chrome://extensions`). |
 | `luci toolbar` | Add the dev toolbar to your app's root HTML or layout (or `.storybook/preview-body.html` in a Storybook repo). It only loads on this machine, while `luci serve` runs. |
 | `luci toolbar --storybook` | Target `.storybook/preview-body.html` explicitly when your repo has both an app and Storybook. |
 | `luci toolbar remove` | Take it out again (`--storybook` removes it from Storybook). |
