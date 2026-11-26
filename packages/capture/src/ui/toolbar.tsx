@@ -1137,13 +1137,15 @@ export function Toolbar(props: ToolbarProps) {
   // Connected project info (v0.4.4): active project name from luci serve /health
   const [activeProject, setActiveProject] = useState<{ project?: string; name?: string; url?: string; initialized?: boolean } | null>(null);
   const [bridgePortInput, setBridgePortInput] = useState('');
+  // Until the first answer, the card says it is checking (not "Not connected", which may be wrong)
+  const [projectChecked, setProjectChecked] = useState(!props.projectInfo?.get);
 
   const refreshProject = () => {
     if (props.projectInfo?.get) {
       props.projectInfo.get().then(info => {
         setActiveProject(info);
         if (info?.url) setBridgePortInput(info.url);
-      }).catch(() => { setActiveProject(null); });
+      }).catch(() => { setActiveProject(null); }).finally(() => setProjectChecked(true));
     }
   };
 
@@ -1609,7 +1611,9 @@ export function Toolbar(props: ToolbarProps) {
               <div class="project-header">
                 <span class={`status-dot ${!activeProject?.project ? 'offline' : (activeProject.initialized === false ? 'warning' : 'online')}`} aria-hidden="true"></span>
                 <div class="project-info">
-                  {activeProject?.project ? (
+                  {!projectChecked ? (
+                    <span class="project-name" data-part="project-checking">Checking the connection…</span>
+                  ) : activeProject?.project ? (
                     activeProject.initialized === false ? (
                       <>
                         <span class="project-name">Connected, but this folder isn't set up for Luci. Run <code>luci init</code> in your project folder.</span>

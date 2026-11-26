@@ -483,6 +483,8 @@ describe('connecting later', { timeout: 60_000 }, () => {
       await page.locator('[data-part="connection"]:text-is("Project")').waitFor();
       expect(new FeedbackStore(dir).list().map(i => i.comment)).toContain('Offline note before connect');
       await page.click('[data-action="settings"]');
+      // It says it is checking until luci serve answers, never a wrong "Not connected" (failed on CI's Mac, 2026-11-26)
+      await page.locator('[data-part="project-checking"]').waitFor({ state: 'detached' });
       expect(await page.locator('[data-part="connected-project"] .project-name').innerText()).toBe('Connected to ' + path.basename(dir));
       await page.keyboard.press('Escape');
       await annotate(page, 'main a.cta', 'Saved in the project now');

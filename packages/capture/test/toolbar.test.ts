@@ -819,6 +819,8 @@ describe('extension branding, settings panel and the brand kit themes', { timeou
     // Verify connected project card in settings
     await page.click('[data-action="settings"]');
     await page.locator('[data-part="connected-project"]').waitFor();
+    // It says it is checking until luci serve answers, never a wrong "Not connected" (flaky on CI, 2026-11-26)
+    await page.locator('[data-part="project-checking"]').waitFor({ state: 'detached' });
     expect(await page.locator('[data-part="connected-project"] .project-name').innerText()).toBe('Connected to my-app');
     // The folder name and luci serve's address, never the full path: the page can read the toolbar (privacy, 2026-11-26)
     expect(await page.locator('[data-part="connected-project"] .project-path').innerText()).toBe('my-app · 127.0.0.1:4545');
@@ -844,6 +846,7 @@ describe('extension branding, settings panel and the brand kit themes', { timeou
 
     await page.click('[data-action="settings"]');
     await page.locator('[data-part="connected-project"]').waitFor();
+    await page.locator('[data-part="project-checking"]').waitFor({ state: 'detached' });
     expect(await page.locator('[data-part="connected-project"] .status-dot.warning').count()).toBe(1);
     expect(await page.locator('[data-part="connected-project"] .project-name').innerText()).toContain("Connected, but this folder isn't set up for Luci. Run luci init in your project folder.");
     expect(await page.locator('[data-part="connected-project"] .project-name code').innerText()).toBe("luci init");
