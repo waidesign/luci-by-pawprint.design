@@ -42,6 +42,7 @@ luci serve
 
 Once installed, open your running app in **Chrome** or **Edge** on this machine: Luci's button appears in the bottom corner. (`luci-dev` also works as an alias for `luci`.)
 
+* **Chrome extension:** to capture designs and collect team feedback on any website, [add Luci to Chrome](https://chromewebstore.google.com/detail/luci/hjgfoiecmdjankhmifdicejiolnfkfmn) (works in Edge too).
 * **Without installing (CI or one-off runs):** `npx @luci-dev/cli@latest <command>`
 * **Windows note:** if PowerShell blocks `luci` (`luci.ps1`), use **Command Prompt** or run `luci.cmd` instead. (Changing the PowerShell execution policy is an advanced option and never required.)
 
@@ -102,7 +103,7 @@ Check which version you have with `luci --version`. The newest is on [npm](https
 - Only injects the exact skills needed for the active task—preserving context window tokens.
 
 ### 3. Capture (`@luci-dev/capture` & Extension)
-- Available in the dev toolbar (`luci serve`) or as a Chrome extension (Manifest V3, tested in Chrome and Edge).
+- Available in the dev toolbar (`luci serve`) or as a Chrome extension (Manifest V3, tested in Chrome and Edge): **[Add to Chrome](https://chromewebstore.google.com/detail/luci/hjgfoiecmdjankhmifdicejiolnfkfmn)**.
 - Inspect your running app or any live page:
   - **Component Picker**: Captures HTML anatomy, Tailwind tokens, or CSS variables.
   - **States**: Detects `:hover`, `:focus-visible`, and `:active` styles.

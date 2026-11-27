@@ -7,7 +7,11 @@ Luci on any site, for Chrome and Edge (Manifest V3, built with WXT). Click Luci'
 
 On a Storybook page, the toolbar opens inside the story's canvas.
 
-## Build and load
+## Install
+
+[Add Luci to Chrome](https://chromewebstore.google.com/detail/luci/hjgfoiecmdjankhmifdicejiolnfkfmn) from the Chrome Web Store (Edge installs it from there too). `luci serve` answers this copy with no extra setup.
+
+## Build and load it yourself
 
 1. `pnpm --filter @luci-dev/extension build` (needs Node 22 or later; the `luci` command itself runs on Node 18).
 2. In Chrome, open `chrome://extensions`, turn on Developer mode, choose **Load unpacked**, and pick `packages/extension/.output/chrome-mv3`.
